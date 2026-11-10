@@ -1,3 +1,4 @@
+import type { AccessTokenClaims } from '@xpert-ai/contracts'
 import {
     ArtifactLinkDisposition,
     ArtifactLinkRecord,
@@ -53,11 +54,7 @@ export type ArtifactRepositories = {
     link: Repository<ArtifactLink>
 }
 
-export type ArtifactJwtPayload = {
-    id?: string
-    tenantId?: string
-    thirdPartyId?: string
-}
+export type ArtifactJwtPayload = Partial<Pick<AccessTokenClaims, 'id' | 'tenantId' | 'thirdPartyId'>>
 
 export type ArtifactShareSessionPayload = {
     purpose: 'artifact_share'

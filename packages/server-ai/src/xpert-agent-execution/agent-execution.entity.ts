@@ -1,5 +1,6 @@
 import { StoredMessage } from '@langchain/core/messages'
 import {
+    ExecutionUsageSummary,
     IXpert,
     IXpertAgentExecution,
     TAgentExecutionMetadata,
@@ -122,17 +123,23 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
     @Column({ type: 'double precision', nullable: true })
     responseLatency?: number
 
+    @ApiPropertyOptional({ type: () => Object })
+    @IsOptional()
+    @IsObject()
+    @Column({ type: 'jsonb', nullable: true })
+    usageSummary?: ExecutionUsageSummary | null
+
     @ApiProperty({ type: () => Number })
     @IsNumber()
     @IsOptional()
     @Column({ type: 'numeric', precision: 20, scale: 7, nullable: true, transformer: numericNumberTransformer })
-    totalPrice?: number
+    totalPrice?: number | null
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()
-    @Column({ length: 20, nullable: true })
-    currency?: string
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    currency?: string | null
 
     @ApiProperty({ type: () => Number })
     @IsNumber()

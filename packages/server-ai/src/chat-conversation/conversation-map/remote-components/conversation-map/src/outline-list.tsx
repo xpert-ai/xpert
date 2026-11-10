@@ -5,7 +5,7 @@ import type { MapNode } from '../../../schema'
 import type { Labels } from './i18n'
 import type { OutlineEntry } from './layout'
 import { icons, NodeMenu, NodeQuickActions, type NodeAction } from './graph'
-import { NodeUpdatedAt } from './node-details'
+import { NodeUpdatedAt, MessageMetadata, messageCaption } from './node-details'
 
 export function OutlineList({
     entries,
@@ -40,16 +40,28 @@ export function OutlineList({
                     node.kind === 'turn' &&
                     node.answer &&
                     (!query || !node.preview.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
-                const excerpt =
-                    (showAnswer ? node.answer : node.kind === 'turn' ? node.preview : node.lastHumanMessage?.text) ||
-                    (node.lastHumanMessage || node.kind === 'turn' ? l.nonTextMessage : l.noHumanMessage)
-                const caption = showAnswer
-                    ? l.aiReply
-                    : node.kind === 'turn'
-                      ? l.humanMessage
-                      : node.kind === 'conversation'
-                        ? l.currentBranchQuestion
-                        : l.lastHumanMessage
+                const counted = node.kind === 'conversation' && node.messageCount !== undefined
+                const excerpt = counted
+                    ? `${node.messageCount} ${l.messageCount}`
+                    : (showAnswer
+                          ? node.answer
+                          : node.kind === 'turn' || node.kind === 'message'
+                            ? node.preview
+                            : node.lastHumanMessage?.text) ||
+                      (node.lastHumanMessage || node.kind === 'turn' || node.kind === 'message'
+                          ? l.nonTextMessage
+                          : l.noHumanMessage)
+                const caption = counted
+                    ? l.loadedMessages
+                    : node.kind === 'message'
+                      ? messageCaption(node, l)
+                      : showAnswer
+                        ? l.aiReply
+                        : node.kind === 'turn'
+                          ? l.humanMessage
+                          : node.kind === 'conversation'
+                            ? l.currentBranchQuestion
+                            : l.lastHumanMessage
                 const ContextIcon = showAnswer ? Bot : UserRound
                 const inherited = node.shared || node.lastHumanMessage?.inherited
                 const path = query
@@ -192,6 +204,9 @@ export function OutlineList({
                                     {caption}: {excerpt}
                                 </TooltipContent>
                             </Tooltip>
+                        </div>
+                        <div className="pl-14">
+                            <MessageMetadata node={node} labels={l} />
                         </div>
                         {path && (
                             <Tooltip>

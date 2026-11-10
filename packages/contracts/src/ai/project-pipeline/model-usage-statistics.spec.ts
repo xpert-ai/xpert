@@ -19,7 +19,7 @@ const fact = (patch: Partial<PipelineModelUsageFact> = {}): PipelineModelUsageFa
 })
 
 describe('linked model-call statistics', () => {
-  it('counts overlapping parent/task links once, uses the latest revision and keeps provider scopes and currencies distinct', () => {
+  it('counts overlapping parent/task links once, uses the latest revision and keeps provider scopes distinct and exposes posted points', () => {
     const result = pipelineModelUsageStatistics(
       [
         fact(),
@@ -28,13 +28,12 @@ describe('linked model-call statistics', () => {
         fact({ providerScopeId: 'other', priceCurrency: 'CNY', priceAmount: 1 }),
         fact({ requestId: 'unpriced', pricingStatus: 'unpriced', priceAmount: null })
       ],
-      coverage
+      coverage,
+      0.75
     )
     expect(result).toMatchObject({ calls: 3, totalTokens: 320, inputTokens: 240, unpricedCalls: 1 })
-    expect(result.costs).toEqual([
-      { currency: 'CNY', amount: 1, calls: 1 },
-      { currency: 'USD', amount: 0.2, calls: 1 }
-    ])
+    expect(result.chargedPoints).toBe(0.75)
+    expect(result).not.toHaveProperty('costs')
     expect(result.byModel).toEqual([
       { provider: 'provider', model: 'model', calls: 3, inputTokens: 240, outputTokens: 60, totalTokens: 320 }
     ])
@@ -44,7 +43,7 @@ describe('linked model-call statistics', () => {
       calls: 0,
       totalTokens: null,
       inputTokens: null,
-      costs: []
+      chargedPoints: null
     })
     expect(
       pipelineModelUsageStatistics(
@@ -59,7 +58,7 @@ describe('linked model-call statistics', () => {
       inputTokens: null,
       totalTokens: 200,
       unpricedCalls: 1,
-      costs: [{ currency: 'USD', amount: 0, calls: 1 }]
+      chargedPoints: null
     })
   })
 })

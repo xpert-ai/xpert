@@ -1,38 +1,39 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm';
-import { IEmail, IEmailTemplate, IUser } from '@xpert-ai/contracts';
-import {
-	EmailTemplate,
-	TenantOrganizationBaseEntity,
-	User
-} from '../core/entities/internal';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import { BeforeInsert, Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
+import { EmailTemplateEnum, IEmail, IEmailTemplate, IUser } from '@xpert-ai/contracts'
+import { EmailTemplate, TenantOrganizationBaseEntity, User } from '../core/entities/internal'
 
 @Entity('email_sent')
 export class Email extends TenantOrganizationBaseEntity implements IEmail {
-	
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
 	@Index()
 	@Column()
-	name: string;
+	name: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column()
-	content: string;
+	content: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsNotEmpty()
 	@Column()
-	email: string;
+	email: string
+
+	/** The rendered reset link goes to the recipient. Keep only delivery metadata in the sent-mail archive. */
+	@BeforeInsert()
+	omitPasswordResetBody() {
+		if (this.emailTemplate?.name === `${EmailTemplateEnum.PASSWORD_RESET}/html`) this.content = ''
+	}
 
 	@ApiPropertyOptional({ type: () => Boolean })
 	@IsBoolean()
 	@Column({ nullable: true })
-	isArchived?: boolean;
+	isArchived?: boolean
 
 	/*
     |--------------------------------------------------------------------------
@@ -46,7 +47,7 @@ export class Email extends TenantOrganizationBaseEntity implements IEmail {
 		onDelete: 'CASCADE'
 	})
 	@JoinColumn()
-	user?: IUser;
+	user?: IUser
 
 	@ApiProperty({ type: () => String })
 	@RelationId((it: Email) => it.user)
@@ -54,7 +55,7 @@ export class Email extends TenantOrganizationBaseEntity implements IEmail {
 	@IsOptional()
 	@Index()
 	@Column({ nullable: true })
-	userId?: string;
+	userId?: string
 
 	/**
 	 * Email Template
@@ -64,12 +65,12 @@ export class Email extends TenantOrganizationBaseEntity implements IEmail {
 		nullable: false,
 		onDelete: 'CASCADE'
 	})
-	emailTemplate: IEmailTemplate;
+	emailTemplate: IEmailTemplate
 
 	@ApiPropertyOptional({ type: () => String })
 	@RelationId((it: Email) => it.emailTemplate)
 	@IsString()
 	@IsNotEmpty()
 	@Column({ nullable: false })
-	emailTemplateId: string;
+	emailTemplateId: string
 }

@@ -221,7 +221,7 @@ export function BosiOnboarding({
                                 : 'Run local commands with the existing command approvals.'
                             )
                           : key === 'desktop-shell' && !shell?.available
-                            ? t('Desktop Shell requires the native macOS app.')
+                            ? t('Desktop Shell requires the native macOS or Windows app.')
                             : option?.reason || t('This capability is unavailable on this server.')}
                       </p>
                     </div>

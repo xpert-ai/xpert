@@ -25,6 +25,10 @@ export class ProjectProvisioningRuntimeService implements ProjectProvisioningApi
         return this.conversations.confirm(input)
     }
 
+    assertRestorable(input: Parameters<NonNullable<ProjectProvisioningApi['assertRestorable']>>[0]) {
+        return this.projects.assertRestorable(input)
+    }
+
     purge(input: Parameters<NonNullable<ProjectProvisioningApi['purge']>>[0]) {
         return this.projects.purge(input)
     }

@@ -85,7 +85,7 @@ import { XpertProjectApiService } from './project-api.service'
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.QueueP95' | translate }}</th>
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.HumanWait' | translate }}</th>
                 <th class="pr-4">{{ 'XP.XProject.Portfolio.Tokens' | translate }}</th>
-                <th>{{ 'XP.XProject.Portfolio.Cost' | translate }}</th>
+                <th>{{ 'XP.Copilot.MembershipPointsUsed' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -119,13 +119,9 @@ import { XpertProjectApiService } from './project-api.service'
                   </td>
                   <td class="pr-4">{{ row.modelUsage?.totalTokens ?? '—' }}</td>
                   <td>
-                    @for (cost of row.modelUsage?.costs ?? []; track cost.currency) {
-                      <span class="block whitespace-nowrap"
-                        >{{ cost.currency }} {{ cost.amount | number: '1.2-6' }}</span
-                      >
-                    } @empty {
-                      —
-                    }
+                    {{
+                      row.modelUsage?.chargedPoints == null ? '—' : (row.modelUsage.chargedPoints | number: '1.0-10')
+                    }}
                     @if (row.modelUsage?.unpricedCalls) {
                       <span class="block text-xs text-text-tertiary">{{
                         'XP.XProject.Portfolio.Partial' | translate
@@ -166,9 +162,8 @@ import { XpertProjectApiService } from './project-api.service'
                         unpriced: usage.unpricedCalls
                       }
               }}
-              @for (cost of usage.costs; track cost.currency) {
-                · {{ cost.currency }} {{ cost.amount | number: '1.2-6' }}
-              }
+              · {{ 'XP.Copilot.MembershipPointsUsed' | translate }}
+              {{ usage.chargedPoints == null ? '—' : (usage.chargedPoints | number: '1.0-10') }}
             </p>
             @if (usage.truncated || usage.rejectedRecords) {
               <p>{{ 'XP.XProject.Portfolio.IncompleteUsage' | translate }}</p>

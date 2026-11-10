@@ -55,12 +55,14 @@ export function DisplaySettings({
     prefs,
     update,
     segments = false,
-    nodeStyles = true
+    nodeStyles = true,
+    history = true
 }: {
     labels: Labels
     prefs: Prefs
     update: (change: Partial<Prefs>) => void
     segments?: boolean
+    history?: boolean
     nodeStyles?: boolean
 }) {
     const id = useId()
@@ -103,7 +105,7 @@ export function DisplaySettings({
                         </RadioGroup>
                     </fieldset>
                 )}
-                {!segments && (
+                {history && !segments && (
                     <div className="flex items-center gap-2 border-t pt-4">
                         <Checkbox
                             id={`${id}-shared`}
@@ -113,14 +115,16 @@ export function DisplaySettings({
                         <Label htmlFor={`${id}-shared`}>{l.shared}</Label>
                     </div>
                 )}
-                <div className="flex items-center gap-2">
-                    <Checkbox
-                        id={`${id}-history`}
-                        checked={prefs.showHistory}
-                        onCheckedChange={(value) => update({ showHistory: value === true })}
-                    />
-                    <Label htmlFor={`${id}-history`}>{l.history}</Label>
-                </div>
+                {history && (
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id={`${id}-history`}
+                            checked={prefs.showHistory}
+                            onCheckedChange={(value) => update({ showHistory: value === true })}
+                        />
+                        <Label htmlFor={`${id}-history`}>{l.history}</Label>
+                    </div>
+                )}
             </PopoverContent>
         </Popover>
     )

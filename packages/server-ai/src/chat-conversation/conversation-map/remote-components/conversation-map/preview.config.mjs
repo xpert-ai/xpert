@@ -125,9 +125,41 @@ export default {
             return {
                 data: {
                     item: {
-                        nodes,
+                        nodes: nodes.map((node) => ({
+                            ...node,
+                            capabilities: [
+                                'locate',
+                                'copy',
+                                ...(node.kind === 'turn' ? ['branch', 'inspect'] : ['rename', 'side-chat'])
+                            ]
+                        })),
+                        scope: { kind: 'assistant', id: 'preview-assistant', title: '采购优化' },
+                        edges: nodes.flatMap((node) => [
+                            ...(node.parentId
+                                ? [
+                                      {
+                                          id: `contains:${node.id}`,
+                                          source: node.parentId,
+                                          target: node.id,
+                                          kind: 'contains'
+                                      }
+                                  ]
+                                : []),
+                            ...(node.parentThreadId
+                                ? [
+                                      {
+                                          id: `branch:${node.id}`,
+                                          source: `thread:${node.parentThreadId}`,
+                                          target: node.id,
+                                          kind: 'branch'
+                                      }
+                                  ]
+                                : [])
+                        ]),
+                        participants: [],
+                        capabilities: ['select-project', 'history', 'segments', 'execution-trail'],
+                        pageInfo: { next: null },
                         total: nodes.length,
-                        nextOffset: null,
                         currentConversationId: null,
                         projectId: parameters.projectId === null ? null : projectId,
                         projectTitle: parameters.projectId === null ? '未归入项目' : '采购优化',

@@ -11,7 +11,7 @@ export function PipelineModelUsage({
     t: PipelineTexts
 }) {
     if (!usage) return null
-    const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 7 })
+    const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 10 })
     const metric = (value: number | null) => (value === null ? t.unavailableMetric : number.format(value))
     return (
         <section className="mt-6 border-t pt-4 text-sm">
@@ -70,14 +70,8 @@ export function PipelineModelUsage({
                     </div>
                     <dl className="mt-4 flex flex-wrap gap-6">
                         <div>
-                            <dt className="text-xs text-muted-foreground">{t.recordedCost}</dt>
-                            <dd className="mt-1 tabular-nums">
-                                {usage.costs.length
-                                    ? usage.costs
-                                          .map((cost) => `${number.format(cost.amount)} ${cost.currency}`)
-                                          .join(' · ')
-                                    : t.unavailableMetric}
-                            </dd>
+                            <dt className="text-xs text-muted-foreground">{t.chargedPoints}</dt>
+                            <dd className="mt-1 tabular-nums">{metric(usage.chargedPoints)}</dd>
                         </div>
                         <div>
                             <dt className="text-xs text-muted-foreground">{t.unpricedCalls}</dt>

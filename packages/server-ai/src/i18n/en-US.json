@@ -58,6 +58,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PasswordResetInvalid": "Password reset link is invalid or expired.",
         "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
         "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",
         "PluginProviderClaimDuplicate": "Duplicate {{kind}} '{{key}}' inside the plugin",
@@ -537,6 +538,7 @@
         "ActorTokenRuntimeIdentityMismatch": "The token runtime identity is missing or does not match the current caller.",
         "ActorTokenProviderUnavailable": "Outbound actor token provider is not configured.",
         "ProjectPurgeFileMismatch": "File does not belong to the Project being permanently deleted.",
+        "ProjectPurgeInProgress": "Permanent Project deletion is in progress or complete. Refresh and retry.",
         "ProjectPurgeOwnerRequired": "Only the owner can permanently delete an archived Project.",
         "ContextCompressionSummaryInvalid": "The summary returned an invalid format and was not applied.",
         "ContextCompressionSummaryInputBudget": "The history exceeds the summary model input budget. The summary was not requested.",

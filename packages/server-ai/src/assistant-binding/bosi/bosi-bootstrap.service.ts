@@ -23,6 +23,7 @@ import {
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ModuleRef } from '@nestjs/core'
+import type { CheckpointTuple } from '@langchain/langgraph'
 import type { BosiOnboardingChoice } from '@xpert-ai/contracts'
 import { BosiOnboardingService } from './bosi-onboarding.service'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -46,6 +47,7 @@ import { RunCreateStreamCommand } from '../../ai/commands/run-create-stream.comm
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { ResolveDefaultModelQuery } from '../../copilot/queries/resolve-default-model.query'
+import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries/get-tuple.query'
 
 /** Whitelist client progress fields; never serialize the persistence checkpoint directly. */
 function publicProgress(progress?: BosiBootstrapProgress | null): BosiSetup['progress'] {
@@ -334,8 +336,9 @@ export class BosiBootstrapService {
         binding: AssistantBinding
     ): Promise<TXpertChatSendRequest | Omit<TXpertChatRetryRequest, 'conversationId'>> {
         const progress = binding.desktopBootstrap
-        // A failed preflight can persist an execution before creating any AI
-        // message. Only response retries have a source message/checkpoint.
+        // Preflight may persist an AI placeholder before the graph starts.
+        // Resend the same welcome only when its thread has no saved graph state;
+        // existing state still goes through the ordinary recovery validation.
         const response = progress.welcomeRunId
             ? await this.database.getRepository(ChatMessage).findOne({
                   where: {
@@ -348,7 +351,12 @@ export class BosiBootstrapService {
                   select: ['id']
               })
             : null
-        return response
+        const checkpoint = response
+            ? await this.queries.execute<CopilotCheckpointGetTupleQuery, CheckpointTuple | undefined>(
+                  new CopilotCheckpointGetTupleQuery({ thread_id: progress.threadId, checkpoint_ns: '' })
+              )
+            : undefined
+        return response && checkpoint
             ? { action: 'retry', source: { executionId: progress.welcomeRunId, aiMessageId: response.id } }
             : {
                   action: 'send',

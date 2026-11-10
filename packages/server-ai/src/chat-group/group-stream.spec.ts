@@ -78,7 +78,11 @@ describe('group observers', () => {
             clientMessageId: randomUUID(),
             participantId: snapshot.viewerParticipantId
         }
-        const link = { referenceId: randomUUID(), projectId: randomUUID(), title: 'Inventory' }
+        const link = {
+            resource: { kind: 'group-reference' as const, id: randomUUID() },
+            projectId: randomUUID(),
+            title: 'Inventory'
+        }
         messages.snapshot.mockResolvedValue({
             ...snapshot,
             revision: 2,

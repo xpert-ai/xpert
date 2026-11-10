@@ -29,6 +29,7 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
             type: 'postgres',
             url,
             schema,
+            extra: { options: '-c search_path=' + schema + ',public' },
             entities: [
                 new EntitySchema<XpertAgentExecution>({
                     name: 'XpertAgentExecution',
@@ -41,6 +42,10 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
                     columns: {
                         ...base,
                         source: text,
+                        sourceReference: text,
+                        gatewayRequestId: text,
+                        userId: text,
+                        pointsDelta: numeric,
                         originType: text,
                         modelType: text,
                         unit: text,
@@ -91,6 +96,7 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
             id: randomUUID(),
             tenantId: context.actor.tenantId,
             organizationId: context.actor.organizationId,
+            userId: context.actor.userId,
             source: MembershipLedgerSourceEnum.ModelUsage,
             originType: 'model',
             modelType: AiModelTypeEnum.LLM,
@@ -119,7 +125,12 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
         await db
             .getRepository(XpertAgentExecution)
             .insert({ id: foreign, parentId: root, tenantId: context.actor.tenantId, organizationId: randomUUID() })
-        await record()
+        const fact = await record()
+        await record({
+            source: MembershipLedgerSourceEnum.Usage,
+            pointsDelta: -1.25,
+            sourceReference: `model-usage-charge:${fact.identifiers[0].id}`
+        })
         await record({ originExecutionId: root })
         await record({ originExecutionId: unrelated })
         await record({ originExecutionId: foreign })
@@ -130,7 +141,7 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
             executionsWithRecords: 2,
             calls: 2,
             totalTokens: 200,
-            costs: [{ currency: 'USD', amount: 0.4, calls: 2 }],
+            chargedPoints: 1.25,
             truncated: false,
             rejectedRecords: 0
         })
@@ -144,7 +155,7 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
             executionsWithRecords: 0,
             calls: 0,
             totalTokens: null,
-            costs: []
+            chargedPoints: null
         })
         expect(await read([randomUUID()])).toMatchObject({ calls: 0, totalTokens: null })
     })

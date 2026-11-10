@@ -1,5 +1,6 @@
 import type { I18nObject } from './i18n.model'
 import type { ArtifactTypeDescriptor } from './artifact.model'
+import type { IconDefinition } from './types'
 
 export type ContentAction = 'rename' | 'move' | 'trash' | 'restore' | 'duplicate'
 export type ContentSourceLocation =
@@ -21,6 +22,8 @@ export interface ContentTypeImplementation {
   creatable?: boolean
   typeId: string
   title: I18nObject
+  /** Provider-declared type icon reused by resource cards; omit to use the host's generic fallback. */
+  icon?: IconDefinition
   implementationKey: string
   implementationTitle: I18nObject
   /** Optional provider-owned creation presets. IDs are validated again on the server. */

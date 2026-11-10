@@ -92,9 +92,7 @@ export function createThreadContextUsageEvent(params: {
             inputTokens: tokenUsage.promptTokens,
             outputTokens: tokenUsage.completionTokens,
             totalTokens,
-            embedTokens: toFiniteNumber(params.execution?.embedTokens),
-            totalPrice: toFiniteNumber(params.execution?.totalPrice),
-            currency: params.execution?.currency ?? null
+            embedTokens: toFiniteNumber(params.execution?.embedTokens)
         }
     }
 }

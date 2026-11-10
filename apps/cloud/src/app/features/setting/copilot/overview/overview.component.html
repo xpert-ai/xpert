@@ -200,25 +200,18 @@
       </div>
       <div class="min-w-0">
         <h2 class="overview-panel-title">
-          {{ 'XP.Copilot.TokenAndPointsUsage' | translate: { Default: 'Token and membership point usage' } }}
+          {{ 'XP.Copilot.MembershipPointsUsed' | translate: { Default: 'Points used' } }}
         </h2>
         <p class="overview-panel-subtitle">
           {{ selectedTimeOption() | i18n }} ·
-          {{ 'XP.Copilot.TokenAndPointsUsageTooltip' | translate: { Default: 'Daily usage trend' } }}
+          {{ 'XP.Copilot.MembershipPointsUsedTooltip' | translate: { Default: 'Daily usage trend' } }}
         </p>
       </div>
-    </div>
-    <div class="overview-legend">
-      <span><i class="bg-primary-600"></i>{{ 'XP.Copilot.Tokens' | translate: { Default: 'Tokens' } }}</span>
-      <span
-        ><i class="bg-text-warning"></i
-        >{{ 'XP.Copilot.MembershipPoints' | translate: { Default: 'Membership points' } }}</span
-      >
     </div>
   </div>
   <div class="overview-token-body">
     @if (usageOverview()?.buckets?.length) {
-      <xp-statistics-token-usage class="w-full" [tokenCost]="usageOverview()?.buckets" displayMode="membership" />
+      <xp-statistics-token-usage class="w-full" [buckets]="usageOverview()?.buckets" />
     } @else {
       <div class="overview-empty-state">
         <i class="ri-bar-chart-horizontal-line"></i>

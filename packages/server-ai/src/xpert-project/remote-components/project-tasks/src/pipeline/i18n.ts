@@ -68,7 +68,7 @@ const zh = {
     modelUsage: '已关联模型调用',
     modelUsageCoverage: '有精确账本的原生执行',
     modelUsageHint:
-        '仅统计精确关联的原生 LLM 调用。不含历史未关联、估算、外部执行和其他模型工具，费用不代表完整流水线成本。',
+        '仅统计精确关联的原生 LLM 调用。不含历史未关联、估算、外部执行和其他模型工具。积点按已关联调用的实际扣点流水统计。',
     modelUsageIncomplete: '部分记录超过读取上限或格式无效，当前仅展示可核对的数据。',
     noLinkedModelUsage: '暂无可精确关联的模型调用。',
     modelCalls: '调用次数',
@@ -76,7 +76,7 @@ const zh = {
     outputTokens: '输出 Token',
     totalTokens: '总 Token',
     model: '模型',
-    recordedCost: '已记录费用',
+    chargedPoints: '已扣积点',
     unpricedCalls: '未定价调用',
     serviceExecutor: '服务操作',
     statistics: '统计',
@@ -273,8 +273,7 @@ const en: { [K in keyof typeof zh]: string } = {
         'The native model budget cannot reserve another call. All rounds and retries share this instance budget; existing results and unknown reservations are retained.',
     modelUsage: 'Linked model calls',
     modelUsageCoverage: 'Native executions with exact ledger links',
-    modelUsageHint:
-        'Exactly linked native LLM calls only. Excludes unlinked history, estimates, external runtimes and other model tools; this is not the full pipeline cost.',
+    modelUsageHint: 'Includes linked native LLM calls. Points come from posted debits for those calls.',
     modelUsageIncomplete:
         'Some records exceeded the read limit or failed validation. Only verifiable records are shown.',
     noLinkedModelUsage: 'No exactly linked model calls are available.',
@@ -283,7 +282,7 @@ const en: { [K in keyof typeof zh]: string } = {
     outputTokens: 'Output tokens',
     totalTokens: 'Total tokens',
     model: 'Model',
-    recordedCost: 'Recorded cost',
+    chargedPoints: 'Points charged',
     unpricedCalls: 'Unpriced calls',
     serviceExecutor: 'Service operation',
     statistics: 'Statistics',

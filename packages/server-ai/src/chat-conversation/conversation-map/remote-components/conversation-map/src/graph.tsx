@@ -35,7 +35,7 @@ import {
     TooltipTrigger,
     TooltipContent
 } from '@xpert-ai/shadcn-ui'
-import type { MapNode } from '../../../schema'
+import type { MapNode, MapEdge } from '../../../schema'
 import type { Prefs } from './bridge'
 import type { Labels } from './i18n'
 import { layout, type TopicNode, type NodeSize } from './layout'
@@ -59,6 +59,7 @@ export const icons = {
     conversation: MessagesSquare,
     thread: GitBranch,
     turn: MessageSquare,
+    message: MessageSquare,
     segment: MessagesSquare
 }
 function Topic({ data }: NodeProps<TopicNode>) {
@@ -177,7 +178,7 @@ export function NodeQuickActions({
     action: GraphActions['action']
     compact?: boolean
 }) {
-    if (!node.conversationId || !node.threadId) return null
+    if (!node.capabilities.includes('locate')) return null
     return (
         <>
             <NodeIconButton
@@ -188,7 +189,7 @@ export function NodeQuickActions({
             >
                 <MessageSquareShare className="size-4" aria-hidden />
             </NodeIconButton>
-            {node.kind === 'thread' && (
+            {node.capabilities.includes('side-chat') && (
                 <NodeIconButton
                     label={l.side}
                     compact={compact}
@@ -246,6 +247,7 @@ export function NodeMenu({
     labels: Labels
     action: GraphActions['action']
 }) {
+    if (!node.capabilities.length) return null
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -255,13 +257,13 @@ export function NodeMenu({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem onSelect={() => action('locate', node)}>{l.locate}</DropdownMenuItem>
-                {node.kind === 'thread' && (
+                {node.capabilities.includes('side-chat') && (
                     <DropdownMenuItem onSelect={() => action('side-chat', node)}>{l.side}</DropdownMenuItem>
                 )}
-                {(node.kind === 'conversation' || node.kind === 'thread') && (
+                {node.capabilities.includes('rename') && (
                     <DropdownMenuItem onSelect={() => action('rename', node)}>{l.rename}</DropdownMenuItem>
                 )}
-                {node.kind === 'turn' && (
+                {node.capabilities.includes('branch') && (
                     <DropdownMenuItem
                         title={
                             node.branchAvailable
@@ -274,13 +276,17 @@ export function NodeMenu({
                         {l.branch}
                     </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onSelect={() => action('copy', node)}>{l.copy}</DropdownMenuItem>
+                {node.capabilities.includes('copy') && (
+                    <DropdownMenuItem onSelect={() => action('copy', node)}>{l.copy}</DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     )
 }
 const nodeTypes = { topic: Topic }
-export function TopicGraph(props: GraphActions & { items: MapNode[]; expanded: Set<string>; prefs: Prefs }) {
+export function TopicGraph(
+    props: GraphActions & { items: MapNode[]; edges: MapEdge[]; expanded: Set<string>; prefs: Prefs }
+) {
     const [sizes, setSizes] = useState<ReadonlyMap<string, NodeSize>>(() => new Map())
     const onNodesChange = useCallback((changes: NodeChange<TopicNode>[]) => {
         setSizes((previous) => {
@@ -299,8 +305,8 @@ export function TopicGraph(props: GraphActions & { items: MapNode[]; expanded: S
         })
     }, [])
     const graph = useMemo(
-        () => layout(props.items, props.expanded, props.prefs, sizes),
-        [props.items, props.expanded, props.prefs, sizes]
+        () => layout(props.items, props.expanded, props.prefs, sizes, props.edges),
+        [props.items, props.expanded, props.prefs, sizes, props.edges]
     )
     // Dagre needs a height, but the rendered node must stay intrinsic so React Flow can measure it.
     const flowNodes = useMemo(() => graph.nodes.map(({ height: _height, ...node }) => node), [graph.nodes])

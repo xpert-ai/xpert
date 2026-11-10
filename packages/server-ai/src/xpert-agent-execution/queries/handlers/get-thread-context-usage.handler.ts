@@ -72,21 +72,17 @@ export class GetThreadContextUsageHandler implements IQueryHandler<GetThreadCont
             input_tokens: 0,
             output_tokens: 0,
             total_tokens: 0,
-            embed_tokens: 0,
-            total_price: 0,
-            currency: null
+            embed_tokens: 0
         }
     }
 
     private toUsage(execution: XpertAgentExecution): TThreadContextUsage['usage'] {
         return {
-            context_tokens: this.toNumber(execution.inputTokens),
+            context_tokens: this.toNumber(execution.usageSummary?.lastInputTokens ?? execution.inputTokens),
             input_tokens: this.toNumber(execution.inputTokens),
             output_tokens: this.toNumber(execution.outputTokens),
             total_tokens: this.toNumber(execution.tokens),
-            embed_tokens: this.toNumber(execution.embedTokens),
-            total_price: this.toNumber(execution.totalPrice),
-            currency: execution.currency ?? null
+            embed_tokens: this.toNumber(execution.embedTokens)
         }
     }
 

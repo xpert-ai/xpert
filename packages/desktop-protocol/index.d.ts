@@ -1,4 +1,11 @@
-import type { ShellState, ShellSettings, ShellInput, ShellCommand, ShellReport } from '@xpert-ai/contracts'
+import type {
+  ShellState,
+  ShellSettings,
+  ShellInput,
+  ShellCommand,
+  ShellReport,
+  ShellPlatform
+} from '@xpert-ai/contracts'
 export * from './audio-capture'
 
 export type {
@@ -35,9 +42,12 @@ export const LIMITS: Readonly<{
 export const STATES: ShellState[]
 export function isId(value: unknown): value is string
 export function isFinal(state: string): boolean
-export function parseSettings(value: unknown): ShellSettings
+export function isShellPlatform(value: unknown): value is ShellPlatform
+export function isShellCwd(value: unknown, platform?: string): value is string
+export function parseSettings(value: unknown, platform?: string): ShellSettings
 export function parseInput(value: unknown): ShellInput
-export function parseCommand(value: unknown): ShellCommand
+export function parseComputerInfo(value: unknown): import('@xpert-ai/contracts').ShellComputerInfo
+export function parseCommand(value: unknown, platform?: string): ShellCommand
 export function parseReport(value: unknown): ShellReport
 
 export function parsePreparation(value: unknown): import('@xpert-ai/contracts').ShellPreparationRequest

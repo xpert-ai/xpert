@@ -250,7 +250,7 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
   }
 
   getStatisticsTokenCost(timeRange: string[], filters?: StatisticsFilters) {
-    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
+    return this.httpClient.get<{ date: string; tokens: number; chargedPoints: number | null; model: string }[]>(
       this.apiBaseUrl + `/statistics/token-costs`,
       {
         params: this.statisticsParams(timeRange, filters)

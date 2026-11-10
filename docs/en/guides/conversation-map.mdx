@@ -23,6 +23,17 @@ Start new conversations from the host chat entry. Conversation Map provides acti
 
 ## Three presentations
 
+### Public group discussions
+
+Opening Conversation Map in a group automatically shows public messages from every member, including non-primary Assistants. The scope stays within the current group; other groups in the same Project and private Assistant execution conversations are excluded.
+
+- **Map** connects requests, replies and follow-ups; **List** uses public message order; **Growth tree** groups interleaved discussions under their actual parent messages.
+- Filter by speaker, search messages and load earlier history. If a parent is outside the current page or filter, the view labels that relationship explicitly.
+- Messages distinguish ordinary speech, requests, progress replies and final replies, with markers for resource cards and analysis results. Select a node and choose **Locate in group** to read its original text or card; **View related message** returns to the associated question.
+- Group membership grants access to public discussion only. Private tool calls, prompts and execution details retain the separate authorization of the existing **Assistant processing records** entry. Group maps do not offer private-conversation branching or renaming.
+
+The Project, branch and previous-version controls described below apply to individual Assistant conversations.
+
 | View        | Best for                                                      | Presentation                                                                     |
 | ----------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Map         | Discussion paths and conversation origins                     | Cards and connections, with Branch paths and Conversation relations perspectives |
@@ -108,3 +119,13 @@ Pending requests block duplicate actions. Creation and branching retries reuse t
 
 - [Growth tree](/en/guides/conversation-trail): trunk, leaf, and fork semantics, recorded steps, camera controls, and data limits.
 - [Group chat](/en/guides/group-chat): shared conversations with people and multiple Assistants.
+
+### Shared views for direct and group conversations
+
+Both use the same map, list, growth canvas, search, and message details. Group conversations add a speaker filter and stay within the current group. Private branch editing, side chats, and Assistant execution inspection are not offered in this scope.
+
+Authorized readers adapt their results into one map read model: `scope` identifies visibility, `nodes` represent conversations and messages, `edges` distinguish containment, branches, replies, and causation, `capabilities` describe available actions, and `pageInfo` carries pagination. All three views consume the same projection without changing access rights. Requests, progress replies, and final replies are message attributes; chronological order alone is not a reply or causal relationship.
+
+Filtering or paging can leave a parent outside the loaded results. Its message remains visible and reconnects when the parent loads. Resource and result cards appear as public summaries and markers; use **Locate in chat** to view their full original content.
+
+Single-chat execution details retain their dedicated trace model and authorization checks. The shared map projection does not convert tool calls or private runtime records into public group messages.

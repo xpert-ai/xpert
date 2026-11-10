@@ -1,7 +1,7 @@
 import type { IChatMessage } from '@xpert-ai/contracts'
 import { isRuntimeChatMessage } from '@xpert-ai/contracts'
 import { messageBranching } from '../../chat-message/message-branching'
-import type { MapNode } from './schema'
+import type { MapSourceNode as MapNode } from './schema'
 
 /** Only user-visible plain text blocks enter search, never arbitrary tool JSON or reasoning. */
 export function visibleText(content: unknown): string {

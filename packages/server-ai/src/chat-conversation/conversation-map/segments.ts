@@ -1,6 +1,6 @@
 import { isRuntimeChatMessage, type IChatMessage } from '@xpert-ai/contracts'
 import { latestUpdate, visibleText } from './presentation'
-import type { MapNode } from './schema'
+import type { MapSourceNode as MapNode } from './schema'
 
 /** No message body, reasoning, events or checkpoints are needed to build the tree. */
 export type MessageLink = Pick<

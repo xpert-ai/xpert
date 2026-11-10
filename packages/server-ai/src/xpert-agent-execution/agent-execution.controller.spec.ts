@@ -11,8 +11,10 @@ jest.mock('./dto', () => ({
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentUserId: jest.fn(),
+        currentTenantId: () => 'tenant-1',
         hasRoles: jest.fn()
     },
+    Permissions: () => () => undefined,
     ParseJsonPipe: class {},
     TransformInterceptor: class {}
 }))
@@ -29,7 +31,7 @@ import {
 
 describe('XpertAgentExecutionController', () => {
     let queryBus: { execute: jest.Mock }
-    let service: { findAllByXpertAgent: jest.Mock }
+    let service: { findAllByXpertAgent: jest.Mock; getChargedPoints: jest.Mock }
     let controller: XpertAgentExecutionController
 
     beforeEach(() => {
@@ -39,6 +41,7 @@ describe('XpertAgentExecutionController', () => {
             execute: jest.fn()
         }
         service = {
+            getChargedPoints: jest.fn().mockResolvedValue(new Map([['parent', 1.5]])),
             findAllByXpertAgent: jest.fn()
         }
 
@@ -122,9 +125,23 @@ describe('XpertAgentExecutionController', () => {
     })
 
     it('limits studio execution history to the current user for non-admins', async () => {
-        service.findAllByXpertAgent.mockResolvedValue({ items: [], total: 0 })
+        service.findAllByXpertAgent.mockResolvedValue({
+            items: [
+                {
+                    id: 'parent',
+                    totalPrice: 1,
+                    currency: 'USD',
+                    inputUnitPrice: 2,
+                    subExecutions: [{ id: 'child', usageSummary: { costs: [] }, outputUnitPrice: 3, chargedPoints: 0 }]
+                }
+            ],
+            total: 1
+        })
 
-        await controller.findAllByXpertAgent('xpert-1', 'agent-1', {} as never)
+        await expect(controller.findAllByXpertAgent('xpert-1', 'agent-1', {} as never)).resolves.toEqual({
+            items: [{ id: 'parent', chargedPoints: 1.5, subExecutions: [{ id: 'child', chargedPoints: 0 }] }],
+            total: 1
+        })
 
         expect(service.findAllByXpertAgent).toHaveBeenCalledWith('xpert-1', 'agent-1', {}, 'user-1')
     })

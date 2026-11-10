@@ -12,6 +12,7 @@ const node = (id: string, kind: MapNode['kind'], parentId: string | null, extra:
     parentId,
     title: id,
     preview: '',
+    capabilities: [],
     expandable: true,
     ...extra
 })

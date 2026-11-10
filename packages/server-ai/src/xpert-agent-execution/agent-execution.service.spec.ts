@@ -7,6 +7,13 @@ import { XpertAgentExecutionService } from './agent-execution.service'
 describe('XpertAgentExecutionService', () => {
     it('atomically records tokens and actual usage details', async () => {
         const manager = {
+            findOne: jest.fn(async () => ({
+                tokens: 120,
+                currency: 'USD',
+                totalPrice: 0.2,
+                inputTokens: 100,
+                outputTokens: 20
+            })),
             increment: jest.fn(async () => undefined),
             update: jest.fn(async () => undefined)
         }
@@ -33,15 +40,28 @@ describe('XpertAgentExecutionService', () => {
 
         await service.recordUsage('execution-1', { tokens: 12, details })
 
-        expect(manager.increment).toHaveBeenCalledWith(expect.any(Function), { id: 'execution-1' }, 'tokens', 12)
+        expect(manager.findOne).toHaveBeenCalledWith(XpertAgentExecution, {
+            where: { id: 'execution-1' },
+            lock: { mode: 'pessimistic_write' },
+            select: {
+                id: true,
+                tokens: true,
+                inputTokens: true,
+                outputTokens: true,
+                totalPrice: true,
+                currency: true,
+                usageSummary: true
+            }
+        })
         expect(manager.update).toHaveBeenCalledWith(
             expect.any(Function),
             { id: 'execution-1' },
             expect.objectContaining({
                 responseLatency: 0.02,
-                totalPrice: 0.014,
-                inputTokens: 10,
-                outputTokens: 2
+                tokens: 132,
+                totalPrice: expect.closeTo(0.214, 10),
+                inputTokens: 110,
+                outputTokens: 22
             })
         )
     })
@@ -108,3 +128,48 @@ it('preserves committed recovery references when a stale finalizer saves status 
         lookup.mockRestore()
     }
 })
+
+it.each([{}, { tokens: 2, usageSummary: { lastInputTokens: 1, costs: [] } }])(
+    'preserves recorded usage when a stale lifecycle snapshot finishes',
+    async (snapshot) => {
+        const costs = [
+            { currency: 'USD', amount: 1, tokens: 12 },
+            { currency: 'CNY', amount: 0.5, tokens: 12 }
+        ]
+        const current = Object.assign(new XpertAgentExecution(), {
+            id: 'run',
+            tenantId: 'tenant',
+            tokens: 24,
+            inputTokens: 20,
+            outputTokens: 4,
+            totalPrice: null,
+            currency: null,
+            usageSummary: { lastInputTokens: 10, costs }
+        })
+        const lookup = jest.spyOn(TenantOrganizationAwareCrudService.prototype, 'findOne').mockResolvedValue(current)
+        const manager = { findOne: jest.fn().mockResolvedValue(current), save: jest.fn(async (value) => value) }
+        const service = new XpertAgentExecutionService({ manager: { transaction: (work) => work(manager) } } as never)
+        try {
+            const result = await service.update('run', {
+                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                tokens: 0,
+                inputTokens: 0,
+                outputTokens: 0,
+                totalPrice: 1,
+                currency: 'USD',
+                ...snapshot
+            })
+            expect(result).toMatchObject({
+                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                tokens: 24,
+                inputTokens: 20,
+                outputTokens: 4,
+                totalPrice: null,
+                currency: null,
+                usageSummary: { lastInputTokens: 10, costs }
+            })
+        } finally {
+            lookup.mockRestore()
+        }
+    }
+)

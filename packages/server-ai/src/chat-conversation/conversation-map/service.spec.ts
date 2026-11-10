@@ -11,7 +11,7 @@ import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { ConversationMapService } from './service'
-import { mapPageSchema, mapQuerySchema, mapOptionsQuerySchema } from './schema'
+import { mapSourcePageSchema, mapQuerySchema, mapOptionsQuerySchema } from './schema'
 
 jest.mock('i18next', () => ({
     t: (key: string) => (key === 'server-ai:ConversationMap.Untitled' ? '未命名对话' : key)
@@ -309,7 +309,7 @@ describe('ConversationMapService', () => {
             ]) {
                 const page = await f.service.read(context, mapQuerySchema.parse(parameters))
                 // Exercise the same response contract as the View, including JSON serialization.
-                const parsed = mapPageSchema.parse(JSON.parse(JSON.stringify(page)))
+                const parsed = mapSourcePageSchema.parse(JSON.parse(JSON.stringify(page)))
                 expect(parsed.nodes.length).toBeGreaterThan(0)
                 for (const node of parsed.nodes) {
                     expect(node.kind === 'conversation' ? node.title : node.conversationTitle).toBe('未命名对话')
@@ -324,7 +324,7 @@ describe('ConversationMapService', () => {
             context,
             mapQuerySchema.parse({ projectId, conversationId, threadId: 'main' })
         )
-        expect(mapPageSchema.parse(JSON.parse(JSON.stringify(page))).nodes[0].conversationTitle).toBe('Planning')
+        expect(mapSourcePageSchema.parse(JSON.parse(JSON.stringify(page))).nodes[0].conversationTitle).toBe('Planning')
     })
     it('returns the complete tree topology with shared history, without turn pagination or null titles', async () => {
         const f = fixture()
@@ -354,7 +354,7 @@ describe('ConversationMapService', () => {
                 showShared: false
             })
         )
-        expect(mapPageSchema.parse(JSON.parse(JSON.stringify(page))).nodes).toHaveLength(3)
+        expect(mapSourcePageSchema.parse(JSON.parse(JSON.stringify(page))).nodes).toHaveLength(3)
         expect(page.nodes.map((node) => [node.endMessageId, node.messageCount])).toEqual([
             ['a', 2],
             ['b', 1],

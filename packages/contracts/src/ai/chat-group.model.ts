@@ -1,6 +1,7 @@
+import type { ConversationResourceTarget } from '../conversation-resource.model'
 import type { RuntimeCapabilitiesSelection, TMessageContentResourceCard } from '@xpert-ai/chatkit-types'
 import type { RuntimeResourcesSelection } from '../agent-plugin'
-import type { TAvatar } from '../types'
+import type { IconDefinition, TAvatar } from '../types'
 import type { XpertProjectTypeRef } from './xpert-project-type.model'
 
 /**
@@ -102,14 +103,16 @@ export interface ChatGroupComposerInput {
 
 /**
  * Server-authored clickable resource entry persisted with a group message.
- * History replay may show the entry but must not auto-open it; opening always reauthorizes the group reference.
+ * History replay may show the entry but must not auto-open it; opening always reauthorizes the resource in the current group and Project.
  */
 export interface ChatGroupResourceLink {
-  /** Accepted group reference ID, not the source Artifact ID or a public share token. */
-  referenceId: string
-  /** Receiving group's runtime Project; must not switch the conversation into the source authoring Project. */
+  /** Public type icon captured by the host when publishing. Optional for legacy links; never an access grant. */
+  icon?: IconDefinition
+  /** Canonical locator shared with discovery and Workbench. Contains no access grant. */
+  resource: ConversationResourceTarget
+  /** Receiving group's runtime Project; checked before opening, never a source Project override. */
   projectId: string
-  /** Display label only; never use it to resolve identity or infer resource type. */
+  /** Display label only; never use it to infer resource identity or type. */
   title: string
 }
 /** Live, requester-addressed navigation request derived from a resource link; not a durable open-on-load instruction. */
@@ -365,7 +368,7 @@ export interface ChatGroupRun {
  * Extend this union together with stream validation and reducers; private runtime events do not belong here.
  */
 export type ChatGroupEvent =
-  /** Live navigation for the addressed requester; clients reauthorize the reference before opening it. */
+  /** Live navigation for the addressed requester; clients reauthorize the resource before opening it. */
   | { type: 'resource_open'; request: ChatGroupResourceOpenRequest }
   /** Refresh public state and reconcile its history page by message ID. */
   | { type: 'snapshot'; snapshot: ChatGroupSnapshot }

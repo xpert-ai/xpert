@@ -34,7 +34,7 @@ const tests = testDirectories.flatMap((dir) =>
     .filter((file) => file.endsWith('.test.cjs') && !(process.platform === 'win32' && file === 'shell-engine.test.cjs'))
     .map((file) => `${dir}/${file}`)
 )
-// The Bash engine suite runs on macOS/Linux; Windows still runs all portable suites.
+// POSIX and Windows each run their native engine suite as well as the portable suites.
 run('--test', tests)
 run(require.resolve('typescript/bin/tsc'), ['--noEmit', '--project', 'apps/desktop/tsconfig.json'])
 run(
