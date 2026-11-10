@@ -3,7 +3,9 @@ import { ThreadControlProjection } from './control-view/thread-control-projectio
 import { ExecutionTaskControl, TaskControlPublication, TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
-import { Subscriber } from 'rxjs'
+import { of, Subscriber } from 'rxjs'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
 import type { TWorkflowGraphNode } from '../shared/agent/workflow'
 import { CreateWNIteratingHandler } from '../xpert-agent/workflow/handlers/create-wn-iterating.handler'
 import { CreateWNIteratingCommand } from '../xpert-agent/workflow/create-wn-iterating.command'
@@ -58,6 +60,7 @@ integration('durable pause control / PostgreSQL', () => {
     let first: ThreadRunControlService
     let second: ThreadRunControlService
     const scope = { tenantId: randomUUID(), organizationId: randomUUID() }
+    const userId = randomUUID()
     let threadId: string
     let executionId: string
     let conversationId: string
@@ -96,7 +99,8 @@ integration('durable pause control / PostgreSQL', () => {
                     tableName: 'chat_conversation_thread',
                     columns: {
                         ...scopeColumns,
-                        threadId: text,
+                        id: { ...uuid, primary: true, generated: 'uuid' },
+                        threadId: { ...text, unique: true },
                         conversationId: uuid,
                         status: text,
                         error: nullableText,
@@ -114,6 +118,7 @@ integration('durable pause control / PostgreSQL', () => {
                     columns: {
                         ...scopeColumns,
                         threadId: text,
+                        createdById: { ...uuid, nullable: true },
                         status: text,
                         error: nullableText,
                         operation: { type: 'jsonb', nullable: true }
@@ -185,7 +190,9 @@ integration('durable pause control / PostgreSQL', () => {
         await database
             .getRepository(ChatConversationThread)
             .save({ ...scope, id: randomUUID(), threadId, conversationId, status: 'busy' })
-        await database.getRepository(ChatConversation).save({ ...scope, id: conversationId, threadId, status: 'busy' })
+        await database.getRepository(ChatConversation).save({
+            ...scope, id: conversationId, createdById: userId, threadId, status: 'busy'
+        })
         await database
             .getRepository(XpertAgentExecution)
             .save({ ...scope, id: executionId, threadId, status: XpertAgentExecutionStatusEnum.RUNNING })
@@ -194,6 +201,65 @@ integration('durable pause control / PostgreSQL', () => {
             .getRepository(AgentInvocationWaitEntity)
             .save({ ...scope, id: randomUUID(), threadId, state: 'ready' })
         await first.start(threadId, executionId)
+    })
+
+    it('leases a pre-reserved automatic reply before graph entry and recovers its lost process', async () => {
+        const threads = database.getRepository(ChatConversationThread)
+        await threads.update({ threadId }, { metadata: {} })
+        const owner = new ThreadRunControlService(
+            threads, database, new ExecutionControlStore(database, new TaskControlStore(database))
+        )
+        const spies = [
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(scope.tenantId),
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(scope.organizationId),
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(userId)
+        ]
+        try {
+            const admission = new ChatExecutionAdmissionService(database, owner)
+            const graph = jest.fn(async () => {
+                const lease = readRunLease((await threads.findOneByOrFail({ threadId })).metadata)
+                expect(lease?.executionId).toBe(executionId)
+                expect(lease?.owner).toBe(owner.displaySnapshotOwner(threadId, executionId))
+                expect(Date.parse(lease!.expiresAt)).toBeGreaterThan(Date.now())
+                return of(undefined)
+            })
+            // Do not subscribe/finalize: simulate process loss after graph admission.
+            await admission.run({ action: 'send', conversationId, message: { input: { input: 'result ready' } } },
+                { automatic: true, execution: { id: executionId } }, graph)
+            expect(graph).toHaveBeenCalledTimes(1)
+            const thread = await threads.findOneByOrFail({ threadId })
+            const lease = readRunLease(thread.metadata)!
+            const duplicateGraph = jest.fn(async () => of(undefined))
+            await expect(new ChatExecutionAdmissionService(database, second).run(
+                { action: 'send', conversationId, message: { input: { input: 'duplicate' } } },
+                { automatic: true, execution: { id: executionId } }, duplicateGraph
+            )).rejects.toThrow()
+            expect(duplicateGraph).not.toHaveBeenCalled()
+            expect((await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })).status)
+                .toBe(XpertAgentExecutionStatusEnum.RUNNING)
+            expect((await database.getRepository(ExecutionControl).findOneByOrFail({ executionId })).graphEnded)
+                .toBe(false)
+            await threads.update({ threadId }, { metadata: {
+                ...thread.metadata, [RUN_LEASE_KEY]: { ...lease, expiresAt: new Date(0).toISOString() }
+            } })
+            expect(await second.recoverExpiredRun(threadId)).toBe(true)
+            expect((await threads.findOneByOrFail({ threadId })).status).toBe('error')
+            expect((await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })).status)
+                .toBe(XpertAgentExecutionStatusEnum.INTERRUPTED)
+            expect((await database.getRepository(ExecutionControl).findOneByOrFail({ executionId })).graphEnded)
+                .toBe(true)
+        } finally {
+            spies.forEach((spy) => spy.mockRestore())
+            owner.onModuleDestroy()
+        }
+    })
+
+    it('does not let another process take over an existing live execution lease', async () => {
+        const before = readRunLease((await database.getRepository(ChatConversationThread)
+            .findOneByOrFail({ threadId })).metadata)
+        await expect(second.start(threadId, executionId)).rejects.toThrow()
+        expect(readRunLease((await database.getRepository(ChatConversationThread)
+            .findOneByOrFail({ threadId })).metadata)).toEqual(before)
     })
 
     it.each([false, true])('admits only one competing resume after publication (legacy=%s)', async (legacy) => {

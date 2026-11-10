@@ -271,6 +271,13 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
     ): Promise<void> {
         await this.locked(threadId, async (thread, manager) => {
             await requireControlSchema(manager, threadControlSchema)
+            const lease = readRunLease(thread.metadata)
+            if (
+                lease &&
+                (lease.executionId !== executionId || lease.owner !== this.owner ||
+                    Date.parse(lease.expiresAt) <= Date.now())
+            )
+                throw threadControlConflict('RunNotActive', 'This run is no longer active.')
             if (
                 inputResumeOnly &&
                 (thread.status !== 'interrupted' || (thread.runControl && thread.runControl.state !== 'input_wait'))

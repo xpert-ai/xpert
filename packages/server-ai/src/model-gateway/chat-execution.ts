@@ -17,6 +17,7 @@ import {
 } from './openai-adapter'
 import type { GatewayChatWriter, GatewayChatToolDelta } from './chat-writer'
 import { modelGatewayMessage } from './model-gateway.i18n'
+import { startExecutionSseKeepalive } from '../model-execution/execution-sse-keepalive'
 
 export interface GatewayChatLifecycle {
     capabilities: ModelFeature[]
@@ -48,6 +49,7 @@ export async function executeGatewayChat(input: {
     let settled = false
     let output = ''
     let lastUsageChunk: AIMessage | AIMessageChunk | undefined
+    let stopKeepalive: (() => void) | undefined
     const settle = async (error?: unknown, responseBody?: unknown) => {
         if (settled) return
         await lifecycle.settle({
@@ -117,6 +119,7 @@ export async function executeGatewayChat(input: {
             response.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
             response.setHeader('Cache-Control', 'no-cache, no-transform')
             response.setHeader('Connection', 'keep-alive')
+            response.setHeader('X-Accel-Buffering', 'no')
             response.flushHeaders()
         }
         const chunk = (delta: object, reason: string | null = null) => ({
@@ -124,7 +127,11 @@ export async function executeGatewayChat(input: {
             object: 'chat.completion.chunk',
             choices: [{ index: 0, delta, finish_reason: reason }]
         })
-        if (!writer) writeSse(response, chunk({ role: 'assistant' }))
+        if (!writer) {
+            writeSse(response, chunk({ role: 'assistant' }))
+            // SDK iterators discard SSE comments; an empty delta also keeps decoded streams alive.
+            stopKeepalive = startExecutionSseKeepalive(response, signal, () => `data: ${JSON.stringify(chunk({}))}\n\n`)
+        }
         let hasTools = false
         let reason = 'stop'
         invocationStarted = true
@@ -152,6 +159,7 @@ export async function executeGatewayChat(input: {
                     })
                 )
         }
+        stopKeepalive?.()
         const usage = responseUsage(messages, output, providerUsage, lastUsageChunk)
         if (writer) {
             await settle(undefined, { content: output, finish_reason: reason })
@@ -164,6 +172,7 @@ export async function executeGatewayChat(input: {
         await settle(undefined, { content: output, finish_reason: reason })
         finishStream(response)
     } catch (error) {
+        stopKeepalive?.()
         await settle(error)
         if (!response.headersSent) throw error
         if (writer) {
@@ -178,6 +187,8 @@ export async function executeGatewayChat(input: {
             }
         })
         finishStream(response)
+    } finally {
+        stopKeepalive?.()
     }
 }
 

@@ -83,8 +83,10 @@ describe('explicit Chat protocol translation', () => {
                 { index: 0, id: 'a', type: 'function', function: { name: 're', arguments: '{' } }
             ])
             jest.advanceTimersByTime(125_000)
-            expect(f.data.filter((line) => line === ': keep-alive\n\n')).toHaveLength(4)
-            expect(f.events().map((event) => event.type)).toEqual(['response.created', 'response.in_progress'])
+            expect(f.events().map((event) => event.type)).toEqual([
+                'response.created',
+                ...Array(5).fill('response.in_progress')
+            ])
             await f.writer.delta('', [{ index: 0, type: 'function', function: { name: 'ad', arguments: '}' } }])
             await f.writer.complete({ base: f.base, text: '', reason: 'tool_calls', usage: actual })
             expect(f.events().filter((event) => event.type === 'response.output_item.done')).toHaveLength(1)
@@ -124,14 +126,19 @@ describe('explicit Chat protocol translation', () => {
             jest.useRealTimers()
         }
     })
-    it('keeps a silent Responses bridge alive without creating protocol progress', async () => {
+    it('keeps a silent Responses bridge alive with sequenced status events and no generated output', async () => {
         jest.useFakeTimers()
         const f = fixture('openai_responses')
         try {
             await f.writer.start(f.base)
             jest.advanceTimersByTime(125_000)
-            expect(f.data.filter((line) => line === ': keep-alive\n\n')).toHaveLength(4)
-            expect(f.events().map((event) => event.type)).toEqual(['response.created', 'response.in_progress'])
+            expect(f.events().map((event) => event.type)).toEqual([
+                'response.created',
+                ...Array(5).fill('response.in_progress')
+            ])
+            expect(f.events().map((event) => event.sequence_number)).toEqual([0, 1, 2, 3, 4, 5])
+            for (const event of f.events())
+                expect(event.response).toMatchObject({ status: 'in_progress', output: [], usage: null })
             expect(f.response.setHeader).toHaveBeenCalledWith('x-accel-buffering', 'no')
             await f.writer.complete({ base: f.base, text: '', reason: 'stop', usage: actual })
             expect(jest.getTimerCount()).toBe(0)
