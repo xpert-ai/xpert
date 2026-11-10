@@ -8,6 +8,7 @@ import {
     resolveLoadedPluginBundleRoot
 } from '@xpert-ai/server-core'
 import { NotFoundException } from '@nestjs/common'
+import { t } from 'i18next'
 import {
     GLOBAL_ORGANIZATION_SCOPE,
     RequestContext,
@@ -87,6 +88,41 @@ export function resolveScopedLoadedPlugin(pluginName: string, loadedPlugins: Loa
         throw new NotFoundException(`Loaded plugin '${normalizedPluginName}' was not found`)
     }
     return record
+}
+
+/** Native providers are discovered from the scoped registry and need no filesystem manifest. */
+export function readLoadedPluginResourceCatalog(
+    pluginName: string,
+    loadedPlugins: LoadedPluginRecord[],
+    registry: XpertToolProviderRegistry
+) {
+    const record = resolveScopedLoadedPlugin(pluginName, loadedPlugins)
+    const rootDir = resolveLoadedPluginBundleRoot(record)
+    const manifest = rootDir ? readPluginBundleManifest(rootDir)?.manifest : null
+    const runtimeRegistrations = listRuntimeToolProviderComponents(pluginName, registry)
+    if (!rootDir && !runtimeRegistrations.length) {
+        throw new NotFoundException(
+            t('server-ai:Error.PluginPortableResourceManifestMissing', { pluginName: normalizePluginName(pluginName) })
+        )
+    }
+    const manifestComponents = rootDir && manifest ? collectPluginBundleComponents(rootDir, manifest) : []
+    const runtimeKeys = new Set(runtimeRegistrations.map(({ component }) => pluginResourceComponentStateKey(component)))
+    return {
+        rootDir,
+        pluginVersion: manifest?.version,
+        runtimeRegistrations,
+        components: [
+            ...manifestComponents.filter((component) => !runtimeKeys.has(pluginResourceComponentStateKey(component))),
+            ...runtimeRegistrations.map(({ component }) => component)
+        ]
+    }
+}
+
+export function requirePluginResourceRoot(rootDir: string | null | undefined): string {
+    if (!rootDir) {
+        throw new NotFoundException(t('server-ai:Error.PluginFilesystemResourceRootRequired'))
+    }
+    return rootDir
 }
 
 export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugins: LoadedPluginRecord[]) {

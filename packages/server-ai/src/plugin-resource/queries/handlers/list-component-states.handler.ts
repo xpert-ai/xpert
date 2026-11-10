@@ -22,11 +22,9 @@ import { XpertService } from '../../../xpert/xpert.service'
 import { XpertWorkspaceAccessService } from '../../../xpert-workspace'
 import {
     isPluginResourceInstallableForTarget,
-    listRuntimeToolProviderComponents,
     pluginResourceComponentStateKey,
     pluginSkillSharedId,
-    readPluginResourceComponents,
-    resolveLoadedPluginResourceRoot
+    readLoadedPluginResourceCatalog
 } from '../../catalog/plugin-resource-components'
 import { RequestContext, type StrategySource, XpertToolProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { McpPublication } from '../../../mcp-publication/entities/mcp-publication.entity'
@@ -72,20 +70,19 @@ export class ListPluginResourceComponentStatesHandler implements IQueryHandler<L
             await this.workspaceAccess.assertCanAuthor(workspaceId)
         }
 
-        const rootDir = resolveLoadedPluginResourceRoot(pluginName, this.loadedPlugins)
-        const manifestComponents = readPluginResourceComponents(pluginName, rootDir)
-        const runtimeRegistrations = listRuntimeToolProviderComponents(pluginName, this.toolProviderRegistry)
-        const runtimeComponents = runtimeRegistrations.map(({ component }) => component)
+        const { components: discoveredComponents, runtimeRegistrations } = readLoadedPluginResourceCatalog(
+            pluginName,
+            this.loadedPlugins,
+            this.toolProviderRegistry
+        )
         const tenantScopedRuntimeKeys = new Set(
             runtimeRegistrations
                 .filter(({ source }) => isTenantScopedProvider(pluginName, source, this.loadedPlugins))
                 .map(({ component }) => pluginResourceComponentStateKey(component))
         )
-        const runtimeKeys = new Set(runtimeComponents.map((component) => pluginResourceComponentStateKey(component)))
-        const components = [
-            ...manifestComponents.filter((component) => !runtimeKeys.has(pluginResourceComponentStateKey(component))),
-            ...runtimeComponents
-        ].filter((component) => isPluginResourceInstallableForTarget(component.componentType, target))
+        const components = discoveredComponents.filter((component) =>
+            isPluginResourceInstallableForTarget(component.componentType, target)
+        )
         if (!components.length) {
             return []
         }
