@@ -76,6 +76,17 @@ export const executionControlEvidenceSchema = z.discriminatedUnion('source', [
   z
     .object({
       ...base,
+      source: z.literal('native_graph'),
+      subject: z.object({ kind: z.literal('invocation'), id: z.string().min(1) }).strict(),
+      scope: z.literal('operation'),
+      state: z.literal('settled'),
+      outcome: z.literal('cancelled'),
+      executionId: z.string().min(1)
+    })
+    .strict(),
+  z
+    .object({
+      ...base,
       source: z.literal('host_admission'),
       subject: z.object({ kind: z.literal('invocation'), id: z.string().min(1) }).strict(),
       scope: z.literal('operation'),

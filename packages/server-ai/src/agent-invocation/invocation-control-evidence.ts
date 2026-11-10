@@ -12,7 +12,36 @@ import {
     isAgentInvocationTerminal
 } from '@xpert-ai/plugin-sdk'
 import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
+import type { StoredAgentInvocation } from './invocation-store'
 import { AgentInvocationError } from './invocation-errors'
+
+export function isBuiltinInlineGraph({ invocation, providerSource }: StoredAgentInvocation): boolean {
+    return (
+        providerSource?.kind === 'builtin' &&
+        invocation.controlAdapter === 'native-graph' &&
+        invocation.request.target.provider === 'xpert' &&
+        !invocation.handle &&
+        !invocation.executionTarget
+    )
+}
+
+/** Host evidence for this synchronous call only. Attached work keeps its own receipts. */
+export function nativeGraphCancellation(id: string, executionId: string, error?: string): AgentRuntimeObservation {
+    return {
+        status: 'cancelled',
+        error,
+        controlEvidence: {
+            version: 1,
+            source: 'native_graph',
+            subject: { kind: 'invocation', id },
+            scope: 'operation',
+            state: 'settled',
+            outcome: 'cancelled',
+            executionId,
+            observedAt: new Date().toISOString()
+        }
+    }
+}
 
 export function invocationCanRelease(
     invocation: AgentInvocation
@@ -45,6 +74,11 @@ function matchesCompletion(invocation: AgentInvocation, evidence: ExecutionContr
         return false
     return (
         evidence.source === 'host_admission' ||
+        (evidence.source === 'native_graph' &&
+            invocation.controlAdapter === 'native-graph' &&
+            invocation.request.target.provider === 'xpert' &&
+            !invocation.handle &&
+            !invocation.executionTarget) ||
         (evidence.source === 'provider' &&
             evidence.sessionId === invocation.handle?.sessionId &&
             evidence.runId === invocation.handle?.runId &&
