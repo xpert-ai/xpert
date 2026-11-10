@@ -147,4 +147,45 @@ describe('approved archive installation under the store lease', () => {
 		await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
 		expectNoInstallation()
 	})
+
+	it.each([false, undefined])('denies restart-required installation without an explicit grant (%s)', async allowRestart => {
+		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version,
+			runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' } })
+		const opts = options()
+		opts.archiveDeployment.allowRestart = allowRestart
+		await expect(fixture.service.installPlugin(input(), opts)).rejects.toMatchObject({ status: 400 })
+		expectNoInstallation()
+	})
+
+	it('checks the current runtime restart policy after acquiring the installation lease', async () => {
+		jest.mocked(withOrganizationPluginStoreLock).mockImplementation(async (_options, action) => {
+			// Another install completed before this operation acquired the lease.
+			fixture.loadedPlugins.push({ scopeKey: 'org-1', name, packageName: name,
+				instance: { meta: { runtimePolicy: { install: 'hot', update: 'restart', uninstall: 'restart' } } } })
+			return action({ assertOwned: async () => undefined } as PluginStoreLease)
+		})
+		await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
+		expectNoInstallation()
+	})
+
+	it('stages and publishes a restart-required installation only with an explicit grant', async () => {
+		const runtimePolicy = { install: 'restart', update: 'restart', uninstall: 'restart' }
+		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version, runtimePolicy })
+		fixture.assertInstalledPluginSdkCompatibility.mockReturnValue({ level: 'organization', version, runtimePolicy })
+		const opts = options()
+		opts.archiveDeployment.allowRestart = true
+		await fixture.service.installPlugin(input(), opts)
+		expect(fixture.registerPluginsAsync).toHaveBeenCalledWith(expect.objectContaining({ stageOnly: true }), expect.anything())
+		expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(expect.objectContaining({ pendingRestart: true }), expect.anything())
+		expect(fixture.runtimeControl.recordPluginRuntimeChange).toHaveBeenCalled()
+		expect(fixture.loadPlugin).not.toHaveBeenCalled()
+	})
+
+	it('can reuse a previously installed restart-required archive without scheduling another restart', async () => {
+		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(installed())
+		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version,
+			runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' } })
+		await expect(fixture.service.installPlugin(input(), options())).resolves.toMatchObject({ success: true, restartRequired: true })
+		expectNoInstallation()
+	})
 })

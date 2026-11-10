@@ -448,6 +448,9 @@ export class PluginManagementService {
 					requiresPluginRestart(existingRuntime.instance.meta?.runtimePolicy, level, 'update'))
 			) {
 				// Stage plugins whose lifecycle requires bootstrap-time registration.
+				if (options.archiveDeployment && options.archiveDeployment.allowRestart !== true) {
+					throw new ForbiddenException(t('server-ai:Error.PluginDeploymentRestartDenied'))
+				}
 				const { errors } = await registerPluginsAsync(
 					{
 						module: this.moduleRef,

@@ -11,7 +11,7 @@ export type PluginInstallOptions = {
 	allowPackageDir?: boolean
 	deferActivation?: boolean
 	requiredLevel?: PluginLevel
-	archiveDeployment?: { sha256: string; allowReplace: boolean }
+	archiveDeployment?: { sha256: string; allowReplace: boolean; allowRestart?: boolean }
 }
 
 export function prepareArchiveSourceConfig(

@@ -370,7 +370,7 @@ export interface PluginSourceConfig extends PluginCodeSourceConfig {
   /** Written by the archive upload endpoint; retained for legacy installation provenance. */
   uploadFileName?: string
   uploadInstalledAt?: string
-  /** Host-computed SHA-256 of an approved uploaded archive; never accepted from client sourceConfig. */
+  /** Host-computed SHA-256 of the installed archive; never accepted from client sourceConfig. */
   archiveSha256?: string
   /** Host-owned immutable installation directory; never supplied as an authorization grant. */
   runtimeName?: string
