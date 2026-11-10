@@ -16,7 +16,8 @@ export function TrailTree({
     focusRequest,
     panelOpen,
     panelRef,
-    labels: l
+    labels: l,
+    showStatus = true
 }: {
     graph: TrailGraph
     collapsed: ReadonlySet<string>
@@ -26,6 +27,8 @@ export function TrailTree({
     panelOpen: boolean
     panelRef: React.RefObject<HTMLElement>
     labels: TrailLabels
+    /** Public message projections have no execution status; hide status glyphs and labels. */
+    showStatus?: boolean
 }) {
     const drawing = useMemo(() => layoutTrail(graph, collapsed), [graph, collapsed])
     const maskId = useId().replaceAll(':', '')
@@ -261,7 +264,7 @@ export function TrailTree({
                                 className={`cursor-pointer ${step.status === 'error' ? 'text-destructive' : step.id === selected ? 'text-primary' : 'text-foreground'}`}
                                 role="button"
                                 tabIndex={0}
-                                aria-label={`${step.title || l[step.activity]} — ${l[step.status]}`}
+                                aria-label={`${step.title || l[step.activity]}${showStatus ? ` — ${l[step.status]}` : ''}`}
                                 aria-pressed={step.id === selected}
                                 data-step-id={step.id}
                                 onKeyDown={(event) => {
@@ -272,20 +275,21 @@ export function TrailTree({
                                 }}
                                 onClick={() => select(step)}
                             >
-                                <title>{`${step.title || l[step.activity]} — ${l[step.status]}`}</title>
+                                <title>{`${step.title || l[step.activity]}${showStatus ? ` — ${l[step.status]}` : ''}`}</title>
                                 <circle r={16} fill="transparent" />
                                 {junction ? (
                                     <circle r={2.5} fill="currentColor" />
                                 ) : (
                                     <>
                                         <path d="M0 0L0 -14" stroke="currentColor" strokeWidth={1.2} />
-                                        {step.status === 'error' ? (
+                                        {showStatus && step.status === 'error' ? (
                                             <path
                                                 d="M-4 -20L4 -12M4 -20L-4 -12"
                                                 stroke="currentColor"
                                                 strokeWidth={2}
                                             />
-                                        ) : step.kind !== 'turn' &&
+                                        ) : showStatus &&
+                                          step.kind !== 'turn' &&
                                           ['unknown', 'running', 'pending', 'waiting', 'cancelling'].includes(
                                               step.status
                                           ) ? (
@@ -329,10 +333,14 @@ export function TrailTree({
                                 <text x={x + 14} y={y - 4} fontSize={14} fill="var(--foreground)">
                                     {(lane.title || (lane.primary ? l.main : l.branch)).slice(0, 24)}
                                 </text>
-                                <text x={x + 14} y={y + 15} fontSize={12} fill="var(--muted-foreground)">
-                                    {l[lane.status]}
-                                    {lane.elapsedMs === undefined ? '' : ` / ${(lane.elapsedMs / 1000).toFixed(1)} s`}
-                                </text>
+                                {showStatus && (
+                                    <text x={x + 14} y={y + 15} fontSize={12} fill="var(--muted-foreground)">
+                                        {l[lane.status]}
+                                        {lane.elapsedMs === undefined
+                                            ? ''
+                                            : ` / ${(lane.elapsedMs / 1000).toFixed(1)} s`}
+                                    </text>
+                                )}
                                 {lane.outcome && (
                                     <text
                                         x={x + 14}

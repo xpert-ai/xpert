@@ -14,7 +14,14 @@ import { XpertProjectAccessService } from '../../xpert-project/services/project-
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { WorkbenchAssistantConversationNavigationService } from '../workbench-assistant-conversation-navigation.service'
 import { humanMessageSummary, latestUpdate, matches, turnNodes } from './presentation'
-import type { MapAction, MapNode, MapPage, MapQuery, MapOptionsQuery, MapOptionsPage } from './schema'
+import type {
+    MapAction,
+    MapSourceNode as MapNode,
+    MapSourcePage as MapPage,
+    MapQuery,
+    MapOptionsQuery,
+    MapOptionsPage
+} from './schema'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { readSegments } from './segment-reader'
 import { conversationTrail } from './trail-conversation'

@@ -1,3 +1,4 @@
+import { DiscoverConversationResourcesCommand } from '../content-resource/commands/discover-conversation-resources.command'
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
@@ -48,10 +49,30 @@ async function fixture() {
         status: 'busy',
         runControl: { executionId: receipt.executionId }
     })
-    const execute = jest.fn().mockResolvedValue({
-        items: [{ referenceId: randomUUID(), projectId: group.projectId, title: 'Inventory' }],
-        hasMore: false
-    })
+    const referenceId = randomUUID()
+    const execute = jest.fn().mockImplementation(async (command: object) =>
+        command instanceof DiscoverConversationResourcesCommand
+            ? {
+                  items: [
+                      {
+                          resource: { kind: 'group-reference', id: referenceId },
+                          projectId: group.projectId,
+                          title: 'Inventory'
+                      }
+                  ],
+                  nextCursor: null
+              }
+            : {
+                  items: [
+                      {
+                          resource: { kind: 'group-reference', id: referenceId },
+                          projectId: group.projectId,
+                          title: 'Inventory'
+                      }
+                  ],
+                  hasMore: false
+              }
+    )
     const publish = jest.fn().mockResolvedValue({})
     const module = await Test.createTestingModule({
         providers: [
@@ -106,7 +127,14 @@ async function fixture() {
 it('binds metadata access to the actual human and emits an inert fallback plus a targeted request', async () => {
     const f = await fixture()
     await f.tools[1].invoke({ name: 'resource_open', type: 'tool_call', id: 'call-1', args: { query: 'Inventory' } })
-    expect(f.execute.mock.calls[0][0]).toMatchObject({ actor: { ...f.scope, userId: f.userId }, groupId: f.group.id })
+    expect(f.execute.mock.calls[0][0]).toMatchObject({
+        scope: {
+            actor: { ...f.scope, userId: f.userId },
+            projectId: f.group.projectId,
+            conversationId: f.member.runtimeConversationId,
+            assistantId: f.member.subjectId
+        }
+    })
     expect(f.publish.mock.calls[0][4]).toBe(`tool:${f.receipt.executionId}:call-1`)
     expect(f.publish.mock.calls[0][7]).toMatchObject({
         resourceNavigation: { participantId: f.senderId, clientMessageId: f.clientMessageId },

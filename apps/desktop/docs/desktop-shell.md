@@ -1,4 +1,4 @@
-# Desktop Shell (macOS internal preview)
+# Desktop Shell (macOS and Windows internal preview)
 
 The Assistant and its default sandbox stay on the Xpert server. `DesktopShell`
 adds one tool, `desktop_shell`, for explicitly authorized desktop commands.
@@ -10,9 +10,11 @@ adds one tool, `desktop_shell`, for explicitly authorized desktop commands.
    before starting the server. Development schema synchronization also discovers the entities.
 2. In Studio, connect **Desktop Shell** middleware to the intended Agent and publish
    the Assistant. Keep **Sandbox Shell** connected when it also needs server commands.
-3. Sign in to the native macOS app. Optionally set the computer name, zsh/bash,
+3. Sign in to the native macOS or Windows app. Optionally set the computer name, Shell,
    default working directory and command search path in **User menu → Connection &
    appearance → Desktop Shell**. No manual connection or conversation grant is needed.
+   macOS offers zsh/bash; Windows uses the built-in Windows PowerShell 5.1. Windows
+   command search paths use semicolons and preserve the PATH present when Bosi starts.
 4. Ask the Assistant for a local command. Bosi connects on demand; an inline message
    card shows the exact command, computer, cwd and access notice. Choose **Allow once**
    or **Deny**. Nothing runs while the request is pending.
@@ -37,13 +39,38 @@ No PTY, interactive stdin, persistent shell session, file synchronization or loc
 Agent runtime is provided. Each command gets a fresh non-interactive shell and a
 small environment allowlist; platform account/device tokens are not inherited.
 
+Windows requires Windows 10 or newer with Windows PowerShell and .NET available.
+It does not require WSL, Python, a separate Node installation, SSH, or administrator
+rights to run an approved command. Corporate policies that prohibit PowerShell or
+`Add-Type` must be handled by the machine administrator; execution never falls back
+to an unsupervised process. Only the command process uses a process-local script
+execution-policy override; no machine/user execution policy is changed.
+
 ## Tool contract
 
 ```json
+{"action":"info"}
 {"action":"exec","command":"pwd; uname -s","timeout_sec":30}
 {"action":"status","operationId":"<uuid>","cursor":0}
 {"action":"cancel","operationId":"<uuid>"}
 ```
+
+Before its first command, the Agent uses `info` to read the native client's explicit
+platform, selected shell and default directory. This does not register a device,
+create a permit or execute a command. Disabled/unavailable clients return
+`{"available":false}`. Windows commands use PowerShell syntax, for example:
+
+```json
+{ "action": "exec", "command": "Get-Location; Write-Output '中文'", "cwd": "C:\\Users\\Example", "timeout_sec": 30 }
+```
+
+Windows accepts fully qualified drive and UNC directories. Drive-relative paths
+such as `C:project` and rooted paths without a drive are rejected. Paths are not
+normalized between approval and execution: the exact command/cwd/timeout digest
+must still match. Each PowerShell command is read from a UTF-8 BOM script, supports
+multiline input, disables profiles and interactive stdin, and reports explicit
+`exit`/native-program exit codes and PowerShell errors. UTF-8 output is supported;
+tools that emit a legacy code page must be configured to emit UTF-8 themselves.
 
 `exec` optionally accepts an absolute `cwd`. Tenant, user, organization, device,
 thread, grant and run are resolved from authenticated server context, never model
@@ -126,7 +153,14 @@ Duplicate delivery returns the existing operation without spawning again. Change
 arguments for the same run/toolCallId are rejected. Reconnect resends unacknowledged
 results; local acknowledged completion survives Worker restarts. Cancellation is also
 persisted before a delayed exec can arrive. Timeout, revoke, lost lease and user cancel
-terminate the process group (TERM, then KILL). Abrupt process/OS failure may produce
+terminate the POSIX process group (TERM, then KILL). On Windows the supervisor uses
+a Job Object, assigned atomically during suspended process creation, with breakaway
+disabled and kill-on-close enabled. Only stdin/stdout/stderr handles reach the
+command; completion travels over a separate authenticated local pipe. Natural shell
+exit also terminates background descendants. A final receipt requires the Job's active
+process count to reach zero; a supervisor crash without a receipt stays `unknown`
+and does not release the device for another command. Worker death closes the control
+pipe and requests Job termination. Abrupt process/OS failure may produce
 `unknown`; this is not success, proof of rollback or permission to retry the command.
 No exactly-once side-effect or arbitrary-process recovery guarantee is claimed.
 
@@ -166,4 +200,36 @@ Server messages use the platform's en/en-US/zh-Hans i18next resources.
 See `desktop-shell-inline-approval-acceptance.md` for the current approval upgrade,
 and `desktop-shell-acceptance.md` for earlier transport validation.
 Unsigned packaging is suitable for internal validation; signing, notarization, update
-rollout and Windows/Linux support are separate release work.
+rollout and Linux support are separate release work.
+
+## Native Windows validation
+
+Run `node --test apps/desktop/tests/windows-shell-engine.test.cjs` on Windows. This
+suite covers Unicode and long commands, stdin/environment boundaries, exit codes,
+output limits, approval/replay, cancellation/deadlines, descendant cleanup, and
+worker/supervisor crashes. It is skipped on macOS/Linux: passing the portable suites
+or compiling the C# helper there does not prove Windows execution.
+
+For a local, unsigned Windows x64 test package without installing developer tools
+on the target computer:
+
+```sh
+corepack pnpm exec tsc -p .deploy/desktop/tsconfig.contracts.json
+corepack pnpm --filter @xpert-ai/desktop build
+corepack pnpm --filter @xpert-ai/desktop exec electron-builder --dir --win --x64 \
+  --publish never --config.win.signAndEditExecutable=false
+node apps/desktop/scripts/package-windows-shell-validation.mjs apps/desktop/release/win-unpacked
+```
+
+The kit uses the packaged Electron executable in Node mode and tests the engine
+inside `resources/app.asar`. On Windows, extract the entire directory and run
+`Run Shell Tests.cmd`; results are written to `shell-validation/results.tap`.
+It runs only temporary fixtures, does not connect to an Xpert API, and does not
+change an installed Bosi profile or system services. An automated SSH run may invoke
+`Bosi.exe shell-validation/run.cjs` with `ELECTRON_RUN_AS_NODE=1`.
+
+Human acceptance follows successful native tests and requires matching Desktop and
+server changes: approve a command writing/reading a Chinese-named file in a test
+directory, deny another command and verify no file was written, then stop a long
+command and verify the next approved command works. SSH is only a development/test
+transport and is not required by the product.

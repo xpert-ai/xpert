@@ -9,6 +9,7 @@ import {
 import { t } from 'i18next'
 import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
 import { ContentCatalogService } from './catalog/content-catalog.service'
+import { ConversationResourceService } from './discovery/conversation-resource.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(ContentResourcesRuntimeCapability)
@@ -16,7 +17,8 @@ export class ContentResourceService implements ContentResourcesApi {
     constructor(
         readonly identities: ContentIdentityService,
         private readonly providers: ContentResourceProviderRegistry,
-        readonly catalog: ContentCatalogService
+        readonly catalog: ContentCatalogService,
+        readonly discovery: ConversationResourceService
     ) {}
 
     async authorize(input: ContentResourceRequest) {

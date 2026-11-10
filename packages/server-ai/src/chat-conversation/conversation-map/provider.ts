@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import {
     ViewExtensionProvider,
@@ -19,11 +20,24 @@ import {
 import { ConversationMapService } from './service'
 import { mapActionSchema, mapOptionsQuerySchema, mapQuerySchema } from './schema'
 import { CONVERSATION_MAP_ICON } from './icon'
+import { assistantMapPage, groupMapPage } from './read-model'
 import { trailQuerySchema } from './trail.schema'
+import { ReadGroupMapCommand } from '../../chat-group/commands/read-group-map.command'
+import { groupMapQuerySchema } from '../../chat-group/group-map.schema'
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 @ViewExtensionProvider('platform.conversation-map')
 export class ConversationMapViewProvider implements IXpertViewExtensionProvider {
-    constructor(private readonly map: ConversationMapService) {}
+    constructor(
+        private readonly map: ConversationMapService,
+        private readonly commands: CommandBus
+    ) {}
+
+    private async group(context: XpertResolvedViewHostContext, parameters: unknown = {}) {
+        if (!context.runtimeScope?.conversationId) return null
+        const parsed = groupMapQuerySchema.safeParse(parameters)
+        if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+        return this.commands.execute(new ReadGroupMapCommand(context, parsed.data))
+    }
     supports(context: XpertResolvedViewHostContext) {
         return context.hostType === 'agent'
     }
@@ -83,6 +97,22 @@ export class ConversationMapViewProvider implements IXpertViewExtensionProvider 
     }
     async getViewData(context: XpertResolvedViewHostContext, _key: string, query: XpertViewQuery) {
         if (_key !== 'topics') throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+        const group = await this.group(context, { ...query.parameters, search: query.search ?? '' })
+        if (group) {
+            // Group credentials cannot query another conversation or invoke the private execution tree.
+            if (query.parameters?.operation && query.parameters.operation !== 'group')
+                throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            return {
+                item: groupMapPage(
+                    group,
+                    {
+                        id: context.runtimeScope?.projectId ?? null,
+                        title: context.runtimeScope?.project?.name ?? t('server-ai:ConversationMap.Unassigned')
+                    },
+                    context.hostId
+                )
+            }
+        }
         if (query.parameters?.operation === 'options') {
             const parsed = mapOptionsQuerySchema.safeParse(query.parameters)
             if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
@@ -104,7 +134,7 @@ export class ConversationMapViewProvider implements IXpertViewExtensionProvider 
             limit: query.pageSize ?? 20
         })
         if (!parsed.success) throw new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
-        return { item: await this.map.read(context, parsed.data) }
+        return { item: assistantMapPage(await this.map.read(context, parsed.data)) }
     }
     async executeViewAction(
         context: XpertResolvedViewHostContext,
@@ -112,6 +142,8 @@ export class ConversationMapViewProvider implements IXpertViewExtensionProvider 
         key: string,
         request: XpertViewActionRequest
     ) {
+        if (await this.group(context, { limit: 1 }))
+            throw new ForbiddenException(t('server-ai:Error.ConversationAccessDenied'))
         const parsed = mapActionSchema.safeParse(request.input)
         if (_key !== 'topics' || key !== 'act' || !parsed.success)
             throw new BadRequestException(t('server-ai:ConversationMap.InvalidAction'))

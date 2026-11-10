@@ -1,12 +1,13 @@
 // Invariants: persist intent before spawn; uncertain executions never replay. cwd is not a sandbox.
 const fs = require('node:fs')
 const path = require('node:path')
-const os = require('node:os')
 const { AGENT_PROCESS_SUPERVISOR } = require('@xpert-ai/desktop-protocol/process-supervisor')
 const { spawn } = require('node:child_process')
 const { createHash } = require('node:crypto')
 const { StringDecoder } = require('node:string_decoder')
 const { VERSION, LIMITS, isFinal, isId, parseCommand } = require('@xpert-ai/desktop-protocol')
+const { shellEnvironment } = require('./platform.cjs')
+const { spawnWindowsExecution } = require('./windows-execution.cjs')
 
 function digest(command) {
   return createHash('sha256')
@@ -58,6 +59,8 @@ class ShellEngine {
       fs.closeSync(fd)
     }
     fs.renameSync(temp, target)
+    // Windows cannot open/fsync a directory. File contents are flushed before the atomic rename on both OSes.
+    if (process.platform === 'win32') return
     const dir = fs.openSync(this.directory, 'r')
     try {
       fs.fsyncSync(dir)
@@ -126,7 +129,7 @@ class ShellEngine {
     }
   }
   accept(raw) {
-    const command = parseCommand(raw)
+    const command = parseCommand(raw, process.platform === 'win32' ? 'win32' : 'darwin')
     if (command.connectionEpoch !== this.epoch || this.stopped) throw new Error('STALE_CONNECTION')
     if (command.type === 'cancel') return this.cancel(command.operationId, command.reason)
     if (command.deadline <= this.clock() || command.deadline > this.clock() + (LIMITS.maxTimeout + 30) * 1000)
@@ -172,25 +175,22 @@ class ShellEngine {
       return this.state(record)
     }
     let child
+    let execution
     try {
-      child = spawn(
-        'python3',
-        ['-u', '-c', AGENT_PROCESS_SUPERVISOR, String(process.pid), this.settings.shell, '-c', command.command],
-        {
-          cwd: command.cwd,
-          detached: true,
-          stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
-          env: {
-            HOME: os.homedir(),
-            USER: os.userInfo().username,
-            LOGNAME: os.userInfo().username,
-            PATH: this.settings.path,
-            LANG: 'en_US.UTF-8',
-            TMPDIR: os.tmpdir(),
-            SHELL: this.settings.shell
+      if (process.platform === 'win32') {
+        execution = spawnWindowsExecution(this.settings, command, this.directory)
+        child = execution.child
+      } else
+        child = spawn(
+          'python3',
+          ['-u', '-c', AGENT_PROCESS_SUPERVISOR, String(process.pid), this.settings.shell, '-c', command.command],
+          {
+            cwd: command.cwd,
+            detached: true,
+            stdio: ['ignore', 'pipe', 'pipe', 'pipe'],
+            env: shellEnvironment(this.settings)
           }
-        }
-      )
+        )
     } catch {
       record.state = 'failed'
       record.errorCode = 'SPAWN_FAILED'
@@ -201,6 +201,7 @@ class ShellEngine {
     }
     const active = {
       child,
+      execution,
       record,
       reason: null,
       killTimer: null,
@@ -210,7 +211,11 @@ class ShellEngine {
       ready: false,
       stopRequested: false
     }
-    child.stdio[3].on('data', (data) => {
+    active.finished = new Promise((resolve) => {
+      active.resolveFinished = resolve
+    })
+    const receiptStream = execution?.receipt || child.stdio[3]
+    receiptStream.on('data', (data) => {
       if (active.receipt.length < 4096) active.receipt += data.toString('utf8')
       if (!active.ready && active.receipt.startsWith('{"ready":true}\n')) {
         active.ready = true
@@ -237,16 +242,19 @@ class ShellEngine {
     }
     child.on('error', () => {
       record.errorCode = 'SPAWN_FAILED'
+      active.notStarted = !child.pid
     })
-    child.on('close', (code, signal) => {
+    child.on('close', async (code, signal) => {
       clearTimeout(active.timeout)
       clearTimeout(active.killTimer)
+      await execution?.finish()
       let receipt
       try {
         receipt = JSON.parse(active.receipt.split('\n').at(-1))
       } catch {}
+      if (active.notStarted) receipt = { version: 1, state: 'not_started', coverage: 'descendants', exitCode: 127 }
       const confirmed =
-        code === 0 &&
+        (code === 0 || active.notStarted) &&
         receipt?.version === 1 &&
         ['exited', 'not_started'].includes(receipt.state) &&
         receipt.coverage === 'descendants' &&
@@ -254,7 +262,7 @@ class ShellEngine {
       record.exitCode = confirmed ? receipt.exitCode : code
       if (confirmed)
         record.completion = { version: 1, generation: record.id, coverage: 'descendants', state: receipt.state }
-      if (confirmed && receipt.state === 'not_started') record.errorCode = 'SPAWN_FAILED'
+      if (confirmed && receipt.state === 'not_started' && !active.reason) record.errorCode = 'SPAWN_FAILED'
       record.signal = signal || undefined
       record.state = confirmed ? active.reason || (receipt.exitCode === 0 ? 'succeeded' : 'failed') : 'unknown'
       record.seq++
@@ -267,6 +275,7 @@ class ShellEngine {
       }
       if (this.current === active) this.current = null
       this.state(record)
+      active.resolveFinished()
     })
     active.timeout = setTimeout(
       () => this.cancel(record.id, 'timed_out'),
@@ -308,7 +317,8 @@ class ShellEngine {
       return
     }
     try {
-      if (signal === 'SIGTERM') active.child.kill(signal)
+      if (active.execution) active.execution.stop(signal === 'SIGKILL')
+      else if (signal === 'SIGTERM') active.child.kill(signal)
       else process.kill(-active.child.pid, signal)
     } catch (error) {
       if (error.code !== 'ESRCH') active.record.errorCode = 'CANCEL_FAILED'
@@ -360,10 +370,15 @@ class ShellEngine {
     if (!this.current) return
     const active = this.current
     this.cancel(active.record.id)
+    let timeout
+    // Windows completion arrives on a separate pipe; process close alone cannot authorize worker shutdown.
     await Promise.race([
-      new Promise((resolve) => active.child.once('close', resolve)),
-      new Promise((resolve) => setTimeout(resolve, 3000))
+      active.finished,
+      new Promise((resolve) => {
+        timeout = setTimeout(resolve, 3000)
+      })
     ])
+    clearTimeout(timeout)
     this.signal(active, 'SIGKILL')
   }
 }

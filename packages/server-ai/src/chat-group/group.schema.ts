@@ -1,4 +1,5 @@
 import { groupComposerSchema } from './group-composer.schema'
+import { iconDefinitionSchema } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import type { ChatGroupCommunication, ChatGroupSendInput } from '@xpert-ai/contracts'
 
@@ -81,9 +82,38 @@ export const groupPreferencesSchema = z
     .strict()
     .refine((input) => Object.keys(input).length > 0)
 export const groupJobSchema = z.object({ recipientId: z.string().uuid() }).strict()
-export const groupResourceLinkSchema = z
-    .object({ referenceId: z.string().uuid(), projectId: z.string().uuid(), title: z.string().max(200) })
-    .strict()
+const resourceLinkBase = {
+    projectId: z.string().uuid(),
+    title: z.string().max(200),
+    // Invalid decorative metadata must not hide an otherwise valid historical resource link.
+    icon: iconDefinitionSchema.optional().catch(undefined)
+}
+const resourceTargetSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('group-reference'), id: z.string().uuid() }).strict(),
+    z.object({ kind: z.literal('project-content'), id: z.string().uuid() }).strict()
+])
+/** Normalize persisted legacy links once; business code and new writes use only resource.kind/id. */
+export const groupResourceLinkSchema = z.union([
+    z.object({ ...resourceLinkBase, resource: resourceTargetSchema }).strict(),
+    z
+        .object({ ...resourceLinkBase, kind: z.literal('group-reference').optional(), referenceId: z.string().uuid() })
+        .strict()
+        .transform(({ projectId, title, referenceId, icon }) => ({
+            projectId,
+            title,
+            ...(icon ? { icon } : {}),
+            resource: { kind: 'group-reference' as const, id: referenceId }
+        })),
+    z
+        .object({ ...resourceLinkBase, kind: z.literal('project-content'), contentId: z.string().uuid() })
+        .strict()
+        .transform(({ projectId, title, contentId, icon }) => ({
+            projectId,
+            title,
+            ...(icon ? { icon } : {}),
+            resource: { kind: 'project-content' as const, id: contentId }
+        }))
+])
 export const groupCommunicationSchema = z
     .object({
         resourceLinks: z.array(groupResourceLinkSchema).max(10).optional(),

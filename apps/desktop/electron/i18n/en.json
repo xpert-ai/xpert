@@ -374,7 +374,7 @@
   "Could not load Shell status.": "Could not load Shell status.",
   "Could not update Desktop Shell.": "Could not update Desktop Shell.",
   "Loading Shell status…": "Loading Shell status…",
-  "Desktop Shell requires the native macOS app.": "Desktop Shell requires the native macOS app.",
+  "Desktop Shell requires the native macOS or Windows app.": "Desktop Shell requires the native macOS or Windows app.",
   "Connected": "Connected",
   "Connecting…": "Connecting…",
   "Disabled": "Disabled",

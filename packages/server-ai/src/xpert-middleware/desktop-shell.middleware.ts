@@ -1,4 +1,4 @@
-import { requestShellApproval } from '../desktop-shell/shell-approval'
+import { requestShellApproval, requestShellComputerInfo } from '../desktop-shell/shell-approval'
 import { t } from 'i18next'
 import { Injectable } from '@nestjs/common'
 import { tool } from '@langchain/core/tools'
@@ -23,7 +23,7 @@ import { DesktopShellOperationService } from '../desktop-shell/desktop-shell-ope
 import { parseShellBoundary, shellError } from '../desktop-shell/desktop-shell.errors'
 
 const schema = z.object({
-    action: z.enum(['exec', 'status', 'cancel']),
+    action: z.enum(['info', 'exec', 'status', 'cancel']),
     command: z.string().min(1).max(LIMITS.command).optional(),
     cwd: z.string().min(1).max(4096).optional(),
     timeout_sec: z.number().int().min(1).max(LIMITS.maxTimeout).optional(),
@@ -64,6 +64,7 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
                     userId: context.userId
                 }
                 if (!scope.organizationId) shellError('GRANT_REVOKED', 403)
+                if (input.action === 'info') return JSON.stringify(await requestShellComputerInfo(toolCallId))
                 let result: ShellResult
                 if (input.action === 'exec') {
                     const ready = await requestShellApproval({
@@ -136,7 +137,7 @@ export class DesktopShellMiddleware implements IAgentMiddlewareStrategy {
                 name: 'desktop_shell',
                 schema,
                 description:
-                    'Request a non-interactive command on the local desktop computer. Bosi connects automatically and asks for permission according to the device policy. If denied, expired or unavailable, stop; never repeat the request without new user instruction. Execute on this computer, not the server sandbox. Use exec to start, status with operationId and cursor to collect incremental output, and cancel to stop. Each exec starts a fresh shell; specify an absolute cwd. Long commands return running. The computer OS, shell and cwd are in the result. Do not retry an unknown result or an offline device on another machine. No interactive stdin, sudo or persistent background services. Use sandbox_shell for server-side work.'
+                    'Request a non-interactive command on the local desktop computer. Before the first exec, use info to read this computer platform, shell and default cwd without executing a command or requesting execution permission. Use Windows PowerShell syntax on win32 and the reported POSIX shell on darwin; never guess the OS or substitute WSL. Bosi connects automatically and asks for permission according to the device policy. If denied, expired or unavailable, stop; never repeat the request without new user instruction. Execute on this computer, not the server sandbox. Use exec to start, status with operationId and cursor to collect incremental output, and cancel to stop. Each exec starts a fresh shell; specify an absolute cwd. Long commands return running. Do not retry an unknown result or an offline device on another machine. No interactive stdin, sudo or persistent background services. Use sandbox_shell for server-side work.'
             }
         )
         return { name: 'DesktopShell', tools: [shell] }

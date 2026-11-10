@@ -7,7 +7,7 @@ const { randomUUID } = require('node:crypto')
 const { EventEmitter } = require('node:events')
 const { DesktopShellController } = require('../electron/shell/controller.cjs')
 
-function fixture(t) {
+function fixture(t, platform = process.platform === 'win32' ? 'win32' : 'darwin') {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bosi-permission-'))
   t.after(() => fs.rmSync(dir, { force: true, recursive: true }))
   const requests = [],
@@ -29,9 +29,8 @@ function fixture(t) {
       return {}
     }
   }
-  const controller = new DesktopShellController(service, dir)
-  // The macOS Shell executor is mocked; do not persist a Windows host path.
-  controller.settings.cwd = '/tmp/bosi-shell-fixture'
+  const controller = new DesktopShellController(service, dir, { platform })
+  controller.settings.cwd = platform === 'win32' ? 'C:\\bosi-shell-fixture' : '/tmp/bosi-shell-fixture'
   const child = new EventEmitter()
   child.connected = true
   child.send = (message, done) => {
@@ -62,6 +61,24 @@ function fixture(t) {
 }
 const nextTick = () => new Promise((resolve) => setImmediate(resolve))
 
+test('Windows availability, PowerShell settings and exact cwd survive preparation and persistence', async (t) => {
+  const f = fixture(t, 'win32')
+  assert.equal(f.controller.snapshot().available, true)
+  assert.equal(f.controller.snapshot().platform, 'win32')
+  assert.equal(f.controller.settings.shell, 'powershell.exe')
+  f.controller.settings.path = 'C:\\Windows;C:\\Tools'
+  await f.controller.setPolicy('allow')
+  const restored = new DesktopShellController(f.service, f.dir, { platform: 'win32' })
+  assert.equal(restored.policy(), 'allow')
+  assert.deepEqual(restored.settings, f.controller.settings)
+  await f.controller.setPolicy('ask')
+  const input = { ...f.input, command: 'Get-Location', cwd: 'D:\\Project 中文' }
+  const ready = await f.controller.prepare(input)
+  assert.equal(ready.cwd, input.cwd)
+  assert.equal(f.requests[0].body.cwd, input.cwd)
+  await assert.rejects(f.controller.prepare({ ...input, toolCallId: 'bad', cwd: '/tmp' }), /INVALID_SETTINGS/)
+})
+
 test('connects on demand and deduplicates concurrent preparations without execution permits', async (t) => {
   const f = fixture(t)
   const [a, b] = await Promise.all([f.controller.prepare(f.input), f.controller.prepare(f.input)])
@@ -91,7 +108,7 @@ test('approval waits for the worker receipt before it can resume the Agent', asy
 test('persistent allow is scoped to account, organization, platform and installation', async (t) => {
   const f = fixture(t)
   await f.controller.setPolicy('allow')
-  const restored = new DesktopShellController(f.service, f.dir)
+  const restored = new DesktopShellController(f.service, f.dir, { platform: f.controller.platform })
   assert.equal(restored.policy(), 'allow')
   const org = f.service.profile.organizationId
   f.service.profile.organizationId = randomUUID()

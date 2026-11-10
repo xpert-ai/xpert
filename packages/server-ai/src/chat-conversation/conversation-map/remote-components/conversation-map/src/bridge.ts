@@ -6,6 +6,8 @@ import {
     type MapAction,
     type MapPage,
     type MapQuery,
+    type MapCursor,
+    type MapNode,
     type MapOptionsQuery
 } from '../../../schema'
 import { configureDebug, debug } from './debug'
@@ -154,11 +156,21 @@ export function request(type: string, body: object): Promise<unknown> {
         send(type, { ...body, requestId })
     })
 }
-export async function read(parameters: Partial<MapQuery>, search = '', offset = 0): Promise<MapPage> {
+export async function read(
+    parameters: Partial<MapQuery>,
+    search = '',
+    cursor: MapCursor | number = 0
+): Promise<MapPage> {
+    const paging =
+        typeof cursor === 'number'
+            ? { offset: cursor }
+            : cursor.type === 'before'
+              ? { before: cursor.sequence }
+              : { offset: cursor.offset, searchOffset: cursor.searchOffset }
     return z.object({ item: mapPageSchema }).parse(
         await request('requestData', {
             query: {
-                parameters: { ...parameters, offset },
+                parameters: { ...parameters, ...paging },
                 search,
                 pageSize: search || parameters.conversationId ? 20 : 3
             }
@@ -190,4 +202,16 @@ export async function savePrefs(prefs: Prefs) {
         commandKey: 'workbench.navigation.open',
         payload: { target: 'workbench.view', viewKey: 'platform.conversation-map__topics', parameters: prefs }
     })
+}
+
+/** Navigate only to the server-projected audience; never substitute a runtime conversation ID. */
+export async function locateNode(node: MapNode) {
+    if (!node.anchor || !node.capabilities.includes('locate')) throw Error('Navigation unavailable')
+    const reply = z.object({ success: z.boolean(), message: z.string().optional() }).parse(
+        await request('invokeClientCommand', {
+            commandKey: 'workbench.navigation.open',
+            payload: { ...node.anchor, preserveView: true }
+        })
+    )
+    if (!reply.success) throw Error(reply.message ?? 'Navigation failed')
 }

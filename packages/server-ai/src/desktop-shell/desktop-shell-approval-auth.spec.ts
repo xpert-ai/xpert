@@ -21,6 +21,8 @@ function fixture() {
     const device = Object.assign(new DesktopShellDevice(), {
         id: randomUUID(),
         name: 'Mac',
+        platform: 'darwin',
+        shell: '/bin/zsh',
         cwd: '/tmp',
         enabled: true,
         credentialExpiresAt: new Date(Date.now() + 3600000),
@@ -62,6 +64,25 @@ function fixture() {
     return { service, device, input, queryBus, grants, getGrant: () => grant! }
 }
 describe('per-operation permission endpoints', () => {
+    it('prepares exact Windows paths and rejects invalid cwd before creating a grant', async () => {
+        const f = fixture()
+        f.device.platform = 'win32'
+        f.device.shell = 'powershell.exe'
+        f.device.cwd = 'C:\\Users\\Test'
+        const input = { ...f.input, command: 'Get-Location', cwd: 'D:\\测试 space' }
+        const ready = await f.service.prepareOperation(f.device.id, input)
+        expect(ready.cwd).toBe(input.cwd)
+        expect(f.getGrant().operation?.argsHash).toBe(
+            createHash('sha256')
+                .update(JSON.stringify([input.command, input.cwd, input.timeoutSec]))
+                .digest('hex')
+        )
+        for (const cwd of ['D:relative', '/tmp'])
+            await expect(f.service.prepareOperation(f.device.id, { ...input, cwd })).rejects.toMatchObject({
+                status: 400
+            })
+        expect(f.grants.save).toHaveBeenCalledTimes(1)
+    })
     it('prepares a pending exact command only after checking conversation access', async () => {
         const f = fixture()
         const ready = await f.service.prepareOperation(f.device.id, f.input)

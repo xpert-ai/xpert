@@ -69,6 +69,7 @@ export type HostResult<T> =
       retryAfterMs?: number
     }
 export interface DesktopShellState {
+  platform?: string
   policy: ShellPolicy
   available: boolean
   enabled: boolean

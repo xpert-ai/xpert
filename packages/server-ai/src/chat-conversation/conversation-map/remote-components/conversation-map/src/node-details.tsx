@@ -1,7 +1,7 @@
 import React from 'react'
 import { Clock3, MessageSquare, MessagesSquare } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@xpert-ai/shadcn-ui'
-import type { MapNode } from '../../../schema'
+import type { MapNode, MapPage } from '../../../schema'
 import { formatLocale, type Labels } from './i18n'
 
 export function NodeUpdatedAt({
@@ -70,9 +70,15 @@ export function NodeDetails({
     labels: Labels
     compact?: boolean
 }) {
-    const text = node.kind === 'turn' ? node.preview : node.lastHumanMessage?.text
+    const counted = node.kind === 'conversation' && node.messageCount !== undefined
+    const text = counted
+        ? `${node.messageCount} ${l.messageCount}`
+        : node.kind === 'turn' || node.kind === 'message'
+          ? node.preview
+          : node.lastHumanMessage?.text
     return (
         <span className="flex min-w-0 flex-col gap-2">
+            <MessageMetadata node={node} labels={l} />
             {node.conversationTitle && node.kind !== 'conversation' && (
                 <span className="flex min-w-0 items-start gap-1.5 text-xs text-muted-foreground">
                     <MessagesSquare className="mt-0.5 size-3 shrink-0" aria-hidden />
@@ -86,19 +92,71 @@ export function NodeDetails({
                     {!compact && (
                         <span className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                             <MessageSquare className="size-3 shrink-0" aria-hidden />
-                            {node.kind === 'turn'
-                                ? l.humanMessage
-                                : node.kind === 'conversation'
-                                  ? l.currentBranchQuestion
-                                  : l.lastHumanMessage}
+                            {counted
+                                ? l.loadedMessages
+                                : node.kind === 'message'
+                                  ? messageCaption(node, l)
+                                  : node.kind === 'turn'
+                                    ? l.humanMessage
+                                    : node.kind === 'conversation'
+                                      ? l.currentBranchQuestion
+                                      : l.lastHumanMessage}
                             {node.lastHumanMessage?.inherited && <span>· {l.inheritedQuestion}</span>}
                         </span>
                     )}
                     <span
                         className={`break-words text-sm ${compact ? 'line-clamp-1' : 'line-clamp-3'} ${text ? '' : 'text-muted-foreground'}`}
                     >
-                        {text || (node.lastHumanMessage || node.kind === 'turn' ? l.nonTextMessage : l.noHumanMessage)}
+                        {text ||
+                            (node.lastHumanMessage || node.kind === 'turn' || node.kind === 'message'
+                                ? l.nonTextMessage
+                                : l.noHumanMessage)}
                     </span>
+                </span>
+            )}
+        </span>
+    )
+}
+
+export function messageCaption(node: MapNode, l: Labels): string {
+    return !node.message
+        ? l.message
+        : node.message.intent === 'reply'
+          ? node.message.replyStage === 'progress'
+              ? l.progressReply
+              : l.finalReply
+          : node.message.intent === 'request'
+            ? l.requestIntent
+            : l.messageIntent
+}
+
+/** Structured message semantics shared by cards, outlines and the detail panel. */
+export function MessageMetadata({
+    node,
+    labels: l,
+    participants
+}: {
+    node: MapNode
+    labels: Labels
+    participants?: MapPage['participants']
+}) {
+    if (!node.message) return null
+    return (
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>
+                {messageCaption(node, l)} · #{node.message.sequence}
+            </span>
+            {node.message.contentKinds.map((kind) => (
+                <span className="rounded bg-muted px-1.5 py-0.5" key={kind}>
+                    {l[kind]}
+                </span>
+            ))}
+            {participants && !!node.message.recipientIds.length && (
+                <span>
+                    {l.recipients}:{' '}
+                    {node.message.recipientIds
+                        .map((id) => participants.find((member) => member.id === id)?.name ?? id)
+                        .join('、')}
                 </span>
             )}
         </span>
