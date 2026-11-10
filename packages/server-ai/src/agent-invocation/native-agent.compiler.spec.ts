@@ -8,6 +8,7 @@ import { Subscriber } from 'rxjs'
 import { AgentStateAnnotation } from '../shared/agent/state'
 import { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands'
+import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { NativeAgentCompiler } from './native-agent.compiler'
 
 describe('Native Agent execution tool correlation', () => {
@@ -33,9 +34,11 @@ describe('Native Agent execution tool correlation', () => {
             }
             throw new Error('Unexpected command')
         })
+        const runAttached = jest.fn((_child: string, _parent: string, run: () => Promise<unknown>) => run())
         const compiler = new NativeAgentCompiler(
             { execute } as unknown as CommandBus,
-            { execute: jest.fn(async () => execution) } as unknown as QueryBus
+            { execute: jest.fn(async () => execution) } as unknown as QueryBus,
+            { runAttached } as unknown as ExecutionControlStore
         )
         const controller = new AbortController()
         const compiled = await compiler.compile(
@@ -69,6 +72,8 @@ describe('Native Agent execution tool correlation', () => {
                 configurable: { executionId: 'parent', agentKey: 'leader', thread_id: 'thread' }
             }
         )
+        expect(runAttached).toHaveBeenCalledWith('child', 'parent', expect.any(Function))
+        expect(graph.invoke).toHaveBeenCalledTimes(1)
         expect(execution).toMatchObject({
             parentId: 'parent',
             metadata: { invocationKind: 'sub_agent' }
