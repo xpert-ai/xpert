@@ -1,6 +1,6 @@
 function createShellMethods(ClientError) {
   async function call(service, method, input) {
-    if (!service.shell) throw new ClientError('Desktop Shell requires the native macOS app.', 400)
+    if (!service.shell) throw new ClientError('Desktop Shell requires the native macOS or Windows app.', 400)
     try {
       return await service.shell[method](input)
     } catch (error) {
