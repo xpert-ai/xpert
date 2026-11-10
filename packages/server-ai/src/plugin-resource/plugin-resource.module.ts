@@ -74,6 +74,7 @@ import { McpPublicationModule } from '../mcp-publication'
 import { McpPublication } from '../mcp-publication/entities/mcp-publication.entity'
 import { McpPublicationAccess } from '../mcp-publication/entities/mcp-publication-access.entity'
 import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
+import { PreparePluginTestAccessHandler } from './commands/handlers/prepare-plugin-test-access.handler'
 
 @Module({
     imports: [
@@ -147,6 +148,7 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
         PluginApplicationSuiteService,
         PluginResourceInstallerService,
         PluginMcpServerService,
+        PreparePluginTestAccessHandler,
         PluginApplicationService,
         PluginHooksMiddleware,
         PluginTemplateInstallHandler,

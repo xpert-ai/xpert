@@ -58,6 +58,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+    "PluginDeploymentTestNotReady": "The approved plugin must be installed, loaded, and declare an MCP acceptance component before creating test access.",
+    "PluginDeploymentApproval": "A native human release approval is required for deployment.",
     "PluginDeploymentPublisherDenied": "The release approver no longer has platform plugin management permission.",
     "PluginDeploymentIdentity": "The plugin archive or installed identity does not match the approved candidate.",
     "PluginDeploymentRestartDenied": "This package requires a platform restart that was not authorized.",

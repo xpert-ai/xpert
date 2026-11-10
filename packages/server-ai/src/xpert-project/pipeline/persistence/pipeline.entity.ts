@@ -127,6 +127,7 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         digest?: string
         humanWaitSnapshot?: PipelineHumanWaitSnapshot
         budgetIncrease?: ProjectPipelineModelBudgetIncreaseRecord
+        pluginDeployment?: import('@xpert-ai/contracts').ProjectPluginDeploymentReceipt
     }
 }
 

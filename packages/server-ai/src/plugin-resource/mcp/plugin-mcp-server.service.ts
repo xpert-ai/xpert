@@ -12,6 +12,7 @@ import {
 import { ConfigService } from '@xpert-ai/server-config'
 import {
     BadRequestException,
+    ConflictException,
     Inject,
     Injectable,
     Logger,
@@ -40,6 +41,8 @@ import {
     resolveLoadedPluginBundleRoot
 } from '@xpert-ai/server-core'
 import type { Subscription } from 'rxjs'
+import { t } from 'i18next'
+import type { PluginTestRuntimeIdentity } from '../commands/prepare-plugin-test-access.command'
 import { createHash } from 'node:crypto'
 import { Repository } from 'typeorm'
 import { McpApiKeyService } from '../../mcp-publication/mcp-api-key.service'
@@ -206,8 +209,9 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
         }
     }
 
-    async enable(pluginName: string, componentKey: string): Promise<IPluginMcpServerActivationResult> {
-        const ownership = this.resolveProviderOwnership(pluginName, componentKey)
+    async enable(pluginName: string, componentKey: string,
+        options: { createClientCredential?: boolean; sourceScopeKey?: string } = {}): Promise<IPluginMcpServerActivationResult> {
+        const ownership = this.resolveProviderOwnership(pluginName, componentKey, options.sourceScopeKey)
         const requestingOrganizationId = RequestContext.getOrganizationId()
         const activated = await this.runInProviderScope(ownership, () => this.activateProvider(ownership))
         const accessOrganizationId =
@@ -238,7 +242,7 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
                     (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now()) &&
                     hasMcpClientScopes(key.scopes, clientScopes)
             )
-            const createdApiKey = reusableKey
+            const createdApiKey = options.createClientCredential === false || reusableKey
                 ? undefined
                 : accessOrganizationId
                   ? await this.apiKeys.createRevealableForOrganization(activated.publication, accessOrganizationId, {
@@ -434,6 +438,33 @@ export class PluginMcpServerService implements OnModuleInit, OnApplicationBootst
             throw new NotFoundException(`MCP Server '${componentKey}' has not been enabled.`)
         }
         return this.runInProviderScope(ownership, () => this.connectionInfoFor(resolved.publication.id))
+    }
+
+    async prepareTestAccess(pluginName: string, componentKey: string, operationId: string, expected: PluginTestRuntimeIdentity) {
+        const assertRuntime = () => {
+            const ownership = this.resolveProviderOwnership(pluginName, componentKey, expected.scopeKey)
+            const loaded = this.loadedPlugins.find((item) => item.scopeKey === ownership.source.scopeKey &&
+                normalizePluginName(item.packageName ?? item.name) === normalizePluginName(pluginName))
+            if (ownership.source.scopeKey !== expected.scopeKey || loaded?.source !== 'code' ||
+                !loaded.sourceConfig?.runtimeName || `runtime:${loaded.sourceConfig.runtimeName}` !== expected.runtimeRevision ||
+                loaded.sourceConfig.archiveSha256 !== expected.sha256 || loaded.instance?.meta?.version !== expected.packageVersion)
+                throw new ConflictException(t('server-ai:Error.PluginDeploymentTestNotReady'))
+            return ownership
+        }
+        assertRuntime()
+        const activated = await this.enable(pluginName, componentKey, { createClientCredential: false, sourceScopeKey: expected.scopeKey })
+        const ownership = assertRuntime()
+        const organizationId = ownership.level === PLUGIN_LEVEL.ORGANIZATION
+            ? ownership.organizationId : RequestContext.getOrganizationId() ?? null
+        const publication = await this.runInProviderScope(ownership, () =>
+            this.publications.getManaged(activated.publication.id))
+        const credential = await this.apiKeys.getOrCreateRevealableCredential(publication, organizationId, {
+            name: `delivery-test:${operationId}`, scopes: ['tools:list', 'tools:call'],
+            expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000)
+        })
+        assertRuntime()
+        return { endpoint: activated.connectionInfo.endpoint, publicationId: publication.id,
+            expiresAt: new Date(credential.apiKey.expiresAt).toISOString(), secret: credential.secret }
     }
 
     async credential(pluginName: string, componentKey: string): Promise<IPluginMcpServerCredentialResult> {

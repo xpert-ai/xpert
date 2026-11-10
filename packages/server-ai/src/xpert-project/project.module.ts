@@ -113,6 +113,11 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
+import { ProjectPluginDeploymentService } from './pipeline/plugin-deployment/plugin-deployment.service'
+import { ProjectPluginDeploymentStore } from './pipeline/plugin-deployment/plugin-deployment.store'
+import { ProjectPluginDeploymentAdapters } from './pipeline/plugin-deployment/plugin-deployment.adapters'
+import { ProjectPluginTestAccessService } from './pipeline/plugin-deployment/plugin-test-access.service'
+import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { ProjectPipelineContributionRegistry, ProjectPipelineRuntimeAdapterRegistry } from '@xpert-ai/plugin-sdk'
 import { ProjectPipelineEvidenceAccessService } from './pipeline/runtime/pipeline-evidence-access.service'
 import { ProjectPipelineConfigurationController } from './pipeline/configuration/project-pipeline-configuration.controller'
@@ -154,6 +159,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 
 @Module({
     imports: [
+        ArtifactsModule,
         DiscoveryModule,
         ProjectConfigurationPluginModule,
         AgentInvocationModule,
@@ -263,6 +269,10 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineCatalogService,
         ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
+        ProjectPluginDeploymentStore,
+        ProjectPluginDeploymentService,
+        ProjectPluginTestAccessService,
+        ...ProjectPluginDeploymentAdapters,
         ProjectTaskDispatchRecoveryService,
         ProjectRuntimeObservationHandler,
         ProjectTaskCardProvider,
