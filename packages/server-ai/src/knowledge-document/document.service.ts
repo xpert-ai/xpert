@@ -1,32 +1,18 @@
-import { sortChunksByDocumentOrder } from './document-chunk-order'
+import {
+    DocumentIngestion,
+    type IncrementalDocumentSyncResult,
+    type IncrementalDocumentSyncItemResult
+} from './ingestion/document-ingestion'
 import { tenantLibraryReadQuery } from './tenant-library-read'
-import { isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
-import { visibleDocumentSql } from './document-list-filter'
-import { assertUserManagedDocument } from './document-management'
-import { questionVectorIds } from './questions/question-vectors'
-import { questionSourceHash } from './questions/question-generation'
-import { KnowledgeParserSettingsService } from '../knowledgebase/parser/parser-settings.service'
-import fsPromises from 'node:fs/promises'
-import path from 'node:path'
 import {
     IKnowledgeDocument,
-    DocumentTypeEnum,
     IKnowledgeDocumentChunk,
     IKnowledgeDocumentPage,
-    IKnowledgebase,
-    KnowledgeDocumentLastIncrementalSync,
     KnowledgeDocumentProcessingMode,
-    KBMetadataFieldDef,
-    KBDocumentStatusEnum,
-    KDocumentSourceType,
-    KnowledgeStructureEnum,
-    KnowledgebaseTypeEnum,
-    VectorTypeEnum,
-    classificateDocumentCategory
+    KBDocumentStatusEnum
 } from '@xpert-ai/contracts'
-import { environment } from '@xpert-ai/server-config'
-import { getErrorMessage } from '@xpert-ai/server-common'
-import { RequestContext, type StorageFile, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { KnowledgeParserSettingsService } from '../knowledgebase/parser/parser-settings.service'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ConflictException,
@@ -39,7 +25,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { InjectQueue } from '@nestjs/bull'
-import { ChunkMetadata, DocumentSourceRegistry, mergeParentChildChunks } from '@xpert-ai/plugin-sdk'
+import { ChunkMetadata, DocumentSourceRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Queue } from 'bull'
 import { Document } from 'langchain/document'
 import { t } from 'i18next'
@@ -53,60 +39,29 @@ import {
     FindOptionsWhere,
     In,
     IsNull,
-    Raw,
     Repository,
-    SaveOptions,
-    UpdateResult
+    SaveOptions
 } from 'typeorm'
 import { KnowledgebaseService } from '../knowledgebase/management/knowledgebase.service'
 import type { KnowledgeDocumentStore, TVectorSearchParams } from '../knowledgebase/embedding/vector-store'
 import { KnowledgeDocument } from './document.entity'
 import { LoadStorageFileCommand } from '../shared/commands/load-storage-file.command'
-import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { KnowledgeWorkAreaResolver } from '../shared/volume/work-area'
 import { KnowledgeDocumentPage } from '../core/entities/internal'
 import { KnowledgeDocumentChunkService } from './chunk/chunk.service'
-import { KnowledgeGraphClearDocumentCommand } from '../graphrag/commands'
-import { KnowledgeWikiRetractSourceCommand } from '../knowledgebase/wiki/commands'
-import { resolveKnowledgeDocumentParserConfig } from './parser-config'
-import {
-    computeStableHash,
-    resolveKnowledgeDocumentTransformerIdentity,
-    computeKnowledgeDocumentChunkHash,
-    computeKnowledgeDocumentContentHash,
-    computeKnowledgeDocumentProcessingHash,
-    resolveKnowledgeDocumentSourceKey,
-    resolveKnowledgeDocumentSourceHash
-} from './document-hash'
-import { TDocChunkMetadata } from './types'
-import { GetOwnedStorageFileQuery } from '../file-understanding/queries/get-owned-storage-file.query'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
-import { KnowledgeDocumentPublicationWriter, writeKnowledgeDocumentPublication } from './document-publication'
 import {
-    protectTableChunkMetadata,
-    withoutGeneratedTableMetadata,
-    writePublicDocumentMetadata
-} from './table-metadata-input'
-import { validateKnowledgeTableSettings } from './parser-validation'
-
-type OriginalFileDownloadTarget = {
-    absolutePath: string
-    fileName: string
-    mimeType: string
-}
-
-function includesChunk(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[], targetChunkId: string) {
-    return chunks.some((chunk) => chunk.id === targetChunkId || String(chunk.metadata?.chunkId ?? '') === targetChunkId)
-}
-
-type IncrementalChunkOperation = 'unchanged' | 'changed' | 'added'
-
-type IncrementalChunkMatch = {
-    operation: IncrementalChunkOperation
-    incoming: IKnowledgeDocumentChunk<TDocChunkMetadata>
-    chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>
-    previous?: IKnowledgeDocumentChunk<TDocChunkMetadata>
-}
+    OriginalFileDownloadTarget,
+    OriginalFileDownload,
+    DocumentOriginalFiles
+} from './files/document-original-files'
+import { buildLogicalFolderPath } from './folders/logical-folder-path'
+import { assertExpectedVersion } from './document-version'
+import { IncrementalChunkSyncResult, IncrementalChunkSync } from './chunk/incremental-chunk-sync'
+import { DocumentAccess } from './access/document-access'
+import { DocumentEditing } from './folders/document-editing'
+import { DocumentChunks } from './chunk/document-chunks'
+import { DocumentDeletion } from './deletion/document-deletion'
 
 type VersionedKnowledgeDocumentInput = {
     id?: string
@@ -122,239 +77,17 @@ type ShallowKnowledgeDocumentUpdater = {
     update(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<unknown>
 }
 
-type VersionedKnowledgeDocumentUpdater = {
-    update(criteria: { id: string; version: number }, entity: Partial<IKnowledgeDocument>): Promise<UpdateResult>
-}
-
-export type IncrementalDocumentSyncItemResult = {
-    document: KnowledgeDocument
-    shouldProcess: boolean
-    action: 'created' | 'updated' | 'skipped'
-}
-
-export type IncrementalChunkSyncResult = {
-    chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-    embeddingChunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-    removedChunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-    contentHash: string
-    contentChanged: boolean
-    statistics: Omit<KnowledgeDocumentLastIncrementalSync, 'mode' | 'embeddingTokens' | 'processedAt'>
-}
-
-export type IncrementalDocumentSyncResult = {
-    documents: KnowledgeDocument[]
-    processableIds: string[]
-    skippedIds: string[]
-    updatedIds: string[]
-    createdIds: string[]
-}
-
-export type OriginalFileDownload = OriginalFileDownloadTarget & {
-    content: Buffer
-}
-
-function isCountableDocument(document: Pick<IKnowledgeDocument, 'sourceType' | 'metadata'> | null | undefined) {
-    if (!document || document.sourceType === KDocumentSourceType.FOLDER) {
-        return false
-    }
-
-    return isKnowledgeDocumentVisible(document.metadata)
-}
-
-function isSystemManagedDocument(document: Pick<IKnowledgeDocument, 'metadata'> | null | undefined) {
-    if (!document?.metadata || typeof document.metadata !== 'object') {
-        return false
-    }
-
-    return 'systemManaged' in document.metadata && document.metadata.systemManaged === true
-}
-
-const FILTER_ATTRIBUTE_DOCUMENT_FIELDS = new Set([
-    'name',
-    'folder',
-    'type',
-    'mimeType',
-    'category',
-    'sourceType',
-    'createdAt',
-    'updatedAt',
-    'disabled',
-    'metadata'
-])
-
-function hasFilterAttributeChanges(changes: Partial<IKnowledgeDocument>) {
-    return Object.keys(changes).some((key) => FILTER_ATTRIBUTE_DOCUMENT_FIELDS.has(key))
-}
-
-function normalizeLogicalFolderPath(value: string) {
-    return value.replace(/\\/g, '/').split('/').filter(Boolean).join('/')
-}
-
-/**
- * Builds the stable, knowledgebase-relative folder path used by Knowledge Filter V2.
- *
- * `ancestors` must be ordered from the tree root to the selected entity and may
- * include the entity itself. Only folder entities become path segments.
- */
-export function buildLogicalFolderPath(
-    ancestors: Array<Pick<IKnowledgeDocument, 'id' | 'name' | 'sourceType'>>,
-    excludeId?: string
-) {
-    return normalizeLogicalFolderPath(
-        ancestors
-            .filter(
-                (item) =>
-                    item.id !== excludeId &&
-                    item.sourceType === KDocumentSourceType.FOLDER &&
-                    typeof item.name === 'string' &&
-                    !!item.name.trim()
-            )
-            .map((item) => item.name.trim())
-            .join('/')
-    )
-}
-
-function normalizeFileExtension(value: unknown) {
-    return typeof value === 'string' ? value.trim().replace(/^\.+/, '').toLocaleLowerCase() : value
-}
-
-function normalizeMimeType(value: unknown) {
-    return typeof value === 'string' ? value.trim().toLocaleLowerCase() : value
-}
-
-function validateMetadataAgainstSchema(
-    metadata: Record<string, unknown>,
-    schema: KBMetadataFieldDef[] | undefined,
-    scope: 'document' | 'chunk'
-) {
-    for (const field of schema ?? []) {
-        if ((field.scope ?? 'document') !== scope || !(field.key in metadata)) continue
-        const value = metadata[field.key]
-        if (value == null) continue
-        const valid =
-            ((field.type === 'string' || field.type === 'enum' || field.type === 'datetime') &&
-                typeof value === 'string') ||
-            (field.type === 'number' && typeof value === 'number' && Number.isFinite(value)) ||
-            (field.type === 'boolean' && typeof value === 'boolean') ||
-            (field.type === 'string[]' && Array.isArray(value) && value.every((item) => typeof item === 'string')) ||
-            (field.type === 'number[]' &&
-                Array.isArray(value) &&
-                value.every((item) => typeof item === 'number' && Number.isFinite(item))) ||
-            (field.type === 'object' && typeof value === 'object' && !Array.isArray(value))
-        if (
-            !valid ||
-            (field.type === 'datetime' && (Number.isNaN(Date.parse(String(value))) || !String(value).endsWith('Z')))
-        ) {
-            throw new BadRequestException(`Metadata '${field.key}' must be of type '${field.type}'.`)
-        }
-        if (field.type === 'enum' && field.enumValues?.length && !field.enumValues.includes(String(value))) {
-            throw new BadRequestException(`Metadata '${field.key}' must be one of: ${field.enumValues.join(', ')}.`)
-        }
-    }
-}
-
-function requiresChunkReembedding(entity: Partial<IKnowledgeDocumentChunk>) {
-    return (
-        entity.pageContent !== undefined ||
-        (entity.metadata && Object.prototype.hasOwnProperty.call(entity.metadata, 'searchContent'))
-    )
-}
-
-function getChunkMetadata(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'> | null | undefined) {
-    return chunk?.metadata ?? ({} as TDocChunkMetadata)
-}
-
-function getChunkLogicalId(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'id' | 'metadata'>) {
-    return getChunkMetadata(chunk).chunkId || chunk.id
-}
-
-function getChunkMatchType(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'metadata'>) {
-    const metadata = getChunkMetadata(chunk)
-    return `${metadata.mediaType ?? 'text'}:${metadata.type ?? ''}:${metadata.source ?? ''}`
-}
-
-function getFiniteNumber(value: unknown) {
-    return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function popFirstAvailable(
-    map: Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>,
-    key: string,
-    usedIds: Set<string>
-) {
-    const matches = map.get(key)
-    if (!matches?.length) {
-        return null
-    }
-
-    while (matches.length) {
-        const match = matches.shift()
-        if (match?.id && !usedIds.has(match.id)) {
-            return match
-        }
-    }
-
-    return null
-}
-
-function assertExpectedVersion(version: number | null | undefined): asserts version is number {
-    if (!Number.isInteger(version) || version <= 0) {
-        throw new BadRequestException('version is required')
-    }
-}
-
-function getChunkStoredId(chunk: Pick<IKnowledgeDocumentChunk<TDocChunkMetadata>, 'id' | 'metadata'>) {
-    return getChunkMetadata(chunk).chunkId || chunk.id
-}
-
-function canSkipProcessedDocument(
-    document: Pick<IKnowledgeDocument, 'processingHash' | 'contentHash' | 'status'>,
-    processingHash: string
-) {
-    return (
-        document.status === KBDocumentStatusEnum.FINISH &&
-        document.processingHash === processingHash &&
-        !!document.contentHash
-    )
-}
-
-function getUniqueFileName(fileName: string, usedFileNames: Set<string>) {
-    if (!usedFileNames.has(fileName)) {
-        usedFileNames.add(fileName)
-        return fileName
-    }
-
-    const extensionStart = fileName.lastIndexOf('.')
-    const hasExtension = extensionStart > 0
-    const baseName = hasExtension ? fileName.slice(0, extensionStart) : fileName
-    const extension = hasExtension ? fileName.slice(extensionStart) : ''
-    let index = 2
-    let nextName = `${baseName} (${index})${extension}`
-
-    while (usedFileNames.has(nextName)) {
-        index += 1
-        nextName = `${baseName} (${index})${extension}`
-    }
-
-    usedFileNames.add(nextName)
-    return nextName
-}
-
 @Injectable()
 export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService<KnowledgeDocument> {
     readonly #logger = new Logger(KnowledgeDocumentService.name)
 
-    @InjectRepository(KnowledgeDocumentPage)
-    private readonly pageRepository: Repository<KnowledgeDocumentPage>
-
-    @Inject(DocumentSourceRegistry)
-    private readonly docSourceRegistry: DocumentSourceRegistry
-
-    @Inject(KnowledgeParserSettingsService)
-    private readonly parserSettings: KnowledgeParserSettingsService
-
-    @Inject(KnowledgeDocumentChunkService)
-    private readonly chunkService: KnowledgeDocumentChunkService
+    private readonly ingestion: DocumentIngestion
+    private readonly access: DocumentAccess
+    private readonly originalFiles: DocumentOriginalFiles
+    private readonly editing: DocumentEditing
+    private readonly chunks: DocumentChunks
+    private readonly chunkSync: IncrementalChunkSync
+    private readonly deletion: DocumentDeletion
 
     constructor(
         @InjectRepository(KnowledgeDocument)
@@ -362,17 +95,42 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 
         private readonly dataSource: DataSource,
 
-        private readonly knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
+        knowledgeWorkAreaResolver: KnowledgeWorkAreaResolver,
 
         @Inject(forwardRef(() => KnowledgebaseService))
         private readonly knowledgebaseService: KnowledgebaseService,
 
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
+        queryBus: QueryBus,
         @InjectQueue('embedding-document') private docQueue: Queue,
-        private readonly derivedIndexPublicationService: KnowledgeDerivedIndexPublicationService
+        derivedIndexPublicationService: KnowledgeDerivedIndexPublicationService,
+        @InjectRepository(KnowledgeDocumentPage) private readonly pageRepository: Repository<KnowledgeDocumentPage>,
+        @Inject(DocumentSourceRegistry) private readonly docSourceRegistry: DocumentSourceRegistry,
+        parserSettings: KnowledgeParserSettingsService,
+        chunkService: KnowledgeDocumentChunkService
     ) {
         super(repo)
+        this.access = new DocumentAccess(this, knowledgebaseService, queryBus, knowledgeWorkAreaResolver)
+        this.originalFiles = new DocumentOriginalFiles(this, knowledgeWorkAreaResolver)
+        this.editing = new DocumentEditing(this, knowledgebaseService, parserSettings, dataSource, repo, chunkService)
+        this.ingestion = new DocumentIngestion(
+            this,
+            repo,
+            knowledgebaseService,
+            parserSettings,
+            queryBus,
+            this.editing,
+            (document) => this.writeToCurrentScope(document)
+        )
+        this.chunks = new DocumentChunks(
+            this,
+            chunkService,
+            knowledgebaseService,
+            pageRepository,
+            derivedIndexPublicationService
+        )
+        this.chunkSync = new IncrementalChunkSync(chunkService)
+        this.deletion = new DocumentDeletion(this, knowledgebaseService, commandBus, dataSource)
     }
 
     override async softRemove(
@@ -450,249 +208,53 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 
-    /**
-     * Knowledge documents inherit their authorization boundary from the parent knowledgebase.
-     * Keep these checks explicit so HTTP entry points can authorize before reading source files,
-     * snapshots, pages, chunks, or starting background work.
-     */
     async assertKnowledgebaseReadAccess(knowledgebaseId: string): Promise<void> {
-        await this.knowledgebaseService.findOneByIdString(knowledgebaseId, {
-            select: { id: true }
-        })
+        return this.access.assertKnowledgebaseReadAccess(knowledgebaseId)
     }
 
     async assertKnowledgebaseWriteAccess(knowledgebaseId: string): Promise<void> {
-        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, {
-            select: { id: true }
-        })
+        return this.access.assertKnowledgebaseWriteAccess(knowledgebaseId)
     }
 
     async assertDocumentReadAccess(id: string, withDeleted = false): Promise<void> {
-        const document = await this.findDocumentAccessScope(id, withDeleted)
-        await this.assertKnowledgebaseReadAccess(document.knowledgebaseId)
+        return this.access.assertDocumentReadAccess(id, withDeleted)
     }
 
     async assertDocumentWriteAccess(id: string, withDeleted = false): Promise<void> {
-        const document = await this.findDocumentAccessScope(id, withDeleted)
-        await this.assertKnowledgebaseWriteAccess(document.knowledgebaseId)
-        assertUserManagedDocument(document)
+        return this.access.assertDocumentWriteAccess(id, withDeleted)
     }
 
     async assertDocumentsReadAccess(ids: Array<string | null | undefined>): Promise<void> {
-        await this.assertDocumentsAccess(ids, 'read')
+        return this.access.assertDocumentsReadAccess(ids)
     }
 
     async assertDocumentsWriteAccess(ids: Array<string | null | undefined>): Promise<void> {
-        await this.assertDocumentsAccess(ids, 'write')
+        return this.access.assertDocumentsWriteAccess(ids)
     }
 
     async assertDocumentsReadAccessInKnowledgebase(
         ids: Array<string | null | undefined>,
         knowledgebaseId: string
     ): Promise<void> {
-        await this.assertDocumentsAccessInKnowledgebase(ids, knowledgebaseId, 'read')
+        return this.access.assertDocumentsReadAccessInKnowledgebase(ids, knowledgebaseId)
     }
 
     async assertDocumentsWriteAccessInKnowledgebase(
         ids: Array<string | null | undefined>,
         knowledgebaseId: string
     ): Promise<void> {
-        await this.assertDocumentsAccessInKnowledgebase(ids, knowledgebaseId, 'write')
+        return this.access.assertDocumentsWriteAccessInKnowledgebase(ids, knowledgebaseId)
     }
 
     async assertOwnedStorageFiles(ids: Array<string | null | undefined>): Promise<void> {
-        const uniqueIds = uniq(compact(ids.map((id) => (typeof id === 'string' ? id.trim() : id))))
-        await Promise.all(
-            uniqueIds.map((id) =>
-                this.queryBus.execute<GetOwnedStorageFileQuery, StorageFile>(new GetOwnedStorageFileQuery(id))
-            )
-        )
+        return this.access.assertOwnedStorageFiles(ids)
     }
 
     async prepareExternalDocumentInputs(
         documents: Partial<IKnowledgeDocument>[],
         options?: { resolveDocumentIds?: boolean }
     ): Promise<void> {
-        for (const document of documents) {
-            delete document.status
-            delete document.progress
-            delete document.processMsg
-            delete document.processBeginAt
-            delete document.processDuation
-            delete document.processDuration
-            delete document.jobId
-            delete document.processingExecutionId
-            delete document.tokenNum
-            delete document.chunkNum
-
-            if (document.storageFileId) {
-                delete document.filePath
-                const storageFile = await this.queryBus.execute<GetOwnedStorageFileQuery, StorageFile>(
-                    new GetOwnedStorageFileQuery(document.storageFileId)
-                )
-                const canonicalFileUrl = storageFile.fileUrl ?? storageFile.url
-                if (canonicalFileUrl) {
-                    document.fileUrl = canonicalFileUrl
-                } else {
-                    delete document.fileUrl
-                }
-                continue
-            }
-
-            if (typeof document.filePath === 'string' && document.filePath.trim()) {
-                delete document.fileUrl
-                await this.canonicalizeExternalManagedFile(document, options?.resolveDocumentIds === true)
-                continue
-            }
-
-            if (typeof document.fileUrl === 'string' && document.fileUrl.trim()) {
-                throw new BadRequestException(
-                    'Remote fileUrl cannot be submitted directly. Upload the file first and use storageFileId.'
-                )
-            }
-            delete document.fileUrl
-            await this.canonicalizeExternalManagedFile(document, options?.resolveDocumentIds === true)
-        }
-    }
-
-    private async canonicalizeExternalManagedFile(
-        document: Partial<IKnowledgeDocument>,
-        resolveDocumentId: boolean
-    ): Promise<void> {
-        const normalizedPath = document.filePath?.trim().replace(/\\/g, '/')
-        if (!normalizedPath) {
-            delete document.filePath
-            return
-        }
-
-        const persisted =
-            resolveDocumentId && document.id ? await this.findDocumentAccessScope(document.id, false) : null
-        const knowledgebaseId = persisted?.knowledgebaseId ?? document.knowledgebaseId
-        if (!knowledgebaseId) {
-            throw new BadRequestException('knowledgebaseId is required for a managed filePath')
-        }
-
-        const filesPath = this.knowledgeWorkAreaResolver.getFilesPath()
-        const prefix = `${filesPath}/`
-        if (
-            normalizedPath.includes('\0') ||
-            path.posix.isAbsolute(normalizedPath) ||
-            !normalizedPath.startsWith(prefix)
-        ) {
-            throw new BadRequestException('filePath must point to a managed file in the selected knowledgebase')
-        }
-        const relativePath = path.posix.normalize(normalizedPath.slice(prefix.length))
-        if (
-            !relativePath ||
-            relativePath === '.' ||
-            relativePath.startsWith('../') ||
-            path.posix.isAbsolute(relativePath)
-        ) {
-            throw new BadRequestException('filePath must point to a managed file in the selected knowledgebase')
-        }
-
-        const workArea = await this.knowledgeWorkAreaResolver.resolve({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            knowledgebaseId
-        })
-        const managedFile = await new VolumeSubtreeClient(workArea.volume).readFile(filesPath, relativePath, {
-            metadataOnly: true
-        })
-        document.filePath = path.posix.join(filesPath, managedFile.filePath)
-        if (managedFile.fileUrl) {
-            document.fileUrl = managedFile.fileUrl
-        }
-        if (managedFile.mimeType) {
-            document.mimeType = managedFile.mimeType
-        }
-        if (managedFile.size != null) {
-            document.size = String(managedFile.size)
-        }
-    }
-
-    private async findDocumentAccessScope(id: string, withDeleted: boolean) {
-        return this.findOne(id, {
-            select: {
-                id: true,
-                knowledgebaseId: true,
-                metadata: true
-            },
-            withDeleted
-        })
-    }
-
-    private async assertDocumentsAccess(
-        ids: Array<string | null | undefined>,
-        action: 'read' | 'write'
-    ): Promise<void> {
-        const uniqueIds = uniq(
-            (ids ?? []).filter((id): id is string => typeof id === 'string' && !!id.trim()).map((id) => id.trim())
-        )
-        if (!uniqueIds.length) {
-            return
-        }
-
-        const { items } = await this.findAll({
-            where: { id: In(uniqueIds) },
-            select: {
-                id: true,
-                knowledgebaseId: true,
-                metadata: true
-            }
-        })
-        const resolvedIds = new Set(items.map((document) => document.id))
-        const missingId = uniqueIds.find((id) => !resolvedIds.has(id))
-        if (missingId) {
-            throw new NotFoundException(`Knowledge document "${missingId}" not found`)
-        }
-
-        const knowledgebaseIds = uniq(compact(items.map((document) => document.knowledgebaseId)))
-        await Promise.all(
-            knowledgebaseIds.map((knowledgebaseId) =>
-                action === 'write'
-                    ? this.assertKnowledgebaseWriteAccess(knowledgebaseId)
-                    : this.assertKnowledgebaseReadAccess(knowledgebaseId)
-            )
-        )
-        if (action === 'write') items.forEach(assertUserManagedDocument)
-    }
-
-    private async assertDocumentsAccessInKnowledgebase(
-        ids: Array<string | null | undefined>,
-        knowledgebaseId: string,
-        action: 'read' | 'write'
-    ): Promise<void> {
-        if (action === 'write') {
-            await this.assertKnowledgebaseWriteAccess(knowledgebaseId)
-        } else {
-            await this.assertKnowledgebaseReadAccess(knowledgebaseId)
-        }
-
-        const uniqueIds = uniq(compact(ids.map((id) => (typeof id === 'string' ? id.trim() : id))))
-        if (!uniqueIds.length) {
-            return
-        }
-
-        const { items } = await this.findAll({
-            where: {
-                id: In(uniqueIds),
-                knowledgebaseId
-            },
-            select: {
-                id: true,
-                knowledgebaseId: true,
-                metadata: true
-            }
-        })
-        if (action === 'write') items.forEach(assertUserManagedDocument)
-        const resolvedIds = new Set(items.map((document) => document.id))
-        const missingId = uniqueIds.find((id) => !resolvedIds.has(id))
-        if (missingId) {
-            throw new NotFoundException(
-                `Knowledge document "${missingId}" not found in knowledgebase "${knowledgebaseId}"`
-            )
-        }
+        return this.access.prepareExternalDocumentInputs(documents, options)
     }
 
     async findAncestors(id: string, manager?: EntityManager) {
@@ -718,109 +280,19 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async getOriginalFileDownload(id: string) {
-        const document = await this.findOne(id)
-        const target = await this.getOriginalFileDownloadTarget(document, new Set(), new Set())
-        if (!target) {
-            throw new BadRequestException('Original file is not available for this knowledge document')
-        }
-
-        return {
-            ...target,
-            content: await this.readOriginalFileContent(target)
-        }
+        return this.originalFiles.getOriginalFileDownload(id)
     }
 
     async getOriginalFilePreviewTarget(id: string): Promise<OriginalFileDownloadTarget> {
-        const document = await this.findOne(id)
-        const target = await this.getOriginalFileDownloadTarget(document, new Set(), new Set())
-        if (!target) {
-            throw new BadRequestException('Original file is not available for this knowledge document')
-        }
-        return target
+        return this.originalFiles.getOriginalFilePreviewTarget(id)
     }
 
     async getOriginalFileDownloadTargets(ids: string[]) {
-        const uniqueIds = uniq((ids ?? []).filter((id) => typeof id === 'string' && !!id.trim()).map((id) => id.trim()))
-        if (!uniqueIds.length) {
-            return []
-        }
-
-        const { items } = await this.findAll({
-            where: {
-                id: In(uniqueIds)
-            }
-        })
-
-        const usedFileNames = new Set<string>()
-        const usedFilePaths = new Set<string>()
-        const targets: OriginalFileDownloadTarget[] = []
-
-        for (const document of items) {
-            const target = await this.getOriginalFileDownloadTarget(document, usedFileNames, usedFilePaths)
-            if (target) {
-                targets.push(target)
-            }
-        }
-
-        return targets
+        return this.originalFiles.getOriginalFileDownloadTargets(ids)
     }
 
     async getOriginalFileDownloads(ids: string[]): Promise<OriginalFileDownload[]> {
-        const targets = await this.getOriginalFileDownloadTargets(ids)
-        return Promise.all(
-            targets.map(async (target) => ({
-                ...target,
-                content: await this.readOriginalFileContent(target)
-            }))
-        )
-    }
-
-    private async getOriginalFileDownloadTarget(
-        document: IKnowledgeDocument,
-        usedFileNames: Set<string>,
-        usedFilePaths: Set<string>
-    ): Promise<OriginalFileDownloadTarget | null> {
-        if (!document || document.sourceType === KDocumentSourceType.FOLDER || isSystemManagedDocument(document)) {
-            return null
-        }
-
-        return await this.resolveOriginalWorkspaceFileTarget(document, usedFileNames, usedFilePaths)
-    }
-
-    private async resolveOriginalWorkspaceFileTarget(
-        document: IKnowledgeDocument,
-        usedFileNames: Set<string>,
-        usedFilePaths: Set<string>
-    ): Promise<OriginalFileDownloadTarget | null> {
-        const filePath = typeof document.filePath === 'string' ? document.filePath.trim() : ''
-        if (!filePath || !document.knowledgebaseId) {
-            return null
-        }
-
-        const fileIdentity = `workspace:${document.knowledgebaseId}:${filePath}`
-        if (usedFilePaths.has(fileIdentity)) {
-            return null
-        }
-
-        const workArea = await this.knowledgeWorkAreaResolver.resolve({
-            tenantId: RequestContext.currentTenantId(),
-            userId: RequestContext.currentUserId(),
-            knowledgebaseId: document.knowledgebaseId
-        })
-        usedFilePaths.add(fileIdentity)
-
-        return {
-            absolutePath: workArea.volume.path(filePath),
-            fileName: getUniqueFileName(
-                document.name || path.basename(filePath) || `${document.id}.download`,
-                usedFileNames
-            ),
-            mimeType: document.mimeType || 'application/octet-stream'
-        }
-    }
-
-    private async readOriginalFileContent(target: OriginalFileDownloadTarget) {
-        return await fsPromises.readFile(target.absolutePath)
+        return this.originalFiles.getOriginalFileDownloads(ids)
     }
 
     /**
@@ -830,13 +302,7 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async createDocument(document: Partial<IKnowledgeDocument>, manager?: EntityManager): Promise<KnowledgeDocument> {
-        await this.prepareDocumentRelations(document)
-        await this.completeDocumentSystemAttributes(document)
-        await this.validateDocumentMetadataInput(document)
-        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
-        document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
-        document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
-        document.processingHash ??= computeKnowledgeDocumentProcessingHash(document)
+        await this.ingestion.prepareNewDocument(document)
 
         const doc = manager
             ? await manager.getRepository(KnowledgeDocument).save(
@@ -858,286 +324,29 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     async createDocumentWithIncrementalSync(
         document: Partial<IKnowledgeDocument>
     ): Promise<IncrementalDocumentSyncItemResult> {
-        document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
-        document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
-        document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
-        if (!(await this.isKnowledgebaseIncrementalSyncEnabled(document.knowledgebaseId))) {
-            return {
-                document: await this.createDocument(document),
-                shouldProcess: true,
-                action: 'created'
-            }
-        }
-        return this.createOrReuseSourceDocument(document)
+        return this.ingestion.createDocumentWithIncrementalSync(document)
     }
 
-    /**
-     * Create documents in bulk.
-     *
-     * @param documents
-     * @returns
-     */
-    /** Crash-safe creation receipts for staged imports; no processing is started here. */
     async createBulkIdempotently(
         documents: Partial<IKnowledgeDocument>[],
         key: string
     ): Promise<IncrementalDocumentSyncResult> {
-        if (!key || key.length > 160 || documents.length !== 1 || !documents[0].knowledgebaseId) {
-            throw new BadRequestException(
-                'Idempotent creation requires one document and a key of at most 160 characters'
-            )
-        }
-        const knowledgebaseId = documents[0].knowledgebaseId
-        const sourceKey = `runtime-import:${key}`
-        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId)
-        return this.repository.manager.transaction(async (manager) => {
-            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-                `knowledge-import:${knowledgebaseId}:${key}`
-            ])
-            const existing = await manager
-                .getRepository(KnowledgeDocument)
-                .createQueryBuilder('doc')
-                .where('doc.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
-                .andWhere('doc.sourceKey = :sourceKey', { sourceKey })
-                .getOne()
-            if (existing) {
-                if (existing.metadata?.sourceHash !== documents[0].metadata?.sourceHash)
-                    throw new BadRequestException('Import key content conflict')
-                return {
-                    documents: [existing],
-                    processableIds: [],
-                    skippedIds: [existing.id],
-                    updatedIds: [],
-                    createdIds: []
-                }
-            }
-            const created = await this.createDocument(
-                { ...documents[0], sourceKey, metadata: { ...documents[0].metadata, _runtimeImportKey: key } },
-                manager
-            )
-            return {
-                documents: [created],
-                processableIds: [created.id],
-                skippedIds: [],
-                updatedIds: [],
-                createdIds: [created.id]
-            }
-        })
+        return this.ingestion.createBulkIdempotently(documents, key)
     }
 
     async createBulkWithIncrementalSync(
         documents: Partial<IKnowledgeDocument>[],
         manager?: EntityManager
     ): Promise<IncrementalDocumentSyncResult> {
-        if (!documents?.length) {
-            return {
-                documents: [],
-                processableIds: [],
-                skippedIds: [],
-                updatedIds: [],
-                createdIds: []
-            }
-        }
-        for (const document of documents) {
-            delete document.processingExecutionId
-            document.parserConfig = await this.resolveNewDocumentParserConfig(document, true)
-            document.sourceHash ??= resolveKnowledgeDocumentSourceHash(document)
-            document.sourceKey ??= resolveKnowledgeDocumentSourceKey(document)
-        }
-        const knowledgebaseIds = uniq(compact(documents.map((document) => document.knowledgebaseId)))
-        await Promise.all(
-            knowledgebaseIds.map((knowledgebaseId) => this.knowledgebaseService.assertNotRebuilding(knowledgebaseId))
-        )
-        const incrementalSyncByKnowledgebaseId = await this.getIncrementalSyncEnabledByKnowledgebaseId(knowledgebaseIds)
-
-        const result: IncrementalDocumentSyncResult = {
-            documents: [],
-            processableIds: [],
-            skippedIds: [],
-            updatedIds: [],
-            createdIds: []
-        }
-
-        for await (const document of documents) {
-            const incrementalSyncEnabled = document.knowledgebaseId
-                ? incrementalSyncByKnowledgebaseId.get(document.knowledgebaseId) === true
-                : false
-            const synced = incrementalSyncEnabled
-                ? await this.createOrReuseSourceDocument(document, manager)
-                : {
-                      document: await this.createDocument(document, manager),
-                      shouldProcess: true,
-                      action: 'created' as const
-                  }
-            result.documents.push(synced.document)
-            if (synced.shouldProcess) {
-                result.processableIds.push(synced.document.id)
-            }
-            if (synced.action === 'created') {
-                result.createdIds.push(synced.document.id)
-            } else if (synced.action === 'updated') {
-                result.updatedIds.push(synced.document.id)
-            } else {
-                result.skippedIds.push(synced.document.id)
-            }
-        }
-
-        return result
+        return this.ingestion.createBulkWithIncrementalSync(documents, manager)
     }
 
     async resolveNewDocumentParserConfig(document: Partial<IKnowledgeDocument>, persistStructure = false) {
-        if (document.type === DocumentTypeEnum.FOLDER) return document.parserConfig ?? {}
-        validateKnowledgeTableSettings(document.parserConfig)
-        const knowledgebase = document.knowledgebaseId
-            ? await this.knowledgebaseService.findOneByIdString(document.knowledgebaseId)
-            : null
-        const config = resolveKnowledgeDocumentParserConfig(
-            document,
-            !knowledgebase?.type || knowledgebase.type === KnowledgebaseTypeEnum.Standard
-                ? knowledgebase?.parserConfig
-                : undefined
-        )
-        await this.parserSettings.validateDocument(
-            { ...document, parserConfig: config },
-            document.parserConfig?.transformerType
-        )
-        if (config.textSplitterType) {
-            const structure = await this.parserSettings.validateSplitter(config)
-            if (persistStructure && knowledgebase && knowledgebase.type === KnowledgebaseTypeEnum.Standard) {
-                await this.knowledgebaseService.ensureDocumentChunkStructure(knowledgebase.id, structure)
-            }
-        }
-        return config
+        return this.ingestion.resolveNewDocumentParserConfig(document, persistStructure)
     }
 
-    private async isKnowledgebaseIncrementalSyncEnabled(knowledgebaseId: string | null | undefined) {
-        if (!knowledgebaseId) {
-            return false
-        }
-
-        const knowledgebase = await this.knowledgebaseService.findOneByIdString(knowledgebaseId)
-        return this.getKnowledgebaseIncrementalSyncEnabled(knowledgebase)
-    }
-
-    private async getIncrementalSyncEnabledByKnowledgebaseId(knowledgebaseIds: string[]) {
-        const enabledById = new Map<string, boolean>()
-        await Promise.all(
-            knowledgebaseIds.map(async (knowledgebaseId) => {
-                const knowledgebase = await this.knowledgebaseService.findOneByIdString(knowledgebaseId)
-                enabledById.set(knowledgebaseId, this.getKnowledgebaseIncrementalSyncEnabled(knowledgebase))
-            })
-        )
-        return enabledById
-    }
-
-    private getKnowledgebaseIncrementalSyncEnabled(
-        knowledgebase: Pick<IKnowledgebase, 'incrementalSyncEnabled'> | null | undefined
-    ) {
-        return knowledgebase?.incrementalSyncEnabled === true
-    }
-
-    /**
-     * Create documents in bulk.
-     *
-     * @param documents
-     * @returns
-     */
     async createBulk(documents: Partial<IKnowledgeDocument>[], manager?: EntityManager): Promise<KnowledgeDocument[]> {
-        return (await this.createBulkWithIncrementalSync(documents, manager)).documents
-    }
-
-    private async createOrReuseSourceDocument(
-        document: Partial<IKnowledgeDocument>,
-        manager?: EntityManager
-    ): Promise<IncrementalDocumentSyncItemResult> {
-        await this.completeDocumentSystemAttributes(document)
-        await this.validateDocumentMetadataInput(document)
-        const sourceKey = resolveKnowledgeDocumentSourceKey(document)
-        const sourceHash = resolveKnowledgeDocumentSourceHash(document)
-        document.sourceKey = sourceKey
-        document.sourceHash = sourceHash
-
-        const existing = await this.findExistingSourceDocument(document, manager)
-        if (!existing) {
-            const created = await this.createDocument(document, manager)
-            return {
-                document: created,
-                shouldProcess: true,
-                action: 'created'
-            }
-        }
-
-        const processingHash = computeKnowledgeDocumentProcessingHash(document)
-        if (canSkipProcessedDocument(existing, processingHash)) {
-            return {
-                document: existing,
-                shouldProcess: false,
-                action: 'skipped'
-            }
-        }
-
-        const documentChanges = { ...document }
-        delete documentChanges.id
-        delete documentChanges.version
-        const changes: DeepPartial<KnowledgeDocument> = {
-            ...existing,
-            ...documentChanges,
-            id: existing.id,
-            sourceKey,
-            sourceHash,
-            contentHash: existing.contentHash,
-            processingHash,
-            chunkNum: existing.chunkNum,
-            tokenNum: existing.tokenNum
-        }
-        const updated = manager
-            ? await manager.getRepository(KnowledgeDocument).save(this.writeToCurrentScope(changes))
-            : await this.save(changes)
-
-        return {
-            document: updated,
-            shouldProcess: true,
-            action: 'updated'
-        }
-    }
-
-    private async findExistingSourceDocument(
-        document: Partial<IKnowledgeDocument>,
-        manager?: EntityManager
-    ): Promise<KnowledgeDocument | null> {
-        if (!document.knowledgebaseId) {
-            return null
-        }
-
-        const sourceKey = resolveKnowledgeDocumentSourceKey(document)
-        if (!sourceKey || !document.sourceType) {
-            return null
-        }
-
-        const where: FindOptionsWhere<KnowledgeDocument> = {
-            knowledgebaseId: document.knowledgebaseId,
-            sourceType: document.sourceType,
-            sourceKey
-        }
-
-        if (manager) {
-            return manager.findOne(KnowledgeDocument, {
-                where: {
-                    ...where,
-                    tenantId: RequestContext.currentTenantId(),
-                    organizationId: RequestContext.getOrganizationId() ?? IsNull()
-                },
-                order: { updatedAt: 'DESC' }
-            })
-        }
-
-        const { items } = await this.findAll({
-            where,
-            order: { updatedAt: 'DESC' },
-            take: 1
-        })
-
-        return items[0] ?? null
+        return this.ingestion.createBulk(documents, manager)
     }
 
     async updateBulk(entities: Partial<IKnowledgeDocument>[]): Promise<void> {
@@ -1228,180 +437,11 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async updateWithVersion(id: string, entity: Partial<IKnowledgeDocument>, expectedVersion?: number) {
-        if (!id) {
-            throw new BadRequestException('id is required')
-        }
-        assertExpectedVersion(expectedVersion)
-        const current = await this.findOne(id, {
-            select: {
-                id: true,
-                knowledgebaseId: true,
-                version: true,
-                name: true,
-                folder: true,
-                sourceType: true,
-                category: true,
-                parserConfig: true,
-                type: true
-            },
-            relations: ['parent']
-        })
-        if (current.version !== expectedVersion) {
-            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-        }
-        await this.knowledgebaseService.assertNotRebuilding(current.knowledgebaseId)
-
-        const changes = { ...entity }
-        if (changes.parserConfig !== undefined) {
-            validateKnowledgeTableSettings(changes.parserConfig)
-            const next = { ...current, parserConfig: changes.parserConfig }
-            if (
-                computeStableHash(resolveKnowledgeDocumentTransformerIdentity(current)) !==
-                computeStableHash(resolveKnowledgeDocumentTransformerIdentity(next))
-            ) {
-                await this.parserSettings.validateDocument(next)
-            }
-        }
-        if (changes.knowledgebaseId && changes.knowledgebaseId !== current.knowledgebaseId) {
-            throw new BadRequestException('knowledgebaseId cannot be changed after a document is created')
-        }
-        delete changes.id
-        delete changes.version
-        delete changes.knowledgebaseId
-        delete changes.tenantId
-        delete changes.tenant
-        delete changes.organizationId
-        delete changes.organization
-        delete changes.createdById
-        delete changes.createdBy
-        delete changes.updatedById
-        delete changes.updatedBy
-        delete changes.createdAt
-        delete changes.updatedAt
-        delete changes.deletedAt
-        delete changes.publicationEpoch
-        delete changes.processingExecutionId
-        delete changes.knowledgebase
-        delete changes.storageFile
-
-        const hasParentChange = Object.prototype.hasOwnProperty.call(changes, 'parent')
-        if (hasParentChange) {
-            const parent = await this.resolveDocumentParent(current.knowledgebaseId, changes.parent, current.id)
-            changes.parent = parent
-        }
-        const nextSourceHash = resolveKnowledgeDocumentSourceHash(changes)
-        if (nextSourceHash) {
-            changes.sourceHash = nextSourceHash
-        }
-        if (typeof changes.folder === 'string') {
-            changes.folder = normalizeLogicalFolderPath(changes.folder)
-        }
-        if (Object.prototype.hasOwnProperty.call(changes, 'type')) {
-            changes.type = normalizeFileExtension(changes.type) as string
-            changes.category = classificateDocumentCategory({ type: changes.type })
-        }
-        if (Object.prototype.hasOwnProperty.call(changes, 'mimeType')) {
-            changes.mimeType = normalizeMimeType(changes.mimeType) as string
-        }
-        if (changes.metadata) {
-            changes.metadata = withoutGeneratedTableMetadata(changes.metadata)
-            const knowledgebase = await this.knowledgebaseService.findOne(current.knowledgebaseId)
-            validateMetadataAgainstSchema(changes.metadata, knowledgebase.metadataSchema, 'document')
-        }
-        const patch = {
-            ...changes,
-            id,
-            updatedById: RequestContext.currentUserId()
-        }
-        const oldPrefix =
-            current.sourceType === KDocumentSourceType.FOLDER
-                ? path.posix.join(current.folder ?? '', current.name ?? '')
-                : null
-        const newPrefix = oldPrefix
-            ? path.posix.join(changes.folder ?? current.folder ?? '', changes.name ?? current.name ?? '')
-            : null
-        const affectedDocumentIds = [id]
-        const result = await this.dataSource.transaction(async (manager) => {
-            const repository = manager.getRepository(KnowledgeDocument) as unknown as VersionedKnowledgeDocumentUpdater
-            const { metadata, ...versionedPatch } = patch
-            const updateResult = await repository.update({ id, version: expectedVersion }, versionedPatch)
-            if (!updateResult.affected) {
-                throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-            }
-            if (metadata !== undefined) await writePublicDocumentMetadata(manager, id, metadata)
-            if (oldPrefix && newPrefix && oldPrefix !== newPrefix) {
-                const descendants: Array<{ id: string }> = await manager.query(
-                    `SELECT "id" FROM "knowledge_document"
-                     WHERE "knowledgebaseId" = $1
-                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
-                    [current.knowledgebaseId, oldPrefix]
-                )
-                affectedDocumentIds.push(...descendants.map((item) => item.id))
-                await manager.query(
-                    `UPDATE "knowledge_document"
-                     SET "folder" = $1 || substring("folder" from char_length($2) + 1),
-                         "updatedAt" = CURRENT_TIMESTAMP,
-                         "version" = "version" + 1
-                     WHERE "knowledgebaseId" = $3
-                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
-                    [newPrefix, oldPrefix, current.knowledgebaseId]
-                )
-            }
-            return updateResult
-        })
-        if (!result.affected) {
-            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-        }
-        if (hasFilterAttributeChanges(changes)) {
-            await this.syncMilvusFilterAttributes(uniq(affectedDocumentIds))
-        }
-        return result
+        return this.editing.updateWithVersion(id, entity, expectedVersion)
     }
 
     async getFolderChildCounts(input: { knowledgebaseId: string; folderIds: string[] }) {
-        const knowledgebaseId = input.knowledgebaseId?.trim()
-        const requestedFolderIds = uniq((input.folderIds ?? []).map((id) => id?.trim()).filter(Boolean))
-        if (!knowledgebaseId || !requestedFolderIds.length) {
-            return []
-        }
-
-        // Resolve the requested folders through the scoped CRUD service first. This prevents
-        // aggregate queries from exposing counts for folders outside the active tenant/organization.
-        const { items: folders } = await this.findAll({
-            where: {
-                id: In(requestedFolderIds),
-                knowledgebaseId,
-                sourceType: KDocumentSourceType.FOLDER
-            },
-            select: { id: true }
-        })
-        const folderIds = folders.map((folder) => folder.id)
-        if (!folderIds.length) {
-            return []
-        }
-
-        const rows: Array<{ folderId: string; documentCount: string; folderCount: string }> = await this.repo
-            .createQueryBuilder('document')
-            .innerJoin('document.parent', 'parent')
-            .select('parent.id', 'folderId')
-            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 0 ELSE 1 END)', 'documentCount')
-            .addSelect('SUM(CASE WHEN document.sourceType = :folderType THEN 1 ELSE 0 END)', 'folderCount')
-            .where('document.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
-            .andWhere('parent.id IN (:...folderIds)', { folderIds })
-            .andWhere(visibleDocumentSql('document.metadata'))
-            .setParameter('folderType', KDocumentSourceType.FOLDER)
-            .groupBy('parent.id')
-            .getRawMany()
-        const countsByFolderId = new Map(rows.map((row) => [row.folderId, row]))
-
-        return folderIds.map((folderId) => {
-            const row = countsByFolderId.get(folderId)
-            return {
-                folderId,
-                documentCount: Number(row?.documentCount ?? 0),
-                folderCount: Number(row?.folderCount ?? 0)
-            }
-        })
+        return this.editing.getFolderChildCounts(input)
     }
 
     async moveDocument(input: {
@@ -1410,116 +450,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         parentId?: string | null
         expectedVersion?: number
     }) {
-        const knowledgebaseId = input.knowledgebaseId?.trim()
-        const documentId = input.documentId?.trim()
-        if (!knowledgebaseId || !documentId) {
-            throw new BadRequestException('knowledgebaseId and documentId are required')
-        }
-        await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
-        const document = await this.findOne(documentId, { relations: ['parent'] })
-        if (document.knowledgebaseId !== knowledgebaseId) {
-            throw new BadRequestException('Document is not in the selected knowledgebase')
-        }
-        if (input.expectedVersion !== undefined && document.version !== input.expectedVersion) {
-            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-        }
-        const parent = input.parentId ? await this.findOne(input.parentId, { relations: ['parent'] }) : null
-        if (
-            parent &&
-            (parent.knowledgebaseId !== knowledgebaseId || parent.sourceType !== KDocumentSourceType.FOLDER)
-        ) {
-            throw new BadRequestException('parentId must point to a folder in the selected knowledgebase')
-        }
-        if (parent) {
-            const ancestors = await this.findAncestors(parent.id)
-            if (ancestors.some((ancestor) => ancestor.id === document.id)) {
-                throw new BadRequestException('A folder cannot be moved into itself or one of its descendants')
-            }
-        }
-
-        const oldFolder = normalizeLogicalFolderPath(document.folder ?? '')
-        const newFolder = normalizeLogicalFolderPath(
-            parent ? path.posix.join(parent.folder ?? '', parent.name ?? '') : ''
-        )
-        if ((document.parent?.id ?? null) === (parent?.id ?? null) && oldFolder === newFolder) {
-            return { document, affectedDocumentIds: [document.id] }
-        }
-
-        const oldPrefix =
-            document.sourceType === KDocumentSourceType.FOLDER
-                ? normalizeLogicalFolderPath(path.posix.join(oldFolder, document.name ?? ''))
-                : null
-        const newPrefix =
-            document.sourceType === KDocumentSourceType.FOLDER
-                ? normalizeLogicalFolderPath(path.posix.join(newFolder, document.name ?? ''))
-                : null
-        const affectedDocumentIds = [document.id]
-
-        await this.dataSource.transaction(async (manager) => {
-            const treeRepository = manager.getTreeRepository(KnowledgeDocument)
-            document.parent = parent
-            document.folder = newFolder
-            document.updatedById = RequestContext.currentUserId()
-            await treeRepository.save(document)
-            if (oldPrefix && newPrefix && oldPrefix !== newPrefix) {
-                const descendants: Array<{ id: string }> = await manager.query(
-                    `SELECT "id" FROM "knowledge_document"
-                     WHERE "knowledgebaseId" = $1
-                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
-                    [knowledgebaseId, oldPrefix]
-                )
-                affectedDocumentIds.push(...descendants.map((item) => item.id))
-                await manager.query(
-                    `UPDATE "knowledge_document"
-                     SET "folder" = $1 || substring("folder" from char_length($2) + 1),
-                         "updatedAt" = CURRENT_TIMESTAMP,
-                         "version" = "version" + 1
-                     WHERE "knowledgebaseId" = $3
-                       AND ("folder" = $2 OR left("folder", char_length($2) + 1) = $2 || '/')`,
-                    [newPrefix, oldPrefix, knowledgebaseId]
-                )
-            }
-        })
-        const uniqueAffectedIds = uniq(affectedDocumentIds)
-        await this.syncMilvusFilterAttributes(uniqueAffectedIds)
-        return {
-            document: await this.findOne(document.id, { relations: ['parent'] }),
-            affectedDocumentIds: uniqueAffectedIds
-        }
-    }
-
-    private async syncMilvusFilterAttributes(documentIds: string[]) {
-        if (!documentIds.length) return
-        const { items } = await this.findAll({ where: { id: In(documentIds) }, relations: ['knowledgebase'] })
-        const documents = items.filter(
-            (document) =>
-                document.knowledgebaseId &&
-                (document.knowledgebase?.vectorStore ?? environment.vectorStore) === VectorTypeEnum.MILVUS
-        )
-        if (!documents.length) return
-        const { items: chunks } = await this.chunkService.findAll({
-            where: { documentId: In(documents.map((document) => document.id)) },
-            order: { createdAt: 'ASC' }
-        })
-        const byDocument = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>()
-        for (const chunk of chunks) {
-            const items = byDocument.get(chunk.documentId) ?? []
-            items.push(chunk)
-            byDocument.set(chunk.documentId, items)
-        }
-        const stores = new Map<string, KnowledgeDocumentStore>()
-        for (const document of documents) {
-            let store = stores.get(document.knowledgebaseId)
-            if (!store) {
-                store = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
-                stores.set(document.knowledgebaseId, store)
-            }
-            await store.partialUpdateFilterAttributes(document, byDocument.get(document.id) ?? [])
-        }
+        return this.editing.moveDocument(input)
     }
 
     async save(document: DeepPartial<KnowledgeDocument>)
+
     async save(document: DeepPartial<KnowledgeDocument>[])
+
     async save(document) {
         return await this.repository.save(document)
     }
@@ -1549,375 +486,28 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.save(document)
     }
 
-    /**
-     * Find all chunks of a document, filter by metadata
-     *
-     * @param id Document ID
-     * @param params Vector Search Params
-     * @returns
-     */
     async getChunks(id: string, params: TVectorSearchParams) {
-        const targetChunkId = params.targetChunkId?.trim()
-        if (targetChunkId) {
-            const page = await this.getChunks(id, { ...params, targetChunkId: undefined })
-            const stored = await this.chunkService.findAll({
-                where: [
-                    { documentId: id, id: targetChunkId },
-                    {
-                        documentId: id,
-                        metadata: Raw((alias) => `${alias} ->> 'chunkId' = :targetChunkId`, { targetChunkId })
-                    }
-                ] as FindOptionsWhere<IKnowledgeDocumentChunk<TDocChunkMetadata>>[],
-                relations: ['document'],
-                select: {
-                    document: {
-                        id: true,
-                        name: true,
-                        sourceType: true,
-                        type: true,
-                        category: true,
-                        fileUrl: true
-                    }
-                },
-                take: 1,
-                skip: 0
-            })
-            if (stored.items.length) {
-                const target = stored.items[0] as IKnowledgeDocumentChunk<TDocChunkMetadata>
-                return {
-                    ...page,
-                    items: includesChunk(page.items, targetChunkId) ? page.items : [target, ...page.items]
-                }
-            }
-
-            const document = await this.findOne(id, {
-                relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
-            })
-            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, true)
-            const vectorResult = await vectorStore.getChunks(id, {
-                take: 1,
-                skip: 0,
-                filter: { chunkId: targetChunkId }
-            })
-            const items = await this.attachStoredChunkState(
-                vectorResult.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-            )
-            return {
-                ...page,
-                items: items[0] && !includesChunk(page.items, targetChunkId) ? [items[0], ...page.items] : page.items
-            }
-        }
-
-        if (!params.search) {
-            const chunks = await this.chunkService.findAll({
-                where: {
-                    ...(params.filter ?? {}),
-                    documentId: id
-                },
-                relations: ['document'],
-                select: {
-                    document: {
-                        id: true,
-                        name: true,
-                        sourceType: true,
-                        type: true,
-                        category: true,
-                        fileUrl: true
-                    }
-                },
-                order: { createdAt: 'ASC' },
-                skip: params.skip,
-                take: params.take
-            })
-
-            return {
-                ...chunks,
-                items: sortChunksByDocumentOrder(chunks.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[])
-            }
-        }
-        const document = await this.findOne(id, {
-            relations: ['knowledgebase', 'knowledgebase.copilotModel', 'knowledgebase.copilotModel.copilot']
-        })
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, true)
-
-        if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild && !params.search) {
-            const pages = await this.pageRepository.find({
-                where: { tenantId: document.tenantId, documentId: document.id },
-                take: params.take,
-                skip: params.skip,
-                order: { createdAt: 'DESC' }
-            })
-            const pageTotal = await this.pageRepository.count({
-                where: { tenantId: document.tenantId, documentId: document.id }
-            })
-            return {
-                items: pages,
-                total: pageTotal
-            }
-        } else {
-            let sourceChunkIds: string[] | undefined
-            if (vectorStore.vectorStoreType === VectorTypeEnum.MILVUS) {
-                const { items: sources } = await this.chunkService.findAll({
-                    where: { documentId: id },
-                    select: { id: true }
-                })
-                sourceChunkIds = sources.map((chunk) => chunk.id)
-            }
-            const result = await vectorStore.getChunks(id, { ...params, sourceChunkIds })
-            const items = await this.attachStoredChunkState(
-                result.items as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-            )
-            const resultWithStoredChunkState = {
-                ...result,
-                items
-            }
-            // @todo
-            if (document.knowledgebase.structure === KnowledgeStructureEnum.ParentChild) {
-                const ids = uniq(compact(items.map((item) => item.metadata?.pageId).filter(Boolean) as string[]))
-                if (ids.length) {
-                    const pages = await this.pageRepository.find({
-                        where: {
-                            tenantId: document.tenantId,
-                            documentId: document.id,
-                            id: In(ids)
-                        },
-                        take: params.take,
-                        skip: params.skip,
-                        order: { createdAt: 'DESC' }
-                    })
-                    return {
-                        items: mergeParentChildChunks(pages, items as Document<ChunkMetadata>[])
-                    }
-                }
-            }
-
-            return resultWithStoredChunkState
-        }
+        return this.chunks.getChunks(id, params)
     }
 
-    private async attachStoredChunkState(chunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]) {
-        const ids = uniq(compact(chunks.map((chunk) => getChunkStoredId(chunk))))
-        if (!ids.length) {
-            return chunks
-        }
-
-        const { items } = await this.chunkService.findAll({
-            where: { id: In(ids) },
-            select: {
-                id: true,
-                version: true,
-                contentHash: true
-            }
-        })
-        const storedById = new Map(items.map((chunk) => [chunk.id, chunk]))
-
-        return chunks.map((chunk) => {
-            const storedId = getChunkStoredId(chunk)
-            const stored = storedId ? storedById.get(storedId) : null
-            if (!stored) {
-                return chunk
-            }
-
-            return {
-                ...chunk,
-                id: stored.id,
-                version: stored.version,
-                contentHash: stored.contentHash
-            }
-        })
-    }
-
-    /**
-     * Create a chunk in document.
-     *
-     * @param id Document ID
-     * @param entity Chunk entity
-     */
     async createChunk(id: string, entity: IKnowledgeDocumentChunk) {
-        const { vectorStore, document } = await this.getDocumentVectorStore(id)
-        const metadata = {
-            ...(entity.metadata ?? {})
-        } as TDocChunkMetadata
-        delete metadata.questionGeneration
-        delete metadata.questionGenerationId
-        delete metadata.questionSourceChunkId
-        delete metadata.generatedQuestionId
-        protectTableChunkMetadata(metadata)
-        validateMetadataAgainstSchema(metadata, document.knowledgebase?.metadataSchema, 'chunk')
-        const contentHash = computeKnowledgeDocumentChunkHash({
-            pageContent: entity.pageContent,
-            metadata
-        } as IKnowledgeDocumentChunk<TDocChunkMetadata>)
-        const chunk = await this.chunkService.create({
-            pageContent: entity.pageContent,
-            documentId: id,
-            knowledgebaseId: document.knowledgebaseId,
-            metadata,
-            contentHash
-        })
-        await vectorStore.addKnowledgeDocument(document, [chunk])
-        await this.refreshDocumentContentHash(id)
-        await this.publishChunkMutation(document)
-        return chunk
+        return this.chunks.createChunk(id, entity)
     }
 
-    /**
-     * Update a chunk in document.
-     *
-     * @param documentId Document ID
-     * @param id Chunk ID
-     * @param entity Chunk entity
-     * @returns
-     */
     async updateChunk(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
-        try {
-            const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-            const current = await this.assertChunkBelongsToDocument(documentId, id)
-            const chunk = await this.mergeChunkUpdate(id, entity, current)
-            validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
-            const result = await this.chunkService.updateChunk(id, chunk)
-            if (requiresChunkReembedding(entity)) {
-                if (questionSourceHash(current) !== questionSourceHash(chunk)) {
-                    await vectorStore.deleteChunks(questionVectorIds([current]))
-                }
-                await vectorStore.updateChunk(
-                    id,
-                    {
-                        metadata: chunk.metadata,
-                        pageContent: chunk.pageContent
-                    },
-                    document
-                )
-            } else {
-                await vectorStore.partialUpdateFilterAttributes(document, [chunk])
-            }
-            await this.refreshDocumentContentHash(documentId)
-            await this.publishChunkMutation(document)
-            return result
-        } catch (err) {
-            throw new BadRequestException(err.message)
-        }
+        return this.chunks.updateChunk(documentId, id, entity)
     }
 
     async updateChunkWithVersion(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
-        const expectedVersion = entity.version
-        assertExpectedVersion(expectedVersion)
-        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-        const current = await this.assertChunkBelongsToDocument(documentId, id)
-        const chunk = await this.mergeChunkUpdate(id, entity, current)
-        validateMetadataAgainstSchema(chunk.metadata, document.knowledgebase?.metadataSchema, 'chunk')
-        const result = await this.chunkService.updateWithVersion(id, chunk, expectedVersion)
-        if (requiresChunkReembedding(entity)) {
-            if (questionSourceHash(current) !== questionSourceHash(chunk)) {
-                await vectorStore.deleteChunks(questionVectorIds([current]))
-            }
-            await vectorStore.updateChunk(
-                id,
-                {
-                    metadata: chunk.metadata,
-                    pageContent: chunk.pageContent
-                },
-                document
-            )
-        } else {
-            await vectorStore.partialUpdateFilterAttributes(document, [chunk])
-        }
-        await this.refreshDocumentContentHash(documentId)
-        await this.publishChunkMutation(document)
-        return result
+        return this.chunks.updateChunkWithVersion(documentId, id, entity)
     }
 
-    /**
-     * Delete chunk by id in document.
-     *
-     * @param documentId Document ID
-     * @param id Chunk ID
-     * @returns
-     */
     async deleteChunk(documentId: string, id: string) {
-        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-        const current = await this.assertChunkBelongsToDocument(documentId, id)
-        // Delete entity
-        await this.chunkService.delete(id)
-        // Delete vector
-        await vectorStore.deleteChunks(questionVectorIds([current]))
-        await vectorStore.deleteChunk(id)
-        await this.refreshDocumentContentHash(documentId)
-        await this.publishChunkMutation(document)
+        return this.chunks.deleteChunk(documentId, id)
     }
 
     async deleteChunkWithVersion(documentId: string, id: string, expectedVersion?: number) {
-        assertExpectedVersion(expectedVersion)
-        const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
-        const current = await this.assertChunkBelongsToDocument(documentId, id)
-        await this.chunkService.deleteWithVersion(id, expectedVersion)
-        await vectorStore.deleteChunks(questionVectorIds([current]))
-        await vectorStore.deleteChunk(id)
-        await this.refreshDocumentContentHash(documentId)
-        await this.publishChunkMutation(document)
-    }
-
-    private async assertChunkBelongsToDocument(documentId: string, id: string) {
-        const chunk = await this.chunkService.findOne(id)
-        if (chunk.documentId !== documentId) {
-            throw new NotFoundException(`Knowledge document chunk '${id}' was not found in document '${documentId}'`)
-        }
-        return chunk
-    }
-
-    private async mergeChunkUpdate(
-        id: string,
-        entity: Partial<IKnowledgeDocumentChunk>,
-        current?: IKnowledgeDocumentChunk
-    ) {
-        const stored = current ?? (await this.chunkService.findOne(id))
-        const metadata = {
-            ...(stored.metadata ?? {}),
-            ...(entity.metadata ?? {})
-        } as TDocChunkMetadata
-        metadata.questionGeneration = stored.metadata?.questionGeneration
-        delete metadata.questionGenerationId
-        delete metadata.questionSourceChunkId
-        delete metadata.generatedQuestionId
-        const pageContent = entity.pageContent ?? stored.pageContent
-        protectTableChunkMetadata(metadata, stored.metadata, pageContent !== stored.pageContent)
-        const merged = {
-            ...stored,
-            id,
-            pageContent,
-            metadata
-        } as IKnowledgeDocumentChunk<TDocChunkMetadata>
-        merged.contentHash = computeKnowledgeDocumentChunkHash(merged)
-        return merged
-    }
-
-    private async refreshDocumentContentHash(documentId: string) {
-        const { items } = await this.chunkService.findAll({
-            where: { documentId },
-            order: { createdAt: 'ASC' }
-        })
-        const chunks = items.map((chunk) => ({
-            ...chunk,
-            contentHash: chunk.contentHash ?? computeKnowledgeDocumentChunkHash(chunk)
-        }))
-        await writeKnowledgeDocumentPublication(
-            this as unknown as KnowledgeDocumentPublicationWriter,
-            documentId,
-            {
-                contentHash: computeKnowledgeDocumentContentHash(chunks),
-                chunkNum: chunks.length
-            },
-            true
-        )
-    }
-
-    private publishChunkMutation(document: KnowledgeDocument) {
-        return this.derivedIndexPublicationService.publish({
-            knowledgebase: document.knowledgebase,
-            documentId: document.id,
-            userId: RequestContext.currentUserId(),
-            contentChanged: true
-        })
+        return this.chunks.deleteChunkWithVersion(documentId, id, expectedVersion)
     }
 
     private async updateDocument(id: string | undefined, entity: Partial<IKnowledgeDocument>): Promise<void> {
@@ -1926,359 +516,23 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await (this as unknown as ShallowKnowledgeDocumentUpdater).update(id, entity)
     }
 
-    /**
-     * Cover chunks of a document. record tokens of each chunk.
-     */
     async coverChunks(document: IKnowledgeDocument, vectorStore: KnowledgeDocumentStore) {
-        await this.chunkService.deleteByDocumentId(document.id)
-        return await this.chunkService.upsertBulk(
-            document.chunks.map((_) => {
-                return {
-                    ..._,
-                    documentId: document.id,
-                    knowledgebaseId: document.knowledgebaseId
-                } as IKnowledgeDocumentChunk
-            })
-        )
+        return this.chunkSync.coverChunks(document, vectorStore)
     }
 
     async syncChunksIncrementally(
         document: IKnowledgeDocument,
         vectorStore: KnowledgeDocumentStore
     ): Promise<IncrementalChunkSyncResult> {
-        const incomingChunks = this.prepareIncomingChunks(document.chunks ?? [])
-        const contentHash = computeKnowledgeDocumentContentHash(incomingChunks)
-        const { items: existingChunks } = await this.chunkService.findAll({
-            where: { documentId: document.id },
-            relations: ['parent'],
-            order: { createdAt: 'ASC' }
-        })
-
-        // Chunk rows are saved before vectors. Only a matching published hash proves those rows were indexed.
-        const recoverInterruptedSync =
-            existingChunks.length > 0 &&
-            (!document.contentHash ||
-                computeKnowledgeDocumentContentHash(sortChunksByDocumentOrder(existingChunks)) !== document.contentHash)
-        if (!recoverInterruptedSync && document.contentHash && document.contentHash === contentHash) {
-            return {
-                chunks: existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-                embeddingChunks: [],
-                removedChunks: [],
-                contentHash,
-                contentChanged: false,
-                statistics: {
-                    total: incomingChunks.length,
-                    skipped: incomingChunks.length,
-                    added: 0,
-                    updated: 0,
-                    deleted: 0
-                }
-            }
-        }
-
-        const matches = this.matchIncrementalChunks(
-            incomingChunks,
-            existingChunks as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-        )
-        const skippedCount = recoverInterruptedSync
-            ? 0
-            : matches.filter((match) => match.operation === 'unchanged').length
-        const addedCount = matches.filter((match) => match.operation === 'added').length
-        const updatedCount = matches.filter(
-            (match) => match.operation === 'changed' || (recoverInterruptedSync && match.operation === 'unchanged')
-        ).length
-        const chunksToPersist = matches.map((match) => ({
-            ...match.chunk,
-            documentId: document.id,
-            knowledgebaseId: document.knowledgebaseId
-        }))
-        const changedIds = matches
-            .filter((match) => (match.operation === 'changed' || recoverInterruptedSync) && match.chunk.id)
-            .map((match) => match.chunk.id)
-            .filter((id): id is string => !!id)
-        const usedIds = new Set(matches.map((match) => match.previous?.id).filter((id): id is string => !!id))
-        const removedChunks = existingChunks.filter(
-            (chunk) => chunk.id && !usedIds.has(chunk.id)
-        ) as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-        const removedIds = removedChunks.map((chunk) => chunk.id).filter((id): id is string => !!id)
-
-        await vectorStore.deleteChunks([
-            ...removedIds,
-            ...changedIds,
-            ...questionVectorIds([
-                ...removedChunks,
-                ...matches
-                    .filter(
-                        (match) =>
-                            match.operation === 'changed' &&
-                            questionSourceHash(match.previous) !== questionSourceHash(match.chunk)
-                    )
-                    .map((match) => match.previous)
-            ])
-        ])
-
-        const savedChunks = (await this.chunkService.upsertBulk(
-            chunksToPersist
-        )) as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-        if (removedIds.length) {
-            await this.chunkService.delete({ id: In(removedIds) })
-        }
-
-        const changedChunkIds = new Set(
-            matches
-                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
-                .map((match) => getChunkLogicalId(match.chunk))
-                .filter((id): id is string => !!id)
-        )
-        const changedRowIds = new Set(
-            matches
-                .filter((match) => recoverInterruptedSync || match.operation !== 'unchanged')
-                .map((match) => match.chunk.id)
-                .filter((id): id is string => !!id)
-        )
-        const embeddingChunks = this.chunkService.findAllEmbeddingNodes(savedChunks).filter((chunk) => {
-            const logicalId = getChunkLogicalId(chunk)
-            return (logicalId && changedChunkIds.has(logicalId)) || (chunk.id && changedRowIds.has(chunk.id))
-        }) as IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-
-        return {
-            chunks: savedChunks,
-            embeddingChunks,
-            removedChunks,
-            contentHash,
-            contentChanged: true,
-            statistics: {
-                total: savedChunks.length,
-                skipped: skippedCount,
-                added: addedCount,
-                updated: updatedCount,
-                deleted: removedChunks.length
-            }
-        }
-    }
-
-    private prepareIncomingChunks(chunks: IKnowledgeDocumentChunk[]): IKnowledgeDocumentChunk<TDocChunkMetadata>[] {
-        return chunks.map((chunk, index) => {
-            const metadata = {
-                ...(chunk.metadata ?? {}),
-                // Persist a stable sequence for display, retrieval payloads, and incremental comparisons.
-                chunkId: chunk.metadata?.chunkId || chunk.id || `chunk-${index}`,
-                chunkIndex: getFiniteNumber(chunk.metadata?.chunkIndex) ?? index
-            } as TDocChunkMetadata
-            delete metadata.questionGeneration
-            delete metadata.questionGenerationId
-            delete metadata.questionSourceChunkId
-            delete metadata.generatedQuestionId
-            const prepared = {
-                ...chunk,
-                metadata
-            } as IKnowledgeDocumentChunk<TDocChunkMetadata>
-            prepared.contentHash = computeKnowledgeDocumentChunkHash(prepared)
-            return prepared
-        })
-    }
-
-    private matchIncrementalChunks(
-        incomingChunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[],
-        existingChunks: IKnowledgeDocumentChunk<TDocChunkMetadata>[]
-    ): IncrementalChunkMatch[] {
-        const exactMatches = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>()
-        const positionMatches = new Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>()
-        const incomingContentHashByChunkId = new Map<string, string>()
-        const incomingParentIndexByChunkId = new Map<string, number | null>()
-        const resolvedChunkIdByIncomingId = new Map<string, string>()
-        const usedIds = new Set<string>()
-
-        for (const chunk of incomingChunks) {
-            const logicalId = getChunkLogicalId(chunk)
-            if (logicalId && chunk.contentHash) {
-                incomingContentHashByChunkId.set(logicalId, chunk.contentHash)
-                incomingParentIndexByChunkId.set(logicalId, getChunkMetadata(chunk).chunkIndex ?? null)
-            }
-        }
-
-        for (const chunk of existingChunks) {
-            const exactKey = this.buildExactChunkMatchKey(chunk, (parentId) => {
-                const parent = chunk.parent
-                const parentLogicalId = parent ? getChunkLogicalId(parent) : null
-                return parentLogicalId === parentId ? (parent?.contentHash ?? null) : null
-            })
-            const positionKey = this.buildPositionChunkMatchKey(chunk, (parentId) => {
-                const parent = chunk.parent
-                const parentLogicalId = parent ? getChunkLogicalId(parent) : null
-                return parentLogicalId === parentId ? (getChunkMetadata(parent).chunkIndex ?? null) : null
-            })
-            this.pushChunkMatch(exactMatches, exactKey, chunk)
-            this.pushChunkMatch(positionMatches, positionKey, chunk)
-        }
-
-        const matches = incomingChunks.map((incoming) => {
-            const exactKey = this.buildExactChunkMatchKey(
-                incoming,
-                (parentId) => incomingContentHashByChunkId.get(parentId) ?? null
-            )
-            const exactMatch = popFirstAvailable(exactMatches, exactKey, usedIds)
-            if (exactMatch?.id) {
-                usedIds.add(exactMatch.id)
-                const matchedChunk = this.mergeIncomingChunkWithExisting(incoming, exactMatch)
-                const incomingLogicalId = getChunkLogicalId(incoming)
-                const matchedLogicalId = getChunkLogicalId(matchedChunk)
-                if (incomingLogicalId && matchedLogicalId) {
-                    resolvedChunkIdByIncomingId.set(incomingLogicalId, matchedLogicalId)
-                }
-                return {
-                    operation: 'unchanged' as const,
-                    incoming,
-                    chunk: matchedChunk,
-                    previous: exactMatch
-                }
-            }
-
-            const positionKey = this.buildPositionChunkMatchKey(
-                incoming,
-                (parentId) => incomingParentIndexByChunkId.get(parentId) ?? null
-            )
-            const positionMatch = popFirstAvailable(positionMatches, positionKey, usedIds)
-            if (positionMatch?.id) {
-                usedIds.add(positionMatch.id)
-                const matchedChunk = this.mergeIncomingChunkWithExisting(incoming, positionMatch)
-                const incomingLogicalId = getChunkLogicalId(incoming)
-                const matchedLogicalId = getChunkLogicalId(matchedChunk)
-                if (incomingLogicalId && matchedLogicalId) {
-                    resolvedChunkIdByIncomingId.set(incomingLogicalId, matchedLogicalId)
-                }
-                return {
-                    operation: 'changed' as const,
-                    incoming,
-                    chunk: matchedChunk,
-                    previous: positionMatch
-                }
-            }
-
-            const incomingLogicalId = getChunkLogicalId(incoming)
-            if (incomingLogicalId) {
-                resolvedChunkIdByIncomingId.set(incomingLogicalId, incomingLogicalId)
-            }
-            return {
-                operation: 'added' as const,
-                incoming,
-                chunk: incoming
-            }
-        })
-
-        return matches.map((match) => ({
-            ...match,
-            chunk: this.remapChunkParentId(match.chunk, resolvedChunkIdByIncomingId)
-        }))
-    }
-
-    private pushChunkMatch(
-        map: Map<string, IKnowledgeDocumentChunk<TDocChunkMetadata>[]>,
-        key: string,
-        chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>
-    ) {
-        const matches = map.get(key) ?? []
-        matches.push(chunk)
-        map.set(key, matches)
-    }
-
-    private buildExactChunkMatchKey(
-        chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>,
-        resolveParentContentHash: (parentId: string) => string | null
-    ) {
-        const metadata = getChunkMetadata(chunk)
-        const parentHash = metadata.parentId ? resolveParentContentHash(metadata.parentId) : null
-        return [chunk.contentHash ?? '', getChunkMatchType(chunk), parentHash ?? ''].join('\u0000')
-    }
-
-    private buildPositionChunkMatchKey(
-        chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>,
-        resolveParentIndex: (parentId: string) => number | null
-    ) {
-        const metadata = getChunkMetadata(chunk)
-        const parentIndex = metadata.parentId ? resolveParentIndex(metadata.parentId) : null
-        return [getChunkMatchType(chunk), parentIndex ?? 'root', metadata.chunkIndex ?? 'unknown'].join('\u0000')
-    }
-
-    private mergeIncomingChunkWithExisting(
-        incoming: IKnowledgeDocumentChunk<TDocChunkMetadata>,
-        existing: IKnowledgeDocumentChunk<TDocChunkMetadata>
-    ): IKnowledgeDocumentChunk<TDocChunkMetadata> {
-        const incomingMetadata = getChunkMetadata(incoming)
-        const existingLogicalId = getChunkLogicalId(existing)
-        return {
-            ...incoming,
-            id: existing.id,
-            metadata: {
-                ...incomingMetadata,
-                chunkId: existingLogicalId ?? incomingMetadata.chunkId,
-                questionGeneration: existing.metadata?.questionGeneration
-            },
-            parent: existing.parent
-        }
-    }
-
-    private remapChunkParentId(
-        chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>,
-        resolvedChunkIdByIncomingId: Map<string, string>
-    ): IKnowledgeDocumentChunk<TDocChunkMetadata> {
-        const parentId = getChunkMetadata(chunk).parentId
-        if (!parentId) {
-            return chunk
-        }
-
-        const resolvedParentId = resolvedChunkIdByIncomingId.get(parentId)
-        if (!resolvedParentId || resolvedParentId === parentId) {
-            return chunk
-        }
-
-        return {
-            ...chunk,
-            metadata: {
-                ...getChunkMetadata(chunk),
-                parentId: resolvedParentId
-            }
-        }
+        return this.chunkSync.syncChunksIncrementally(document, vectorStore)
     }
 
     async findAllEmbeddingNodes(document: IKnowledgeDocument) {
-        return this.chunkService.findAllEmbeddingNodes(document.chunks)
+        return this.chunks.findAllEmbeddingNodes(document)
     }
 
     async updateChunkMetadataBulk(chunks: Pick<IKnowledgeDocumentChunk, 'id' | 'metadata'>[]) {
-        const ids = chunks.map((chunk) => chunk.id).filter((id): id is string => !!id)
-        if (!ids.length) return []
-        const { items: currentChunks } = await this.chunkService.findAll({ where: { id: In(ids) } })
-        const currentById = new Map(currentChunks.map((chunk) => [chunk.id, chunk]))
-        const documentIds = uniq(
-            currentChunks.map((chunk) => chunk.documentId).filter((documentId): documentId is string => !!documentId)
-        )
-        const { items: documents } = await this.findAll({
-            where: { id: In(documentIds) },
-            relations: ['knowledgebase']
-        })
-        const documentById = new Map(documents.map((document) => [document.id, document]))
-        const merged = chunks.map((chunk) => {
-            const current = currentById.get(chunk.id)
-            if (!current) throw new NotFoundException(`Knowledge chunk '${chunk.id}' was not found.`)
-            const metadata = { ...(current.metadata ?? {}), ...(chunk.metadata ?? {}) } as TDocChunkMetadata
-            metadata.questionGeneration = current.metadata?.questionGeneration
-            delete metadata.questionGenerationId
-            delete metadata.questionSourceChunkId
-            delete metadata.generatedQuestionId
-            const document = documentById.get(current.documentId)
-            validateMetadataAgainstSchema(metadata, document?.knowledgebase?.metadataSchema, 'chunk')
-            return { ...current, metadata }
-        })
-        const result = await this.chunkService.updateMetadataBulk(merged)
-        for (const document of documents) {
-            if ((document.knowledgebase?.vectorStore ?? environment.vectorStore) !== VectorTypeEnum.MILVUS) continue
-            const documentChunks = merged.filter((chunk) => chunk.documentId === document.id)
-            if (!documentChunks.length) continue
-            const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebaseId, true)
-            await vectorStore.partialUpdateFilterAttributes(document, documentChunks)
-        }
-        return result
+        return this.chunks.updateChunkMetadataBulk(chunks)
     }
 
     async getDocumentVectorStore(id: string) {
@@ -2288,93 +542,6 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
         const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase)
         return { document, vectorStore }
-    }
-
-    private async validateDocumentMetadataInput(document: Partial<IKnowledgeDocument>) {
-        document.metadata = withoutGeneratedTableMetadata(document.metadata)
-        if (!document.metadata || !document.knowledgebaseId) return
-        const knowledgebase =
-            document.knowledgebase?.metadataSchema != null
-                ? document.knowledgebase
-                : await this.knowledgebaseService.findOneByIdString(document.knowledgebaseId)
-        validateMetadataAgainstSchema(document.metadata, knowledgebase.metadataSchema, 'document')
-    }
-
-    private async prepareDocumentRelations(document: Partial<IKnowledgeDocument>) {
-        const hasParent = Object.prototype.hasOwnProperty.call(document, 'parent')
-        const parent = document.parent
-        delete document.id
-        delete document.version
-        delete document.tenantId
-        delete document.tenant
-        delete document.organizationId
-        delete document.organization
-        delete document.createdById
-        delete document.createdBy
-        delete document.updatedById
-        delete document.updatedBy
-        Reflect.deleteProperty(document, 'createdAt')
-        Reflect.deleteProperty(document, 'updatedAt')
-        delete document.deletedAt
-        delete document.hardDeletePendingAt
-        delete document.publicationEpoch
-        delete document.processingExecutionId
-        delete document.knowledgebase
-        delete document.storageFile
-        if (hasParent) {
-            document.parent = await this.resolveDocumentParent(document.knowledgebaseId, parent)
-        }
-    }
-
-    private async resolveDocumentParent(
-        knowledgebaseId: string | null | undefined,
-        parent: IKnowledgeDocument | null | undefined,
-        documentId?: string
-    ): Promise<IKnowledgeDocument | null> {
-        if (!parent) {
-            return null
-        }
-
-        const parentId = typeof parent.id === 'string' ? parent.id.trim() : ''
-        if (!knowledgebaseId || !parentId) {
-            throw new BadRequestException('parent must identify a folder in the selected knowledgebase')
-        }
-
-        const resolvedParent = await this.findOne(parentId, { relations: ['parent'] })
-        if (
-            resolvedParent.knowledgebaseId !== knowledgebaseId ||
-            resolvedParent.sourceType !== KDocumentSourceType.FOLDER
-        ) {
-            throw new BadRequestException('parent must identify a folder in the selected knowledgebase')
-        }
-
-        if (documentId) {
-            if (resolvedParent.id === documentId) {
-                throw new BadRequestException('A folder cannot be moved into itself or one of its descendants')
-            }
-            const ancestors = await this.findAncestors(resolvedParent.id)
-            if (ancestors.some((ancestor) => ancestor.id === documentId)) {
-                throw new BadRequestException('A folder cannot be moved into itself or one of its descendants')
-            }
-        }
-
-        return resolvedParent
-    }
-
-    private async completeDocumentSystemAttributes(document: Partial<IKnowledgeDocument>) {
-        if (document.storageFileId && (!document.type || !document.mimeType)) {
-            const storageFile = await this.queryBus.execute<GetOwnedStorageFileQuery, StorageFile>(
-                new GetOwnedStorageFileQuery(document.storageFileId)
-            )
-            document.type ??= storageFile.originalName.split('.').pop()
-            document.mimeType ??= storageFile.mimetype
-        } else if (document.options?.url) {
-            document.type ??= 'html'
-            document.mimeType ??= 'text/html'
-        }
-        document.type = normalizeFileExtension(document.type) as string
-        document.mimeType = normalizeMimeType(document.mimeType) as string
-        document.category = classificateDocumentCategory(document)
     }
 
     async previewFile(id: string) {
@@ -2426,92 +593,13 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     async deleteWithVersion(id: string, expectedVersion?: number) {
-        assertExpectedVersion(expectedVersion)
-        const document = await this.findOne(id, {
-            relations: ['knowledgebase', 'knowledgebase.documents'],
-            select: {
-                id: true,
-                version: true,
-                knowledgebaseId: true,
-                knowledgebase: {
-                    id: true,
-                    documentNum: true,
-                    documents: { id: true, sourceType: true, metadata: true }
-                }
-            }
-        })
-        if (document.version !== expectedVersion) {
-            throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-        }
-
-        return await this.deleteResolvedDocument(document, expectedVersion)
+        return this.deletion.deleteWithVersion(id, expectedVersion)
     }
 
     async delete(id: string) {
-        const document = await this.findOne(id, {
-            relations: ['knowledgebase', 'knowledgebase.documents'],
-            select: {
-                id: true,
-                version: true,
-                knowledgebaseId: true,
-                knowledgebase: {
-                    id: true,
-                    documentNum: true,
-                    documents: { id: true, sourceType: true, metadata: true }
-                }
-            }
-        })
-        return await this.deleteResolvedDocument(document)
-    }
-
-    private async deleteResolvedDocument(document: KnowledgeDocument, expectedVersion?: number) {
-        await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
-        if (expectedVersion) {
-            await this.deleteDocumentArtifacts(document)
-            const result = await this.repository.delete({ id: document.id, version: expectedVersion })
-            if (!result.affected) {
-                throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
-            }
-            await this.updateDocumentNumAfterDelete(document)
-            return result
-        }
-
-        await this.deleteDocumentArtifacts(document)
-        const result = await super.delete(document.id)
-        await this.updateDocumentNumAfterDelete(document)
-        return result
-    }
-
-    private async deleteDocumentArtifacts(document: KnowledgeDocument) {
-        await this.commandBus.execute(
-            new KnowledgeWikiRetractSourceCommand({
-                knowledgebaseId: document.knowledgebaseId,
-                documentId: document.id,
-                userId: RequestContext.currentUserId(),
-                reason: 'hard_deleted'
-            })
-        )
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, false)
-        await vectorStore.deleteKnowledgeDocument(document)
-        try {
-            await this.commandBus.execute(
-                new KnowledgeGraphClearDocumentCommand({
-                    knowledgebaseId: document.knowledgebaseId,
-                    documentId: document.id
-                })
-            )
-        } catch (error) {
-            this.#logger.warn(`Failed to clear GraphRAG data for document '${document.id}': ${getErrorMessage(error)}`)
-        }
-    }
-
-    private async updateDocumentNumAfterDelete(document: KnowledgeDocument) {
-        const nextDocumentNum =
-            document.knowledgebase.documents.filter(isCountableDocument).length -
-            (isCountableDocument(document) ? 1 : 0)
-        document.knowledgebase.documentNum = nextDocumentNum
-        await this.knowledgebaseService.updateKnowledgebase(document.knowledgebaseId, {
-            documentNum: document.knowledgebase.documentNum
+        return this.deletion.remove(id, {
+            tenantId: RequestContext.currentUser()?.tenantId,
+            organizationId: this.getCurrentScopeOrganizationCondition()
         })
     }
 
@@ -2532,3 +620,8 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
         }
     }
 }
+
+export { buildLogicalFolderPath } from './folders/logical-folder-path'
+export type { IncrementalChunkSyncResult } from './chunk/incremental-chunk-sync'
+export type { OriginalFileDownload } from './files/document-original-files'
+export type { IncrementalDocumentSyncResult, IncrementalDocumentSyncItemResult } from './ingestion/document-ingestion'

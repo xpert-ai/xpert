@@ -11,7 +11,7 @@ import { AutoTextSplitterStrategy } from '../../../knowledgebase/plugins/textspl
 import { StructureAwareStrategy } from '../../../knowledgebase/plugins/textsplitter-common/structure-aware.strategy'
 import { MarkdownRecursiveStrategy } from '../../../knowledgebase/plugins/textsplitter-common/markdown-recursive.strategy'
 import { ParentChildStrategy } from '../../../knowledgebase/plugins/textsplitter-common/parent-child.strategy'
-import { KnowledgeDocumentService } from '../../document.service'
+import { DocumentChunks } from '../../chunk/document-chunks'
 import { KnowledgeDocumentChunkService } from '../../chunk/chunk.service'
 
 type Splitter = 'recursive-character' | 'auto' | 'structure-aware' | 'parent-child'
@@ -252,10 +252,13 @@ it.each<Splitter>(['recursive-character', 'parent-child'])(
                 )
             }
         } else {
-            const service: KnowledgeDocumentService = Object.create(KnowledgeDocumentService.prototype)
-            Object.assign(service, {
-                chunkService: { findAll: async () => ({ items: result.chunks, total: result.chunks.length }) }
-            })
+            const chunks: KnowledgeDocumentChunkService = Object.assign(
+                Object.create(KnowledgeDocumentChunkService.prototype),
+                {
+                    findAll: async () => ({ items: result.chunks, total: result.chunks.length })
+                }
+            )
+            const service = new DocumentChunks({} as never, chunks, {} as never, {} as never, {} as never)
             const page = await service.getChunks('doc', { skip: 0, take: 100 })
             expect(page.items.map((chunk) => chunk.metadata.page)).toEqual(
                 result.chunks.map((chunk) => chunk.metadata.page)
