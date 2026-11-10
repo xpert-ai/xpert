@@ -27,6 +27,7 @@ import {
 import type { AgentActivityRecorder } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
 import { TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
+import { invocationStartupHeartbeat } from './invocation-startup-heartbeat'
 import {
     AgentInvocationError,
     AgentInvocationErrorCode,
@@ -225,6 +226,20 @@ export class AgentInvocationRuntime {
         record = claimed
         if (record.invocation.executionTarget?.kind === 'host')
             this.owned.set(id, { access: { ...access, signal: undefined }, target: record.invocation.executionTarget })
+        const heartbeat = invocationStartupHeartbeat(async (leaseMs) => {
+            const latest = await this.store.read(id, access.scope)
+            if (!latest || latest.invocation.startPendingId !== claimed.invocation.startPendingId ||
+                latest.invocation.status !== 'running' || latest.invocation.control ||
+                !(Date.parse(latest.invocation.startPendingUntil ?? '') > Date.now())) return false
+            // A revision conflict leaves the existing fence intact; the next heartbeat retries it.
+            await this.store.replace({ ...latest, invocation: {
+                ...latest.invocation,
+                startPendingUntil: new Date(Date.now() + leaseMs).toISOString(),
+                revision: latest.invocation.revision + 1,
+                updatedAt: new Date().toISOString()
+            } }, latest.invocation.revision)
+            return true
+        }, 120_000)
         try {
             const launch = () =>
                 strategy.start(
@@ -276,6 +291,8 @@ export class AgentInvocationRuntime {
             if (task && suspended) await this.tasks.receipt(task.id, 'paused')
             else if (task && access.controlAdapter === 'native-graph') await this.tasks.receipt(task.id, 'completed')
             throw error
+        } finally {
+            await heartbeat.stop()
         }
     }
 
@@ -584,6 +601,10 @@ export class AgentInvocationRuntime {
                         : startup === 'finish' || isAgentInvocationTerminal(observation.status)
                           ? undefined
                           : record.invocation.startPendingUntil,
+                startPendingId:
+                    startup === 'begin' ? randomUUID()
+                        : startup === 'finish' || isAgentInvocationTerminal(observation.status)
+                          ? undefined : record.invocation.startPendingId,
                 revision: record.invocation.revision + 1,
                 updatedAt: new Date().toISOString()
             }

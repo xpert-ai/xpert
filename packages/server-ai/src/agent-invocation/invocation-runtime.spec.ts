@@ -50,6 +50,45 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    it('keeps an owned slow startup live across inspections, then clears its fence', async () => {
+        jest.useFakeTimers()
+        try {
+            const f = fixture()
+            f.start.mockImplementation(async (_request, context) => {
+                await jest.advanceTimersByTimeAsync(270_000)
+                const other = new AgentInvocationRuntime(f.store, f.registry).scoped(f.access)
+                expect((await other.inspect(context.invocationId)).status).toBe('running')
+                expect(f.strategy.inspect).not.toHaveBeenCalled()
+                return { status: 'running', handle: { sessionId: 'ready', runId: 'run' } }
+            })
+            const started = await f.api.start(f.request)
+            expect(started.startPendingUntil).toBeUndefined()
+            expect(started.startPendingId).toBeUndefined()
+            expect(jest.getTimerCount()).toBe(0)
+            await f.api.inspect(started.id)
+            expect(f.strategy.inspect).toHaveBeenCalledTimes(1)
+        } finally { jest.useRealTimers() }
+    })
+
+    it.each(['owner', 'cancel', 'expired'] as const)('never revives a startup after %s changes', async (change) => {
+        jest.useFakeTimers()
+        try {
+            const f = fixture()
+            f.start.mockImplementation(async (_request, context) => {
+                const row = f.store.rows.get(context.invocationId)
+                if (change === 'owner') row.invocation.startPendingId = 'new-owner'
+                if (change === 'cancel') row.invocation.control = { intent: 'terminated', requestedAt: new Date().toISOString() }
+                if (change === 'expired') row.invocation.startPendingUntil = new Date(0).toISOString()
+                const until = row.invocation.startPendingUntil
+                await jest.advanceTimersByTimeAsync(180_000)
+                expect(f.store.rows.get(context.invocationId).invocation.startPendingUntil).toBe(until)
+                return { status: 'running' }
+            })
+            await f.api.start(f.request)
+            expect(jest.getTimerCount()).toBe(0)
+        } finally { jest.useRealTimers() }
+    })
+
     it('fences intermediate launch receipts across runtime instances and inspects immediately after start returns', async () => {
         const f = fixture()
         f.start.mockImplementation(async (_request, context) => {
