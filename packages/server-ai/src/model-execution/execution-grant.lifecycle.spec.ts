@@ -132,6 +132,29 @@ async function setup() {
 }
 
 describe('execution grant lifecycle', () => {
+    it('selects the Project override within the tenant ceiling and does not expand an issued grant', async () => {
+        const f = await setup()
+        f.policy.defaultDurationSeconds = 3600
+        f.policy.limits.maxDurationSeconds = 7200
+        const issue = (maxDurationSeconds?: number) => f.service.issue(f.actor, {
+            conversationId: f.grant.context.conversationId, source: f.grant.context.source,
+            environment: f.grant.context.environment, tool: f.grant.context.tool, maxDurationSeconds
+        })
+        const ordinary = await issue()
+        const coding = await issue(7200)
+        const capped = await issue(9000)
+        const short = await issue(60)
+        expect(short.grant.limits.leaseSeconds).toBeLessThanOrEqual(60)
+        expect(ordinary.grant.limits.maxDurationSeconds).toBe(3600)
+        expect(coding.grant.limits.maxDurationSeconds).toBe(7200)
+        expect(capped.grant.limits.maxDurationSeconds).toBe(7200)
+        expect(coding.grant.absoluteExpiresAt.getTime() - coding.grant.createdAt.getTime()).toBeLessThanOrEqual(7200_000)
+        expect(coding.grant.absoluteExpiresAt.getTime() - coding.grant.createdAt.getTime()).toBeGreaterThan(7199_000)
+        f.policy.limits.maxDurationSeconds = 10800
+        await f.service.revalidate(f.grant)
+        expect(f.grant.limits.maxDurationSeconds).toBe(600)
+        expect(ordinary.grant.limits.maxDurationSeconds).toBe(3600)
+    })
     afterEach(() => jest.restoreAllMocks())
 
     it('issues and revalidates an Invocation grant using its explicit model source without changing the caller', async () => {

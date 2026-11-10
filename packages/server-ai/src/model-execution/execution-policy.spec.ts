@@ -9,6 +9,7 @@ import { assertExecutionAdmission } from './execution-admission.service'
 
 export const testPolicy = {
     enabled: true,
+    defaultDurationSeconds: 600,
     gatewayBaseUrl: 'http://gateway.test/api/model-execution/openai/v1',
     limits: {
         tokenBudget: 10000,
