@@ -2,9 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import {
   DefaultRuntimeCapabilityRegistry, ProjectAccessRuntimeCapability, ProjectPipelinesRuntimeCapability,
-  ProjectTaskAcceptanceRuntimeCapability, ArtifactsRuntimeCapability, ProjectPipelineEvidenceRuntimeCapability,
+  ProjectTasksRuntimeCapability, ArtifactsRuntimeCapability, ProjectPipelineEvidenceRuntimeCapability,
   ProjectPipelineCommandsRuntimeCapability,
-  type ProjectPipelineAssistantContext, type ProjectTaskAcceptanceReceipt, type ArtifactsApi
+  type ProjectPipelineAssistantContext, type ProjectTaskAcceptanceReceipt, type ProjectTaskContext, type ArtifactsApi
 } from '@xpert-ai/plugin-sdk'
 import type { ProjectPipelineGraph, ProjectPipelineEvidenceRef } from '@xpert-ai/contracts'
 import { CodingDelivery, CodingDeliveryWork } from './entities'
@@ -81,8 +81,10 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   }) })
   capabilities.register(ArtifactsRuntimeCapability, artifactApi)
   let accepted: ProjectTaskAcceptanceReceipt
-  const readAcceptance = jest.fn(async () => accepted)
-  capabilities.register(ProjectTaskAcceptanceRuntimeCapability, { read: readAcceptance })
+  const readAcceptance = jest.fn<Promise<ProjectTaskAcceptanceReceipt | null>, [ProjectTaskContext, string]>(async () => accepted)
+  const unusedTaskApi = async () => { throw new Error('Unexpected task API call in delivery fixture') }
+  capabilities.register(ProjectTasksRuntimeCapability, { readAcceptance, graph: unusedTaskApi,
+    refresh: unusedTaskApi, change: unusedTaskApi, resolveExecution: unusedTaskApi })
   const evidence = new CodingEvidenceService(store), operations = new CodingOperations(store, evidence)
   const policy = new CodingReleasePolicy(store, evidence)
 
@@ -96,16 +98,10 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
     return { artifactId, versionId, fileName, sha256 }
   }
   function task(files: ReturnType<typeof addFile>[], c = currentContext) {
-    const taskId = randomUUID(), reviewExecutionId = randomUUID(), implementationExecutionId = randomUUID(), invocationId = randomUUID()
-    const evidenceRefs = files.map(({ artifactId, versionId }) => ({ type: 'artifact' as const, artifactId, versionId }))
-    const specificationDigest = `sha256:${'a'.repeat(64)}`
+    const taskId = randomUUID(), reviewExecutionId = randomUUID()
     accepted = { projectId, taskId, taskRevision: 4, conversationId: c.executor.conversationId,
-      decision: { taskId, requestId: randomUUID(), expectedRevision: 3, taskRevision: 4,
-        implementationExecutionId, reviewExecutionId, specificationDigest, evidence: evidenceRefs,
-        outcome: 'accept', rationale: 'fixture', checks: ['fixture'], actorId: actor.userId, actorType: 'xpert', decidedAt: new Date().toISOString() },
-      review: { version: 2, mode: 'execution', verdict: 'pass', implementationInvocationId: invocationId,
-        specificationDigest, evidence: evidenceRefs, summary: 'fixture independent review', checks: [{ description: 'fixture', outcome: 'passed', actual: 'fixture' }],
-        findings: [], limitations: [] }, artifacts: files.map(({ artifactId, versionId }) => ({ artifactId, versionId })) }
+      decisionId: randomUUID(), review: { executionId: reviewExecutionId, mode: 'execution', verdict: 'pass' },
+      artifacts: files.map(({ artifactId, versionId }) => ({ artifactId, versionId })) }
     return accepted
   }
   const packageFile = addFile('plugin.tgz', 'fixture package bytes'), sourceFile = addFile('source.bundle', 'fixture source bytes'),

@@ -1,6 +1,7 @@
 import { t } from 'i18next'
 
 const messages: Record<string, string> = {
+  CODING_EXECUTION_REVIEW_REQUIRED: 'Coding delivery requires a passing independent execution review of this accepted task.',
   CODING_SOURCE_ACCEPTANCE_CHANGED: 'The source task acceptance changed. Start a new delivery from its current accepted result.',
   CODING_GIT_HOST_NOT_ALLOWED: 'This stage is not authorized for fixed GitHub delivery.',
   CODING_GIT_CONNECTOR_REQUIRED: 'Authorize the configured GitHub Connector in this Assistant before Git delivery.',

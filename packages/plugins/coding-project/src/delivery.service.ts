@@ -4,7 +4,6 @@ import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
   ArtifactsRuntimeCapability, ProjectFilesRuntimeCapability, ProjectPipelineCatalogRuntimeCapability,
   ProjectPipelineCommandsRuntimeCapability, ProjectPipelinesRuntimeCapability,
-  ProjectTaskAcceptanceRuntimeCapability,
   type ProjectPipelineContext
 } from '@xpert-ai/plugin-sdk'
 import { CodingDeliveryStore, audit, scopeWhere, conflict } from './store'
@@ -40,10 +39,10 @@ export class CodingDeliveryService {
       : allowed.repositories.length === 1 ? allowed.repositories[0] : null
     if (!target || !repository) throw conflict('CODING_CONFIGURE_AUTHORIZED_TARGET_AND_REPOSITORY')
     const source = input.acceptedTaskId
-      ? await this.store.capabilities.require(ProjectTaskAcceptanceRuntimeCapability).read({ ...c, taskId: input.acceptedTaskId }) : null
+      ? await this.store.acceptedTask(c, input.acceptedTaskId) : null
     const proposed = requirementSchema.parse({ title: input.title, requirement: input.requirement, target, repository,
       ...(source ? { origin: { type: 'accepted_task', taskId: source.taskId, taskRevision: source.taskRevision,
-        decisionId: source.decision.requestId, reviewExecutionId: source.decision.reviewExecutionId } } : {}) })
+        decisionId: source.decisionId, reviewExecutionId: source.review.executionId } } : {}) })
     const id = identity(c.projectId, conversationId, input.title)
     let row = await this.store.deliveries.findOneBy({ ...scopeWhere(c), id })
     if (!row) {

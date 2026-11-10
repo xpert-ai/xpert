@@ -11,6 +11,8 @@ import { BaseStrategyRegistry } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
 import { createRuntimeCapability } from '../core/runtime-capability'
 import type { ProjectAccessActor } from '../runtime/capabilities/project-access'
+import type { ProjectTaskAcceptanceReceipt } from './acceptance'
+export type { ProjectTaskAcceptanceReceipt } from './acceptance'
 
 export interface ProjectTaskContext {
   actor: ProjectAccessActor
@@ -78,6 +80,8 @@ export class ProjectTaskProviderRegistry extends BaseStrategyRegistry<IProjectTa
 
 /** ORM-independent project task management; actor values come from trusted server context. */
 export interface ProjectTasksApi {
+  /** Read current formal acceptance without dispatching or reconciling work; null means no current acceptance. */
+  readAcceptance(context: ProjectTaskContext, taskId: string): Promise<ProjectTaskAcceptanceReceipt | null>
   /** Read the saved graph and current execution facts. Never invokes provider snapshot/linked callbacks. */
   graph(context: ProjectTaskContext): Promise<ProjectTaskGraph>
   /** After committing domain changes, enqueue a durable coalesced refresh; does not wait for provider callbacks. */
@@ -87,5 +91,5 @@ export interface ProjectTasksApi {
 }
 export const ProjectTasksRuntimeCapability = createRuntimeCapability<ProjectTasksApi>('platform.project.tasks', {
   description:
-    'Read project task graphs, request background synchronization, manage schedules, and resolve exact execution conversations.'
+    'Read project task graphs and acceptance receipts, request background synchronization, manage schedules, and resolve exact execution conversations.'
 })

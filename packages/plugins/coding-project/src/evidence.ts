@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { createHash } from 'node:crypto'
 import {
-  ArtifactsRuntimeCapability, ProjectTaskAcceptanceRuntimeCapability,
+  ArtifactsRuntimeCapability,
   type ProjectPipelineContext, type ProjectPipelineEvidenceResolver, type ProjectPipelineOperationContext
 } from '@xpert-ai/plugin-sdk'
 import type { ProjectPipelineEvidenceRef } from '@xpert-ai/contracts'
@@ -47,7 +47,7 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
       return evidenceRef(row.evidence)
     }
     await this.store.assertActive(row, 'submit', c)
-    const accepted = await this.store.capabilities.require(ProjectTaskAcceptanceRuntimeCapability).read({ ...c, taskId })
+    const accepted = await this.store.acceptedTask(c, taskId)
     if (accepted.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
     const manifestRef = accepted.artifacts.find((item) => item.artifactId === manifestArtifactId)
     if (!manifestRef) throw conflict('CODING_MANIFEST_NOT_ACCEPTED')
@@ -104,8 +104,8 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     }
     const evidence = evidenceSchema.parse({ version: 1, deliveryId: row.deliveryId,
       requirementVersion: row.requirementVersion, phase: row.phase, work: row.context.work,
-      taskId, taskRevision: accepted.taskRevision, decisionId: accepted.decision.requestId,
-      reviewExecutionId: accepted.decision.reviewExecutionId, manifest, artifacts,
+      taskId, taskRevision: accepted.taskRevision, decisionId: accepted.decisionId,
+      reviewExecutionId: accepted.review.executionId, manifest, artifacts,
       releaseScope: await this.store.get(c, row.deliveryId).then(({ requirement }) => ({
         target: requirement.target, repository: requirement.repository, branch: deliveryBranch(row.deliveryId, row.requirementVersion)
       })) })

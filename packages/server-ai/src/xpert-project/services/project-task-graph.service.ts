@@ -24,11 +24,8 @@ import {
     projectPipelineInvocationScopeSchema,
     ProjectTaskProviderRegistry,
     ProjectPipelineProjectionProviderRegistry,
-    ProjectTasksRuntimeCapability,
-    type ProjectTaskContext,
-    type ProjectTasksApi
+    type ProjectTaskContext
 } from '@xpert-ai/plugin-sdk'
-import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
@@ -50,8 +47,7 @@ import { ProjectTaskProjectionService } from './task-projection/project-task-pro
 export { projectTaskIdentity } from './project-task-identity'
 
 @Injectable()
-@RuntimeCapabilityProvider(ProjectTasksRuntimeCapability)
-export class ProjectTaskGraphService implements ProjectTasksApi {
+export class ProjectTaskGraphService {
     constructor(
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: ProjectAccessRuntimeService,

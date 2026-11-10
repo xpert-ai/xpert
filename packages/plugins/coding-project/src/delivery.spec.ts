@@ -1,4 +1,4 @@
-import { RequestContext, ProjectPipelineEvidenceRuntimeCapability } from '@xpert-ai/plugin-sdk'
+import { RequestContext, ProjectPipelineEvidenceRuntimeCapability, type ProjectTaskAcceptanceReceipt } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'node:crypto'
 import { projectPipelineContributionSchema, checkProjectPipelineConfiguration, UserType, SecretTokenBindingType } from '@xpert-ai/contracts'
 import plugin from './index'
@@ -80,6 +80,25 @@ describe('Coding delivery business boundaries', () => {
     await expect(submit()).rejects.toThrow('independent review missing')
     expect((await f.store.operation(f.context, f.context.work.operationId)).evidence).toBeNull()
   })
+  it('requires formal acceptance before applying the coding review policy', async () => {
+    f.readAcceptance.mockResolvedValueOnce(null)
+    await expect(submit()).rejects.toMatchObject({ response: { code: 'CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED' } })
+  })
+  it.each<ProjectTaskAcceptanceReceipt['review']>([
+    null,
+    { executionId: randomUUID(), mode: 'evidence_only', verdict: 'pass' },
+    { executionId: randomUUID(), mode: 'execution', verdict: 'changes_required' },
+    { executionId: randomUUID(), mode: 'execution', verdict: 'indeterminate' }
+  ])('keeps execution-review requirements in coding delivery: %j', async (review) => {
+    f.readAcceptance.mockResolvedValueOnce({ ...f.accepted(), review })
+    await expect(submit()).rejects.toMatchObject({ response: { code: 'CODING_EXECUTION_REVIEW_REQUIRED' } })
+    expect((await f.store.operation(f.context, f.context.work.operationId)).evidence).toBeNull()
+  })
+  it('rejects a receipt for a different task before consuming its artifacts', async () => {
+    f.readAcceptance.mockResolvedValueOnce({ ...f.accepted(), taskId: randomUUID() })
+    await expect(submit()).rejects.toMatchObject({ response: { code: 'CODING_ARTIFACT_SCOPE_MISMATCH' } })
+    expect(f.artifactApi.readArtifactVersion).not.toHaveBeenCalled()
+  })
   it('rejects an artifact from another project', async () => {
     f.artifacts.get(f.packageFile.artifactId)!.artifact.projectId = 'another-project'
     await expect(submit()).rejects.toMatchObject({ response: { code: 'CODING_ARTIFACT_SCOPE_MISMATCH' } })
@@ -136,7 +155,7 @@ describe('Coding delivery business boundaries', () => {
     const caller = { ...f.context, actor: { ...f.actor, userId: executorUserId } }
     await expect(f.evidence.submit(caller, f.context.executor.conversationId, f.context.work.operationId,
       f.accepted().taskId, f.manifestFile.artifactId)).resolves.toMatchObject({ schemaRef: 'coding_project.delivery-evidence@1' })
-    expect(f.readAcceptance).toHaveBeenCalledWith(expect.objectContaining({ actor: caller.actor }))
+    expect(f.readAcceptance).toHaveBeenCalledWith({ actor: caller.actor, projectId: caller.projectId }, f.accepted().taskId)
   })
   it('rejects cross-tenant access, cancellation and destination revocation', async () => {
     await expect(f.store.get({ ...f.context, actor: { ...f.actor, tenantId: 'other' } }, f.id)).rejects.toThrow('denied')

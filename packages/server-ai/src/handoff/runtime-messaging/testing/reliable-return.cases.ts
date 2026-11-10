@@ -92,7 +92,11 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 xpertId: scope.callerXpertId,
                 status: XpertAgentExecutionStatusEnum.RUNNING
             })
-            access = Object.assign(new RuntimeMessageAccessService(database, factory), {
+            // This fixture isolates durable delivery; unexpected identity resolution must fail closed.
+            const identityCommands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, {
+                execute: jest.fn(async () => { throw new Error('Unexpected identity resolution in delivery fixture') })
+            })
+            access = Object.assign(new RuntimeMessageAccessService(database, factory, identityCommands), {
                 withActor: async <T>(_scope: AgentInvocationScope, work: (user: User) => Promise<T>) =>
                     work(new User({ id: scope.userId })),
                 withReply: async <T>(

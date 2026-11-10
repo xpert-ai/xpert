@@ -116,6 +116,6 @@ Task-completion coordinator continuations with no persisted parent are also outs
 this ledger today. Consequently this ceiling is not a project-wide total token or
 cost cap. Full delegated-budget attribution remains a known infrastructure gap.
 
-The host must provide `platform.project.task_acceptance` with independent execution
-review support before delivery can run. Fixture tests, plugin loading and real
+The host must provide `ProjectTasksApi.readAcceptance` through `platform.project.tasks`.
+This plugin requires its accepted task to have a passing independent execution review. Fixture tests, plugin loading and real
 cross-instance delivery are distinct verification layers.

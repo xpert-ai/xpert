@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import {
   ProjectAccessRuntimeCapability, ProjectPipelinesRuntimeCapability, XPERT_RUNTIME_CAPABILITIES_TOKEN,
-  ProjectTaskAcceptanceRuntimeCapability,
+  ProjectTasksRuntimeCapability,
   type ProjectPipelineContext, type ProjectPipelineAssistantContext, type RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import type { ProjectPipelineSubjectVersion } from '@xpert-ai/contracts'
@@ -34,6 +34,14 @@ export class CodingDeliveryStore {
   async access(c: ProjectPipelineContext) {
     return this.capabilities.require(ProjectAccessRuntimeCapability).assertEdit({ actor: c.actor, projectId: c.projectId })
   }
+  async acceptedTask(c: ProjectPipelineContext, taskId: string) {
+    const accepted = await this.capabilities.require(ProjectTasksRuntimeCapability).readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
+    if (!accepted) throw conflict('CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED')
+    if (accepted.projectId !== c.projectId || accepted.taskId !== taskId) throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
+    if (!accepted.review || accepted.review.mode !== 'execution' || accepted.review.verdict !== 'pass')
+      throw conflict('CODING_EXECUTION_REVIEW_REQUIRED')
+    return { ...accepted, review: accepted.review }
+  }
   async get(c: ProjectPipelineContext, id: string) {
     await this.access(c)
     const row = await this.deliveries.findOneBy({ ...scopeWhere(c), id })
@@ -60,9 +68,9 @@ export class CodingDeliveryStore {
       throw conflict('CODING_DESTINATION_CHANGED_NEW_ROUND_REQUIRED')
     if (requirement.origin) {
       const origin = requirement.origin
-      const accepted = await this.capabilities.require(ProjectTaskAcceptanceRuntimeCapability).read({ ...c, taskId: origin.taskId })
+      const accepted = await this.acceptedTask(c, origin.taskId)
       if (accepted.taskId !== origin.taskId || accepted.taskRevision !== origin.taskRevision ||
-        accepted.decision.requestId !== origin.decisionId || accepted.decision.reviewExecutionId !== origin.reviewExecutionId)
+        accepted.decisionId !== origin.decisionId || accepted.review.executionId !== origin.reviewExecutionId)
         throw conflict('CODING_SOURCE_ACCEPTANCE_CHANGED')
     }
   }

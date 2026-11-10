@@ -12,9 +12,9 @@ describe('release an existing accepted task', () => {
   afterEach(async () => { await f.db.destroy() })
   function source() {
     const a = f.accepted()
-    if (!a.decision.reviewExecutionId) throw new Error('Fixture independent review required')
+    if (!a.review) throw new Error('Fixture independent review required')
     return { type: 'accepted_task' as const, taskId: a.taskId, taskRevision: a.taskRevision,
-      decisionId: a.decision.requestId, reviewExecutionId: a.decision.reviewExecutionId }
+      decisionId: a.decisionId, reviewExecutionId: a.review.executionId }
   }
   it('pins the host-verified acceptance before starting release preparation', async () => {
     f.capabilities.register(ProjectPipelineCatalogRuntimeCapability,
@@ -28,7 +28,7 @@ describe('release an existing accepted task', () => {
         acceptedTaskId: f.accepted().taskId })
     const stored = await f.store.get(f.context, result.deliveryId)
     expect(stored.requirement.origin).toEqual(source())
-    expect(f.readAcceptance).toHaveBeenCalledWith(expect.objectContaining({ taskId: f.accepted().taskId }))
+    expect(f.readAcceptance).toHaveBeenCalledWith({ actor: f.actor, projectId: f.projectId }, f.accepted().taskId)
     expect(start).toHaveBeenCalledTimes(1)
     const prompt = workPrompt('development', stored.requirement, f.context)
     expect(prompt).toContain('release preparation, not new development')

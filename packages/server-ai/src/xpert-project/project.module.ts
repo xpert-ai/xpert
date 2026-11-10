@@ -105,6 +105,7 @@ import { XpertAgentModule } from '../xpert-agent'
 
 import { ProjectTaskGraphController } from './project-task-graph.controller'
 import { ProjectTaskGraphService } from './services/project-task-graph.service'
+import { ProjectTasksRuntimeService } from './runtime/project-tasks-runtime.service'
 import { ProjectTaskProjectionCoordinator } from './services/task-projection/project-task-projection.coordinator'
 import { ProjectTaskProjectionStore } from './services/task-projection/project-task-projection.store'
 import { ProjectTaskProjectionService } from './services/task-projection/project-task-projection.service'
@@ -287,6 +288,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
         ProjectTaskGraphService,
+        ProjectTasksRuntimeService,
         ProjectTaskProjectionCoordinator,
         ProjectTaskProjectionStore,
         ProjectTaskProjectionService,
