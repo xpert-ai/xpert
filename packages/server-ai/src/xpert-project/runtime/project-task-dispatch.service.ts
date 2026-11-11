@@ -50,6 +50,11 @@ export class ProjectTaskDispatchService {
         private readonly xpertBindings: XpertProjectXpertBindingService
     ) {}
 
+    /**
+     * Authorize and reserve delegated work before starting its Runtime invocation.
+     * A new review inspects its implementation outside the Project transaction, then rechecks
+     * the inspected revision against the persisted evidence while holding the Project lock.
+     */
     async dispatch(
         projectId: string,
         input: ProjectTaskDispatchInput,
@@ -75,6 +80,25 @@ export class ProjectTaskDispatchService {
                 !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
         )
             throw projectTaskRuntimeError('Evidence')
+        let inspectedRevision: number | undefined
+        if (purpose.type === 'review') {
+            // A saved dispatch reuses its pinned intent; do not depend on inspecting the implementation again.
+            // The transaction below still validates replay input, caller and target before returning it.
+            const replay = await this.executions.findOneBy({
+                projectId, tenantId: scope.tenantId, organizationId: scope.organizationId,
+                createdById: scope.userId, dispatchRequestId: input.requestId
+            })
+            if (!replay) {
+                const row = await this.executions.manager.getRepository(AgentInvocationEntity).findOneBy({
+                    id: purpose.implementationInvocationId, tenantId: scope.tenantId,
+                    organizationId: scope.organizationId, ownerId: scope.userId
+                })
+                if (!row || row.invocation.scope.projectId !== projectId) throw projectTaskRuntimeError('Evidence')
+                // Runtime inspection can perform network I/O or reconcile state through another DB connection.
+                // Keep it outside the transaction and capture the returned revision, not the row read above.
+                inspectedRevision = (await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id)).revision
+            }
+        }
         const execution = await this.executions.manager.transaction(async (manager) => {
             const where = { projectId, tenantId: scope.tenantId, organizationId: scope.organizationId }
             const project = await manager.getRepository(XpertProject).findOne({
@@ -146,7 +170,8 @@ export class ProjectTaskDispatchService {
                     subject.invocation.status !== 'succeeded'
                 )
                     throw projectTaskRuntimeError('Evidence')
-                await this.factory.createCapturedApi(subject.invocation.scope).inspect(subject.invocation.id)
+                // Evidence was reloaded under the Project lock; reject drift since inspection before reserving work.
+                if (subject.invocation.revision !== inspectedRevision) throw projectTaskRuntimeError('Conflict')
                 prompt = reviewPrompt(
                     purpose,
                     task,
