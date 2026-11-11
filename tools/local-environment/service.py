@@ -9,6 +9,8 @@ from builds import ensure_build, build_environment
 def main():
     state = Path(sys.argv[1]).resolve()
     config = load(state)
+    if (state / 'restore-pending.json').exists():
+        raise RuntimeError('Restore is incomplete; resume checkpoint restore before starting services')
     service = sys.argv[2]
     prefix = Path(config['runtime']) / 'bin'
     commands = {

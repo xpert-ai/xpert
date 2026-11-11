@@ -48,6 +48,11 @@ def arguments():
     init = sub.add_parser('initialize')
     init.add_argument('--email', default='developer@xpert.local')
     init.add_argument('--name', default='Xpert Development', help='Development organization display name')
+    checkpoint = sub.add_parser('checkpoint', help='Recover an exclusive process-mode test instance')
+    checkpoint.add_argument('operation', choices=('create', 'restore', 'verify'))
+    checkpoint.add_argument('--name', required=True)
+    checkpoint.add_argument('--exclusive-project', required=True,
+                            help='Label for an already authorized exclusive project; records scope, does not grant access')
     run = sub.add_parser('exec')
     run.add_argument('--authenticated', action='store_true')
     run.add_argument('command', nargs=argparse.REMAINDER)
@@ -58,7 +63,8 @@ def status(config):
     services = {name: {'pid': service_pid(config, name), 'port': config['ports'][name],
                        'healthy': healthy(config, name)} for name in SERVICES}
     state = Path(config['state'])
-    ready = all(service['healthy'] for service in services.values())
+    restore_pending = (state / 'restore-pending.json').exists()
+    ready = all(service['healthy'] for service in services.values()) and not restore_pending
     supervisor = json.loads((state / 'supervisor-identity.json').read_text()) if owns_supervisor(config) else None
     infra_ready = all(services[name]['healthy'] for name in ('postgres', 'redis'))
     marker = Path(config['runtime']) / '.xpert-runtime-ready.json'
@@ -72,6 +78,8 @@ def status(config):
         'apiUrl': f'http://localhost:{config["ports"]["api"]}',
         'webUrl': f'http://localhost:{config["ports"]["web"]}',
         'sandboxProvider': 'local-shell-sandbox', 'productionIsolationVerified': False,
+        'recovery': {'pending': restore_pending,
+            'nextAction': 'Resume the original checkpoint restore command' if restore_pending else None},
         'administratorLastVerification': json.loads((state / 'administrator.json').read_text()) if (state / 'administrator.json').exists() else None,
         'pluginAcceptance': 'requires_separate_runtime_test'}
     atomic_json(state / 'status.json', result)
@@ -121,6 +129,14 @@ def main():
         config = load(state)
         if config['platform'] != str(platform):
             raise RuntimeError('State belongs to a different checkout')
+        if args.action == 'checkpoint':
+            from checkpoints import create, restore, verify
+            operation = {'create': create, 'restore': restore, 'verify': verify}[args.operation]
+            result = operation(config, args.name, args.exclusive_project)
+            print(json.dumps(result, indent=2))
+            return int(result['status'] in ('not_ready', 'identity_mismatch'))
+        if (state / 'restore-pending.json').exists() and args.action != 'stop':
+            raise RuntimeError('Restore is incomplete; resume checkpoint restore before changing this environment')
         if args.action == 'bootstrap':
             bootstrap_source(config)
         elif args.action == 'build':

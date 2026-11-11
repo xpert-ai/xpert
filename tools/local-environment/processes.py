@@ -249,6 +249,8 @@ def healthy(config, name):
 
 
 def start_service(config, name, timeout):
+    if config.get('state') and (Path(config['state']) / 'restore-pending.json').exists():
+        raise RuntimeError('Restore is incomplete; resume checkpoint restore before starting services')
     if healthy(config, name):
         return
     pid = service_pid(config, name)
