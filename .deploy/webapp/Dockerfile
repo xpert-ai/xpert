@@ -31,6 +31,7 @@ WORKDIR /srv/xpert
 COPY --chown=node:node .deploy/webapp/package.json ./package.json
 COPY --chown=node:node .deploy/webapp/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --chown=node:node pnpm-workspace.yaml .npmrc ./
+COPY --chown=node:node patches ./patches
 COPY --chown=node:node apps/cloud/package.json ./apps/cloud/
 COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
 COPY --chown=node:node packages/desktop-protocol/package.json ./packages/desktop-protocol/

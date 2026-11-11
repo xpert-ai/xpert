@@ -27,6 +27,11 @@ overrides:
   ws: 8.18.0
   zod-to-json-schema: 3.25.2
 
+patchedDependencies:
+  '@langchain/langgraph@0.4.7':
+    hash: f541b077c43fba523f9274006d2e6057737eb5a77321a70c9a43b4b18ac24fd1
+    path: patches/@langchain__langgraph@0.4.7.patch
+
 importers:
 
   .:

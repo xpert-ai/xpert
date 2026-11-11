@@ -54,3 +54,6 @@ onlyBuiltDependencies:
   - protobufjs
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  '@langchain/langgraph@0.4.7': patches/@langchain__langgraph@0.4.7.patch

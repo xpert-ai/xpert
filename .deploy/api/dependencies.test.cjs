@@ -137,6 +137,7 @@ function fixture(t) {
   write('dist/apps/api/main.js', '// API')
   write('dist/apps/api/node_modules/stale/index.js', '// must not copy')
   write('pnpm-workspace.yaml', 'catalog: {}')
+  write('patches/runtime.patch', 'reviewed patch')
   write('.npmrc', 'node-linker=hoisted')
   write('tsconfig.base.json', {})
   return { root, destination: path.join(base, 'runtime'), write }
@@ -149,6 +150,7 @@ test('each installation profile selects its own manifest and lock', (t) => {
     prepareManifestWorkspace(stage, target, root)
     assert.equal(JSON.parse(fs.readFileSync(path.join(target, 'package.json'))).name, `api-${stage}`)
     assert.equal(fs.readFileSync(path.join(target, 'pnpm-lock.yaml'), 'utf8'), `${stage}-lock`)
+    assert.equal(fs.readFileSync(path.join(target, 'patches/runtime.patch'), 'utf8'), 'reviewed patch')
     for (const dir of packages) assert.ok(fs.existsSync(path.join(target, dir, 'package.json')))
     assert.equal(fs.existsSync(path.join(target, 'apps/api/package.json')), stage === 'build')
   }
@@ -158,6 +160,7 @@ test('runtime assembly preserves nested publish roots, legacy paths, and direct 
   const { root, destination } = fixture(t)
   prepareRuntime(destination, root)
   assert.equal(fs.readFileSync(path.join(destination, 'pnpm-lock.yaml'), 'utf8'), 'production-lock')
+  assert.equal(fs.readFileSync(path.join(destination, 'patches/runtime.patch'), 'utf8'), 'reviewed patch')
   assert.ok(!fs.existsSync(path.join(destination, 'node_modules')))
   for (const file of [
     'main.js',

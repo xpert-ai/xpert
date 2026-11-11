@@ -27,6 +27,7 @@ function copy(source, destination) {
 function prepareManifestWorkspace(destination, sourceRoot = root, seedLock) {
   copy(path.join(sourceRoot, '.deploy/webapp/package.json'), path.join(destination, 'package.json'))
   for (const file of ['pnpm-workspace.yaml', '.npmrc']) copy(path.join(sourceRoot, file), path.join(destination, file))
+  fs.cpSync(path.join(sourceRoot, 'patches'), path.join(destination, 'patches'), { recursive: true })
   for (const dir of packages)
     copy(path.join(sourceRoot, dir, 'package.json'), path.join(destination, dir, 'package.json'))
   copy(seedLock ?? path.join(sourceRoot, lock), path.join(destination, 'pnpm-lock.yaml'))

@@ -25,6 +25,7 @@ COPY --chown=node:node packages/plugins/github-integration/package.json ./packag
 COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plugins/vlm-default/
 
 COPY --chown=node:node pnpm-workspace.yaml ./
+COPY --chown=node:node patches ./patches
 COPY --chown=node:node .npmrc ./
 
 FROM node:20-alpine AS build-dependencies
@@ -113,6 +114,7 @@ RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 # Source manifests and the production lock are the only application inputs to install.
 COPY --chown=node:node --from=manifests /srv/xpert/packages ./packages
 COPY --chown=node:node --from=manifests /srv/xpert/pnpm-workspace.yaml /srv/xpert/.npmrc ./
+COPY --chown=node:node --from=manifests /srv/xpert/patches ./patches
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 COPY --chown=node:node .deploy/api/pnpm-lock.production.yaml ./pnpm-lock.yaml
 RUN chown node:node /srv/xpert
