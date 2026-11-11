@@ -1,28 +1,12 @@
-import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import type { IXpert, TemplateDependencyLock, TXpertTemplate, AssistantTemplateDefinition } from '@xpert-ai/contracts'
-import { TemplateReadinessService } from './template-readiness.service'
-import { PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
-import { AssistantTemplateToolsetBinder } from '../commands/assistant-template-toolset-binder.service'
-import type { RuntimeResourceSkillSource } from '../../agent-plugin/runtime-resource-context'
-import { containedPath } from '../../agent-plugin/agent-plugin-parser'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { dirname } from 'node:path'
-
-export interface PreparedTemplateExecution {
-    draft: AssistantTemplateDefinition
-    locks: TemplateDependencyLock[]
-    skills: { [agentKey: string]: RuntimeResourceSkillSource[] }
-}
-
-export class PrepareTemplateExecutionCommand extends Command<PreparedTemplateExecution> {
-    constructor(
-        readonly template: TXpertTemplate,
-        readonly owner: IXpert,
-        readonly locks?: TemplateDependencyLock[],
-        readonly projectId?: string
-    ) {
-        super()
-    }
-}
+import { TemplateReadinessService } from '../../template-installation/template-readiness.service'
+import { PluginResourceInstallerService } from '../../installation/plugin-resource-installer.service'
+import { AssistantTemplateToolsetBinder } from '../assistant-template-toolset-binder.service'
+import type { PreparedTemplateExecution } from '../../template-installation/template-execution.types'
+import { containedPath } from '../../../agent-plugin/agent-plugin-path'
+import { requirePluginResourceRoot } from '../../catalog/plugin-resource-components'
+import { PrepareTemplateExecutionCommand } from '../prepare-template-execution.command'
 
 @CommandHandler(PrepareTemplateExecutionCommand)
 export class PrepareTemplateExecutionHandler implements ICommandHandler<PrepareTemplateExecutionCommand> {
@@ -32,7 +16,7 @@ export class PrepareTemplateExecutionHandler implements ICommandHandler<PrepareT
         private readonly toolsets: AssistantTemplateToolsetBinder
     ) {}
 
-    async execute({ template, owner, locks, projectId }: PrepareTemplateExecutionCommand) {
+    async execute({ template, owner, locks, projectId }: PrepareTemplateExecutionCommand): Promise<PreparedTemplateExecution> {
         const sandbox = owner.features?.sandbox
         const prepared = await this.readiness.prepareRuntime(
             template,
@@ -45,11 +29,14 @@ export class PrepareTemplateExecutionHandler implements ICommandHandler<PrepareT
         const draft = structuredClone(prepared.normalized.definition)
         const installations = await this.installer.bindExistingRuntimeComponents(draft, owner, prepared.components)
         await this.toolsets.bindRuntime(draft, owner.workspaceId, prepared.normalized.dependencies)
-        const skills: { [key: string]: RuntimeResourceSkillSource[] } = {}
+        const skills: PreparedTemplateExecution['skills'] = {}
         for (const [index, component] of prepared.components.entries()) {
             if (component.component.componentType !== 'skill') continue
             const key = component.targetAgentKey ?? draft.team.agent.key
-            const rootPath = dirname(await containedPath(component.rootDir, component.component.sourcePath))
+            // Native tool providers may omit a bundle root; file-backed skills cannot.
+            const rootPath = dirname(
+                await containedPath(requirePluginResourceRoot(component.rootDir), component.component.sourcePath)
+            )
             ;(skills[key] ??= []).push({
                 id: installations[index].runtimeId,
                 name: component.component.componentKey,
