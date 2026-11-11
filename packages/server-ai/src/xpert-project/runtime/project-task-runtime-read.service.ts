@@ -130,8 +130,22 @@ export class ProjectTaskRuntimeReadService {
                 runtimeStartedAt: invocation.progress?.startedAt ?? null
             })
         }
+        // Hierarchy navigation does not inspect child invocations or establish acceptance.
+        const children = await this.tasks.find({
+            where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.id },
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision'],
+            order: { createdAt: 'ASC', id: 'ASC' },
+            loadEagerRelations: false
+        })
         return {
             ...task,
+            childTasks: children.map((child) => ({
+                id: child.id,
+                title: child.title || child.name,
+                kind: child.kind,
+                status: child.status,
+                revision: child.revision
+            })),
             specificationSnapshot: specification.success
                 ? createProjectTaskSpecificationSnapshot(specification.data)
                 : null,

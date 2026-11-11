@@ -65,6 +65,8 @@ it('retains the read authorization boundary before reporting any diagnostic', as
     await expect(f.service.get(projectId, taskId)).rejects.toThrow('Denied')
     expect(f.inspect).not.toHaveBeenCalled()
     expect(f.findOneBy).not.toHaveBeenCalled()
+    expect(f.repository.findOne).not.toHaveBeenCalled()
+    expect(f.repository.find).not.toHaveBeenCalled()
 })
 
 it('does not inspect or expose diagnostics for an invocation outside the current owner scope', async () => {
@@ -117,4 +119,77 @@ it('projects the pinned execution budget after authorization without inventing o
     f.inspect.mockClear()
     await expect(f.service.get(projectId, taskId)).rejects.toThrow('Denied')
     expect(f.inspect).not.toHaveBeenCalled()
+})
+
+describe('direct child task summaries', () => {
+    it('scopes the query to the authorized parent and omits child requirements and execution results', async () => {
+        const f = fixture()
+        const children = [
+            Object.assign(new XpertProjectTask(), {
+                id: 'child-1', title: 'Implementation', name: 'Internal name', kind: 'task', status: 'review', revision: 3,
+                requirements: ['Child requirements'], description: 'Detailed content',
+                executions: [{ invocationId: 'child-invocation', result: 'Restricted child output' }]
+            }),
+            Object.assign(new XpertProjectTask(), {
+                id: 'child-2', title: '', name: 'Nested summary', kind: 'summary', status: 'todo', revision: 1
+            })
+        ]
+        f.repository.find.mockResolvedValue(children)
+        const result = await f.service.get(projectId, taskId)
+        expect(result.childTasks).toEqual([
+            { id: 'child-1', title: 'Implementation', kind: 'task', status: 'review', revision: 3 },
+            { id: 'child-2', title: 'Nested summary', kind: 'summary', status: 'todo', revision: 1 }
+        ])
+        expect(f.repository.find).toHaveBeenCalledTimes(1)
+        expect(f.repository.find).toHaveBeenCalledWith({
+            where: { projectId, tenantId: 'tenant', organizationId: 'organization', parentTaskId: taskId },
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision'],
+            order: { createdAt: 'ASC', id: 'ASC' },
+            loadEagerRelations: false
+        })
+        // Only the requested task's invocation is inspected; child IDs do not grant result access.
+        expect(f.inspect).toHaveBeenCalledTimes(1)
+        expect(f.inspect).toHaveBeenCalledWith(invocationId)
+        expect(f.findOneBy).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns an empty array when the task has no children', async () => {
+        const result = await fixture().service.get(projectId, taskId)
+        expect(result.childTasks).toEqual([])
+    })
+
+    it('does not query children if the requested task does not exist in the current scope', async () => {
+        const f = fixture()
+        f.repository.findOne.mockResolvedValue(null)
+        await expect(f.service.get(projectId, taskId)).rejects.toThrow()
+        expect(f.repository.find).not.toHaveBeenCalled()
+        expect(f.inspect).not.toHaveBeenCalled()
+    })
+
+    it('rejects an invalid task ID before querying the hierarchy', async () => {
+        const f = fixture()
+        await expect(f.service.get(projectId, 'invalid')).rejects.toThrow()
+        expect(f.repository.findOne).not.toHaveBeenCalled()
+        expect(f.repository.find).not.toHaveBeenCalled()
+    })
+
+    it('surfaces a child query failure rather than reporting an empty hierarchy', async () => {
+        const f = fixture()
+        f.repository.find.mockRejectedValue(new Error('Child query unavailable'))
+        await expect(f.service.get(projectId, taskId)).rejects.toThrow('Child query unavailable')
+    })
+
+    it('returns current child state on a later read and rechecks access', async () => {
+        const f = fixture()
+        const child = { id: 'child', title: 'Implementation', kind: 'task', status: 'in_progress', revision: 1 }
+        f.repository.find.mockResolvedValueOnce([child]).mockResolvedValueOnce([{ ...child, status: 'review', revision: 2 }])
+        const before = await f.service.get(projectId, taskId)
+        const after = await f.service.get(projectId, taskId)
+        expect(before.childTasks[0]).toMatchObject({ status: 'in_progress', revision: 1 })
+        expect(after.childTasks[0]).toMatchObject({ status: 'review', revision: 2 })
+        f.assertCanRead.mockRejectedValueOnce(new Error('Revoked'))
+        await expect(f.service.get(projectId, taskId)).rejects.toThrow('Revoked')
+        expect(f.repository.find).toHaveBeenCalledTimes(2)
+        expect(f.assertCanRead).toHaveBeenCalledTimes(3)
+    })
 })

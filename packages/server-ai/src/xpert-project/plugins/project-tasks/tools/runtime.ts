@@ -143,7 +143,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.GetTask,
                 schema: z.object({ taskId: z.string().uuid() }).strict(),
                 description:
-                    'Read task requirements, revision, attempt history and authorized Runtime results. Observes existing executions; never starts one.'
+                    'Read task requirements, revision, direct child task summaries, attempt history and authorized Runtime results. Child summaries contain IDs, titles, kinds, statuses and revisions; read a child by ID for its requirements and authorized execution evidence. Observes existing executions; never starts one or accepts a task.'
             }
         ),
         tool(
