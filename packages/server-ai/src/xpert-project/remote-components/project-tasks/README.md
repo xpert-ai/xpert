@@ -64,6 +64,19 @@ The view polls every five seconds while visible. Cursor comparison avoids replac
 unchanged data. Large tables and Gantt rows are virtualized. The shared Dialog
 preserves the plan draft across viewport changes.
 
+Execution summaries identify implementation, independent review and feedback rework
+from the execution's declared purpose. A validated review verdict is shown separately
+from successful runtime completion; a completed negative review keeps the runtime's
+success color and shows "Changes required" or "Indeterminate". Failed or unfinished
+executions never display a stale review verdict. Older records without a purpose retain
+their existing labels. Task status and task-node fields are unchanged.
+
+Read and action errors appear as bottom-right notifications with localized close and
+refresh actions, without shifting the task view. Notifications close after six seconds
+or manual dismissal; the same continuing error does not reopen on every poll. A new
+error, or recurrence after a successful refresh, can notify again. Each mounted view has
+its own notification scope; recovery and unmount dismiss only that view's notification.
+
 Tasks may supply a nullable `progress` percentage (0–100). List, tree, Gantt, board
 and detail views display a circular indicator with the task status. Unknown progress
 retains the status icon; the view never estimates completion from elapsed time or
