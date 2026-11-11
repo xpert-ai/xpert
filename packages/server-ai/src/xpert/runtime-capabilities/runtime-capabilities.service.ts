@@ -12,6 +12,7 @@ import {
     createRuntimeSkillCapabilityId,
     isRequiredMiddleware,
     normalizeMiddlewareProvider,
+    resolveI18nText as localizeText,
     TRuntimeSkillSource,
     TXpertGraph,
     TXpertTeamConnection,
@@ -250,6 +251,7 @@ export class RuntimeCapabilitiesService {
                 )
             )
         }
+        const language = RequestContext.getLanguageCode()
         const skills = enabledItems.map((skill) => {
             const skillIndex = skill.skillIndex
             const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
@@ -266,23 +268,27 @@ export class RuntimeCapabilitiesService {
             return {
                 id: runtimeSkillId,
                 workspaceId: skill.workspaceId,
-                label: resolveI18nText(skill.name, skillIndex?.name ?? skillIndex?.skillId ?? skill.id),
-                description: skillIndex?.description,
+                label:
+                    localizeText(skill.metadata?.displayName, language) ??
+                    localizeText(skill.name, language) ??
+                    skillIndex?.name ??
+                    skillIndex?.skillId ??
+                    skill.id,
+                description:
+                    localizeText(skill.metadata?.description, language) ??
+                    localizeText(skill.metadata?.summary, language) ??
+                    skillIndex?.description,
                 repositoryName: skillIndex?.repository?.name,
                 provider: skillIndex?.repository?.provider,
                 ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
                 ...(isDefault ? { default: true } : {})
             }
         })
-        const commands = enabledItems.flatMap((skill) => {
-            const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
-            const runtimeSkillId = skillSource ? createRuntimeSkillCapabilityId(skillSource) : skill.id
+        const commands = enabledItems.flatMap((skill, index) => {
+            const { id, label } = skills[index]
             return this.runtimeCommandService.normalizeSkillRuntimeSlashCommands(
-                { id: runtimeSkillId, metadata: skill.metadata },
-                {
-                    workspaceId,
-                    label: resolveI18nText(skill.name, skill.skillIndex?.name ?? skill.skillIndex?.skillId ?? skill.id)
-                }
+                { id, metadata: skill.metadata },
+                { workspaceId, label }
             )
         })
 

@@ -1,4 +1,6 @@
-import { createRuntimeSkillCapabilityId, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import { createRuntimeSkillCapabilityId, LanguagesEnum, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 jest.mock('../../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class {}
@@ -16,82 +18,93 @@ import { XpertProjectAccessService } from '../../xpert-project/services/project-
 import { XpertProjectContentService } from '../../xpert-project/services/project-content.service'
 
 describe('RuntimeCapabilitiesService', () => {
-    it('omits plugin-relative skill image icons so ChatKit can use its default skill icon', async () => {
-        const service = new RuntimeCapabilitiesService(
-            { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
-            {
-                getAllByWorkspaceForRuntime: jest.fn(async () => ({
-                    items: [
-                        {
-                            id: 'documents-skill',
-                            workspaceId: 'workspace-1',
-                            name: 'documents',
-                            metadata: {
-                                icon: {
-                                    type: 'image',
-                                    value: './assets/icon.png'
+    afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        [LanguagesEnum.SimplifiedChinese, '文档编制', '编写项目文档。'],
+        [LanguagesEnum.English, 'Document writing', 'Write project documents.']
+    ] as const)(
+        'localizes skill presentation for %s and omits plugin-relative icons',
+        async (language, label, description) => {
+            jest.spyOn(RequestContext, 'getLanguageCode').mockReturnValue(language)
+            const service = new RuntimeCapabilitiesService(
+                { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
+                {
+                    getAllByWorkspaceForRuntime: jest.fn(async () => ({
+                        items: [
+                            {
+                                id: 'documents-skill',
+                                workspaceId: 'workspace-1',
+                                name: 'documents',
+                                metadata: {
+                                    displayName: { en_US: 'Document writing', zh_Hans: '文档编制' },
+                                    description: { en_US: 'Write project documents.', zh_Hans: '编写项目文档。' },
+                                    icon: {
+                                        type: 'image',
+                                        value: './assets/icon.png'
+                                    },
+                                    color: '#2563EB'
                                 },
-                                color: '#2563EB'
-                            },
-                            skillIndex: {
-                                name: 'documents'
+                                skillIndex: {
+                                    name: 'documents'
+                                }
+                            }
+                        ]
+                    }))
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+                new RuntimeCommandService(),
+                {
+                    resolveRuntimeCommandProfile: jest.fn(async () => ({
+                        hasProfile: false,
+                        xpertCommands: [],
+                        workspaceCommands: [],
+                        preferredSkillEntries: [],
+                        skillEntries: []
+                    }))
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
+                {
+                    getUserPreferenceByAssistantId: jest.fn(async () => null)
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
+                { assertCanUseXpert: jest.fn() } as unknown as XpertProjectAccessService,
+                { listSkills: jest.fn() } as unknown as XpertProjectContentService
+            )
+
+            const result = await service.getRuntimeCapabilities({
+                id: 'clawxpert',
+                workspaceId: 'workspace-1',
+                agent: {
+                    key: 'agent-1'
+                },
+                graph: {
+                    nodes: [
+                        {
+                            key: 'skills-middleware',
+                            type: 'workflow',
+                            entity: {
+                                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                                provider: 'skillsMiddleware'
                             }
                         }
-                    ]
-                }))
-            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
-            new RuntimeCommandService(),
-            {
-                resolveRuntimeCommandProfile: jest.fn(async () => ({
-                    hasProfile: false,
-                    xpertCommands: [],
-                    workspaceCommands: [],
-                    preferredSkillEntries: [],
-                    skillEntries: []
-                }))
-            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
-            {
-                getUserPreferenceByAssistantId: jest.fn(async () => null)
-            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
-            { assertCanUseXpert: jest.fn() } as unknown as XpertProjectAccessService,
-            { listSkills: jest.fn() } as unknown as XpertProjectContentService
-        )
-
-        const result = await service.getRuntimeCapabilities({
-            id: 'clawxpert',
-            workspaceId: 'workspace-1',
-            agent: {
-                key: 'agent-1'
-            },
-            graph: {
-                nodes: [
-                    {
-                        key: 'skills-middleware',
-                        type: 'workflow',
-                        entity: {
-                            type: WorkflowNodeTypeEnum.MIDDLEWARE,
-                            provider: 'skillsMiddleware'
-                        }
-                    }
-                ],
-                connections: [{ type: 'workflow', from: 'agent-1', to: 'skills-middleware' }]
-            }
-        } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0])
-
-        expect(result.skills).toEqual([
-            {
-                id: 'documents-skill',
-                workspaceId: 'workspace-1',
-                label: 'documents',
-                description: undefined,
-                repositoryName: undefined,
-                provider: undefined,
-                meta: {
-                    color: '#2563EB'
+                    ],
+                    connections: [{ type: 'workflow', from: 'agent-1', to: 'skills-middleware' }]
                 }
-            }
-        ])
-    })
+            } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0])
+
+            expect(result.skills).toEqual([
+                {
+                    id: 'documents-skill',
+                    workspaceId: 'workspace-1',
+                    label,
+                    description,
+                    repositoryName: undefined,
+                    provider: undefined,
+                    meta: {
+                        color: '#2563EB'
+                    }
+                }
+            ])
+        }
+    )
 
     it('does not page workspace skills when building runtime capabilities', async () => {
         const skillPackages = Array.from({ length: 12 }, (_, index) => {
