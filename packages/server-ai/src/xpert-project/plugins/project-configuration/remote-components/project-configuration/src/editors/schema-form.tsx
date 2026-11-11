@@ -10,10 +10,19 @@ export interface FieldSchema {
     oneOf?: FieldSchema[]; anyOf?: FieldSchema[]; allOf?: FieldSchema[]; $ref?: string
     minimum?: number; maximum?: number; minLength?: number; maxLength?: number; format?: string
 }
-export const fieldSchema: z.ZodType<FieldSchema> = z.lazy(() => z.object({
+// Reuse the configuration value boundary so schema enums accept structured JSON too.
+const jsonValueSchema = z.unknown().transform((value, context) => {
+    const result = projectConfigurationValuesSchema.safeParse({ value })
+    if (!result.success) {
+        context.addIssue({ code: 'custom', message: 'Invalid JSON value' })
+        return z.NEVER
+    }
+    return result.data.value
+})
+export const fieldSchema: z.ZodType<FieldSchema, z.ZodTypeDef, unknown> = z.lazy(() => z.object({
     type: z.union([z.string(), z.array(z.string())]).optional(), title: labelSchema.optional(), description: labelSchema.optional(),
     properties: z.record(fieldSchema).optional(), required: z.array(z.string()).optional(),
-    enum: z.array(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+    enum: z.array(jsonValueSchema).optional(),
     oneOf: z.array(fieldSchema).optional(), anyOf: z.array(fieldSchema).optional(), allOf: z.array(fieldSchema).optional(), $ref: z.string().optional(),
     minimum: z.number().optional(), maximum: z.number().optional(), minLength: z.number().optional(), maxLength: z.number().optional(), format: z.string().optional()
 }).passthrough())
@@ -32,7 +41,7 @@ export function SchemaForm({ schema, values, onChange, locale, disabled, prefix 
     schema: FieldSchema; values: ProjectConfigurationValues; onChange: (values: ProjectConfigurationValues) => void; locale: string; disabled: boolean; prefix?: string
 }) {
     const t = configurationI18n(locale)
-    if (schema.oneOf || schema.anyOf || schema.allOf || schema.$ref || !Object.keys(schema.properties ?? {}).length)
+    if (schema.enum || schema.oneOf || schema.anyOf || schema.allOf || schema.$ref || !Object.keys(schema.properties ?? {}).length)
         return <JsonField locale={locale} label={t.t('type')} value={values} disabled={disabled} objectOnly
             onChange={(value) => onChange(projectConfigurationValuesSchema.parse(value))} />
     return <div className="space-y-4">{Object.entries(schema.properties ?? {}).map(([key, field]) => {
@@ -42,7 +51,7 @@ export function SchemaForm({ schema, values, onChange, locale, disabled, prefix 
         }
         const required = schema.required?.includes(key)
         return <div key={key} className="space-y-2"><Label htmlFor={id}>{label}{required ? ' *' : ''}</Label>
-            {field.oneOf || field.anyOf || field.allOf || field.$ref ? <JsonField locale={locale} label={label} value={value} onChange={update} disabled={disabled} />
+            {field.oneOf || field.anyOf || field.allOf || field.$ref || field.enum?.some((item) => item !== null && typeof item === 'object') ? <JsonField locale={locale} label={label} value={value} onChange={update} disabled={disabled} />
             : field.type === 'object' && field.properties ? <SchemaForm schema={field} values={value && typeof value === 'object' && !Array.isArray(value) ? value : {}}
                 onChange={update} locale={locale} disabled={disabled} prefix={id} />
             : field.enum ? <Choice label={label} value={value === undefined ? '' : String(field.enum.findIndex((item) => item === value))}

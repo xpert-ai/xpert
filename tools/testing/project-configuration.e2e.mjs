@@ -6,8 +6,21 @@ import { resolve } from 'node:path'
 import test from 'node:test'
 import { chromium, expect } from '@playwright/test'
 import { startRemoteViewPreview } from '../remote-view-preview/preview-host.mjs'
-import config from '../../packages/server-ai/src/xpert-project/plugins/project-configuration/remote-components/project-configuration/preview.config.mjs'
+import { build } from 'esbuild'
+import previewConfig from '../../packages/server-ai/src/xpert-project/plugins/project-configuration/remote-components/project-configuration/preview.config.mjs'
 const root = resolve(import.meta.dirname, '../..')
+// Test this checkout's bridge even when plugin-sdk/dist is stale or rebuilt concurrently.
+const rendererBuild = await build({
+  entryPoints: [resolve(root, 'packages/plugin-sdk/src/lib/view-extension/remote-component-html.ts')],
+  bundle: true,
+  format: 'esm',
+  platform: 'node',
+  write: false
+})
+const renderers = await import(
+  `data:text/javascript;base64,${Buffer.from(rendererBuild.outputFiles[0].contents).toString('base64')}`
+)
+const config = { ...previewConfig, renderers }
 const output = process.env.PROJECT_CONFIGURATION_E2E_OUTPUT ?? resolve(tmpdir(), 'project-configuration-e2e')
 execFileSync(process.execPath, [resolve(config.component.root, 'build.mjs'), '--check'], { cwd: root, stdio: 'pipe' })
 
@@ -161,6 +174,51 @@ test('custom Project type schemas retain a JSON editor for composed and free-for
         await dialog.getByRole('button', { name: 'Save settings', exact: true }).click()
         await expect.poll(() => state.type.revision).toBe(2)
         assert.deepEqual(state.type.effectiveValues, values)
+      } finally { await page.close(); await preview.close() }
+    }
+  } finally { await browser.close() }
+})
+
+test('Project type enum editors preserve primitive and structured JSON values', async () => {
+  const browser = await chromium.launch({ headless: true })
+  try {
+    for (const scenario of [
+      { field: { enum: ['auto', 2, false, null] }, initial: 'auto', next: false, primitive: true },
+      { field: { type: 'object', properties: { mode: { type: 'string' } }, enum: [{ mode: 'node' }, { mode: 'python' }] }, initial: { mode: 'node' }, next: { mode: 'python' } },
+      { field: { type: 'array', enum: [['node'], ['python', true]] }, initial: ['node'], next: ['python', true] },
+      { field: { enum: ['auto', { flags: [true, 2] }] }, initial: 'auto', next: { flags: [true, 2] } },
+      { root: true, field: { type: 'object', properties: { mode: { type: 'string' } }, enum: [{ mode: 'node' }, { mode: 'python' }] }, initial: { mode: 'node' }, next: { mode: 'python' } }
+    ]) {
+      const state = structuredClone(config.state)
+      state.type.schema = scenario.root ? scenario.field : { type: 'object', properties: { choice: { ...scenario.field, title: 'Choice' } } }
+      state.type.effectiveValues = scenario.root ? scenario.initial : { choice: scenario.initial }
+      const preview = await startRemoteViewPreview({ ...config, state, isolatedOrigin: true, logStartup: false,
+        hostContext: { ...config.hostContext, locale: 'en-US' } }, { port: 0 })
+      const page = await browser.newPage()
+      try {
+        await page.goto(preview.url)
+        const frame = page.frameLocator('#remote-view')
+        await frame.locator('section[aria-labelledby="heading-type"]').getByRole('button').click()
+        const dialog = frame.getByRole('dialog'), save = dialog.getByRole('button', { name: 'Save settings', exact: true })
+        if (scenario.primitive) {
+          await dialog.getByRole('combobox', { name: 'Choice' }).click()
+          await frame.getByRole('option', { name: 'false', exact: true }).click()
+        } else {
+          const editor = dialog.getByRole('textbox')
+          await expect(editor).toHaveValue(JSON.stringify(scenario.initial, null, 2))
+          await editor.fill('{')
+          await save.click()
+          assert.equal(state.calls.filter((call) => call.key === 'type-save').length, 0)
+          await editor.fill(JSON.stringify(scenario.next))
+        }
+        await save.click()
+        await expect.poll(() => state.type.revision).toBe(2)
+        assert.deepEqual(state.type.effectiveValues, scenario.root ? scenario.next : { choice: scenario.next })
+        await expect(dialog.getByRole('alert')).toHaveCount(0)
+        await dialog.getByRole('button', { name: 'Done', exact: true }).click()
+        await frame.locator('section[aria-labelledby="heading-type"]').getByRole('button').click()
+        if (scenario.primitive) await expect(dialog.getByRole('combobox', { name: 'Choice' })).toHaveText('false')
+        else await expect(dialog.getByRole('textbox')).toHaveValue(JSON.stringify(scenario.next, null, 2))
       } finally { await page.close(); await preview.close() }
     }
   } finally { await browser.close() }

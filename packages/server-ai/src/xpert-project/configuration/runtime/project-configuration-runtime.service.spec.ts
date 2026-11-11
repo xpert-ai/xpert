@@ -169,3 +169,11 @@ it('preserves revision conflicts for direct configuration updates', async () => 
     await expect(provider.update(context, input)).rejects.toThrow('configuration revision conflict')
     expect(editors.update).toHaveBeenCalledWith('project', input)
 })
+
+it('retains skill installation permission checks for runtime uploads', async () => {
+    const { provider, content } = await fixture()
+    const file = { buffer: Buffer.from('archive') }
+    content.uploadSkills.mockRejectedValue(Error('editor required'))
+    await expect(provider.uploadSkill(context, file)).rejects.toThrow('editor required')
+    expect(content.uploadSkills).toHaveBeenCalledWith('project', file)
+})
