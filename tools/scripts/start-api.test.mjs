@@ -36,6 +36,24 @@ test('every startup builds migration assets, applies and verifies before serving
   assert.ok(fixture.calls.every(({ options }) => options.env.NODE_ENV === 'development'))
 })
 
+test('prepared builds must verify before migration and still apply/verify on every restart', async () => {
+  const fixture = recordRuns()
+  await runApiWorkflow({ ...fixture, preparedBuild: '/private/test-state' })
+  assert.equal(fixture.calls[0].command, 'python3')
+  assert.deepEqual(fixture.calls[0].args.slice(-4), ['--state', '/private/test-state', '--verify', 'api'])
+  assert.deepEqual(actions(fixture.calls).slice(1), ['apply', 'verify', 'serve'])
+  const failure = recordRuns(1)
+  await assert.rejects(runApiWorkflow({ ...failure, preparedBuild: '/stale-state' }), /Verify prepared build failed/)
+  assert.equal(failure.calls.length, 1)
+})
+
+test('explicit build-only completes compilation without database changes or serving', async () => {
+  const fixture = recordRuns()
+  await runApiWorkflow({ ...fixture, mode: 'build' })
+  assert.deepEqual(actions(fixture.calls), ['pnpm b:p:all', 'pnpm nx build api --configuration=development'])
+  await assert.rejects(runApiWorkflow({ ...fixture, mode: 'build', preparedBuild: '/state' }), /cannot consume/)
+})
+
 for (const [index, name] of ['libraries', 'API build', 'apply', 'verify'].entries()) {
   test(`${name} failure stops startup without serving or adopting a baseline`, async () => {
     const fixture = recordRuns(index + 1)

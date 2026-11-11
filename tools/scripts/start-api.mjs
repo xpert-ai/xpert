@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Local startup owns the complete build → apply → verify → serve sequence.
-// Every restart must pass the gate; failures never fall through to serving.
+// Every restart must pass the schema gate; verified process-mode builds may be reused.
 // Baseline adoption is explicit, and the API itself continues to disable DDL.
 // Stop the active process tree before exiting so restarts cannot leave an old API running.
 import { spawn } from 'node:child_process'
@@ -61,12 +61,14 @@ export function runCommand(command, args, { cwd, env, signal, stdio = 'inherit' 
 export async function runApiWorkflow({
   mode = 'serve',
   inspect = false,
+  preparedBuild,
   signal,
   run = runCommand,
   log = console.log,
   env = process.env
 } = {}) {
-  if (!['serve', 'schema', 'baseline'].includes(mode)) throw new Error(`Invalid startup mode: ${mode}`)
+  if (!['serve', 'schema', 'baseline', 'build'].includes(mode)) throw new Error(`Invalid startup mode: ${mode}`)
+  if (preparedBuild && mode === 'build') throw new Error('Build-only cannot consume a prepared build')
   const api = path.join(workspaceRoot, 'dist/apps/api/main.js')
   const options = { cwd: workspaceRoot, env: { ...env, NODE_ENV: 'development' }, signal }
   const stage = async (name, command, args) => {
@@ -79,14 +81,22 @@ export async function runApiWorkflow({
       throw new Error(`${name} failed; API was not started. ${error.message}`, { cause: error })
     }
   }
-  await stage('Build libraries', 'corepack', ['pnpm', 'b:p:all'])
-  await stage('Build API and migration assets', 'corepack', [
+  if (preparedBuild) {
+    await stage('Verify prepared build', 'python3', [
+      path.join(workspaceRoot, 'tools/local-environment/builds.py'), '--platform', workspaceRoot,
+      '--state', path.resolve(preparedBuild), '--verify', 'api'
+    ])
+  } else {
+    await stage('Build libraries', 'corepack', ['pnpm', 'b:p:all'])
+    await stage('Build API and migration assets', 'corepack', [
     'pnpm',
     'nx',
     'build',
     'api',
     '--configuration=development'
   ])
+  }
+  if (mode === 'build') return
   if (mode === 'baseline') {
     await stage('Adopt verified database baseline', process.execPath, [
       api,
@@ -107,11 +117,18 @@ export async function runApiWorkflow({
 
 async function main() {
   const args = process.argv.slice(2)
+  const preparedIndex = args.indexOf('--prepared-build')
+  let preparedBuild
+  if (preparedIndex >= 0) {
+    preparedBuild = args[preparedIndex + 1]
+    if (!preparedBuild || preparedBuild.startsWith('--')) throw new Error('--prepared-build requires a state directory')
+    args.splice(preparedIndex, 2)
+  }
   if (
-    args.some((arg) => !['--schema-only', '--baseline', '--inspect'].includes(arg)) ||
-    (args.includes('--schema-only') && args.includes('--baseline'))
+    args.some((arg) => !['--schema-only', '--baseline', '--inspect', '--build-only'].includes(arg)) ||
+    args.filter((arg) => ['--schema-only', '--baseline', '--build-only'].includes(arg)).length > 1
   ) {
-    throw new Error('Usage: start-api.mjs [--schema-only | --baseline] [--inspect]')
+    throw new Error('Usage: start-api.mjs [--schema-only | --baseline | --build-only] [--inspect] [--prepared-build <state>]')
   }
   const controller = new AbortController()
   const stop = (signal) => {
@@ -124,7 +141,8 @@ async function main() {
   process.on('SIGTERM', terminate)
   try {
     await runApiWorkflow({
-      mode: args.includes('--baseline') ? 'baseline' : args.includes('--schema-only') ? 'schema' : 'serve',
+      mode: args.includes('--build-only') ? 'build' : args.includes('--baseline') ? 'baseline' : args.includes('--schema-only') ? 'schema' : 'serve',
+      preparedBuild,
       inspect: args.includes('--inspect'),
       signal: controller.signal
     })

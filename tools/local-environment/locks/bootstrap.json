@@ -1,0 +1,10 @@
+{
+  "linux-64": {
+    "url": "https://conda.anaconda.org/conda-forge/linux-64/micromamba-2.3.3-0.tar.bz2",
+    "sha256": "e7274528ceb9c20d048a428d6c22d7e02e268f8ffb762c4c365422347c8b8ba2"
+  },
+  "linux-aarch64": {
+    "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/micromamba-2.3.3-0.tar.bz2",
+    "sha256": "02ed4fe982c8ecbf9c5b1759c07ee29063994842b65fdaab439db77b9b00510a"
+  }
+}
