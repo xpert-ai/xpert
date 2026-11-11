@@ -1,4 +1,4 @@
-import { latestImplementationExecutor } from '../runtime/project-task-executor'
+import { latestTaskExecutor } from '../runtime/project-task-executor'
 import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Task graph reads never acquire projection locks or invoke plugin callbacks.
@@ -191,13 +191,18 @@ export class ProjectTaskGraphService {
                 // Invalid/unavailable registrations cannot erase persisted business identity.
             }
         }
+        // Read the host-owned binding from persisted rows; do not expand the public graph node contract.
+        const reviewTaskIds = new Set(rows.filter((row) => row.reviewSubject).map((row) => row.id))
         const displayNodes = nodes.map((node) => {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
                 pipelineDisposition: dispositions.get(node.id) ?? node.pipelineDisposition,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
-                executor: latestImplementationExecutor(observed.filter((attempt) => attempt.taskId === node.id)),
+                executor: latestTaskExecutor(
+                    observed.filter((attempt) => attempt.taskId === node.id),
+                    reviewTaskIds.has(node.id) ? 'review' : 'implementation'
+                ),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }
