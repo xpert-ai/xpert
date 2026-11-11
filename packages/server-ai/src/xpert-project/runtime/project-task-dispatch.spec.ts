@@ -121,11 +121,12 @@ async function fixture() {
     }
     const start = jest.fn(async (request: AgentInvocationRequest): Promise<AgentInvocation> => {
         expect(committed).toBe(true)
-        expect(rows).toHaveLength(1)
+        const reserved = rows.filter((row) => row.dispatchRequestId === input.requestId)
+        expect(reserved).toHaveLength(1)
         const invocation: AgentInvocation = {
-            id: agentInvocationId(rows[0].dispatchIntent.scope, request.callId),
+            id: agentInvocationId(reserved[0].dispatchIntent.scope, request.callId),
             revision: 2,
-            scope: structuredClone(rows[0].dispatchIntent.scope),
+            scope: structuredClone(reserved[0].dispatchIntent.scope),
             request,
             status: 'running',
             createdAt: new Date().toISOString(),
@@ -556,6 +557,8 @@ describe('explicit Project task delegation', () => {
                 Object.assign(new XpertProjectTaskExecution(), {
                     id: randomUUID(),
                     taskId: randomUUID(),
+                    agentExecutionId: f.caller.executionId,
+                    task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' }),
                     invocationId: randomUUID()
                 })
             )
@@ -570,6 +573,33 @@ describe('explicit Project task delegation', () => {
             expect(f.start).not.toHaveBeenCalled()
         }
     )
+    it.each(['queued', 'running'] as const)('lets a %s native Pipeline coordinator dispatch work without allowing a second runtime', async (status) => {
+        const f = await fixture()
+        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
+            id: randomUUID(), taskId: randomUUID(), status, agentExecutionId: f.caller.executionId,
+            task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' })
+        }))
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.status).toBe('running')
+        expect(f.executionRepo.find).toHaveBeenCalledWith(expect.objectContaining({ relations: ['task'] }))
+        expect(f.start).toHaveBeenCalledTimes(1)
+        await expect(f.service.dispatch(f.scope.projectId, { ...f.input, requestId: randomUUID() }, f.caller)).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+    it.each([
+        { controlKind: 'ordinary', agentExecutionId: randomUUID() },
+        { controlKind: 'provider', agentExecutionId: randomUUID() },
+        { controlKind: 'pipeline', agentExecutionId: null },
+        { controlKind: undefined, agentExecutionId: randomUUID() }
+    ] as const)('retains reservations without a confirmed native Pipeline coordinator (%j)', async (state) => {
+        const f = await fixture()
+        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
+            id: randomUUID(), taskId: randomUUID(), status: 'running', agentExecutionId: state.agentExecutionId,
+            task: state.controlKind ? Object.assign(new XpertProjectTask(), { controlKind: state.controlKind }) : undefined
+        }))
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.start).not.toHaveBeenCalled()
+    })
     it('rejects revoked binding authorization even when an attempt already exists', async () => {
         const f = await fixture()
         await f.service.dispatch(f.scope.projectId, f.input, f.caller)

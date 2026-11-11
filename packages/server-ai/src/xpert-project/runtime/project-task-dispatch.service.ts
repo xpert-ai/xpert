@@ -190,7 +190,7 @@ export class ProjectTaskDispatchService {
                 )
                     throw projectTaskRuntimeError('Dependencies')
             }
-            const attempts = await repository.find({ where, order: { attempt: 'DESC' } })
+            const attempts = await repository.find({ where, relations: ['task'], order: { attempt: 'DESC' } })
             const invocationIds = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
             const invocations = invocationIds.length
                 ? await manager.getRepository(AgentInvocationEntity).find({
@@ -199,6 +199,10 @@ export class ProjectTaskDispatchService {
                 : []
             if (
                 attempts.some((attempt) => {
+                    // A native Pipeline Assistant coordinates child tasks; its projection does not reserve the Computer.
+                    // Invocation-backed Pipeline work and unacknowledged attempts still hold the reservation.
+                    if (!attempt.invocationId && attempt.agentExecutionId && attempt.task?.controlKind === 'pipeline')
+                        return false
                     // Group members have isolated conversation runtimes; retries of the same task remain serialized.
                     if (!attempt.invocationId) return attempt.status === 'queued' || attempt.status === 'running'
                     const record = invocations.find((record) => record.id === attempt.invocationId)

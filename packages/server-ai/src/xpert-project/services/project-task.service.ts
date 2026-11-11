@@ -122,6 +122,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 relations: ['steps', 'executions'],
                 order: { createdAt: OrderTypeEnum.ASC }
             })
+            const updated = new Map<string, XpertProjectTask>()
             for (const entity of entities) {
                 const task = tasks.find(
                     (item) =>
@@ -161,8 +162,11 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     task.status = 'done'
                 await this.assertBusinessStatus(manager, task.id, task.status)
                 await repository.save(task)
+                updated.set(task.id, task)
             }
-            return tasks
+            // The caller updates execution bookkeeping for these results; unrelated Pipeline projections have a different owner.
+            // Return each touched task once even when several inputs update its steps.
+            return [...updated.values()]
         })
     }
 

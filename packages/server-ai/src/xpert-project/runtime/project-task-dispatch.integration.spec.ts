@@ -71,6 +71,7 @@ const schemas = [
             status: text,
             revision: { type: 'int', version: true },
             providerKey: nullableText,
+            controlKind: { ...text, default: 'ordinary' },
             requirements: json,
             decisions: json,
             predecessorIds: json,
@@ -98,6 +99,7 @@ const schemas = [
             attempt: { type: 'int' },
             status: text,
             invocationId: { ...uuid, nullable: true },
+            agentExecutionId: { ...uuid, nullable: true },
             dispatchRequestId: { ...uuid, nullable: true },
             dispatchState: nullableText,
             projectedTaskRevision: { type: 'int', nullable: true },
@@ -108,7 +110,8 @@ const schemas = [
             specificationSnapshot: json,
             purpose: json,
             dispatchIntent: { ...json, select: false }
-        }
+        },
+        relations: { task: { type: 'many-to-one', target: 'XpertProjectTask', joinColumn: { name: 'taskId' } } }
     }),
     new EntitySchema<AgentInvocationEntity>({
         name: 'AgentInvocationEntity',
@@ -198,10 +201,10 @@ integration('explicit task delegation / PostgreSQL', () => {
             CREATE TABLE xpert_project (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, status varchar, "workspaceId" uuid);
             CREATE TABLE xpert_project_task (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid,
                 "projectId" uuid, title varchar, name varchar, description varchar, kind varchar, status varchar, revision int,
-                "providerKey" varchar, "predecessorIds" jsonb, "assigneeXpertId" uuid);
+                "providerKey" varchar, "controlKind" varchar DEFAULT 'ordinary', "predecessorIds" jsonb, "assigneeXpertId" uuid);
             CREATE TABLE xpert_project_task_step (id uuid PRIMARY KEY, "taskId" uuid, "stepIndex" int, description varchar);
             CREATE TABLE xpert_project_task_execution (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid,
-                "projectId" uuid, "taskId" uuid, "conversationId" uuid, "threadId" varchar, "xpertId" uuid, attempt int, status varchar, "createdAt" timestamptz DEFAULT now());
+                "projectId" uuid, "taskId" uuid, "conversationId" uuid, "threadId" varchar, "xpertId" uuid, "agentExecutionId" uuid, attempt int, status varchar, "createdAt" timestamptz DEFAULT now());
             CREATE TABLE agent_invocation_wait (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid,
                 "ownerId" varchar, state varchar, request jsonb, "nextCheckAt" timestamptz);
         `)
@@ -381,6 +384,31 @@ integration('explicit task delegation / PostgreSQL', () => {
         await expect(stale.start({ ...intent.request, callId: 'stale-attempt-new-call' })).rejects.toThrow()
         expect(start).toHaveBeenCalledTimes(1)
     })
+
+    it.each(['pipeline', 'ordinary', 'provider'] as const)(
+        'only exempts a native Pipeline coordinator from the Computer reservation (%s)', async (controlKind) => {
+            const task = await database.getRepository(XpertProjectTask).findOneByOrFail({ id: input.taskId })
+            const coordinator = await database.getRepository(XpertProjectTask).save({
+                ...task, id: randomUUID(), controlKind, status: 'in_progress'
+            })
+            await database.getRepository(XpertProjectTaskExecution).save({
+                id: randomUUID(), tenantId: scope.tenantId, organizationId: scope.organizationId,
+                projectId: scope.projectId, createdById: scope.userId, taskId: coordinator.id,
+                conversationId: scope.conversationId, threadId: caller.threadId, agentExecutionId: caller.executionId,
+                status: 'running', attempt: 1
+            })
+            if (controlKind === 'pipeline') {
+                const result = await service.dispatch(scope.projectId, input, caller)
+                expect(result.status).toBe('running')
+                expect(start).toHaveBeenCalledTimes(1)
+                await expect(service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)).rejects.toThrow()
+                expect(start).toHaveBeenCalledTimes(1)
+            } else {
+                await expect(service.dispatch(scope.projectId, input, caller)).rejects.toThrow()
+                expect(start).not.toHaveBeenCalled()
+            }
+        }
+    )
 
     it('dispatches for the built-in Project general agent without fabricating an Assistant ID', async () => {
         scope.callerType = 'project_agent'
