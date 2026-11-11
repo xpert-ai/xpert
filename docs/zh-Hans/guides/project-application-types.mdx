@@ -68,3 +68,50 @@ BOM 与 Factory Operations 均声明 `case` 类型。BOM 保留 Case 上的 `wor
 ## 验证
 
 覆盖类型不可变、跨应用/作用域冲突、Provider 来源、成员与 Assistant 访问、清理前拒绝、Case 创建重试、完整业务路由、服务端筛选和 ChatKit entity 创建入口。SQL 测试在随机测试 schema 内运行并回滚，验证回填幂等、冲突原子性与原始数据保留。Factory 通过 plugin-dev-harness 检查插件生命周期；该检查使用基础设施 mock，不代替部署验收。
+
+## 项目类型自定义配置
+
+每个 Project Type 可以通过 `configuration.schema` 声明自己的非敏感 JSON Schema。宿主负责校验配置并应用默认值，自定义字段由所属应用解释；声明一个字段不会自动执行命令或搭建环境。凭据应通过受管理的连接提供，不存入项目配置。
+
+例如，在项目类型声明中增加以下配置：
+
+```json
+{
+  "configuration": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskExecutionMaxDurationSeconds": {
+          "type": "integer", "minimum": 60, "maximum": 86400, "default": 7200
+        },
+        "testCommand": { "type": "string", "default": "npm test" }
+      }
+    }
+  }
+}
+```
+
+Cloud 中从**项目 → 配置 → 类型配置**进入。Assistant Workbench 共用同一配置 View，包括实现远程组件协议的 Bosi Desktop 和独立 ChatKit 宿主。Assistant 入口需要当前项目和 `project.tasks` 能力。类型字段使用统一编辑器，数组、自由对象和组合 Schema 可以通过 JSON 编辑；保存仍由服务端校验数据与权限。
+
+`GET /api/xpert-project/:id/type-configuration` 返回 Schema、已保存覆盖值（`values`）、应用默认值后的配置（`effectiveValues`）、配置修订号、编辑权限和实际执行时限。项目所有者或管理员通过 `PUT` 提交，例如 `{ "revision": 3, "values": { "taskExecutionMaxDurationSeconds": 5400 } }`。修订号过期返回 409，配置无效返回 400。`values` 会替换已保存的覆盖值，API 调用方需保留仍要生效的其他字段。提交 `{}` 可在 Schema 默认值足够满足校验时恢复默认；没有默认值的必填字段仍需提供。普通项目保存不会覆盖这份独立配置记录。
+
+## 单次任务执行时限
+
+`taskExecutionMaxDurationSeconds` 是宿主保留的时限字段，接受 60～86400 的整数。内置编码项目插件 `@xpert-ai/plugin-coding-project` 声明 `applicationKey=@xpert-ai/plugin-coding-project:coding`、`projectTypeKey=coding`，默认值为 7200 秒。它不注册 `platform/coding` 兼容别名。解析项目类型与 Schema 需要所属插件已加载，不能通过名称或关联的 Assistant 推断并改写历史项目类型。
+
+实际时限取项目有效配置与租户上限的较小值；项目未提供时限时使用租户默认值。新租户策略默认 `defaultDurationSeconds=3600`、`limits.maxDurationSeconds=7200`。旧策略如果只有明确上限、没有独立默认值，会继续以上限作为默认值；升级不会自动提高原来一小时的租户上限。
+
+以 Schema 默认两小时的编码项目为例：
+
+| 项目保存的覆盖值 | 租户上限 | 实际时限 |
+| --- | --- | --- |
+| 未设置 | 7200 秒 | 7200 秒 |
+| 5400 秒 | 7200 秒 | 5400 秒 |
+| 未设置 | 3600 秒 | 3600 秒 |
+
+配置概览展示实际时限和租户上限。该时限限制一次执行尝试，不累计整个任务的多次重试，也不同于流水线 token 总预算或空闲保留租约。Runtime 集成必须显式读取并执行这一限制，声明项目类型不会自动约束所有外部执行器。
+
+Pro 的 Computer runner 在启动项目任务尝试时读取共享配置，将时限、绝对截止时间、项目类型及配置修订号固定到授权记录与执行回执中，启动耗时也计入截止时间。后续修改配置不会延长正在运行的尝试。云电脑准备、CLI 进程控制和执行式验收是否可用，仍由已安装的 Runtime 集成负责。
+
+启用配置持久化前，应随匹配的宿主版本应用受管理的 `packages/server-ai/src/xpert-project/migrations/20261107000000-project-configuration.sql` 迁移，并配套发布共享配置 View 与兼容宿主。Schema/API 测试及 Preview Host 浏览器检查用于验证配置行为，不代表已部署的 CLI 或插件交付通过真实验收。详见[配置插件实现与验证说明](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/xpert-project/plugins/project-configuration/README.md)。
