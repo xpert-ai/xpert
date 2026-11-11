@@ -26,7 +26,11 @@ function fixture(
     otherTasks: XpertProjectTask[] = []
 ) {
     const service = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
-    const tasks = { find: jest.fn(async () => [task, ...otherTasks]), save: jest.fn(async (value) => value) }
+    const tasks = {
+        findOneBy: jest.fn(async () => task),
+        find: jest.fn(async () => [task, ...otherTasks]),
+        save: jest.fn(async (value) => value)
+    }
     const manager = {
         getRepository: (entity: object) =>
             entity === XpertProject

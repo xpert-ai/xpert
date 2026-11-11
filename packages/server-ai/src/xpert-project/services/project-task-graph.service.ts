@@ -1,4 +1,5 @@
 import { latestImplementationExecutor } from '../runtime/project-task-executor'
+import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Task graph reads never acquire projection locks or invoke plugin callbacks.
 // Runtime success does not override a provider's business acceptance status.
@@ -251,6 +252,18 @@ export class ProjectTaskGraphService {
             })
             if (row.revision !== input.expectedRevision)
                 throw new ConflictException(t('server-ai:Error.ProjectTaskRevisionConflict'))
+            // The plan form also submits unchanged relations. Compare the locked row so schedule
+            // edits still work without exposing the host-owned binding through the public graph.
+            if (row.reviewSubject) {
+                const parentChanged = input.parentTaskId !== undefined && input.parentTaskId !== (row.parentTaskId ?? null)
+                const predecessors = row.predecessorIds ?? []
+                const requested = input.predecessorIds
+                const dependenciesChanged = requested !== undefined &&
+                    (requested.length !== predecessors.length ||
+                        requested.some((id) => !predecessors.includes(id)) ||
+                        predecessors.some((id) => !requested.includes(id)))
+                if (parentChanged || dependenciesChanged) throw projectTaskRuntimeError('Owned')
+            }
             const rows = await manager.find(XpertProjectTask, { where: this.where(context) })
             validateProjectTaskGraph(
                 rows.map((item) =>

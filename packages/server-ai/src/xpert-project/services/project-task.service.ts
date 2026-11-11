@@ -15,7 +15,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { EntityManager, In, IsNull, Not, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, JsonContains, Not, Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskConversation } from '../entities/project-task-conversation.entity'
@@ -234,6 +234,19 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 
     private async assertBusinessStatus(manager: EntityManager, taskId: string, status?: IXpertProjectTask['status']) {
         if (!status || !['done', 'completed'].includes(status)) return
+        const current = await manager.getRepository(XpertProjectTask).findOneBy({ id: taskId, ...this.taskScope() })
+        // A review result and a coordinated delivery complete through their owning workflows.
+        // The caller holds the project lock, including when completed steps imply task completion.
+        if (
+            current?.reviewSubject ||
+            (current?.kind === 'summary' &&
+                await manager.getRepository(XpertProjectTaskExecution).existsBy({
+                    ...this.taskScope(),
+                    projectId: current.projectId,
+                    purpose: JsonContains({ type: 'implementation', coordination: { taskId } })
+                }))
+        )
+            throw projectTaskRuntimeError('DecisionRequired')
         if (
             await manager
                 .getRepository(XpertProjectTaskExecution)
