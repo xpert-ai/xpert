@@ -4,8 +4,58 @@ import { createCreateTasksTool } from './create'
 import { XpertProjectTaskService } from '../../../services/project-task.service'
 import { IXpertProjectTask } from '@xpert-ai/contracts'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { randomUUID } from 'node:crypto'
 
 describe('project_create_tasks', () => {
+    it('passes explicit hierarchy to the service and returns it without starting execution', async () => {
+        const parentTaskId = randomUUID()
+        const service = Object.assign(Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService, {
+            createTask: jest.fn(async (projectId: string, input: Partial<IXpertProjectTask>) => ({
+                ...input, id: randomUUID(), projectId, revision: 1
+            })),
+            createExecution: jest.fn()
+        })
+        const permission = jest.fn()
+        const tool = createCreateTasksTool({ projectId: 'project', service, assertPermission: permission })
+        const result = await tool.invoke({ tasks: [{
+            name: 'Implementation', kind: 'task', parentTaskId, requirements: ['Tests pass'], steps: []
+        }, {
+            name: 'Delivery', kind: 'summary', requirements: ['Accepted deliverable'], steps: []
+        }] })
+        expect(permission).toHaveBeenCalledTimes(1)
+        expect(service.createTask).toHaveBeenNthCalledWith(1, 'project', expect.objectContaining({
+            kind: 'task', parentTaskId, status: 'todo'
+        }))
+        expect(result.tasks).toEqual([
+            expect.objectContaining({ kind: 'task', parentTaskId }),
+            expect.objectContaining({ kind: 'summary' })
+        ])
+        expect(service.createExecution).not.toHaveBeenCalled()
+    })
+
+    it.each([{ kind: 'review' }, { parentTaskId: 'invalid-id' }, { providerKey: 'app' }])(
+        'rejects invalid or protected hierarchy input (%j)', async (input) => {
+            const service = Object.assign(Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService, {
+                createTask: jest.fn()
+            })
+            const tool = createCreateTasksTool({ projectId: 'project', service, assertPermission: jest.fn() })
+            await expect(tool.schema.parseAsync({ tasks: [{ name: 'Child', requirements: ['Done'], steps: [], ...input }] }))
+                .rejects.toThrow()
+        }
+    )
+
+    it('checks permission before creating hierarchy entries', async () => {
+        const service = Object.assign(Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService, {
+            createTask: jest.fn()
+        })
+        const tool = createCreateTasksTool({ projectId: 'project', service,
+            assertPermission: jest.fn(async () => { throw new Error('Forbidden') }) })
+        await expect(tool.invoke({ tasks: [{
+            name: 'Child', kind: 'task', parentTaskId: randomUUID(), requirements: ['Done'], steps: []
+        }] })).rejects.toThrow('Forbidden')
+        expect(service.createTask).not.toHaveBeenCalled()
+    })
+
     it.each([false, true])(
         'preserves committed tasks and origin links when card emission fails: %s',
         async (failCard) => {

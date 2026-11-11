@@ -71,7 +71,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     async saveAll(...entities: IXpertProjectTask[]) {
         const items: XpertProjectTask[] = []
         for (const entity of entities) {
-            assertOrdinaryTaskInput(entity)
+            const { parentTaskId, ...fields } = entity
+            assertOrdinaryTaskInput(fields)
             const existing = entity.id ? await this.repository.findOneBy({ id: entity.id, ...this.taskScope() }) : null
             const projectId = existing?.projectId ?? entity.projectId
             if (!projectId || (existing && entity.projectId && entity.projectId !== existing.projectId))
@@ -82,8 +83,22 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     const repository = manager.getRepository(XpertProjectTask)
                     if (entity.id) {
                         const current = await repository.findOneBy({ id: entity.id, projectId, ...this.taskScope() })
-                        if (current) assertOrdinaryTask(current)
+                        if (current) {
+                            // Existing relationships must go through the revision-checked graph API.
+                            // Recheck under the project lock: another writer may have created this ID.
+                            assertOrdinaryTaskInput(entity)
+                            assertOrdinaryTask(current)
+                        }
                         await this.assertBusinessStatus(manager, entity.id, entity.status)
+                    }
+                    if (parentTaskId != null) {
+                        if (typeof parentTaskId !== 'string' || !parentTaskId)
+                            throw projectTaskRuntimeError('State')
+                        // Validate the parent in the same transaction as creation and task completion.
+                        const parent = await repository.findOneBy({ id: parentTaskId, projectId, ...this.taskScope() })
+                        if (!parent || parent.kind !== 'summary' || ['done', 'completed', 'cancelled'].includes(parent.status))
+                            throw projectTaskRuntimeError('State')
+                        assertOrdinaryTask(parent)
                     }
                     const task = await repository.save({
                         ...entity,
@@ -171,7 +186,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     }
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
-        assertOrdinaryTaskInput(input)
+        const { parentTaskId, ...fields } = input
+        assertOrdinaryTaskInput(fields)
         await this.validateTaskMode(projectId, input.status)
         const project = await this.projectRepository.findOne({
             where: { id: projectId, ...this.taskScope() },
@@ -180,7 +196,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (!project) throw new NotFoundException('Xpert project not found')
         const assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
         const [task] = await this.saveAll({
-            ...input,
+            ...fields,
+            ...(parentTaskId !== undefined ? { parentTaskId } : {}),
             projectId,
             assigneeXpertId,
             name: input.name?.trim() || input.title?.trim() || 'Untitled task',
