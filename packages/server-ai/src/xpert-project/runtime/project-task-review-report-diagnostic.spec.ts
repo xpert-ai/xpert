@@ -95,13 +95,20 @@ it('retains report consistency validation and bounds diagnostics without echoing
     expect(JSON.stringify(diagnostic)).not.toContain('SECRET')
 })
 
-it('preserves evidence-only version 1 compatibility', () => {
+it('accepts each report only for its declared review mode', () => {
     const evidencePurpose = projectTaskExecutionPurposeSchema.parse({ ...purpose, mode: 'evidence_only', candidatePaths: undefined })
     const text = JSON.stringify({ version: 1, verdict: 'pass', implementationInvocationId: invocationId,
         specificationDigest: purpose.specificationDigest, evidence: purpose.evidence,
         findings: ['The supplied evidence supports the requirement'], limitations: ['No independent execution'] })
     expect(reviewReport(evidencePurpose, text)?.version).toBe(1)
     expect(diagnoseReviewReport(evidencePurpose, text)).toBeNull()
+    expect(reviewReport(purpose, text)).toBeNull()
+    expect(diagnoseReviewReport(purpose, text)?.code).toBe('report_schema_invalid')
+    expect(reviewReport(evidencePurpose, JSON.stringify(report))).toBeNull()
+    expect(diagnoseReviewReport(evidencePurpose, JSON.stringify(report))?.code).toBe('report_schema_invalid')
+    const legacyPurpose = projectTaskExecutionPurposeSchema.parse({ ...evidencePurpose, mode: undefined })
+    expect(reviewReport(legacyPurpose, text)?.version).toBe(1)
+    expect(reviewReport(legacyPurpose, JSON.stringify(report))).toBeNull()
 })
 
 it('distinguishes evidence order from different references while retaining order-sensitive rejection', () => {

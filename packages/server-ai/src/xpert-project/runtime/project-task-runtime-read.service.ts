@@ -96,6 +96,10 @@ export class ProjectTaskRuntimeReadService {
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
                 runtimeToolId: invocation.handle?.runner?.tool.id,
+                executionBudget: invocation.handle?.runner?.executionBudget && {
+                    maxDurationSeconds: invocation.handle.runner.executionBudget.maxDurationSeconds,
+                    deadline: invocation.handle.runner.executionBudget.deadline
+                },
                 reviewReport: reviewReport(execution.purpose, invocation.result?.text),
                 reviewReportDiagnostic: invocation.status === 'succeeded' && execution.purpose?.type === 'review'
                     ? diagnoseReviewReport(execution.purpose, invocation.result?.text) : null,

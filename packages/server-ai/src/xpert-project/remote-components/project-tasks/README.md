@@ -38,6 +38,24 @@ titles or source keys. Missing dates are shown as unscheduled. Separate attempts
 retain separate runtime intervals and business outcomes. The Outputs tab lists
 committed artifacts and delivery diagnostics, with downloads in the execution viewer.
 
+Execution history distinguishes evidence-only reviews from execution reviews. Evidence-only
+reports contain textual findings; execution reports show a summary, performed checks,
+commands, expected/actual results, evidence paths, and findings with their blocking flag
+and reproduction steps. Paths and commands are displayed as text, not executed or opened.
+The host requires the report version to match the requested review mode and retains the
+pinned implementation, specification and evidence checks. Runtime success remains separate
+from the acceptance verdict and the parent's completion decision.
+
+The execution limit and deadline come from the authorized invocation's existing runner
+receipt. Historical receipts without a budget show no invented default. Reviewer mode and
+rework finding IDs describe the recorded execution purpose; they do not assert that a
+review task has already been scheduled. No additional task graph fields or Computer API
+dependency is introduced for this detail view.
+
+`node --test tools/testing/project-task-review.e2e.mjs` covers both report modes, negative
+verdicts with a successful runtime, receipt limits, localized details and a narrow viewport
+using local fixtures. It does not establish live Agent or installed-plugin acceptance.
+
 Board cards reuse the table/Gantt Assistant avatar, name and chronological execution
 dots. Each dot opens its exact authorized execution; the card title opens task details.
 These are separate buttons so opening an execution does not also select the card.

@@ -16,10 +16,11 @@ const purpose = { type: 'review', mode: 'execution', candidatePaths: ['plugin'],
     implementationExecutionId: '55555555-5555-4555-8555-555555555555', implementationInvocationId: invocationId,
     specificationDigest: `sha256:${'a'.repeat(64)}`, evidence: [{ type: 'invocation_result', invocationId, revision: 3 }] }
 
-function fixture(status = 'succeeded') {
+function fixture(status = 'succeeded', executionBudget?: { maxDurationSeconds: number; deadline: string }) {
     const invocation = { id: invocationId, status, revision: 4, scope: { callerType: 'xpert' }, request: {
         target: { provider: 'codex-computer' }, dispatch: { projectTask: { projectId, projectTaskId: taskId, taskExecutionId: attemptId } }
-    }, result: { text: '```xpert-task-result\n{"version":1,"summary":{},"items":[]}\n```' } }
+    }, handle: executionBudget ? { runner: { tool: { id: 'codex', version: '1.0' }, executionBudget } } : undefined,
+    result: { text: '```xpert-task-result\n{"version":1,"summary":{},"items":[]}\n```' } }
     const inspect = jest.fn().mockResolvedValue(invocation)
     const assertCanRead = jest.fn()
     const findOneBy = jest.fn().mockResolvedValue({ id: invocationId, invocation })
@@ -83,9 +84,37 @@ it('rejects a mismatched invocation task reference before inspection or diagnost
 
 it('returns a valid non-passing report as a verdict, not a delivery defect', async () => {
     const f = fixture()
-    f.invocation.result.text = JSON.stringify({ version: 1, verdict: 'changes_required',
+    f.invocation.result.text = JSON.stringify({ version: 2, mode: 'execution', verdict: 'changes_required',
         implementationInvocationId: invocationId, specificationDigest: purpose.specificationDigest,
-        evidence: purpose.evidence, findings: ['The result is incorrect'], limitations: [] })
+        evidence: purpose.evidence, summary: 'The result is incorrect',
+        checks: [{ description: 'Check output', outcome: 'failed', actual: 'Unexpected output' }],
+        findings: [{ id: 'F1', kind: 'defect', blocking: true, description: 'The result is incorrect' }], limitations: [] })
     const result = await f.service.get(projectId, taskId)
     expect(result.executions[0]).toMatchObject({ reviewReport: { verdict: 'changes_required' }, reviewReportDiagnostic: null })
+})
+
+it('rejects an evidence-only report for execution review and explains the mismatch', async () => {
+    const f = fixture()
+    f.invocation.result.text = JSON.stringify({ version: 1, verdict: 'pass',
+        implementationInvocationId: invocationId, specificationDigest: purpose.specificationDigest,
+        evidence: purpose.evidence, findings: ['Evidence looks correct'], limitations: [] })
+    const result = await f.service.get(projectId, taskId)
+    expect(result.executions[0]).toMatchObject({ reviewReport: null,
+        reviewReportDiagnostic: { code: 'report_schema_invalid', issues: expect.arrayContaining([
+            { path: 'version', message: 'Expected 2.' }
+        ]) }
+    })
+})
+
+it('projects the pinned execution budget after authorization without inventing one for old receipts', async () => {
+    const executionBudget = { maxDurationSeconds: 7200, deadline: '2026-11-11T12:00:00.000Z' }
+    const f = fixture('succeeded', executionBudget)
+    const result = await f.service.get(projectId, taskId)
+    expect(result.executions[0].executionBudget).toEqual(executionBudget)
+    const historical = await fixture().service.get(projectId, taskId)
+    expect(historical.executions[0].executionBudget).toBeUndefined()
+    f.assertCanRead.mockRejectedValue(new Error('Denied'))
+    f.inspect.mockClear()
+    await expect(f.service.get(projectId, taskId)).rejects.toThrow('Denied')
+    expect(f.inspect).not.toHaveBeenCalled()
 })
