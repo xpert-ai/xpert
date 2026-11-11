@@ -1,3 +1,4 @@
+import { TaskControlStore } from '@xpert-ai/server-core'
 import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
@@ -39,7 +40,7 @@ import { ProjectTaskDispatchService } from './project-task-dispatch.service'
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { XpertProjectAccessService } from '../services/project-access.service'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
-import { ProjectTaskCaller } from './project-task-dispatch.schema'
+import { ProjectTaskCaller, projectTaskInvocationScope } from './project-task-dispatch.schema'
 
 const url = process.env.XPERT_EXECUTION_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
@@ -146,6 +147,7 @@ integration('explicit task delegation / PostgreSQL', () => {
     let service: ProjectTaskDispatchService
     let cards: ProjectTaskCardProvider
     let factory: AgentInvocationFactoryService
+    let taskControl: TaskControlStore
     let scope: AgentInvocationScope
     let caller: ProjectTaskCaller
     let input: ProjectTaskDispatchInput
@@ -330,10 +332,11 @@ integration('explicit task delegation / PostgreSQL', () => {
             assertManage: jest.fn(),
             listReadable: jest.fn()
         })
+        taskControl = new TaskControlStore(database)
         factory = new AgentInvocationFactoryService(
             database.getRepository(AgentRuntimeBindingEntity),
             query,
-            new AgentInvocationRuntime(store, registry),
+            new AgentInvocationRuntime(store, registry, undefined, taskControl),
             capabilities,
             { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
             database.getRepository(AgentInvocationEntity)
@@ -349,6 +352,34 @@ integration('explicit task delegation / PostgreSQL', () => {
             cards,
             bindings
         )
+    })
+
+    it('keeps resumed Project reservation, persisted invocation and runner identity aligned', async () => {
+        const originalExecutionId = scope.parentExecutionId
+        await taskControl.register({
+            tenantId: scope.tenantId, organizationId: scope.organizationId,
+            kind: 'execution', resourceId: randomUUID(), executionId: originalExecutionId, threadId: caller.threadId
+        })
+        const resumedExecutionId = randomUUID()
+        await database.transaction((manager) => taskControl.bind(originalExecutionId, resumedExecutionId, manager))
+        scope.parentExecutionId = resumedExecutionId
+        caller.executionId = resumedExecutionId
+        const result = await service.dispatch(scope.projectId, input, caller)
+        const attempt = await database.getRepository(XpertProjectTaskExecution).createQueryBuilder('attempt')
+            .addSelect('attempt.dispatchIntent').where('attempt.id = :id', { id: result.taskExecutionId }).getOneOrFail()
+        const { invocation } = await store.read(result.invocationId, scope)
+        const intent = service.intent(attempt)
+        expect(intent.scope.parentExecutionId).toBe(resumedExecutionId)
+        expect(intent.invocationParentExecutionId).toBe(originalExecutionId)
+        expect(invocation.scope).toEqual(projectTaskInvocationScope(intent))
+        expect(invocation.request).toEqual(intent.request)
+        expect(start.mock.calls[0][1].scope).toEqual(invocation.scope)
+        expect(start.mock.calls[0][1].invocationId).toBe(attempt.invocationId)
+        expect((await service.dispatch(scope.projectId, input, caller)).invocationId).toBe(result.invocationId)
+        expect(start).toHaveBeenCalledTimes(1)
+        const stale = factory.createCapturedApi({ ...scope, parentExecutionId: originalExecutionId })
+        await expect(stale.start({ ...intent.request, callId: 'stale-attempt-new-call' })).rejects.toThrow()
+        expect(start).toHaveBeenCalledTimes(1)
     })
 
     it('dispatches for the built-in Project general agent without fabricating an Assistant ID', async () => {

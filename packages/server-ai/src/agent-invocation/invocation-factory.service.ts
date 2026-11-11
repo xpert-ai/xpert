@@ -73,6 +73,11 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         return this.createApi({ xpertId: scope.callerXpertId }, structuredClone(scope))
     }
 
+    /** Host-only: schedulers reserve the same identity that the Runtime persists across pause/resume. */
+    resolveInvocationIdentityScope(scope: Readonly<AgentInvocationScope>): Promise<AgentInvocationScope> {
+        return this.runtime.resolveIdentityScope(scope)
+    }
+
     async resolveBackgroundTarget(scope: AgentInvocationScope, bindingId: string): Promise<AgentTarget> {
         const target = await this.createCapturedApi(scope).resolve(bindingId)
         this.runtime.assertBackgroundTarget(target, scope.organizationId)
@@ -314,11 +319,13 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             }
             return structuredClone(binding.target)
         }
-        const api = () => {
+        const api = async () => {
             const scope = Object.freeze(currentScope())
+            // Runner ownership must match the persisted call; authorization below still uses this execution attempt.
+            const identityScope = Object.freeze(await this.resolveInvocationIdentityScope(scope))
             const scoped = new DefaultRuntimeCapabilityRegistry()
             const factory = this.capabilities.get(AgentExecutionRunnerFactoryCapability)
-            if (factory) scoped.register(AgentExecutionRunnerCapability, factory.createScopedRunner(scope))
+            if (factory) scoped.register(AgentExecutionRunnerCapability, factory.createScopedRunner(identityScope))
             return this.runtime.scoped({
                 scope,
                 // Group/Project schedulers own accepted work; phase 2 does not replace their control protocol.
@@ -413,7 +420,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                         )
                     )
                 }
-                return api().start(request)
+                return (await api()).start(request)
             },
             inspect: async (id) => (await existingApi(id)).inspect(id),
             cancel: async (id) => (await existingApi(id)).cancel(id),
@@ -451,7 +458,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             resolve,
             getResourceCard: async (id) => {
                 if (!this.records || !this.cards) return null
-                const scope = currentScope()
+                const scope = await this.resolveInvocationIdentityScope(currentScope())
                 const row = await this.records.findOneBy({
                     id,
                     tenantId: scope.tenantId,

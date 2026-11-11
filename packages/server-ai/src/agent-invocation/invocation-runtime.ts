@@ -472,12 +472,17 @@ export class AgentInvocationRuntime {
     }
 
     /** Pause changes an execution attempt, never the idempotency identity of its calls. */
-    private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
-        const task = await this.tasks?.execution(access.scope.parentExecutionId)
-        if (!task) return access
-        if (task.tenantId !== access.scope.tenantId || task.organizationId !== (access.scope.organizationId ?? null))
+    async resolveIdentityScope(scope: Readonly<AgentInvocationScope>): Promise<AgentInvocationScope> {
+        const task = await this.tasks?.execution(scope.parentExecutionId)
+        if (!task) return { ...scope }
+        if (task.tenantId !== scope.tenantId || task.organizationId !== (scope.organizationId ?? null))
             throw invocationError('NotFound')
-        return { ...access, scope: { ...access.scope, parentExecutionId: task.attempts[0] } }
+        if (!task.attempts[0]) throw invocationError('InvalidScope')
+        return { ...scope, parentExecutionId: task.attempts[0] }
+    }
+
+    private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
+        return { ...access, scope: await this.resolveIdentityScope(access.scope) }
     }
 
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {

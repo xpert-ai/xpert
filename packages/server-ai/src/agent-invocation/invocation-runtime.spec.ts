@@ -1,5 +1,7 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { DataSource } from 'typeorm'
+import { ExecutionTaskControl, TaskControlStore } from '@xpert-ai/server-core'
 import {
     AgentInvocationRequest,
     AgentInvocationScope,
@@ -50,6 +52,49 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    function controlledFixture() {
+        const f = fixture()
+        const parent = Object.assign(new ExecutionTaskControl(), { id: 'task', tenantId: f.scope.tenantId,
+            organizationId: f.scope.organizationId, attempts: [f.scope.parentExecutionId],
+            currentExecutionId: f.scope.parentExecutionId })
+        // No database is opened: persistence is stubbed while the Runtime resolves and enforces identity.
+        const tasks = new TaskControlStore(new DataSource({ type: 'postgres' }))
+        jest.spyOn(tasks, 'execution').mockResolvedValue(parent)
+        jest.spyOn(tasks, 'register').mockResolvedValue(Object.assign(new ExecutionTaskControl(), { id: 'child' }))
+        jest.spyOn(tasks, 'claim').mockResolvedValue('claim')
+        jest.spyOn(tasks, 'receipt').mockResolvedValue(undefined)
+        const runtime = new AgentInvocationRuntime(f.store, f.registry, undefined, tasks)
+        return { ...f, parent, tasks, runtime }
+    }
+
+    it('reuses calls across attempts but admits new calls only from the current execution', async () => {
+        const f = controlledFixture()
+        const first = await f.runtime.scoped(f.access).start(f.request)
+        f.parent.attempts.push('resumed')
+        f.parent.currentExecutionId = 'resumed'
+        const current = { ...f.scope, parentExecutionId: 'resumed' }
+        const resumed = f.runtime.scoped({ ...f.access, scope: current })
+        expect((await resumed.start(f.request)).id).toBe(first.id)
+        expect(f.start).toHaveBeenCalledTimes(1)
+        expect((await resumed.start({ ...f.request, callId: 'next-call' })).scope).toEqual(f.scope)
+        expect(current.parentExecutionId).toBe('resumed')
+        await expect(f.runtime.scoped(f.access).start({ ...f.request, callId: 'stale-new-call' })).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(2)
+    })
+
+    it.each(['tenant', 'organization', 'missing-attempt'] as const)(
+        'rejects an invalid task identity before reserving or launching a call (%s)', async (invalid) => {
+            const f = controlledFixture()
+            if (invalid === 'tenant') f.parent.tenantId = 'other'
+            if (invalid === 'organization') f.parent.organizationId = 'other'
+            if (invalid === 'missing-attempt') f.parent.attempts = []
+            await expect(f.runtime.scoped(f.access).start(f.request)).rejects.toThrow()
+            expect(f.store.rows.size).toBe(0)
+            expect(f.tasks.register).not.toHaveBeenCalled()
+            expect(f.start).not.toHaveBeenCalled()
+        }
+    )
+
     it('keeps an owned slow startup live across inspections, then clears its fence', async () => {
         jest.useFakeTimers()
         try {

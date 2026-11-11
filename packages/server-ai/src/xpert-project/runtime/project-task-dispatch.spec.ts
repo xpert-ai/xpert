@@ -123,9 +123,9 @@ async function fixture() {
         expect(committed).toBe(true)
         expect(rows).toHaveLength(1)
         const invocation: AgentInvocation = {
-            id: agentInvocationId(scope, request.callId),
+            id: agentInvocationId(rows[0].dispatchIntent.scope, request.callId),
             revision: 2,
-            scope,
+            scope: structuredClone(rows[0].dispatchIntent.scope),
             request,
             status: 'running',
             createdAt: new Date().toISOString(),
@@ -135,6 +135,7 @@ async function fixture() {
         return invocation
     })
     const factory = {
+        resolveInvocationIdentityScope: jest.fn(async (value: AgentInvocationScope) => ({ ...value })),
         resolveBackgroundTarget: jest.fn(async () => target),
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
@@ -174,6 +175,59 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('reserves canonical invocation identity while retaining the admitting execution in its intent', async () => {
+        const f = await fixture()
+        const canonical = { ...f.scope, parentExecutionId: randomUUID() }
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
+        f.start.mockImplementation(async (request) => ({
+            id: agentInvocationId(canonical, request.callId), scope: canonical, request,
+            revision: 1, status: 'running', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+        }))
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.invocationId).toBe(agentInvocationId(canonical, `project-task:${f.input.requestId}`))
+        expect(f.rows[0].invocationId).toBe(result.invocationId)
+        const intent = f.service.intent(f.rows[0])
+        expect(intent.scope.parentExecutionId).toBe(f.scope.parentExecutionId)
+        expect(intent.invocationParentExecutionId).toBe(canonical.parentExecutionId)
+        expect(f.rows[0].dispatchState).toBe('submitted')
+    })
+    it.each(['id', 'scope', 'request'] as const)('refuses a returned %s mismatch instead of submitting an untraceable attempt', async (field) => {
+        const f = await fixture()
+        const original = f.start.getMockImplementation()
+        f.start.mockImplementation(async (request) => {
+            const result = await original(request)
+            if (field === 'id') return { ...result, id: randomUUID() }
+            if (field === 'scope') return { ...result, scope: { ...result.scope, parentExecutionId: randomUUID() } }
+            return { ...result, request: { ...result.request, input: { prompt: 'Different work' } } }
+        })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.rows[0].dispatchState).toBe('pending')
+    })
+    it('keeps a canonical unknown receipt after a resumed launch throws', async () => {
+        const f = await fixture()
+        const canonical = { ...f.scope, parentExecutionId: randomUUID() }
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
+        f.start.mockImplementation(async (request) => {
+            const invocation: AgentInvocation = {
+                id: agentInvocationId(canonical, request.callId), scope: canonical, request, revision: 1,
+                status: 'unknown', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+            }
+            f.invocations[0] = Object.assign(new AgentInvocationEntity(), { id: invocation.id, invocation })
+            throw new Error('Ambiguous external result')
+        })
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.status).toBe('unknown')
+        expect(result.invocationId).toBe(f.rows[0].invocationId)
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+    it('does not reinterpret a legacy intent whose current canonical identity no longer matches', async () => {
+        const f = await fixture()
+        await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        delete f.rows[0].dispatchIntent.invocationParentExecutionId
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue({ ...f.scope, parentExecutionId: randomUUID() })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
     it('keeps an existing responsible Assistant when the caller delegates to an external Runtime', async () => {
         const f = await fixture()
         const owner = f.task.assigneeXpertId

@@ -1,6 +1,4 @@
-jest.mock('@xpert-ai/plugin-sdk', () =>
-    jest.requireActual('../../../../plugin-sdk/src/lib/resource-card-provider/provider.decorator')
-)
+jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 jest.mock('../entities/project-task.entity', () => ({ XpertProjectTask: class {} }))
 jest.mock('../entities/project-task-execution.entity', () => ({ XpertProjectTaskExecution: class {} }))
 jest.mock('../../agent-invocation/invocation.entity', () => ({ AgentInvocationEntity: class {} }))
@@ -16,6 +14,8 @@ import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
 import { XpertProjectAccessService } from '../services/project-access.service'
+import { projectTaskDispatchIntentSchema, projectTaskInvocationScope } from './project-task-dispatch.schema'
+import { agentInvocationId } from '../../agent-invocation/invocation-runtime'
 
 function fixture() {
     const task = { id: 'task', status: 'done' }
@@ -41,7 +41,7 @@ function fixture() {
         }
     }
     const tasks = { findBy: jest.fn().mockResolvedValue([task]) }
-    const attempts = { findBy: jest.fn().mockResolvedValue([attempt]) }
+    const attempts = { find: jest.fn().mockResolvedValue([attempt]) }
     const invocations = { findBy: jest.fn().mockResolvedValue([record]) }
     const dataSource = {
         getRepository: (entity: unknown) => {
@@ -85,6 +85,40 @@ function resolved(result: ResourceCardResolution) {
 }
 
 describe('project task ResourceCardProvider', () => {
+    it('binds resumed cards to the admitting execution and canonical persisted invocation', async () => {
+        const f = fixture()
+        const scope = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID(),
+            workspaceId: randomUUID(), projectId: randomUUID(), conversationId: randomUUID(),
+            parentExecutionId: randomUUID(), callerXpertId: randomUUID(), callerAgentKey: 'main' }
+        const taskId = randomUUID(), attemptId = randomUUID(), requestId = randomUUID(), bindingId = randomUUID()
+        const intent = projectTaskDispatchIntentSchema.parse({
+            version: 1, scope, invocationParentExecutionId: randomUUID(),
+            input: { requestId, taskId, expectedRevision: 1, bindingId, instructions: '' },
+            request: { callId: `project-task:${requestId}`,
+                target: { bindingId, provider: 'test', reference: 'test', revision: '1', configuration: {} },
+                input: { prompt: 'task' }, dispatch: { version: 1, requestId, sourceMessageId: 'source',
+                    replyTo: { xpertId: scope.callerXpertId, agentKey: 'main', conversationId: scope.conversationId, threadId: 'thread' },
+                    projectTask: { projectId: scope.projectId, projectTaskId: taskId, taskExecutionId: attemptId,
+                        purpose: { type: 'implementation' },
+                        specification: { digest: `sha256:${'a'.repeat(64)}`, specification: { version: 1,
+                            title: 'task', requirements: ['Task works'], steps: [] } } } } }
+        })
+        const id = agentInvocationId(projectTaskInvocationScope(intent), intent.request.callId)
+        const record = { id, invocation: { scope: projectTaskInvocationScope(intent), request: intent.request, status: 'succeeded' } }
+        f.attempts.find.mockResolvedValue([{ id: attemptId, taskId, invocationId: id, attempt: 1,
+            purpose: { type: 'implementation' }, dispatchIntent: intent }])
+        f.invocations.findBy.mockResolvedValue([record])
+        const context = { ...f.context, tenantId: scope.tenantId, organizationId: scope.organizationId,
+            userId: scope.userId, projectId: scope.projectId, conversationId: scope.conversationId }
+        const request = { ...f.requests[0], executionId: scope.parentExecutionId,
+            card: f.provider.createCard({ type: 'execution', id: attemptId, title: 'task', status: 'succeeded', attempt: 1 }) }
+        expect((await f.provider.resolveMany(context, [request]))[0].status).toBe('resolved')
+        expect((await f.provider.resolveMany(context, [{ ...request, executionId: intent.invocationParentExecutionId }]))[0])
+            .toMatchObject({ status: 'unavailable', reason: 'forbidden' })
+        expect((await f.provider.resolveMany({ ...context, userId: randomUUID() }, [request]))[0].status).toBe('unavailable')
+        record.invocation.request = { ...intent.request, input: { prompt: 'another task' } }
+        expect((await f.provider.resolveMany(context, [request]))[0].status).toBe('unavailable')
+    })
     it('only displays review verdicts bound to the pinned implementation and evidence', async () => {
         const f = fixture()
         const purpose = {
@@ -94,7 +128,7 @@ describe('project task ResourceCardProvider', () => {
             specificationDigest: `sha256:${'a'.repeat(64)}`,
             evidence: [{ type: 'invocation_result', invocationId: randomUUID(), revision: 1 }]
         }
-        f.attempts.findBy.mockResolvedValue([{ ...f.attempt, attempt: 2, purpose }])
+        f.attempts.find.mockResolvedValue([{ ...f.attempt, attempt: 2, purpose }])
         f.record.invocation.result.text = JSON.stringify({
             version: 1,
             verdict: 'changes_required',
@@ -119,14 +153,15 @@ describe('project task ResourceCardProvider', () => {
         const requests = [...f.requests, { ...f.requests[0], key: '1', messageId: 'second-message' }]
         const results = await f.provider.resolveMany(f.context, requests)
         expect(f.projects.assertCanRead).toHaveBeenCalledWith('project')
-        expect(f.attempts.findBy).toHaveBeenCalledTimes(1)
-        expect(f.attempts.findBy).toHaveBeenCalledWith({
-            id: In(['attempt']),
+        expect(f.attempts.find).toHaveBeenCalledTimes(1)
+        expect(f.attempts.find).toHaveBeenCalledWith({
+            select: expect.objectContaining({ dispatchIntent: true }),
+            where: { id: In(['attempt']),
             tenantId: 'tenant',
             organizationId: 'org',
             projectId: 'project',
             conversationId: 'conversation',
-            threadId: 'thread'
+            threadId: 'thread' }
         })
         expect(f.invocations.findBy).toHaveBeenCalledTimes(1)
         expect(f.invocations.findBy).toHaveBeenCalledWith({
@@ -147,7 +182,7 @@ describe('project task ResourceCardProvider', () => {
         expect(await f.provider.resolveMany(f.context, f.requests)).toEqual([
             { key: '0', status: 'unavailable', reason: 'forbidden' }
         ])
-        f.attempts.findBy.mockResolvedValue([])
+        f.attempts.find.mockResolvedValue([])
         expect(await f.provider.resolveMany(f.context, f.requests)).toEqual([
             { key: '0', status: 'unavailable', reason: 'not_found' }
         ])
@@ -159,7 +194,7 @@ describe('project task ResourceCardProvider', () => {
         expect(await f.provider.resolveMany(f.context, f.requests)).toEqual([
             { key: '0', status: 'unavailable', reason: 'forbidden' }
         ])
-        expect(f.attempts.findBy).not.toHaveBeenCalled()
+        expect(f.attempts.find).not.toHaveBeenCalled()
         expect(f.tasks.findBy).not.toHaveBeenCalled()
         expect(f.invocations.findBy).not.toHaveBeenCalled()
     })
@@ -202,7 +237,7 @@ describe('project task ResourceCardProvider', () => {
     it('keeps null organization scope explicit', async () => {
         const f = fixture()
         await f.provider.resolveMany({ ...f.context, organizationId: null }, f.requests)
-        expect(f.attempts.findBy).toHaveBeenCalledWith(expect.objectContaining({ organizationId: IsNull() }))
+        expect(f.attempts.find).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ organizationId: IsNull() }) }))
         expect(f.invocations.findBy).toHaveBeenCalledWith(expect.objectContaining({ organizationId: IsNull() }))
     })
 })

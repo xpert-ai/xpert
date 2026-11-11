@@ -21,6 +21,8 @@ import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import { XpertProjectAccessService } from '../services/project-access.service'
 import { reviewReport } from './project-task-evidence'
+import { projectTaskDispatchIntentSchema, projectTaskInvocationScope } from './project-task-dispatch.schema'
+import { agentInvocationId, sameInvocationData } from '../../agent-invocation/invocation-runtime'
 
 type ProjectTaskCardInput = {
     id: string
@@ -121,11 +123,14 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
               })
             : []
         const attempts = attemptIds.length
-            ? await this.dataSource.getRepository(XpertProjectTaskExecution).findBy({
-                  ...projectScope,
-                  id: In(attemptIds),
-                  conversationId: context.conversationId,
-                  threadId: context.threadId
+            ? await this.dataSource.getRepository(XpertProjectTaskExecution).find({
+                  select: { id: true, taskId: true, invocationId: true, attempt: true, purpose: true, dispatchIntent: true },
+                  where: {
+                      ...projectScope,
+                      id: In(attemptIds),
+                      conversationId: context.conversationId,
+                      threadId: context.threadId
+                  }
               })
             : []
         const invocationIds = [...new Set(attempts.map((attempt) => attempt.invocationId).filter(Boolean))]
@@ -158,9 +163,24 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
             if (!attempt?.invocationId) return missing
             const record = recordsById.get(attempt.invocationId)
             const reference = record?.invocation.request.dispatch?.projectTask
+            const intent = attempt.dispatchIntent ? projectTaskDispatchIntentSchema.safeParse(attempt.dispatchIntent) : null
+            // The card belongs to the admitting execution, while its invocation may retain an earlier attempt's identity.
+            // A malformed stored intent must not fall back to the legacy comparison.
+            const messageBound = intent
+                ? intent.success && record && intent.data.scope.parentExecutionId === executionId &&
+                    intent.data.scope.tenantId === context.tenantId &&
+                    intent.data.scope.organizationId === context.organizationId &&
+                    intent.data.scope.userId === context.userId &&
+                    intent.data.scope.projectId === context.projectId &&
+                    intent.data.scope.conversationId === context.conversationId &&
+                    intent.data.request.dispatch.replyTo.threadId === context.threadId &&
+                    agentInvocationId(projectTaskInvocationScope(intent.data), intent.data.request.callId) === attempt.invocationId &&
+                    sameInvocationData(record.invocation.scope, projectTaskInvocationScope(intent.data)) &&
+                    sameInvocationData(record.invocation.request, intent.data.request)
+                : record?.invocation.scope.parentExecutionId === executionId
             if (
                 !executionId ||
-                record?.invocation.scope.parentExecutionId !== executionId ||
+                !messageBound ||
                 reference?.taskExecutionId !== attempt.id ||
                 reference.projectId !== context.projectId ||
                 reference.projectTaskId !== attempt.taskId

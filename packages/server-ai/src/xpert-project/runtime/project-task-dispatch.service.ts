@@ -28,7 +28,8 @@ import { implementationEvidence, reviewPrompt } from './project-task-evidence'
 import {
     ProjectTaskCaller,
     ProjectTaskDispatchIntent,
-    projectTaskDispatchIntentSchema
+    projectTaskDispatchIntentSchema,
+    projectTaskInvocationScope
 } from './project-task-dispatch.schema'
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
@@ -63,6 +64,8 @@ export class ProjectTaskDispatchService {
         const target = input.target
             ? await this.factory.resolveGroupTarget(scope, input.target.participantId)
             : await this.factory.resolveBackgroundTarget(scope, input.bindingId)
+        // Reserve the Runtime's stable call identity while retaining this attempt for admission checks.
+        const identityScope = await this.factory.resolveInvocationIdentityScope(scope)
         const purpose = input.purpose ?? { type: 'implementation' as const }
         // Evidence-only confinement is currently enforced by the Computer runner.
         if (
@@ -194,6 +197,7 @@ export class ProjectTaskDispatchService {
                 version: 1,
                 input,
                 scope,
+                invocationParentExecutionId: identityScope.parentExecutionId,
                 request: {
                     callId: `project-task:${input.requestId}`,
                     target,
@@ -239,7 +243,7 @@ export class ProjectTaskDispatchService {
                     xpertId: task.assigneeXpertId,
                     attempt: (attempts.find((item) => item.taskId === task.id)?.attempt ?? 0) + 1,
                     status: 'queued',
-                    invocationId: agentInvocationId(scope, intent.request.callId),
+                    invocationId: agentInvocationId(identityScope, intent.request.callId),
                     dispatchRequestId: input.requestId,
                     dispatchState: 'pending',
                     dispatchNextAttemptAt: new Date(),
@@ -303,6 +307,10 @@ export class ProjectTaskDispatchService {
                 )
         }
         const api = this.factory.createCapturedApi(intent.scope)
+        const identityScope = projectTaskInvocationScope(intent)
+        // Recovery must not remap a persisted reservation to a different invocation.
+        if (!sameInvocationData(await this.factory.resolveInvocationIdentityScope(intent.scope), identityScope))
+            throw projectTaskRuntimeError('Conflict')
         let invocation: AgentInvocation
         try {
             invocation = await api.start(intent.request)
@@ -333,11 +341,15 @@ export class ProjectTaskDispatchService {
             if (
                 !record ||
                 !sameInvocationData(record.invocation.request, intent.request) ||
-                !sameInvocationData(record.invocation.scope, intent.scope)
+                !sameInvocationData(record.invocation.scope, identityScope)
             )
                 throw error
             invocation = record.invocation
         }
+        // A successful response must match the reservation just as strictly as a recovered receipt.
+        if (invocation.id !== execution.invocationId ||
+            !sameInvocationData(invocation.scope, identityScope) ||
+            !sameInvocationData(invocation.request, intent.request)) throw projectTaskRuntimeError('Conflict')
         // Avoid older concurrent receipts overwriting newer runtime facts: Invocation is the source of truth.
         await this.executions.update(
             { id: execution.id, dispatchState: 'pending' },
@@ -386,7 +398,7 @@ export class ProjectTaskDispatchService {
                 intent.input.delivery ?? { mode: 'none' },
                 intent.request.input.delivery ?? { mode: 'none' }
             ) ||
-            execution.invocationId !== agentInvocationId(intent.scope, intent.request.callId)
+            execution.invocationId !== agentInvocationId(projectTaskInvocationScope(intent), intent.request.callId)
         )
             throw projectTaskRuntimeError('Invalid')
         const reply = intent.request.dispatch.replyTo

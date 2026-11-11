@@ -124,6 +124,33 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
 }
 
 describe('Agent invocation factory and controller boundaries', () => {
+    it('binds the runner to the persisted call identity after its admitting execution resumes', async () => {
+        const f = fixture()
+        jest.spyOn(f.runtime, 'resolveIdentityScope').mockImplementation(async (scope) => ({
+            ...scope, parentExecutionId: 'original-attempt'
+        }))
+        const scopes: Readonly<AgentInvocationScope>[] = []
+        f.capabilities.register(AgentExecutionRunnerFactoryCapability, {
+            createScopedRunner(scope) {
+                scopes.push(scope)
+                return runnerFixture(scope)
+            }
+        })
+        jest.mocked(f.provider.start).mockImplementation(async (_request, context) => {
+            expect(scopes.at(-1)).toEqual(context.scope)
+            expect(context.scope.parentExecutionId).toBe('original-attempt')
+            const receipt = await context.capabilities.require(AgentExecutionRunnerCapability)
+                .start(context.invocationId, async () => undefined)
+            return { status: 'running', handle: { sessionId: 'session', runId: context.invocationId, runner: receipt } }
+        })
+        const request = { target: await f.api.resolve(bindingId), callId: 'resumed-call', input: { prompt: 'task' } }
+        const first = await f.api.start(request)
+        const resumed = f.factory.createScopedApi({ ...f.identity, executionId: 'resumed-attempt' })
+        expect((await resumed.start(request)).id).toBe(first.id)
+        expect(f.provider.start).toHaveBeenCalledTimes(1)
+        expect(scopes.every((scope) => scope.parentExecutionId === 'original-attempt')).toBe(true)
+        expect(f.identity.executionId).toBe('parent')
+    })
     it('discovers managed presets before listing bindings in a new Project workspace', async () => {
         const f = fixture()
         const scope: AgentInvocationScope = {
