@@ -57,6 +57,27 @@
     "File": {
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
+    "ReviewReportDiagnostic": {
+        "UnexpectedField": "Unexpected field; remove it from the delivered report.",
+        "ExpectedType": "Expected {{expected}}; received {{received}}.",
+        "ExpectedLiteral": "Expected {{expected}}.",
+        "ExpectedEnum": "Expected one of: {{options}}.",
+        "Maximum": "Exceeds maximum {{maximum}}.",
+        "Minimum": "Requires minimum {{minimum}}.",
+        "Consistency": "Violates report consistency rules (unique finding IDs; no blocking finding with pass).",
+        "InvalidValue": "Invalid value ({{code}}).",
+        "ImplementationMismatch": "Must equal purpose.implementationInvocationId for the pinned implementation.",
+        "SpecificationMismatch": "Must equal purpose.specificationDigest, not the candidate file snapshot digest.",
+        "EvidenceOrderMismatch": "Evidence references match, but their order differs. Preserve the current purpose.evidence array order exactly.",
+        "EvidenceMismatch": "Evidence references differ from purpose.evidence. Preserve the pinned IDs, revisions, versions and array order exactly.",
+        "InvalidSubject": "The pinned review purpose is invalid.",
+        "MissingReport": "The invocation has no delivered review report.",
+        "InvalidJson": "Expected JSON report text after the runner unwraps the outer summary string.",
+        "EncodedSummary": "Must be a JSON-encoded STRING containing the review report.",
+        "UnparsedEnvelope": "The outer envelope was not unwrapped by the runner; it is not the delivered inner report.",
+        "ContractMismatch": "The result does not match the pinned review contract.",
+        "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
+    },
     "Error": {
     "PluginDeploymentTestNotReady": "The approved plugin must be installed, loaded, and declare an MCP acceptance component before creating test access.",
     "PluginDeploymentApproval": "A native human release approval is required for deployment.",
@@ -225,6 +246,7 @@
         "ProjectTaskRuntimeDependencies": "Task dependencies must be completed before delegation.",
         "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
+        "ProjectTaskRuntimeReviewReport": "The selected review report is missing, malformed, or does not match the pinned implementation evidence. Use the diagnostic code and field paths to correct report delivery while preserving the actual findings and exact pinned subject and evidence. A formatting error alone does not require repeating business tests.",
         "ProjectTaskRuntimeEvidence": "Evidence or review is unavailable, stale, or this runtime does not support evidence-only review",
         "ProjectTaskRuntimeDecisionRequired": "Delegated tasks require an explicit decision with implementation evidence and checks",
         "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",

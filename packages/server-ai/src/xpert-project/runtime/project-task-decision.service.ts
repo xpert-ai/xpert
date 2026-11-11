@@ -20,6 +20,7 @@ import { assertOrdinaryTask } from '../services/project-task-ownership'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { implementationEvidence, reviewReport } from './project-task-evidence'
+import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 
 @Injectable()
@@ -167,8 +168,9 @@ export class ProjectTaskDecisionService {
                 // Read the verdict only from the same review revision returned by inspection.
                 if (inspected.get(row.id) !== row.invocation.revision) throw projectTaskRuntimeError('Conflict')
                 const report = reviewReport(review.purpose, row.invocation.result?.text)
-                if (!report || (input.outcome === 'accept' && report.verdict !== 'pass'))
-                    throw projectTaskRuntimeError('Evidence')
+                // Explain delivery defects without repairing the report or changing the review verdict.
+                if (!report) throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(review.purpose, row.invocation.result?.text))
+                if (input.outcome === 'accept' && report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
             }
             const decision = projectTaskDecisionSchema.parse({
                 ...input,

@@ -12,6 +12,7 @@ import { ProjectTaskRuntimeContextService } from './project-task-runtime-context
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import { createProjectTaskSpecificationSnapshot } from './project-task-specification'
 import { reviewReport } from './project-task-evidence'
+import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestRuntimeResultCheckCommand } from '../../handoff/runtime-messaging/runtime-result-check.handler'
@@ -96,6 +97,8 @@ export class ProjectTaskRuntimeReadService {
                 runtimeProvider: invocation.request.target.provider,
                 runtimeToolId: invocation.handle?.runner?.tool.id,
                 reviewReport: reviewReport(execution.purpose, invocation.result?.text),
+                reviewReportDiagnostic: invocation.status === 'succeeded' && execution.purpose?.type === 'review'
+                    ? diagnoseReviewReport(execution.purpose, invocation.result?.text) : null,
                 delivery,
                 consumption,
                 evidence: [

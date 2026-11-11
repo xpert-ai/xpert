@@ -57,6 +57,27 @@
     "File": {
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
+    "ReviewReportDiagnostic": {
+        "UnexpectedField": "存在多余字段；请从交付报告中移除。",
+        "ExpectedType": "应为 {{expected}}，实际类型为 {{received}}。",
+        "ExpectedLiteral": "应为 {{expected}}。",
+        "ExpectedEnum": "应为以下值之一：{{options}}。",
+        "Maximum": "超过上限 {{maximum}}。",
+        "Minimum": "未达到下限 {{minimum}}。",
+        "Consistency": "违反报告一致性规则（finding ID 必须唯一，pass 不得包含阻塞性问题）。",
+        "InvalidValue": "值无效（{{code}}）。",
+        "ImplementationMismatch": "必须与固定验收对象的 purpose.implementationInvocationId 相同。",
+        "SpecificationMismatch": "必须与 purpose.specificationDigest 相同，而非候选文件快照的摘要。",
+        "EvidenceOrderMismatch": "证据引用相同，但顺序不同。请严格保留当前 purpose.evidence 数组的顺序。",
+        "EvidenceMismatch": "证据引用与 purpose.evidence 不同。请严格保留固定的 ID、revision、version 和数组顺序。",
+        "InvalidSubject": "固定的验收 purpose 无效。",
+        "MissingReport": "本次调用尚未交付验收报告。",
+        "InvalidJson": "执行器解包外层 summary 字符串后，应交付 JSON 格式的报告文本。",
+        "EncodedSummary": "必须是包含验收报告的 JSON 编码字符串（JSON-encoded STRING）。",
+        "UnparsedEnvelope": "执行器尚未解包外层信封；它不是已交付的内层报告。",
+        "ContractMismatch": "结果不符合固定的验收报告契约。",
+        "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
+    },
     "Error": {
     "PluginDeploymentTestNotReady": "创建测试访问前，已批准的插件必须已安装、已加载，并声明 MCP 验收组件。",
     "PluginDeploymentApproval": "部署必须具有平台记录的人工发布批准。",
@@ -225,6 +246,7 @@
         "ProjectTaskRuntimeDependencies": "任务的前置依赖必须完成后才能委托。",
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
+        "ProjectTaskRuntimeReviewReport": "所选验收报告缺失、格式错误，或与固定的实现证据不匹配。请根据诊断代码和字段路径修正报告交付格式，保留实际发现以及准确的验收对象和证据引用。仅有格式错误无需重复业务测试。",
         "ProjectTaskRuntimeEvidence": "证据或验收结论不可用、已过期，或此执行器不支持仅证据验收",
         "ProjectTaskRuntimeDecisionRequired": "受托任务必须通过确认结果操作完成，并提供具体实现版本和检查依据",
         "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",

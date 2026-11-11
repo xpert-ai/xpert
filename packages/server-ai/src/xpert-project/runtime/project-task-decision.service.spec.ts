@@ -1,5 +1,7 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
+import i18next from 'i18next'
+import en from '../../i18n/en.json'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import type { AgentInvocation, AgentInvocationScope } from '@xpert-ai/plugin-sdk'
@@ -111,6 +113,7 @@ async function fixture() {
 
 describe('Project task decision inspection boundaries', () => {
     let f: Awaited<ReturnType<typeof fixture>>
+    beforeAll(async () => { await i18next.init({ lng: 'en', resources: { en: { 'server-ai': en } } }) })
     beforeEach(async () => { f = await fixture() })
     afterEach(async () => { await f.module.close() })
     const decide = () => f.service.decide(f.scope.projectId, f.input, f.caller)
@@ -214,6 +217,34 @@ describe('Project task decision inspection boundaries', () => {
         f.taskRepo.update.mockClear()
         f.beforeTransaction(() => { f.task.status = 'done'; f.task.revision = accepted.taskRevision; f.task.decisions = [accepted] })
         expect(await decide()).toEqual(accepted)
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+    })
+
+    it.each(['accept', 'rework'] as const)('returns report delivery diagnostics without committing %s', async (outcome) => {
+        const review = f.addReview()
+        review.invocation.result = { text: JSON.stringify({ version: 1, summary: {}, items: [] }) }
+        await expect(f.service.decide(f.scope.projectId, { ...f.input, outcome }, f.caller)).rejects.toThrow('outer_envelope_invalid')
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+        expect(f.task.decisions).toHaveLength(0)
+        expect(f.task.status).toBe('review')
+        expect(review.invocation.result.text).toBe(JSON.stringify({ version: 1, summary: {}, items: [] }))
+    })
+
+    it.each(['changes_required', 'indeterminate'])('retains a valid %s verdict and requires rework rather than accepting', async (verdict) => {
+        const review = f.addReview()
+        review.invocation.result = { text: JSON.stringify({ version: 1, verdict, specificationDigest: f.input.specificationDigest,
+            implementationInvocationId: f.invocation.id, evidence: f.input.evidence, findings: ['More work is needed'], limitations: [] }) }
+        await expect(decide()).rejects.toThrow(en.Error.ProjectTaskRuntimeEvidence)
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+        const result = await f.service.decide(f.scope.projectId, { ...f.input, outcome: 'rework' }, f.caller)
+        expect(result.outcome).toBe('rework')
+        expect(f.task.status).toBe('todo')
+    })
+
+    it('checks the persisted revision before diagnosing an unobserved malformed report', async () => {
+        const review = f.addReview()
+        f.beforeTransaction(() => { review.invocation.revision++; review.invocation.result = { text: 'malformed' } })
+        await expect(decide()).rejects.toThrow(en.Error.ProjectTaskRuntimeConflict)
         expect(f.taskRepo.update).not.toHaveBeenCalled()
     })
 })
