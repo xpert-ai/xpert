@@ -66,11 +66,13 @@ function createMissingAgentMiddlewareRegistry() {
 
 function createHandler(
     promptWorkflowService: Pick<PromptWorkflowServiceDependency, 'resolveRuntimeCommandProfile'>,
-    agentMiddlewareRegistry: Pick<AgentMiddlewareRegistryDependency, 'get'>
+    agentMiddlewareRegistry: Pick<AgentMiddlewareRegistryDependency, 'get'>,
+    execute = jest.fn()
 ) {
     return new ResolvePromptWorkflowInvocationHandler(
         promptWorkflowService as PromptWorkflowServiceDependency,
-        agentMiddlewareRegistry as AgentMiddlewareRegistryDependency
+        agentMiddlewareRegistry as AgentMiddlewareRegistryDependency,
+        { execute } as unknown as ConstructorParameters<typeof ResolvePromptWorkflowInvocationHandler>[2]
     )
 }
 
@@ -136,13 +138,60 @@ describe('ResolvePromptWorkflowInvocationHandler', () => {
         })
     })
 
+    it('resolves plugin skill bindings for a typed invocation and respects edits to a prepared draft', async () => {
+        const selection = (ids: string[]) => ({
+            mode: 'allowlist' as const,
+            skills: { ids },
+            plugins: { nodeKeys: [] },
+            subAgents: { nodeKeys: [] }
+        })
+        const name = 'prepare-bid'
+        const source = {
+            sourceType: 'xpert' as const,
+            name,
+            template: 'Prepare {{args}}',
+            actionType: 'insert_invocation' as const,
+            runtimeCapabilities: selection(['plugin:bid:skill:writing'])
+        }
+        const service = createPromptWorkflowService(createCommandProfile({ xpertCommands: [source] }))
+        const execute = jest.fn().mockResolvedValue({
+            commands: [
+                {
+                    name,
+                    source: { type: 'xpert' },
+                    action: { type: 'insert_invocation', runtimeCapabilities: selection(['scoped-writing']) }
+                }
+            ]
+        })
+        const handler = createHandler(service, createMissingAgentMiddlewareRegistry(), execute)
+        const xpert = createXpert([])
+        const input = '/prepare-bid chapter'
+        const raw = await handler.execute(new ResolvePromptWorkflowInvocationQuery(xpert, { input }, 'project-1'))
+        expect(raw?.input.runtimeCapabilities).toEqual(selection(['scoped-writing']))
+        expect(execute).toHaveBeenCalledWith(expect.objectContaining({ xpert, projectId: 'project-1' }))
+
+        for (const ids of [['replacement'], []]) {
+            const edited = await handler.execute(
+                new ResolvePromptWorkflowInvocationQuery(
+                    xpert,
+                    {
+                        input,
+                        commandSource: raw!.commandSource,
+                        runtimeCapabilities: selection(ids)
+                    },
+                    'project-1'
+                )
+            )
+            expect(edited?.input.input).toBe('Prepare chapter')
+            expect(edited?.input.runtimeCapabilities).toEqual(selection(ids))
+        }
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+
     it('leaves composer-expanded and edited prompt text untouched even when it starts with a slash', async () => {
         const service = createPromptWorkflowService()
         const registry = createAgentMiddlewareRegistry([])
-        const handler = new ResolvePromptWorkflowInvocationHandler(
-            service as unknown as PromptWorkflowServiceDependency,
-            registry as unknown as AgentMiddlewareRegistryDependency
-        )
+        const handler = createHandler(service, registry)
         const input = {
             input: '/report user edited content',
             commandSource: {

@@ -132,6 +132,7 @@ export type RuntimeCommandOptions = {
 }
 
 export type RuntimeCommandAllowList = {
+    pluginSkillIds?: ReadonlyMap<string, string>
     workspaceId?: string | null
     skillIds?: string[]
     pluginNodeKeys?: string[]

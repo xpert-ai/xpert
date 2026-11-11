@@ -291,7 +291,12 @@ export async function createHumanMessage(
     // A slash argument after a skill chip belongs to that skill, never the global command registry.
     const agentHuman = resourceSkillInstructions
         ? human
-        : await resolvePromptWorkflowHumanInput(queryBus, human, options?.xpert)
+        : await resolvePromptWorkflowHumanInput(
+              queryBus,
+              human,
+              options?.xpert,
+              options?.resourceSkillContext?.projectId
+          )
     const input = typeof agentHuman?.input === 'string' ? agentHuman.input : JSON.stringify(agentHuman?.input ?? '')
     const normalizedReferences = normalizeReferences(agentHuman?.references)
     const originalReferencePrompt = buildReferencedPrompt(normalizedReferences)
@@ -585,12 +590,13 @@ function appendPromptSection(text: string, section: string | null) {
 async function resolvePromptWorkflowHumanInput(
     queryBus: QueryBus,
     human: Partial<typeof AgentStateAnnotation.State>['human'],
-    xpert?: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>
+    xpert?: CreateHumanMessageOptions['xpert'],
+    projectId?: string
 ) {
     if (!xpert || !human?.input || !isPromptWorkflowInvocationCandidate(human.input)) {
         return human
     }
 
-    const resolution = await queryBus.execute(new ResolvePromptWorkflowInvocationQuery(xpert, human))
+    const resolution = await queryBus.execute(new ResolvePromptWorkflowInvocationQuery(xpert, human, projectId))
     return resolution?.input ?? human
 }

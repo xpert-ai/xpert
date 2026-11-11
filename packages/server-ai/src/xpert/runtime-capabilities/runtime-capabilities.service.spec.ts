@@ -227,6 +227,86 @@ describe('RuntimeCapabilitiesService', () => {
         )
     })
 
+    it.each([undefined, 'project-1'])(
+        'resolves installed plugin skills for a command in scope %s',
+        async (projectId) => {
+            const binding = 'plugin:bid:skill:writing'
+            const disabled = 'plugin:bid:skill:disabled'
+            const ids = [binding, disabled, 'plugin:bid:skill:missing', binding]
+            const selection = { skills: { ids }, plugins: { nodeKeys: [] }, subAgents: { nodeKeys: [] } }
+            const service = new RuntimeCapabilitiesService(
+                { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
+                {
+                    getAllByWorkspaceForRuntime: async () => ({
+                        items: [
+                            { id: 'installed', name: 'writing', sharedSkillId: binding },
+                            { id: 'disabled', sharedSkillId: disabled }
+                        ]
+                    })
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
+                new RuntimeCommandService(),
+                {
+                    resolveRuntimeCommandProfile: async () => ({
+                        hasProfile: true,
+                        preferredSkillEntries: [],
+                        skillEntries: [],
+                        workspaceCommands: [],
+                        xpertCommands: [
+                            {
+                                name: 'prepare',
+                                sourceType: 'xpert',
+                                template: 'Prepare {{args}}',
+                                actionType: 'insert_invocation',
+                                runtimeCapabilities: { mode: 'allowlist', ...selection, recommended: selection }
+                            }
+                        ]
+                    })
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
+                {
+                    getUserPreferenceByAssistantId: async () => ({
+                        toolPreferences: {
+                            version: 1,
+                            skills: { workspace: { workspaceId: 'workspace', disabledSkillIds: ['disabled'] } }
+                        }
+                    })
+                } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
+                {
+                    assertCanUseXpert: async () => ({ project: { id: projectId, name: 'Project' } })
+                } as unknown as XpertProjectAccessService,
+                {
+                    listSkills: async () => ({ items: [{ id: 'writing', name: 'writing', enabled: true }] })
+                } as unknown as XpertProjectContentService
+            )
+            const result = await service.getRuntimeCapabilities(
+                {
+                    id: 'assistant',
+                    workspaceId: 'workspace',
+                    agent: { key: 'main' },
+                    graph: {
+                        nodes: [
+                            {
+                                key: 'skills',
+                                type: 'workflow',
+                                entity: { type: WorkflowNodeTypeEnum.MIDDLEWARE, provider: 'skillsMiddleware' }
+                            }
+                        ],
+                        connections: [{ type: 'workflow', from: 'main', to: 'skills' }]
+                    }
+                } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0],
+                'assistant',
+                projectId
+            )
+            const runtimeId = projectId
+                ? createRuntimeSkillCapabilityId({ type: 'xpert', ownerId: 'assistant', skillId: 'installed' })
+                : 'installed'
+            const skills = { workspaceId: 'workspace', ids: [runtimeId] }
+            expect(result.commands.find((command) => command.name === 'prepare')?.action).toMatchObject({
+                type: 'insert_invocation',
+                runtimeCapabilities: { skills, recommended: { skills } }
+            })
+        }
+    )
+
     it('keeps all enabled Xpert skills and adds enabled Project skills using distinct source identities', async () => {
         const getAllByWorkspaceForRuntime = jest.fn(async () => ({
             items: [
