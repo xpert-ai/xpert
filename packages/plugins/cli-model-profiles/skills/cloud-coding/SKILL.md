@@ -9,6 +9,14 @@ Use the current cloud Computer's `sandbox_shell`, never the user's local Shell o
 a GUI terminal. This skill works for Bosi and other Computer assistants. It does
 not install software, grant access, select a different model or disable approvals.
 
+For end-to-end work using Project Tasks, read the selected `cloud-project-delivery`
+skill when available. Delegate implementation, environment setup, deployment and
+tests as task outcomes to a compatible Coding Runtime; it already starts the CLI.
+Do not nest another coding CLI inside that invocation. The coordinator manages
+task dependencies, durable continuation and evidence-based acceptance. The Coding
+Runtime performs environment setup and service operations within its delegated task.
+The direct Shell CLI workflow below is for work without such a delegated Runtime.
+
 ## 1. Establish the task and workspace
 
 Read the user's request and relevant project instructions. Check `pwd`, directory
@@ -66,7 +74,9 @@ execution without a second sandbox when the host selects that policy. Read its
 `isolation` catalog field; command readiness is verified separately before launch. For an operation the CLI cannot
 approve headlessly, inspect what it requested. The parent Agent can run an already
 authorized build/test command via `sandbox_shell`; an action requiring user
-approval must go through the existing confirmation flow. Never change channels to
+approval must go through the existing confirmation flow. In a delegated project
+delivery, keep builds, tests and deployment in CLI tasks; the parent Shell fallback
+above applies to standalone work, not a substitute for a failed delegation. Never change channels to
 evade an explicit denial. Do not silently complete a failed named-CLI coding task
 yourself and then claim the CLI did it.
 
@@ -74,7 +84,8 @@ yourself and then claim the CLI did it.
 
 1. Inspect changed files and diffs. Verify the requested files exist; a successful
    model response is not proof they were written. Run relevant build/tests via
-   `sandbox_shell`, preserving the same project directory.
+   `sandbox_shell` for standalone work, or delegate those checks to the project
+   Coding Runtime, preserving the same project directory.
 2. On a timeout or interrupted execution, inspect files and logs first. Do not
    blindly repeat a mutating prompt. Managed CLI auth/config is per invocation;
    do not assume a CLI session ID can resume across shell calls. Send a bounded

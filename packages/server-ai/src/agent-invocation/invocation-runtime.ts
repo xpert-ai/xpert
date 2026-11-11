@@ -497,6 +497,10 @@ export class AgentInvocationRuntime {
                   }
                 : undefined,
             scope: access.scope,
+            // Keep task semantics available to adapters without exposing reply routing or sharing mutable state.
+            ...(record.invocation.request.dispatch?.projectTask
+                ? { projectTask: structuredClone(record.invocation.request.dispatch.projectTask) }
+                : {}),
             signal: access.signal,
             capabilities: access.capabilities,
             ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),

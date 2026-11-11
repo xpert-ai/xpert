@@ -86,6 +86,18 @@ Project delegation supports Computer OpenCode, Computer Codex and Computer Qwen 
 
 The Computer adapter owns the CLI protocol; Project owns task decisions. Project Assistants share the project root as their business working directory. Each invocation has a separate `executionDirectory` for runtime receipts, protocol output and ephemeral CLI configuration, plus its own scoped model grant. These directories do not isolate concurrent writes to shared business files or provide a separate security container for each task.
 
+## Project context for coding runtimes
+
+Project dispatch persists the task specification and delegation instructions without inspecting an environment type to compose implementation prompts. The invocation host passes a detached copy of the existing validated `ProjectTaskExecutionContext` through `AgentRuntimeContext.projectTask`. Reply routing stays in the host; this context grants no additional access.
+
+The Agent Runtimes plugin supplements CLI input for explicit implementation tasks after the host runner supplies its receipt. It uses the receipt's actual business working directory, asks the coding agent to read `project.md` when present and discover relevant installed skills under `skills/`, and preserves the original task input. This instruction does not depend on provider names or Computer metadata. Remote adapters without a runner receipt receive no local-workspace instruction; this does not add support for new execution environments.
+
+The coding agent applies the project target, file boundaries and environment instructions to builds and tests. If the delegated task conflicts with those constraints, it reports the concrete conflict to the coordinating Assistant. Requested delivery paths remain relative to the assigned workspace, including when work happens in another authorized directory. The prompt does not install skills, provision an environment, grant access or prove that files exist or were read. Host mounting and permission checks remain with the execution environment.
+
+The bundled `cloud-coding` skill distinguishes two entry paths. For delegated Project delivery, the coordinator assigns implementation, setup, deployment and tests as task outcomes to the Coding Runtime, which starts the CLI; it must not nest another coding CLI or silently finish a failed delegation through its own Shell. For standalone work without a delegated Runtime, the existing direct Shell CLI workflow remains available. A selected `cloud-project-delivery` skill supplies the broader delivery process when installed; this instruction does not install or activate that skill.
+
+Both evidence-only and execution reviews retain their separate prompts and receive no implementation workspace instructions. Existing evidence-only review confinement is unchanged. Install the matching host SDK and Agent Runtimes plugin to enable the prompt supplementation; older hosts that omit the task context do not receive it.
+
 ## Conversation presentation
 
 Creation and updates use ordinary tool steps, without a second Computer component or a creation resource card. Only a committed delegation emits an execution card; implementation and independent review retain separate identities. ChatKit displays execution cards during streaming and updates the original card on background results. `ProjectTaskCardProvider.createCard()` owns resource identity, labels, icons and navigation for both the initial dispatch receipt and subsequent `resolveMany()` refreshes; tools only emit the returned card.
