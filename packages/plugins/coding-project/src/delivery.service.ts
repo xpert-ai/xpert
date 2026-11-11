@@ -67,7 +67,8 @@ export class CodingDeliveryService {
     const binding = existing ? { bindingId: existing.id } : await api.configure(c, {
       requestId: identity(c.projectId, assistantId, configuration.binding.templateRef),
       configuration: { ...configuration, binding: { ...configuration.binding,
-        executorBindings: { coordinator: { kind: 'assistant', roleKey: 'coordinator', selectionKey: assistantId } } } }
+        executorBindings: { ...configuration.binding.executorBindings,
+          coordinator: { kind: 'assistant', roleKey: 'coordinator', selectionKey: assistantId } } } }
     })
     const receipt = await api.start(c, { bindingId: binding.bindingId, objectKey: id, triggerKey: id, title: input.title })
     await this.store.deliveries.update({ ...scopeWhere(c), id, revision: row.revision }, { instanceId: receipt.instanceId })
