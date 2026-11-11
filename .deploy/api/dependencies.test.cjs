@@ -187,3 +187,21 @@ test('missing compiler output is rejected instead of shipping source-only packag
   fs.rmSync(path.join(root, 'dist/packages/server-ai'), { recursive: true })
   assert.throws(() => prepareRuntime(destination, root), /ENOENT/)
 })
+
+test('runtime assembly carries Coding Project entry points and plugin resources in both lookup layouts', (t) => {
+  const { root, destination, write } = fixture(t)
+  const dir = 'packages/plugins/coding-project'
+  const assets = {
+    '.xpertai-plugin/plugin.json': '{"skills":["./skills/coding-project-delivery"]}',
+    'skills/coding-project-delivery/SKILL.md': '# Delivery workflow',
+    'docs/delivery.md': '# Delivery configuration'
+  }
+  for (const [file, content] of Object.entries(assets)) write(`dist/${dir}/${file}`, content)
+  prepareRuntime(destination, root)
+  for (const layout of [dir, `dist/${dir}`]) {
+    assert.equal(fs.readFileSync(path.join(destination, layout, 'index.js'), 'utf8'), '// compiled')
+    for (const [file, content] of Object.entries(assets)) {
+      assert.equal(fs.readFileSync(path.join(destination, layout, file), 'utf8'), content)
+    }
+  }
+})

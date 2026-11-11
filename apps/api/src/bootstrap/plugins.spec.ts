@@ -72,20 +72,24 @@ describe('preBootstrapPlugins built-in plugins', () => {
     jest.restoreAllMocks()
   })
 
-  it.each([undefined, '@xpert-ai/plugin-github-integration,@xpert-ai/plugin-github-integration@0.1.0'])(
-    'registers GitHub automatically once in system scope with PLUGINS=%s',
-    async (plugins) => {
+  it.each(
+    ['@xpert-ai/plugin-github-integration', '@xpert-ai/plugin-coding-project'].flatMap((name) =>
+      [undefined, `${name},${name}@0.1.0`].map((plugins) => ({ name, plugins }))
+    )
+  )(
+    'registers $name automatically once in system scope with PLUGINS=$plugins',
+    async ({ name, plugins }) => {
       if (plugins) process.env.PLUGINS = plugins
       await preBootstrapPlugins()
       const registrations = register.mock.calls.flatMap(([group]) =>
         group.plugins
-          .filter((plugin) => plugin.name === '@xpert-ai/plugin-github-integration')
+          .filter((plugin) => plugin.name === name)
           .map((plugin) => ({ scopeKey: group.scopeKey, ...plugin }))
       )
       expect(registrations).toEqual([
         {
           scopeKey: SYSTEM_GLOBAL_SCOPE,
-          name: '@xpert-ai/plugin-github-integration',
+          name,
           source: 'code',
           level: 'system'
         }

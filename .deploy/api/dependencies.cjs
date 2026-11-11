@@ -21,6 +21,7 @@ const packages = [
   'plugins/draft',
   'plugins/github-integration',
   'plugins/execution-observability',
+  'plugins/coding-project',
   'plugins/vlm-default'
 ].map((name) => `packages/${name}`)
 const dependencyFields = [
