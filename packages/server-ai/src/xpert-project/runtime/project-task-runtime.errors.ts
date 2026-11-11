@@ -15,6 +15,7 @@ export type ProjectTaskRuntimeErrorCode =
     | 'DecisionRequired'
     | 'AssigneeRequired'
     | 'ReviewReport'
+    | 'ReviewerRequired'
 export function projectTaskRuntimeError(code: ProjectTaskRuntimeErrorCode, diagnostic?: ProjectTaskReviewReportDiagnostic | null) {
     const status = code === 'Scope' ? 403 : code === 'NotFound' ? 404 : code === 'Invalid' ? 400 : 409
     const message = t(`server-ai:Error.ProjectTaskRuntime${code}`)

@@ -102,7 +102,8 @@ async function fixture() {
         return structuredClone(result)
     })
     const factory = { resolveInvocationIdentityScope: async (value: AgentInvocationScope) => ({ ...value }),
-        resolveBackgroundTarget: jest.fn(async () => target), createCapturedApi: jest.fn(() => ({ inspect, start })) }
+        resolveBackgroundTarget: jest.fn(async () => target), resolveReviewTarget: jest.fn(async () => target),
+        createCapturedApi: jest.fn(() => ({ inspect, start })) }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const module = await Test.createTestingModule({ providers: [ProjectTaskDispatchService, ProjectTaskCardProvider,
         { provide: DataSource, useValue: {} }, { provide: XpertProjectAccessService, useValue: {} },
@@ -120,6 +121,24 @@ describe('Project review dispatch inspection boundaries', () => {
     beforeEach(async () => { f = await fixture() })
     afterEach(async () => { await f.module.close() })
     const dispatch = () => f.service.dispatch(f.scope.projectId, f.input, f.caller)
+
+    it('uses Runtime admission without duplicating provider or environment restrictions', async () => {
+        const admitted: AgentTarget = { bindingId: f.input.bindingId, revision: '1', provider: 'approved-review-runtime',
+            reference: 'review', configuration: {} }
+        f.factory.resolveReviewTarget.mockResolvedValue(admitted)
+        await dispatch()
+        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId, 'evidence_only')
+        expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalled()
+        expect(f.start.mock.calls[0][0].target).toEqual(admitted)
+    })
+
+    it('stops before inspection or reservation when Runtime rejects the reviewer', async () => {
+        f.factory.resolveReviewTarget.mockRejectedValue(new Error('Review unsupported'))
+        await expect(dispatch()).rejects.toThrow('Review unsupported')
+        expect(f.transaction).not.toHaveBeenCalled()
+        expect(f.inspect).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+    })
 
     it('inspects the implementation before reserving review work and starts the reviewer after commit', async () => {
         const result = await dispatch()

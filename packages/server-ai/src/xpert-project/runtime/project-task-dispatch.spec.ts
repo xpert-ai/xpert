@@ -138,6 +138,7 @@ async function fixture() {
     const factory = {
         resolveInvocationIdentityScope: jest.fn(async (value: AgentInvocationScope) => ({ ...value })),
         resolveBackgroundTarget: jest.fn(async () => target),
+        resolveReviewTarget: jest.fn(async () => target),
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
@@ -176,6 +177,16 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('preflights an assigned reviewer through the Runtime before implementation reservation', async () => {
+        const f = await fixture()
+        const reviewer = { bindingId: randomUUID(), mode: 'evidence_only' as const }
+        f.factory.resolveReviewTarget.mockRejectedValue(new Error('Reviewer not available'))
+        await expect(f.service.dispatch(f.scope.projectId, { ...f.input,
+            purpose: { type: 'implementation', reviewer } }, f.caller)).rejects.toThrow('Reviewer not available')
+        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId, reviewer.mode)
+        expect(f.executionRepo.save).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+    })
     it('reserves canonical invocation identity while retaining the admitting execution in its intent', async () => {
         const f = await fixture()
         const canonical = { ...f.scope, parentExecutionId: randomUUID() }

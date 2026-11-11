@@ -133,10 +133,17 @@ export class ProjectTaskRuntimeReadService {
         // Hierarchy navigation does not inspect child invocations or establish acceptance.
         const children = await this.tasks.find({
             where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.id },
-            select: ['id', 'name', 'title', 'kind', 'status', 'revision'],
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
             order: { createdAt: 'ASC', id: 'ASC' },
             loadEagerRelations: false
         })
+        // A coordinated implementation's reviews are siblings; standalone reviews are its children.
+        const related = (task.kind ?? 'task') === 'task' && !task.reviewSubject
+            ? task.parentTaskId ? await this.tasks.find({
+                where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.parentTaskId },
+                select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+                order: { createdAt: 'ASC', id: 'ASC' }, loadEagerRelations: false
+            }) : children : []
         return {
             ...task,
             childTasks: children.map((child) => ({
@@ -145,6 +152,10 @@ export class ProjectTaskRuntimeReadService {
                 kind: child.kind,
                 status: child.status,
                 revision: child.revision
+            })),
+            reviewTasks: related.filter((child) => child.reviewSubject?.implementationTaskId === task.id).map((child) => ({
+                id: child.id, title: child.title || child.name, kind: child.kind,
+                status: child.status, revision: child.revision, reviewSubject: child.reviewSubject
             })),
             specificationSnapshot: specification.success
                 ? createProjectTaskSpecificationSnapshot(specification.data)

@@ -2,6 +2,7 @@ import { TaskControlStore } from '@xpert-ai/server-core'
 import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
+import { projectTaskCoordinationCases } from './testing/project-task-coordination.cases'
 import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
 import { XpertProjectTaskService } from '../services/project-task.service'
 import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
@@ -73,6 +74,8 @@ const schemas = [
             providerKey: nullableText,
             controlKind: { ...text, default: 'ordinary' },
             requirements: json,
+            parentTaskId: { ...uuid, nullable: true },
+            reviewSubject: json,
             decisions: json,
             predecessorIds: json,
             assigneeXpertId: { ...uuid, nullable: true }
@@ -220,6 +223,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
         await database.query(readFileSync(join(__dirname, '../../execution-control/migration.sql'), 'utf8'))
         await database.query(readFileSync(join(__dirname, '../../../../server/src/task-control/migration.sql'), 'utf8'))
+        await database.query(readFileSync(join(__dirname, '../../chat-conversation/control-view/migration.sql'), 'utf8'))
         await database.query(migration)
         const reliable = readFileSync(
             join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),
@@ -231,6 +235,10 @@ integration('explicit task delegation / PostgreSQL', () => {
         const decisions = readFileSync(join(__dirname, '../migrations/20261006-project-task-decisions.sql'), 'utf8')
         await database.query(decisions)
         await database.query(decisions)
+        await database.query('ALTER TABLE xpert_project_task ADD COLUMN "parentTaskId" uuid NULL')
+        const reviewSubtasks = readFileSync(join(__dirname, '../migrations/20261110000000-task-review-subtasks.sql'), 'utf8')
+        await database.query(reviewSubtasks)
+        await database.query(reviewSubtasks)
     })
     afterAll(async () => {
         if (database?.isInitialized) {
@@ -665,4 +673,5 @@ integration('explicit task delegation / PostgreSQL', () => {
 
     reliableReturnIntegrationCases(() => ({ database, store, service, factory, scope, caller, input, start, strategy }))
     projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context }))
+    projectTaskCoordinationCases(() => ({ database, store, service, factory, scope, caller, input, context }))
 })

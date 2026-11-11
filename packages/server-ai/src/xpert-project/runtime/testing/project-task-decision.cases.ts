@@ -13,7 +13,7 @@ import { ProjectTaskDispatchService } from '../project-task-dispatch.service'
 import { ProjectTaskCaller } from '../project-task-dispatch.schema'
 import { ProjectTaskRuntimeContextService } from '../project-task-runtime-context.service'
 
-type Fixture = {
+export type Fixture = {
     database: DataSource
     store: TypeOrmAgentInvocationStore
     service: ProjectTaskDispatchService

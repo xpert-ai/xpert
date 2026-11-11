@@ -58,6 +58,7 @@ async function fixture() {
     }) }
     const projectRepo = { findOneOrFail: jest.fn(async () => ({ id: scope.projectId })) }
     const taskRepo = {
+        find: jest.fn(async () => []),
         findOne: jest.fn(async () => structuredClone(task)),
         findOneBy: jest.fn(async () => structuredClone(task)),
         update: jest.fn(async (where: { id: string; revision: number }, change: Partial<XpertProjectTask>) => {

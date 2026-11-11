@@ -26,7 +26,7 @@ function fixture(status = 'succeeded', executionBudget?: { maxDurationSeconds: n
     const findOneBy = jest.fn().mockResolvedValue({ id: invocationId, invocation })
     const repository = Object.assign(Object.create(Repository.prototype) as Repository<XpertProjectTask>, {
         find: jest.fn().mockResolvedValue([]),
-        findOne: jest.fn().mockResolvedValue({ id: taskId, projectId, title: 'Plugin', requirements: ['Works'], steps: [],
+        findOne: jest.fn().mockResolvedValue({ id: taskId, projectId, title: 'Plugin', kind: 'task', parentTaskId: null, requirements: ['Works'], steps: [],
             executions: [{ id: attemptId, taskId, projectId, invocationId, attempt: 1, purpose }] }),
         manager: { getRepository: () => ({ findOneBy, find: jest.fn().mockResolvedValue([]) }) }
     })
@@ -122,6 +122,38 @@ it('projects the pinned execution budget after authorization without inventing o
 })
 
 describe('direct child task summaries', () => {
+    it('lists only reviews bound to this implementation among its summary siblings', async () => {
+        const f = fixture()
+        const source = await f.repository.findOne({})
+        source.parentTaskId = 'summary'
+        const subject = { implementationTaskId: taskId, implementationExecutionId: attemptId, specificationDigest: 'digest' }
+        f.repository.find.mockResolvedValueOnce([]).mockResolvedValueOnce([
+            Object.assign(new XpertProjectTask(), { id: 'review', title: 'Review', kind: 'task', status: 'done', revision: 3, reviewSubject: subject }),
+            Object.assign(new XpertProjectTask(), { id: 'other-review', reviewSubject: { ...subject, implementationTaskId: 'other' } })
+        ])
+        const result = await f.service.get(projectId, taskId)
+        expect(result.reviewTasks).toEqual([{ id: 'review', title: 'Review', kind: 'task', status: 'done', revision: 3, reviewSubject: subject }])
+        expect(f.repository.find).toHaveBeenNthCalledWith(2, {
+            where: { projectId, tenantId: 'tenant', organizationId: 'organization', parentTaskId: 'summary' },
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+            order: { createdAt: 'ASC', id: 'ASC' }, loadEagerRelations: false
+        })
+        expect(f.inspect).toHaveBeenCalledTimes(1)
+    })
+
+    it('reuses the direct-child query for standalone implementation reviews', async () => {
+        const f = fixture()
+        const subject = { implementationTaskId: taskId, implementationExecutionId: attemptId, specificationDigest: 'digest' }
+        f.repository.find.mockResolvedValue([Object.assign(new XpertProjectTask(), {
+            id: 'review', name: 'Review', kind: 'task', status: 'blocked', revision: 2, reviewSubject: subject
+        })])
+        const result = await f.service.get(projectId, taskId)
+        expect(result.reviewTasks).toHaveLength(1)
+        expect(result.childTasks[0]).not.toHaveProperty('reviewSubject')
+        expect(f.repository.find).toHaveBeenCalledTimes(1)
+        expect(f.inspect).toHaveBeenCalledTimes(1)
+    })
+
     it('scopes the query to the authorized parent and omits child requirements and execution results', async () => {
         const f = fixture()
         const children = [
@@ -143,7 +175,7 @@ describe('direct child task summaries', () => {
         expect(f.repository.find).toHaveBeenCalledTimes(1)
         expect(f.repository.find).toHaveBeenCalledWith({
             where: { projectId, tenantId: 'tenant', organizationId: 'organization', parentTaskId: taskId },
-            select: ['id', 'name', 'title', 'kind', 'status', 'revision'],
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
             order: { createdAt: 'ASC', id: 'ASC' },
             loadEagerRelations: false
         })

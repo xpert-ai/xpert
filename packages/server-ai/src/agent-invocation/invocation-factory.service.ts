@@ -13,6 +13,7 @@ import {
 import {
     agentRuntimeModelSourceSchema,
     assistantTaskGroupContext,
+    type ProjectTaskReviewer,
     type ProjectPipelineCatalog
 } from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
@@ -91,6 +92,22 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             !agentRuntimeModelSourceSchema.safeParse(target.configuration.modelSource).success
         )
             throw invocationError('ModelSourceRequired')
+        return target
+    }
+
+    /** Host-only review admission; authorization and background support are checked before confinement. */
+    async resolveReviewTarget(
+        scope: AgentInvocationScope,
+        bindingId: string,
+        mode: ProjectTaskReviewer['mode']
+    ): Promise<AgentTarget> {
+        const target = await this.resolveBackgroundTarget(scope, bindingId)
+        // The existing host runner confines only evidence-only Computer OpenCode reviews.
+        // Keep that policy at the Runtime boundary; target configuration cannot self-declare support.
+        // Execution review stays unavailable until its environment verifier is integrated.
+        if (mode !== 'evidence_only' || target.provider !== 'opencode' ||
+            !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
+            throw invocationError('Unsupported')
         return target
     }
 

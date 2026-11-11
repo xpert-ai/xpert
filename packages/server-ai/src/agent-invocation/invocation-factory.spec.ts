@@ -12,6 +12,7 @@ import {
     AgentExecutionRunnerCapability,
     AgentExecutionRunnerFactoryCapability,
     AgentInvocationScope,
+    AgentTarget,
     AgentRunnerReceipt,
     AgentRuntimeRegistry,
     BUILTIN_GLOBAL_SCOPE,
@@ -33,7 +34,7 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
 const bindingId = '00000000-0000-4000-8000-000000000010'
 
 function fixture() {
-    const binding = {
+    const binding: { enabled: boolean; workspaceIds: string[]; target: AgentTarget } = {
         enabled: true,
         workspaceIds: ['workspace'],
         target: {
@@ -122,6 +123,59 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
         stop: jest.fn(async () => ({ state: 'exited' as const }))
     } satisfies AgentExecutionRunner
 }
+
+describe('Runtime review target admission', () => {
+    let f: ReturnType<typeof fixture>
+    const scope: AgentInvocationScope = {
+        tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace',
+        callerXpertId: 'assistant', callerAgentKey: 'leader', parentExecutionId: 'parent'
+    }
+    beforeEach(() => {
+        f = fixture()
+        f.binding.target.provider = 'opencode'
+        f.binding.target.configuration = { executionEnvironment: { type: 'computer' } }
+        f.registry.register('opencode', f.provider, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
+    })
+    it('authorizes the binding and checks background support without launching work', async () => {
+        const target = await f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')
+        expect(target).toEqual(f.binding.target)
+        expect(target).not.toBe(f.binding.target)
+        expect(f.managed.assertEnabled).toHaveBeenCalledWith(scope, f.binding)
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('rejects disabled bindings and unauthorized workspaces', async () => {
+        f.binding.enabled = false
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'NotFound' })
+        f.binding.enabled = true
+        f.binding.workspaceIds = ['other-workspace']
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'NotFound' })
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('propagates environment authorization failures', async () => {
+        f.managed.assertEnabled.mockRejectedValue(new Error('Environment permission revoked'))
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toThrow('Environment permission revoked')
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('requires an installed background provider', async () => {
+        f.binding.target.provider = 'missing'
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'ProviderUnavailable' })
+        f.binding.target.provider = 'opencode'
+        f.provider.capabilities.background = false
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
+    })
+    it('rejects execution review until its verifier is available', async () => {
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'execution')).rejects.toMatchObject({ code: 'Unsupported' })
+    })
+    it('rejects an environment without the host evidence confinement', async () => {
+        f.binding.target.configuration = { executionEnvironment: { type: 'sandbox' } }
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
+    })
+    it('does not trust a target configuration to grant itself review support', async () => {
+        f.binding.target.provider = 'remote'
+        f.binding.target.configuration = { executionEnvironment: { type: 'computer' }, reviewModes: ['evidence_only'] }
+        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
+    })
+})
 
 describe('Agent invocation factory and controller boundaries', () => {
     it('binds the runner to the persisted call identity after its admitting execution resumes', async () => {
