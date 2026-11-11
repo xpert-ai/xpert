@@ -249,6 +249,7 @@
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
         "ProjectTaskRuntimeReviewReport": "The selected review report is missing, malformed, or does not match the pinned implementation evidence. Use the diagnostic code and field paths to correct report delivery while preserving the actual findings and exact pinned subject and evidence. A formatting error alone does not require repeating business tests.",
         "ProjectTaskRuntimeReviewerRequired": "This task has an independent reviewer. Retain the reviewer on retries and obtain its review before accepting.",
+        "ProjectTaskRuntimeReviewFeedback": "Rework must reference the latest recorded rework decision and existing finding IDs from its execution review.",
         "ProjectTaskRuntimeEvidence": "Evidence or review is unavailable, stale, or this runtime does not support evidence-only review",
         "ProjectTaskRuntimeDecisionRequired": "Delegated tasks require an explicit decision with implementation evidence and checks",
         "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",

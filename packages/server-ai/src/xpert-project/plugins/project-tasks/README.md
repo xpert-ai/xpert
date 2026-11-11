@@ -94,7 +94,19 @@ A confirmed successful review with a valid report completes the review work item
 
 For a child under an ordinary summary, the host pins `purpose.coordination` to the parent's current specification; callers cannot supply it. Children may receive explicit acceptance or rework decisions independently, without completing the summary. To complete the summary, call `project_decide_task` with the summary ID and revision, the child implementation execution and specification digest, and its current evidence and review. Other non-review children must already be completed. The parent decision and referenced child's decision/status are saved atomically. Rework is allowed while siblings remain unfinished. Parent requirement changes or moving the implementation to another parent invalidate the old coordination evidence.
 
-Ordinary `outcome: "rework"` records feedback and resets the affected task(s) to `todo`; it does not start another execution. Execution-mode review, workspace snapshot verification, and finding-linked `purpose.rework` dispatch require an environment verifier and remain unavailable through this OS workflow. Their presence in shared contracts or historical read projections does not enable execution or acceptance.
+Ordinary `outcome: "rework"` records feedback and resets the affected task(s) to `todo`; it does not start another execution. Execution-mode review and workspace snapshot verification require an environment verifier and remain unavailable through this OS dispatch/acceptance workflow. Their presence in shared contracts or historical read projections does not enable execution or acceptance.
+
+## Feedback-linked rework
+
+When a persisted version 2 execution-review report provides structured findings, the coordinator can record a rework decision with its `reviewExecutionId`, then dispatch an implementation with `purpose.rework: { reviewExecutionId, findingIds: ["F1"] }`. Keep any assigned reviewer. Evidence-only version 1 reports contain text findings rather than stable finding IDs, so they use ordinary rework instructions instead.
+
+The host requires the task's latest decision to be that rework decision. Its implementation, specification digest and ordered evidence must match the referenced review. The review work item, invocation ownership and dispatch identity are checked before reading the confirmed report; every selected ID must exist in that report. The implementation prompt receives selected findings, the decision rationale, checks and limitations. Caller-supplied prose cannot replace those persisted records.
+
+A failed or cancelled implementation may retry the same feedback chain only after its owned work is confirmed stopped. A running, unconfirmed or successful attempt cannot be reused as a failed retry. Same-request replay still returns the original attempt. A new candidate receives a fresh review, with validated previous feedback labeled as untrusted historical observations; the previous verdict never establishes acceptance of the new candidate.
+
+This shared workflow only reads task decisions and Runtime results. It does not access Computer APIs, create a snapshot, start a review CLI, or verify a filesystem candidate. Supporting recorded version 2 feedback does not enable execution-review dispatch on a host without the required Runtime integration.
+
+Internally, `project-task-review-feedback.ts` validates the stored review and projects supported reports into structured feedback; report-version handling stays at this boundary. `project-task-rework.ts` checks the decision and retry chain and returns typed context. `project-task-feedback-prompt.ts` only formats that context, without database access or eligibility decisions. Reads retain the dispatch transaction's project lock, and database errors propagate instead of silently dropping feedback. These are host-internal helpers, not new plugin SDK APIs.
 
 ## Result acceptance
 

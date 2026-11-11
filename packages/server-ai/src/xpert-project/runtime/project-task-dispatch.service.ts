@@ -25,6 +25,8 @@ import { XpertProjectTaskExecution } from '../entities/project-task-execution.en
 import { assertOrdinaryTask } from '../services/project-task-ownership'
 import { implementationEvidence, reviewPrompt, taskSpecification } from './project-task-evidence'
 import { coordinationContext, ensureReviewSubtask, reviewImplementationTask } from './project-task-review-subtasks'
+import { projectTaskReworkContext, projectTaskPriorReviewContext } from './project-task-rework'
+import { projectTaskReworkPrompt, projectTaskPriorReviewPrompt } from './project-task-feedback-prompt'
 import {
     ProjectTaskCaller,
     ProjectTaskDispatchIntent,
@@ -73,8 +75,6 @@ export class ProjectTaskDispatchService {
         const identityScope = await this.factory.resolveInvocationIdentityScope(scope)
         if (input.reviewAsSubtask && purpose.type !== 'review') throw projectTaskRuntimeError('Invalid')
         if (purpose.type === 'implementation' && purpose.coordination) throw projectTaskRuntimeError('Owned')
-        // Executable review and finding-linked rework require the environment-specific verifier.
-        if (purpose.type === 'implementation' && purpose.rework) throw projectTaskRuntimeError('Invalid')
         if (purpose.type === 'implementation' && purpose.reviewer) {
             await this.factory.resolveReviewTarget(scope, purpose.reviewer.bindingId, purpose.reviewer.mode)
         }
@@ -167,6 +167,8 @@ export class ProjectTaskDispatchService {
             const specificationSnapshot = taskSpecification(subjectTask)
             let prompt = implementationPrompt(specificationSnapshot.specification, input.instructions)
             if (purpose.type === 'implementation') {
+                const feedback = await projectTaskReworkContext(manager, task, scope, purpose)
+                if (feedback) prompt += '\n\n' + projectTaskReworkPrompt(feedback)
                 if (purpose.reviewer) prompt += '\n\nAn independent reviewer is assigned. Submit the candidate and reproducible handoff; your result does not accept the task.'
             }
             if (purpose.type === 'review') {
@@ -194,6 +196,8 @@ export class ProjectTaskDispatchService {
                     JSON.stringify(subject.invocation.result ?? null),
                     subject.invocation.handle?.runner?.workingDirectory
                 )
+                const priorFeedback = await projectTaskPriorReviewContext(manager, subjectTask, scope, subject.latest)
+                if (priorFeedback) prompt += '\n\n' + projectTaskPriorReviewPrompt(priorFeedback)
             }
             const predecessors = [...new Set(task.predecessorIds ?? [])]
             if (predecessors.length) {

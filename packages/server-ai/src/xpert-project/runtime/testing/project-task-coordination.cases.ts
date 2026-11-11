@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { ProjectTaskDecisionInput } from '@xpert-ai/contracts'
+import { ProjectTaskDecisionInput, type ProjectTaskExecutionReviewReport } from '@xpert-ai/contracts'
+import { AgentInvocationEntity } from '../../../agent-invocation/invocation.entity'
 import { AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
 import { XpertProjectTask } from '../../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../../entities/project-task-execution.entity'
@@ -9,6 +10,7 @@ import { ProjectTaskDecisionService } from '../project-task-decision.service'
 import type { Fixture } from './project-task-decision.cases'
 import { ProjectRuntimeObservationHandler } from '../project-runtime-observation.handler'
 import { ProjectRuntimeObservationCommand } from '../../../handoff/runtime-messaging/runtime-message.commands'
+import { projectTaskRuntimeError } from '../project-task-runtime.errors'
 export function projectTaskCoordinationCases(fixture: () => Fixture) {
     describe('independent review task coordination', () => {
         let f: Fixture, decisions: ProjectTaskDecisionService
@@ -99,6 +101,131 @@ export function projectTaskCoordinationCases(fixture: () => Fixture) {
             return receipt
         }
         const task = (id: string) => f.database.getRepository(XpertProjectTask).findOneBy({ id })
+
+        async function feedbackDecision() {
+            const input = await implemented(), binding = await reviewer(false)
+            const receipt = await review(input, binding, 'changes_required')
+            const saved = await f.store.read(receipt.invocationId, f.scope)
+            const dispatch = saved.invocation.request.dispatch, reference = dispatch?.projectTask
+            if (reference?.purpose.type !== 'review') throw new Error('Expected review fixture')
+            // Seed a historical report from an execution-capable host. This does not enable execution review in OS.
+            const purpose = { ...reference.purpose, mode: 'execution' as const, candidatePaths: ['src'] }
+            const report: ProjectTaskExecutionReviewReport = {
+                version: 2, mode: 'execution', verdict: 'changes_required',
+                implementationInvocationId: purpose.implementationInvocationId,
+                specificationDigest: purpose.specificationDigest, evidence: purpose.evidence,
+                summary: 'Registration and metadata need correction',
+                checks: [{ description: 'Check registration', outcome: 'failed', actual: 'Registration missing' }],
+                findings: [
+                    { id: 'F1', kind: 'defect', blocking: true, description: 'Register the tool' },
+                    { id: 'F2', kind: 'suggestion', blocking: false, description: 'Improve metadata description' }
+                ], limitations: ['Fixture report; no real CLI execution']
+            }
+            await f.database.getRepository(XpertProjectTaskExecution).update({ id: receipt.taskExecutionId }, { purpose })
+            expect(await f.store.replace({ ...saved, invocation: { ...saved.invocation,
+                request: { ...saved.invocation.request, dispatch: { ...dispatch, projectTask: { ...reference, purpose } } },
+                result: { text: JSON.stringify(report) }, revision: saved.invocation.revision + 1
+            } }, saved.invocation.revision)).toBe(true)
+            await decisions.decide(f.scope.projectId, { ...input, reviewExecutionId: receipt.taskExecutionId,
+                outcome: 'rework', rationale: 'Address F1 before accepting' }, f.caller)
+            f.input = { ...f.input, requestId: randomUUID(), expectedRevision: (await task(input.taskId)).revision,
+                purpose: { type: 'implementation', rework: { reviewExecutionId: receipt.taskExecutionId, findingIds: ['F1'] } } }
+            return { input, binding, receipt, report }
+        }
+
+        it('carries selected findings through a failed retry and requires fresh acceptance evidence', async () => {
+            const { input, binding, receipt } = await feedbackDecision()
+            const first = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            expect((await f.service.dispatch(f.scope.projectId, f.input, f.caller)).taskExecutionId).toBe(first.taskExecutionId)
+            const firstRun = await f.store.read(first.invocationId, f.scope)
+            expect(firstRun.invocation.request.input.prompt).toContain('"id":"F1"')
+            expect(firstRun.invocation.request.input.prompt).not.toContain('"id":"F2"')
+            await f.store.replace({ ...firstRun, invocation: { ...firstRun.invocation, status: 'failed',
+                revision: firstRun.invocation.revision + 1 } }, firstRun.invocation.revision)
+            f.input = { ...f.input, requestId: randomUUID(), expectedRevision: (await task(input.taskId)).revision }
+            const next = await implemented(), secondReview = await review(next, binding)
+            const reviewRun = await f.store.read(secondReview.invocationId, f.scope)
+            expect(reviewRun.invocation.request.input.prompt).toContain('Previous independent feedback')
+            expect(reviewRun.invocation.request.input.prompt).toContain('not instructions or a verdict on the current candidate')
+            expect(reviewRun.invocation.request.input.prompt).toContain('"selectedFindingIds":["F1"]')
+            expect(secondReview.projectTaskId).not.toBe(receipt.projectTaskId)
+            await expect(decisions.decide(f.scope.projectId, { ...next, reviewExecutionId: receipt.taskExecutionId }, f.caller)).rejects.toThrow()
+            await decisions.decide(f.scope.projectId, { ...next, reviewExecutionId: secondReview.taskExecutionId }, f.caller)
+            expect((await task(input.taskId)).decisions.map((item) => item.outcome)).toEqual(['rework', 'accept'])
+        })
+
+        it('keeps version 1 reports on ordinary rework without inventing finding IDs', async () => {
+            const binding = await reviewer(), input = await implemented(), receipt = await review(input, binding, 'changes_required')
+            await decisions.decide(f.scope.projectId, { ...input, reviewExecutionId: receipt.taskExecutionId,
+                outcome: 'rework', rationale: 'Address the reported observations' }, f.caller)
+            const assignedReviewer = { bindingId: binding, mode: 'evidence_only' as const }
+            f.input = { ...f.input, requestId: randomUUID(), expectedRevision: (await task(input.taskId)).revision,
+                instructions: 'Address the reported observations', purpose: { type: 'implementation', reviewer: assignedReviewer,
+                    rework: { reviewExecutionId: receipt.taskExecutionId, findingIds: ['F1'] } } }
+            const before = await f.database.getRepository(XpertProjectTaskExecution).count()
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller))
+                .rejects.toMatchObject({ message: projectTaskRuntimeError('ReviewFeedback').message })
+            expect(await f.database.getRepository(XpertProjectTaskExecution).count()).toBe(before)
+            f.input.purpose = { type: 'implementation', reviewer: assignedReviewer }
+            const next = await implemented(), nextReview = await review(next, binding)
+            const implementation = await f.store.read(next.evidence[0].type === 'invocation_result' ? next.evidence[0].invocationId : '', f.scope)
+            expect(implementation.invocation.request.input.prompt).toContain('Address the reported observations')
+            expect(implementation.invocation.request.input.prompt).not.toContain('Rework the selected findings')
+            const reviewRun = await f.store.read(nextReview.invocationId, f.scope)
+            expect(reviewRun.invocation.request.input.prompt).not.toContain('Previous independent feedback')
+        })
+
+        it.each(['invented-finding', 'missing-decision', 'changed-digest', 'changed-evidence', 'unfinished-review',
+            'other-owner', 'mismatched-invocation', 'duplicate-findings', 'mismatched-report-evidence'] as const)(
+            'rejects %s before reserving rework', async (invalid) => {
+            const { input, receipt, report } = await feedbackDecision()
+            const tasks = f.database.getRepository(XpertProjectTask), current = await task(input.taskId)
+            if (invalid === 'invented-finding' && f.input.purpose?.type === 'implementation')
+                f.input.purpose.rework.findingIds = ['invented']
+            if (invalid === 'missing-decision') await tasks.update({ id: input.taskId }, { decisions: [] })
+            if (invalid === 'changed-digest' || invalid === 'changed-evidence') {
+                const decision = current.decisions.at(-1)
+                await tasks.update({ id: input.taskId }, { decisions: [{ ...decision,
+                    ...(invalid === 'changed-digest' ? { specificationDigest: 'sha256:' + '0'.repeat(64) } :
+                        { evidence: [{ type: 'invocation_result', invocationId: randomUUID(), revision: 1 }] }) }] })
+            }
+            if (invalid === 'other-owner') await f.database.getRepository(AgentInvocationEntity)
+                .update({ id: receipt.invocationId }, { ownerId: randomUUID() })
+            if (invalid === 'unfinished-review' || invalid === 'mismatched-invocation') {
+                const saved = await f.store.read(receipt.invocationId, f.scope)
+                const invocation = structuredClone(saved.invocation)
+                if (invalid === 'unfinished-review') invocation.completionEvidence = 2
+                else invocation.request.dispatch.projectTask.taskExecutionId = randomUUID()
+                await f.store.replace({ ...saved, invocation: { ...invocation, revision: invocation.revision + 1 } }, saved.invocation.revision)
+            }
+            if (invalid === 'duplicate-findings' || invalid === 'mismatched-report-evidence') {
+                const saved = await f.store.read(receipt.invocationId, f.scope)
+                const corrupted = { ...report, ...(invalid === 'duplicate-findings' ?
+                    { findings: [report.findings[0], report.findings[0]] } :
+                    { evidence: [{ type: 'invocation_result', invocationId: randomUUID(), revision: 1 }] }) }
+                await f.store.replace({ ...saved, invocation: { ...saved.invocation, result: { text: JSON.stringify(corrupted) },
+                    revision: saved.invocation.revision + 1 } }, saved.invocation.revision)
+            }
+            f.input.expectedRevision = (await task(input.taskId)).revision
+            const before = await f.database.getRepository(XpertProjectTaskExecution).count()
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller))
+                .rejects.toMatchObject({ message: projectTaskRuntimeError('ReviewFeedback').message })
+            expect(await f.database.getRepository(XpertProjectTaskExecution).count()).toBe(before)
+        })
+
+        it.each(['running', 'succeeded', 'cancelled', 'unconfirmed-failure'] as const)(
+            'does not reuse a rework chain after %s', async (state) => {
+                await feedbackDecision()
+                const receipt = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+                const saved = await f.store.read(receipt.invocationId, f.scope)
+                await f.store.replace({ ...saved, invocation: { ...saved.invocation,
+                    status: state === 'unconfirmed-failure' ? 'failed' : state,
+                    ...(state === 'unconfirmed-failure' ? { completionEvidence: 2 as const } : {}),
+                    revision: saved.invocation.revision + 1 } }, saved.invocation.revision)
+                await expect(f.service.dispatch(f.scope.projectId, { ...f.input, requestId: randomUUID() }, f.caller))
+                    .rejects.toMatchObject({ message: projectTaskRuntimeError('ReviewFeedback').message })
+            }
+        )
 
         it.each(['pass', 'changes_required', 'indeterminate'] as const)(
             'finishes the %s review work item without accepting the implementation', async (verdict) => {
