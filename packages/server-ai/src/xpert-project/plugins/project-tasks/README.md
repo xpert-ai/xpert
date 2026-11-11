@@ -74,6 +74,12 @@ See [Reliable Runtime replies](../../../handoff/runtime-messaging/README.md) for
 
 OS includes the review protocol, version-bound evidence checks, acceptance decisions, and Tasks & Timeline presentation. The current independent review dispatch gate accepts only Computer OpenCode bindings because that runner provides evidence-only confinement. The Computer executor, isolated review directory, and CLI configuration are supplied by Pro; they are not implemented by this OS package. Other Runtime bindings can implement tasks, but cannot receive independent review requests until confinement is supported.
 
+## Persisted review candidate identity
+
+The existing `IXpertProjectTask.reviewSubject` contract has a nullable JSONB mapping on the task entity. It records the implementation task ID, implementation execution ID and specification digest for a review work item. Ordinary tasks keep `null`; this binding does not store a verdict or turn a task into an accepted delivery. A retry must retain the same candidate identity, while a new implementation needs its own binding.
+
+The field is host-owned. Generic create/update/save and step-update paths reject attempts to set or clear it, including `null`. Apply `20261110000000-task-review-subtasks.sql` before deploying a host with this entity mapping; its deployment check verifies the column type and nullability, and repeated application preserves existing task data. This storage foundation does not by itself create review children or enable their dispatch; that orchestration is integrated separately.
+
 ## Result acceptance
 
 The Runtime reports execution facts only. Successful implementation moves the task to `review`; the Agent responsible for the delegation or an authorized human then calls `project_decide_task`. Ordinary update tools cannot mark a task with Runtime attempts as complete. Updates and dispatch share the project transaction lock to prevent a race in which an attempt appears between a completion check and the save. A decision records the task revision, latest implementation attempt, specification digest, result revision or Artifact version, checks performed, and rationale. The decision and status change are committed in one transaction; retrying the same requestId returns the original decision.

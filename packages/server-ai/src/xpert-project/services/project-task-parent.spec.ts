@@ -34,7 +34,8 @@ function fixture(initial: XpertProjectTask[] = [task()], afterLock?: (rows: Xper
     const manager = Object.assign(Object.create(EntityManager.prototype) as EntityManager, {
         getRepository: (entity: object) => entity === XpertProject
             ? { findOne: findProject }
-            : entity === XpertProjectTask ? { findOneBy, save } : { save: jest.fn(async (value) => value) }
+            : entity === XpertProjectTask ? { findOneBy, find: jest.fn(async () => rows), save }
+            : { save: jest.fn(async (value) => value) }
     })
     const service = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
     Object.assign(service, {
@@ -143,5 +144,34 @@ describe('ordinary task creation under a summary', () => {
         const { service, save } = fixture()
         await expect(service.updateTask(scope.projectId, 'child', { parentTaskId })).rejects.toThrow()
         expect(save).not.toHaveBeenCalled()
+    })
+
+    describe('host-owned review candidate binding', () => {
+        const subject = {
+            implementationTaskId: '11111111-1111-4111-8111-111111111111',
+            implementationExecutionId: '22222222-2222-4222-8222-222222222222',
+            specificationDigest: `sha256:${'a'.repeat(64)}`
+        }
+
+        it.each([subject, null, undefined])('rejects ordinary mutation of reviewSubject (%j)', async (reviewSubject) => {
+            const existing = task({ id: 'review', kind: 'task', reviewSubject: subject, steps: [] })
+            const { service, save } = fixture([existing])
+            const input = { name: 'Review', status: 'todo' as const, steps: [], reviewSubject }
+            await expect(service.createTask(scope.projectId, input)).rejects.toThrow()
+            await expect(service.saveAll({ ...input, projectId: scope.projectId, id: existing.id })).rejects.toThrow()
+            await expect(service.updateTask(scope.projectId, existing.id, { reviewSubject })).rejects.toThrow()
+            await expect(service.updateTaskSteps(scope.projectId, undefined, { id: existing.id, reviewSubject }))
+                .rejects.toThrow()
+            expect(existing.reviewSubject).toEqual(subject)
+            expect(save).not.toHaveBeenCalled()
+        })
+
+        it('allows an ordinary title update without changing an existing review binding', async () => {
+            const existing = task({ id: 'review', kind: 'task', reviewSubject: subject })
+            const { service, save } = fixture([existing])
+            const updated = await service.updateTask(scope.projectId, existing.id, { title: 'Clarified review title' })
+            expect(updated).toMatchObject({ title: 'Clarified review title', reviewSubject: subject })
+            expect(save).toHaveBeenCalledTimes(1)
+        })
     })
 })
