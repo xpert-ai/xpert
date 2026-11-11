@@ -103,7 +103,8 @@ async function fixture() {
     })
     const factory = { resolveInvocationIdentityScope: async (value: AgentInvocationScope) => ({ ...value }),
         resolveBackgroundTarget: jest.fn(async () => target), resolveReviewTarget: jest.fn(async () => target),
-        createCapturedApi: jest.fn(() => ({ inspect, start })) }
+        createCapturedApi: jest.fn(() => ({ inspect, start })),
+        createExecutionReviewPrompt: jest.fn(() => 'Independent execution-review fixture instructions') }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const module = await Test.createTestingModule({ providers: [ProjectTaskDispatchService, ProjectTaskCardProvider,
         { provide: DataSource, useValue: {} }, { provide: XpertProjectAccessService, useValue: {} },
@@ -130,6 +131,31 @@ describe('Project review dispatch inspection boundaries', () => {
         expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId, 'evidence_only')
         expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalled()
         expect(f.start.mock.calls[0][0].target).toEqual(admitted)
+    })
+
+    it('uses the Runtime review protocol and preserves file delivery and the pinned candidate', async () => {
+        if (f.input.purpose?.type !== 'review') throw new Error('Expected review fixture')
+        f.input.purpose = { ...f.input.purpose, mode: 'execution', candidatePaths: ['plugin'] }
+        f.input.delivery = { mode: 'files', paths: ['output/report.json'] }
+        await dispatch()
+        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId, 'execution')
+        expect(f.factory.createExecutionReviewPrompt).toHaveBeenCalledTimes(1)
+        expect(f.factory.createExecutionReviewPrompt).toHaveBeenCalledWith(
+            f.input.purpose, taskSpecification(f.task).specification, JSON.stringify(f.invocation.result),
+            f.input.instructions, f.invocation.handle?.runner?.workingDirectory)
+        const request = f.start.mock.calls[0][0]
+        expect(request.input.delivery).toEqual(f.input.delivery)
+        expect(request.dispatch.projectTask.purpose).toMatchObject({ mode: 'execution', candidatePaths: ['plugin'] })
+        expect(request.input.prompt).toContain('Independent execution-review fixture instructions')
+        expect(request.input.prompt).not.toContain('All tools are disabled')
+    })
+
+    it('continues to deny file delivery for evidence-only reviews', async () => {
+        f.input.delivery = { mode: 'files', paths: ['report.json'] }
+        await expect(dispatch()).rejects.toThrow()
+        expect(f.inspect).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+        expect(f.factory.createExecutionReviewPrompt).not.toHaveBeenCalled()
     })
 
     it('stops before inspection or reservation when Runtime rejects the reviewer', async () => {

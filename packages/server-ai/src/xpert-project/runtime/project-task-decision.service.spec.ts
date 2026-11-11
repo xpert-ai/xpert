@@ -48,10 +48,12 @@ async function fixture() {
     // This double records transaction boundaries and models scoped reads/CAS. It is not a PostgreSQL lock test.
     const executionRepo = {
         find: jest.fn(async () => [...attempts].sort((a, b) => b.attempt - a.attempt)),
+        findBy: jest.fn(async () => structuredClone(attempts)),
         findOneBy: jest.fn(async (where: Partial<XpertProjectTaskExecution>) => attempts.find((item) =>
             Object.entries(where).every(([key, value]) => Reflect.get(item, key) === value)) ?? null)
     }
-    const invocationRepo = { findOneBy: jest.fn(async (where: { id: string; ownerId: string; tenantId: string; organizationId: string }) => {
+    const invocationRepo = { findBy: jest.fn(async () => [...invocations.values()].map(invocation => ({ id: invocation.id, invocation: structuredClone(invocation) }))),
+        findOneBy: jest.fn(async (where: { id: string; ownerId: string; tenantId: string; organizationId: string }) => {
         const value = invocations.get(where.id)
         return value && value.scope.userId === where.ownerId && value.scope.tenantId === where.tenantId &&
             value.scope.organizationId === where.organizationId ? { id: value.id, invocation: structuredClone(value) } : null
@@ -87,12 +89,16 @@ async function fixture() {
         return structuredClone(current)
     })
     const access = { assertCanEdit: jest.fn(async () => undefined) }
+    const verify = jest.fn(async (_scope: AgentInvocationScope, _id: string): Promise<boolean> => {
+        expect(transactionOpen).toBe(false)
+        return true
+    })
     const context = { actor: () => scope, resolve: jest.fn(async () => scope) }
     const module = await Test.createTestingModule({ providers: [ProjectTaskDecisionService,
         { provide: getRepositoryToken(XpertProjectTask), useValue: { ...taskRepo, manager: { ...manager, transaction } } },
         { provide: XpertProjectAccessService, useValue: access },
         { provide: ProjectTaskRuntimeContextService, useValue: context },
-        { provide: AgentInvocationFactoryService, useValue: { createCapturedApi: () => ({ inspect }) } }
+        { provide: AgentInvocationFactoryService, useValue: { createCapturedApi: () => ({ inspect }), verifyExecutionReview: verify } }
     ] }).compile()
     const service = module.get(ProjectTaskDecisionService)
     function addReview() {
@@ -108,7 +114,7 @@ async function fixture() {
         return { review, invocation: reviewed }
     }
     return { module, service, scope, caller, task, input, invocation, implementation, attempts, invocations, addReview,
-        access, inspect, transaction, projectRepo, taskRepo, executionRepo, invocationRepo, context,
+        access, inspect, verify, transaction, projectRepo, taskRepo, executionRepo, invocationRepo, context,
         beforeTransaction: (callback: () => void) => { onTransaction = callback } }
 }
 
@@ -118,6 +124,53 @@ describe('Project task decision inspection boundaries', () => {
     beforeEach(async () => { f = await fixture() })
     afterEach(async () => { await f.module.close() })
     const decide = () => f.service.decide(f.scope.projectId, f.input, f.caller)
+
+    function executionReview() {
+        const result = f.addReview()
+        if (result.review.purpose?.type !== 'review') throw new Error('Expected review fixture')
+        result.review.purpose = { ...result.review.purpose, mode: 'execution', candidatePaths: ['plugin'] }
+        result.invocation.request.dispatch.projectTask.purpose = result.review.purpose
+        result.invocation.result.text = JSON.stringify({ version: 2, mode: 'execution', verdict: 'pass',
+            specificationDigest: f.input.specificationDigest, implementationInvocationId: f.invocation.id,
+            evidence: f.input.evidence, summary: 'Independent checks passed', findings: [], limitations: [],
+            checks: [{ description: 'Invoke the candidate', outcome: 'passed', actual: 'Expected response' }] })
+        return result
+    }
+
+    it('verifies the completed execution review before taking the Project lock', async () => {
+        const review = executionReview()
+        await expect(decide()).resolves.toMatchObject({ outcome: 'accept' })
+        expect(f.verify).toHaveBeenCalledWith(review.invocation.scope, review.invocation.id)
+        expect(f.verify).toHaveBeenCalledTimes(1)
+    })
+
+    it('holds no transaction while candidate verification is pending and rejects a changed candidate', async () => {
+        executionReview()
+        let release!: (value: boolean) => void, started!: () => void
+        const verifying = new Promise<void>((resolve) => { started = resolve })
+        f.verify.mockImplementationOnce(async () => { started(); return new Promise(resolve => { release = resolve }) })
+        const operation = decide(); await verifying
+        expect(f.transaction).not.toHaveBeenCalled()
+        release(false)
+        await expect(operation).rejects.toThrow('reviewed candidate has changed')
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects a review revision changed during candidate verification', async () => {
+        const review = executionReview()
+        f.verify.mockImplementationOnce(async () => { review.invocation.revision++; return true })
+        await expect(decide()).rejects.toThrow()
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects concurrent Project work appearing after verification', async () => {
+        executionReview()
+        f.beforeTransaction(() => f.attempts.push(Object.assign(new XpertProjectTaskExecution(), f.implementation,
+            { id: randomUUID(), taskId: randomUUID(), invocationId: null, status: 'queued' })))
+        await expect(decide()).rejects.toThrow()
+        expect(f.verify).toHaveBeenCalledTimes(1)
+        expect(f.taskRepo.update).not.toHaveBeenCalled()
+    })
 
     it('inspects implementation and review before opening the project transaction', async () => {
         const review = f.addReview()

@@ -81,7 +81,7 @@ export class ProjectTaskDispatchService {
         // Runtime owns executor confinement. Project owns the review's task and delivery contract.
         if (
             purpose.type === 'review' &&
-            (input.target || (input.delivery && input.delivery.mode !== 'none'))
+            (input.target || (purpose.mode !== 'execution' && input.delivery && input.delivery.mode !== 'none'))
         )
             throw projectTaskRuntimeError('Evidence')
         let inspectedRevision: number | undefined
@@ -190,7 +190,10 @@ export class ProjectTaskDispatchService {
                 const assigned = subject.latest.purpose?.type === 'implementation' ? subject.latest.purpose.reviewer : undefined
                 if (assigned && (assigned.bindingId !== input.bindingId || assigned.mode !== (purpose.mode ?? 'evidence_only')))
                     throw projectTaskRuntimeError('Evidence')
-                prompt = reviewPrompt(
+                prompt = purpose.mode === 'execution' ? this.factory.createExecutionReviewPrompt(
+                    purpose, specificationSnapshot.specification, JSON.stringify(subject.invocation.result ?? null),
+                    input.instructions, subject.invocation.handle?.runner?.workingDirectory
+                ) : reviewPrompt(
                     purpose,
                     subjectTask,
                     JSON.stringify(subject.invocation.result ?? null),

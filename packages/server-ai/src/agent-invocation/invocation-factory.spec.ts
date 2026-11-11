@@ -166,6 +166,19 @@ describe('Runtime review target admission', () => {
     it('rejects execution review until its verifier is available', async () => {
         await expect(f.factory.resolveReviewTarget(scope, bindingId, 'execution')).rejects.toMatchObject({ code: 'Unsupported' })
     })
+    it('refuses an execution-review protocol without a host environment implementation', () => {
+        const invocationId = randomUUID()
+        expect(() => f.factory.createExecutionReviewPrompt({ type: 'review', mode: 'execution', candidatePaths: ['candidate'],
+            implementationExecutionId: randomUUID(), implementationInvocationId: invocationId,
+            specificationDigest: 'sha256:' + '0'.repeat(64), evidence: [{ type: 'invocation_result', invocationId, revision: 1 }] },
+            { version: 1, title: 'Review a candidate', description: '', requirements: ['Meets the requirement'], steps: [] }, 'result', 'review'))
+            .toThrow(expect.objectContaining({ code: 'Unsupported' }))
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('refuses a candidate comparison without a host verifier', async () => {
+        await expect(f.factory.verifyExecutionReview(scope, 'review-invocation')).rejects.toMatchObject({ code: 'Unsupported' })
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
     it('rejects an environment without the host evidence confinement', async () => {
         f.binding.target.configuration = { executionEnvironment: { type: 'sandbox' } }
         await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })

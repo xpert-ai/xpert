@@ -3,7 +3,7 @@
 // Runtime inspection runs before the project lock; persisted revisions are rechecked under that lock.
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { In, Repository } from 'typeorm'
 import {
     ProjectTaskDecisionInput,
     projectTaskDecisionInputSchema,
@@ -83,8 +83,17 @@ export class ProjectTaskDecisionService {
                 throw projectTaskRuntimeError('Scope')
             const observed = await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id)
             inspected.set(row.id, observed.revision)
-            if (input.outcome === 'accept' && attempt.purpose?.type === 'review' && attempt.purpose.mode === 'execution')
-                throw projectTaskRuntimeError('Evidence')
+            if (input.outcome === 'accept' && attempt.purpose?.type === 'review' && attempt.purpose.mode === 'execution') {
+                // Avoid environment I/O for an unfinished, malformed or already failing review.
+                // Runtime owns candidate verification; Project rechecks the same revision under its lock below.
+                if (observed.status !== 'succeeded' || !invocationCanRelease(observed)) throw projectTaskRuntimeError('State')
+                const report = reviewReport(attempt.purpose, observed.result?.text)
+                if (!report)
+                    throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(attempt.purpose, observed.result?.text))
+                if (report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
+                if (!(await this.factory.verifyExecutionReview(row.invocation.scope, row.id)))
+                    throw projectTaskRuntimeError('ReviewCandidateChanged')
+            }
         }
         // Only persisted-state validation and the atomic decision/status write belong under the lock.
         return this.tasks.manager.transaction(async (manager) => {
@@ -191,6 +200,16 @@ export class ProjectTaskDecisionService {
                 // Explain delivery defects without repairing the report or changing the review verdict.
                 if (!report) throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(review.purpose, row.invocation.result?.text))
                 if (input.outcome === 'accept' && report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
+                if (input.outcome === 'accept' && review.purpose.mode === 'execution') {
+                    // Other owned work can still mutate the shared checkout. Fail closed until all attempts have stopped.
+                    // This guards platform-managed work, not arbitrary filesystem writes after the point-in-time comparison.
+                    const attempts = await manager.getRepository(XpertProjectTaskExecution).findBy({ ...where, projectId })
+                    const ids = attempts.flatMap((attempt) => attempt.invocationId ? [attempt.invocationId] : [])
+                    const records = ids.length ? await manager.getRepository(AgentInvocationEntity).findBy({ ...where, id: In(ids) }) : []
+                    if (attempts.some((attempt) => attempt.invocationId
+                        ? !records.some((item) => item.id === attempt.invocationId && invocationCanRelease(item.invocation))
+                        : ['queued', 'running'].includes(attempt.status))) throw projectTaskRuntimeError('Busy')
+                }
             }
             const decision = projectTaskDecisionSchema.parse({
                 ...input,

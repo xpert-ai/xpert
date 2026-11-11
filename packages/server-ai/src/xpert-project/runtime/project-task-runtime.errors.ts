@@ -14,6 +14,7 @@ export type ProjectTaskRuntimeErrorCode =
     | 'Evidence'
     | 'DecisionRequired'
     | 'AssigneeRequired'
+    | 'ReviewCandidateChanged'
     | 'ReviewReport'
     | 'ReviewerRequired'
     | 'ReviewFeedback'

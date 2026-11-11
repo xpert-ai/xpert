@@ -13,6 +13,8 @@ import {
 import {
     agentRuntimeModelSourceSchema,
     assistantTaskGroupContext,
+    type ProjectTaskExecutionPurpose,
+    type ProjectTaskSpecification,
     type ProjectTaskReviewer,
     type ProjectPipelineCatalog
 } from '@xpert-ai/contracts'
@@ -109,6 +111,22 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
             throw invocationError('Unsupported')
         return target
+    }
+
+    /** Host-only review protocol boundary; an environment integration must supply the execution instructions. */
+    createExecutionReviewPrompt(
+        _purpose: Extract<ProjectTaskExecutionPurpose, { type?: 'review' }>,
+        _specification: ProjectTaskSpecification,
+        _implementationResult: string,
+        _instructions: string,
+        _sourceDirectory?: string
+    ): string {
+        throw invocationError('Unsupported')
+    }
+
+    /** Host-only candidate comparison, outside Project transactions. No installed verifier means no acceptance. */
+    async verifyExecutionReview(_scope: AgentInvocationScope, _invocationId: string): Promise<boolean> {
+        throw invocationError('Unsupported')
     }
 
     /** Read-only preflight for a host Pipeline before its durable work is instantiated. */
