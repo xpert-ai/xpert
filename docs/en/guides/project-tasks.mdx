@@ -116,7 +116,11 @@ A child's runtime progress or completion does not automatically overwrite the su
 
 An authorized user can also enter checks and a rationale in the task dialog's Executions tab, then select **Accept task** or **Request rework**. The platform still validates result status, versions, and required review evidence. Rework returns the task to Not started without automatically running it again.
 
-Independent review requires an execution environment that isolates the evidence. The current implementation is provided by Computer OpenCode in Pro and examines fixed evidence only. It does not rerun implementation tests. The responsible Assistant can separately use authorized tools to inspect actual files and rerun tests before making the final decision.
+Independent review has two modes. **Evidence review** reads results at fixed versions without rerunning tests; it is currently provided by Computer OpenCode in Pro. In Pro, **execution review** uses an authorized Computer Coding Runtime in a fresh session and a separate review directory. It can run tests, build candidates, inspect an authorized instance, and exercise the actual feature. It may use the same model or CLI as the implementer, but does not continue the implementation session.
+
+Execution review pins the candidate version and keeps review scripts and outputs in a separate directory. The reviewer records actual checks, evidence, limitations, and reproducible findings without editing candidate business code. The responsible Assistant decides whether to accept, request additional checks, restore the environment, or arrange another implementation attempt. Previous implementations, reports, and failures remain recorded. Separate directories prevent evidence confusion; they do not isolate every process or shared service in the Computer.
+
+A passing report establishes only the scope it actually checked. Acceptance of source code and unit tests does not replace installation, loaded-version checks, and real usage verification for the complete delivery. Task requirements should identify the target instance, authorized restarts, and behavior to verify.
 
 ## Exceptions and capability boundaries
 
