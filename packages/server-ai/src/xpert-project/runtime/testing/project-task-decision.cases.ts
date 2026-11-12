@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../../review/project-review.environment'
 import { randomUUID } from 'node:crypto'
 import i18next from 'i18next'
 import en from '../../../i18n/en.json'
@@ -24,6 +25,7 @@ export type Fixture = {
     store: TypeOrmAgentInvocationStore
     service: ProjectTaskDispatchService
     factory: AgentInvocationFactoryService
+    reviews: ProjectReviewEnvironment
     scope: AgentInvocationScope
     caller: ProjectTaskCaller
     input: ProjectTaskDispatchInput
@@ -42,17 +44,19 @@ export function projectTaskDecisionCases(fixture: () => Fixture) {
                 Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService,
                 { assertCanEdit: jest.fn() }
             )
-            verifyCandidate = jest.spyOn(f.factory, 'verifyExecutionReview').mockResolvedValue(true)
-            // Model an execution-capable host without enabling any OS provider or importing a Pro environment.
-            const resolveReviewTarget = f.factory.resolveReviewTarget.bind(f.factory)
-            jest.spyOn(f.factory, 'resolveReviewTarget').mockImplementation((scope, bindingId, mode) =>
-                mode === 'execution' ? f.factory.resolveBackgroundTarget(scope, bindingId) : resolveReviewTarget(scope, bindingId, mode))
-            jest.spyOn(f.factory, 'createExecutionReviewPrompt').mockReturnValue('Independent execution-review fixture instructions')
+            verifyCandidate = jest.spyOn(f.reviews, 'verify').mockResolvedValue(true)
+            // Model an execution-capable host without importing a Pro environment.
+            const assertSupported = f.reviews.assertSupported.bind(f.reviews)
+            jest.spyOn(f.reviews, 'assertSupported').mockImplementation((target, mode) => {
+                if (mode !== 'execution') assertSupported(target, mode)
+            })
+            jest.spyOn(f.reviews, 'executionInstructions').mockReturnValue('Independent execution-review fixture instructions')
             decisions = new ProjectTaskDecisionService(
                 f.database.getRepository(XpertProjectTask),
                 access,
                 f.context,
-                f.factory
+                f.factory,
+                f.reviews
             )
         })
         async function finish(invocationId: string, text = 'Implementation with checks', status: 'succeeded' | 'failed' = 'succeeded') {

@@ -1,3 +1,4 @@
+import { ProjectReviewModule } from './review/project-review.module'
 import { XpertTaskModule } from '../xpert-task/xpert-task.module'
 import { ProjectConfigurationEditorsAdapter } from './configuration/runtime/project-configuration-editors.adapter'
 import { ProjectConfigurationAutomationAdapter } from './configuration/runtime/project-configuration-automation.adapter'
@@ -160,6 +161,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 
 @Module({
     imports: [
+        ProjectReviewModule,
         ArtifactsModule,
         DiscoveryModule,
         ProjectConfigurationPluginModule,

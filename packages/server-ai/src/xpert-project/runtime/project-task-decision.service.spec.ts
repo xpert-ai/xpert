@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import i18next from 'i18next'
@@ -98,7 +99,8 @@ async function fixture() {
         { provide: getRepositoryToken(XpertProjectTask), useValue: { ...taskRepo, manager: { ...manager, transaction } } },
         { provide: XpertProjectAccessService, useValue: access },
         { provide: ProjectTaskRuntimeContextService, useValue: context },
-        { provide: AgentInvocationFactoryService, useValue: { createCapturedApi: () => ({ inspect }), verifyExecutionReview: verify } }
+        { provide: AgentInvocationFactoryService, useValue: { createCapturedApi: () => ({ inspect }) } },
+        { provide: ProjectReviewEnvironment, useValue: { verify } }
     ] }).compile()
     const service = module.get(ProjectTaskDecisionService)
     function addReview() {

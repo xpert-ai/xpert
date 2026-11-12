@@ -1,3 +1,5 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
+import { projectExecutionReviewPrompt } from '../review/project-execution-review-prompt'
 import type { ConversationResourceCard } from '@xpert-ai/contracts'
 import { AgentInvocationAuthorizationError } from '../../agent-invocation/invocation-errors'
 // Invariants: commit the attempt and pinned intent before invoking an adapter.
@@ -46,7 +48,8 @@ export class ProjectTaskDispatchService {
         private readonly context: ProjectTaskRuntimeContextService,
         private readonly factory: AgentInvocationFactoryService,
         private readonly cards: ProjectTaskCardProvider,
-        private readonly xpertBindings: XpertProjectXpertBindingService
+        private readonly xpertBindings: XpertProjectXpertBindingService,
+        private readonly reviews: ProjectReviewEnvironment
     ) {}
 
     /**
@@ -68,15 +71,15 @@ export class ProjectTaskDispatchService {
         // Authorization precedes both reservation and idempotent replay.
         const target = input.target
             ? await this.factory.resolveGroupTarget(scope, input.target.participantId)
-            : purpose.type === 'review'
-              ? await this.factory.resolveReviewTarget(scope, input.bindingId, purpose.mode ?? 'evidence_only')
-              : await this.factory.resolveBackgroundTarget(scope, input.bindingId)
+            : await this.factory.resolveBackgroundTarget(scope, input.bindingId)
+        if (purpose.type === 'review') this.reviews.assertSupported(target, purpose.mode ?? 'evidence_only')
         // Reserve the Runtime's stable call identity while retaining this attempt for admission checks.
         const identityScope = await this.factory.resolveInvocationIdentityScope(scope)
         if (input.reviewAsSubtask && purpose.type !== 'review') throw projectTaskRuntimeError('Invalid')
         if (purpose.type === 'implementation' && purpose.coordination) throw projectTaskRuntimeError('Owned')
         if (purpose.type === 'implementation' && purpose.reviewer) {
-            await this.factory.resolveReviewTarget(scope, purpose.reviewer.bindingId, purpose.reviewer.mode)
+            const reviewerTarget = await this.factory.resolveBackgroundTarget(scope, purpose.reviewer.bindingId)
+            this.reviews.assertSupported(reviewerTarget, purpose.reviewer.mode)
         }
         // Runtime owns executor confinement. Project owns the review's task and delivery contract.
         if (
@@ -190,10 +193,10 @@ export class ProjectTaskDispatchService {
                 const assigned = subject.latest.purpose?.type === 'implementation' ? subject.latest.purpose.reviewer : undefined
                 if (assigned && (assigned.bindingId !== input.bindingId || assigned.mode !== (purpose.mode ?? 'evidence_only')))
                     throw projectTaskRuntimeError('Evidence')
-                prompt = purpose.mode === 'execution' ? this.factory.createExecutionReviewPrompt(
+                prompt = purpose.mode === 'execution' ? projectExecutionReviewPrompt(
                     purpose, specificationSnapshot.specification, JSON.stringify(subject.invocation.result ?? null),
                     input.instructions, subject.invocation.handle?.runner?.workingDirectory
-                ) : reviewPrompt(
+                ) + '\n\n' + this.reviews.executionInstructions() : reviewPrompt(
                     purpose,
                     subjectTask,
                     JSON.stringify(subject.invocation.result ?? null),

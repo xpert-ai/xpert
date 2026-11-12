@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
@@ -138,10 +139,10 @@ async function fixture() {
     const factory = {
         resolveInvocationIdentityScope: jest.fn(async (value: AgentInvocationScope) => ({ ...value })),
         resolveBackgroundTarget: jest.fn(async () => target),
-        resolveReviewTarget: jest.fn(async () => target),
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
+    const reviews = { assertSupported: jest.fn(), executionInstructions: jest.fn() }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const bindings = { resolveCurrentById: jest.fn(async (id: string) => ({ id })) }
     const module = await Test.createTestingModule({
@@ -153,11 +154,13 @@ async function fixture() {
             { provide: getRepositoryToken(XpertProjectTaskExecution), useValue: { ...executionRepo, manager } },
             { provide: ProjectTaskRuntimeContextService, useValue: context },
             { provide: AgentInvocationFactoryService, useValue: factory },
+            { provide: ProjectReviewEnvironment, useValue: reviews },
             { provide: XpertProjectXpertBindingService, useValue: bindings }
         ]
     }).compile()
     return {
         service: module.get(ProjectTaskDispatchService),
+        reviews,
         scope,
         caller,
         input,
@@ -180,10 +183,11 @@ describe('explicit Project task delegation', () => {
     it('preflights an assigned reviewer through the Runtime before implementation reservation', async () => {
         const f = await fixture()
         const reviewer = { bindingId: randomUUID(), mode: 'evidence_only' as const }
-        f.factory.resolveReviewTarget.mockRejectedValue(new Error('Reviewer not available'))
+        f.reviews.assertSupported.mockImplementation(() => { throw new Error('Reviewer not available') })
         await expect(f.service.dispatch(f.scope.projectId, { ...f.input,
             purpose: { type: 'implementation', reviewer } }, f.caller)).rejects.toThrow('Reviewer not available')
-        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId, reviewer.mode)
+        expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId)
+        expect(f.reviews.assertSupported).toHaveBeenCalledWith(f.target, reviewer.mode)
         expect(f.executionRepo.save).not.toHaveBeenCalled()
         expect(f.start).not.toHaveBeenCalled()
     })

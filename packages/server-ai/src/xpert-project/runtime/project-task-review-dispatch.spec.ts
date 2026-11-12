@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { Test } from '@nestjs/testing'
@@ -102,17 +103,18 @@ async function fixture() {
         return structuredClone(result)
     })
     const factory = { resolveInvocationIdentityScope: async (value: AgentInvocationScope) => ({ ...value }),
-        resolveBackgroundTarget: jest.fn(async () => target), resolveReviewTarget: jest.fn(async () => target),
-        createCapturedApi: jest.fn(() => ({ inspect, start })),
-        createExecutionReviewPrompt: jest.fn(() => 'Independent execution-review fixture instructions') }
+        resolveBackgroundTarget: jest.fn(async () => target),
+        createCapturedApi: jest.fn(() => ({ inspect, start })) }
+    const reviews = { assertSupported: jest.fn(), executionInstructions: jest.fn(() => 'Independent execution-review fixture instructions') }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const module = await Test.createTestingModule({ providers: [ProjectTaskDispatchService, ProjectTaskCardProvider,
         { provide: DataSource, useValue: {} }, { provide: XpertProjectAccessService, useValue: {} },
         { provide: getRepositoryToken(XpertProjectTaskExecution), useValue: { ...executions, manager: { ...manager, transaction } } },
         { provide: ProjectTaskRuntimeContextService, useValue: context }, { provide: AgentInvocationFactoryService, useValue: factory },
+        { provide: ProjectReviewEnvironment, useValue: reviews },
         { provide: XpertProjectXpertBindingService, useValue: { resolveCurrentById: jest.fn() } }
     ] }).compile()
-    return { module, service: module.get(ProjectTaskDispatchService), scope, caller, task, input, invocation,
+    return { reviews, module, service: module.get(ProjectTaskDispatchService), scope, caller, task, input, invocation,
         implementation, attempts, records, executions, transaction, inspect, start, factory, context,
         beforeTransaction: (work: () => void) => { beforeTransaction = work } }
 }
@@ -126,23 +128,21 @@ describe('Project review dispatch inspection boundaries', () => {
     it('uses Runtime admission without duplicating provider or environment restrictions', async () => {
         const admitted: AgentTarget = { bindingId: f.input.bindingId, revision: '1', provider: 'approved-review-runtime',
             reference: 'review', configuration: {} }
-        f.factory.resolveReviewTarget.mockResolvedValue(admitted)
+        f.factory.resolveBackgroundTarget.mockResolvedValue(admitted)
         await dispatch()
-        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId, 'evidence_only')
-        expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalled()
+        expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId)
+        expect(f.reviews.assertSupported).toHaveBeenCalledWith(admitted, 'evidence_only')
+        expect(f.factory.resolveBackgroundTarget.mock.invocationCallOrder[0]).toBeLessThan(f.reviews.assertSupported.mock.invocationCallOrder[0])
         expect(f.start.mock.calls[0][0].target).toEqual(admitted)
     })
 
-    it('uses the Runtime review protocol and preserves file delivery and the pinned candidate', async () => {
+    it('uses the shared review protocol with environment instructions and preserves file delivery and the pinned candidate', async () => {
         if (f.input.purpose?.type !== 'review') throw new Error('Expected review fixture')
         f.input.purpose = { ...f.input.purpose, mode: 'execution', candidatePaths: ['plugin'] }
         f.input.delivery = { mode: 'files', paths: ['output/report.json'] }
         await dispatch()
-        expect(f.factory.resolveReviewTarget).toHaveBeenCalledWith(f.scope, f.input.bindingId, 'execution')
-        expect(f.factory.createExecutionReviewPrompt).toHaveBeenCalledTimes(1)
-        expect(f.factory.createExecutionReviewPrompt).toHaveBeenCalledWith(
-            f.input.purpose, taskSpecification(f.task).specification, JSON.stringify(f.invocation.result),
-            f.input.instructions, f.invocation.handle?.runner?.workingDirectory)
+        expect(f.reviews.assertSupported).toHaveBeenCalledWith(expect.any(Object), 'execution')
+        expect(f.reviews.executionInstructions).toHaveBeenCalledTimes(1)
         const request = f.start.mock.calls[0][0]
         expect(request.input.delivery).toEqual(f.input.delivery)
         expect(request.dispatch.projectTask.purpose).toMatchObject({ mode: 'execution', candidatePaths: ['plugin'] })
@@ -155,11 +155,11 @@ describe('Project review dispatch inspection boundaries', () => {
         await expect(dispatch()).rejects.toThrow()
         expect(f.inspect).not.toHaveBeenCalled()
         expect(f.start).not.toHaveBeenCalled()
-        expect(f.factory.createExecutionReviewPrompt).not.toHaveBeenCalled()
+        expect(f.reviews.executionInstructions).not.toHaveBeenCalled()
     })
 
     it('stops before inspection or reservation when Runtime rejects the reviewer', async () => {
-        f.factory.resolveReviewTarget.mockRejectedValue(new Error('Review unsupported'))
+        f.reviews.assertSupported.mockImplementation(() => { throw new Error('Review unsupported') })
         await expect(dispatch()).rejects.toThrow('Review unsupported')
         expect(f.transaction).not.toHaveBeenCalled()
         expect(f.inspect).not.toHaveBeenCalled()

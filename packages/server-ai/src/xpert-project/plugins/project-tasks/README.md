@@ -72,9 +72,11 @@ See [Reliable Runtime replies](../../../handoff/runtime-messaging/README.md) for
 
 ## OS and Pro boundary
 
-OS includes the review protocol, version-bound evidence checks, acceptance decisions, and Tasks & Timeline presentation. Review target admission belongs to the existing Runtime factory's host-only `resolveReviewTarget`, which first authorizes the binding and checks background support, then enforces the host confinement policy. Both reviewer assignment and review dispatch use that entry point. Project task services do not inspect provider names or environment configuration to decide review eligibility.
+OS includes the review prompts and report protocol, version-bound evidence checks, acceptance decisions, and Tasks & Timeline presentation. Runtime first authorizes the binding and checks background support. The required host-only `ProjectReviewEnvironment` then checks review-mode support; reviewer assignment and review dispatch both use this ordering. The invocation factory does not compose review prompts, decide review eligibility or verify candidates.
 
-The current Runtime policy accepts only Computer OpenCode evidence-only reviews because that runner provides confinement; it does not trust support flags supplied in target configuration. The Computer executor, isolated review directory, and CLI configuration are supplied by Pro; they are not implemented by this OS package. Other Runtime bindings can implement tasks, but cannot receive independent review requests until confinement is supported. This separation adds no SDK Capability and does not enable execution review.
+`review/ProjectReviewModule` wires the environment adapter through explicit NestJS injection. The default OS adapter retains the existing Computer OpenCode evidence-only confinement and rejects execution review without a verifier. It does not trust support flags in target configuration. The Computer executor and isolated workspace are implemented by Pro; the Pro module composition selects its Computer adapter. Shared Project services do not import Computer code or inspect provider names or environment configuration.
+
+Project composes the shared execution-review protocol with pure environment startup instructions before launching the CLI. Computer owns its workspace layout and candidate comparison. The adapter compares the persisted candidate outside Project transactions; under the Project lock, acceptance rechecks the inspected revisions and confirms other attempts have stopped. No adapter can accept a task itself. This boundary adds no plugin SDK Capability or runtime registry.
 
 ## Persisted review candidate identity
 

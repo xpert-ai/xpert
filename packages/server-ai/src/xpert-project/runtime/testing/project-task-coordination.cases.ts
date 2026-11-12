@@ -25,7 +25,8 @@ export function projectTaskCoordinationCases(fixture: () => Fixture) {
                 f.database.getRepository(XpertProjectTask),
                 access,
                 f.context,
-                f.factory
+                f.factory,
+                f.reviews
             )
         })
         async function finish(invocationId: string, text = 'Implementation with checks') {

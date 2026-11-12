@@ -1,3 +1,5 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
+import { DefaultProjectReviewEnvironment } from '../review/default-project-review.environment'
 import { TaskControlStore } from '@xpert-ai/server-core'
 import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
@@ -152,6 +154,7 @@ integration('explicit task delegation / PostgreSQL', () => {
     let store: TypeOrmAgentInvocationStore
     let service: ProjectTaskDispatchService
     let cards: ProjectTaskCardProvider
+    let reviews: ProjectReviewEnvironment
     let factory: AgentInvocationFactoryService
     let taskControl: TaskControlStore
     let scope: AgentInvocationScope
@@ -352,6 +355,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
             database.getRepository(AgentInvocationEntity)
         )
+        reviews = new DefaultProjectReviewEnvironment()
         cards = new ProjectTaskCardProvider(
             database,
             Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService
@@ -361,7 +365,8 @@ integration('explicit task delegation / PostgreSQL', () => {
             context,
             factory,
             cards,
-            bindings
+            bindings,
+            reviews
         )
     })
 
@@ -621,7 +626,8 @@ integration('explicit task delegation / PostgreSQL', () => {
             context,
             factory,
             cards,
-            bindings
+            bindings,
+            reviews
         )
         const receipt = await service.dispatch(scope.projectId, input, caller)
         expect(receipt.invocationId).toBe(saved.invocationId)
@@ -672,6 +678,6 @@ integration('explicit task delegation / PostgreSQL', () => {
     })
 
     reliableReturnIntegrationCases(() => ({ database, store, service, factory, scope, caller, input, start, strategy }))
-    projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context }))
-    projectTaskCoordinationCases(() => ({ database, store, service, factory, scope, caller, input, context }))
+    projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context, reviews }))
+    projectTaskCoordinationCases(() => ({ database, store, service, factory, scope, caller, input, context, reviews }))
 })

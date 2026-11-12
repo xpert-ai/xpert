@@ -124,7 +124,7 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
     } satisfies AgentExecutionRunner
 }
 
-describe('Runtime review target admission', () => {
+describe('Runtime background target admission', () => {
     let f: ReturnType<typeof fixture>
     const scope: AgentInvocationScope = {
         tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace',
@@ -137,7 +137,7 @@ describe('Runtime review target admission', () => {
         f.registry.register('opencode', f.provider, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
     })
     it('authorizes the binding and checks background support without launching work', async () => {
-        const target = await f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')
+        const target = await f.factory.resolveBackgroundTarget(scope, bindingId)
         expect(target).toEqual(f.binding.target)
         expect(target).not.toBe(f.binding.target)
         expect(f.managed.assertEnabled).toHaveBeenCalledWith(scope, f.binding)
@@ -145,49 +145,25 @@ describe('Runtime review target admission', () => {
     })
     it('rejects disabled bindings and unauthorized workspaces', async () => {
         f.binding.enabled = false
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'NotFound' })
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'NotFound' })
         f.binding.enabled = true
         f.binding.workspaceIds = ['other-workspace']
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'NotFound' })
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'NotFound' })
         expect(f.provider.start).not.toHaveBeenCalled()
     })
     it('propagates environment authorization failures', async () => {
         f.managed.assertEnabled.mockRejectedValue(new Error('Environment permission revoked'))
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toThrow('Environment permission revoked')
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toThrow('Environment permission revoked')
         expect(f.provider.start).not.toHaveBeenCalled()
     })
     it('requires an installed background provider', async () => {
         f.binding.target.provider = 'missing'
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'ProviderUnavailable' })
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'ProviderUnavailable' })
         f.binding.target.provider = 'opencode'
         f.provider.capabilities.background = false
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'Unsupported' })
     })
-    it('rejects execution review until its verifier is available', async () => {
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'execution')).rejects.toMatchObject({ code: 'Unsupported' })
-    })
-    it('refuses an execution-review protocol without a host environment implementation', () => {
-        const invocationId = randomUUID()
-        expect(() => f.factory.createExecutionReviewPrompt({ type: 'review', mode: 'execution', candidatePaths: ['candidate'],
-            implementationExecutionId: randomUUID(), implementationInvocationId: invocationId,
-            specificationDigest: 'sha256:' + '0'.repeat(64), evidence: [{ type: 'invocation_result', invocationId, revision: 1 }] },
-            { version: 1, title: 'Review a candidate', description: '', requirements: ['Meets the requirement'], steps: [] }, 'result', 'review'))
-            .toThrow(expect.objectContaining({ code: 'Unsupported' }))
-        expect(f.provider.start).not.toHaveBeenCalled()
-    })
-    it('refuses a candidate comparison without a host verifier', async () => {
-        await expect(f.factory.verifyExecutionReview(scope, 'review-invocation')).rejects.toMatchObject({ code: 'Unsupported' })
-        expect(f.provider.start).not.toHaveBeenCalled()
-    })
-    it('rejects an environment without the host evidence confinement', async () => {
-        f.binding.target.configuration = { executionEnvironment: { type: 'sandbox' } }
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
-    })
-    it('does not trust a target configuration to grant itself review support', async () => {
-        f.binding.target.provider = 'remote'
-        f.binding.target.configuration = { executionEnvironment: { type: 'computer' }, reviewModes: ['evidence_only'] }
-        await expect(f.factory.resolveReviewTarget(scope, bindingId, 'evidence_only')).rejects.toMatchObject({ code: 'Unsupported' })
-    })
+
 })
 
 describe('Agent invocation factory and controller boundaries', () => {

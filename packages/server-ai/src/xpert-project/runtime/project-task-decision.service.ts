@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 // Invariants: only the responsible caller or an authorized human can decide business completion.
 // A decision, its evidence and the task CAS commit together; retries return the original decision.
 // Runtime inspection runs before the project lock; persisted revisions are rechecked under that lock.
@@ -31,7 +32,8 @@ export class ProjectTaskDecisionService {
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: XpertProjectAccessService,
         private readonly context: ProjectTaskRuntimeContextService,
-        private readonly factory: AgentInvocationFactoryService
+        private readonly factory: AgentInvocationFactoryService,
+        private readonly reviews: ProjectReviewEnvironment
     ) {}
 
     /**
@@ -85,13 +87,13 @@ export class ProjectTaskDecisionService {
             inspected.set(row.id, observed.revision)
             if (input.outcome === 'accept' && attempt.purpose?.type === 'review' && attempt.purpose.mode === 'execution') {
                 // Avoid environment I/O for an unfinished, malformed or already failing review.
-                // Runtime owns candidate verification; Project rechecks the same revision under its lock below.
+                // The environment adapter owns candidate verification; Project rechecks the same revision under its lock below.
                 if (observed.status !== 'succeeded' || !invocationCanRelease(observed)) throw projectTaskRuntimeError('State')
                 const report = reviewReport(attempt.purpose, observed.result?.text)
                 if (!report)
                     throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(attempt.purpose, observed.result?.text))
                 if (report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
-                if (!(await this.factory.verifyExecutionReview(row.invocation.scope, row.id)))
+                if (!(await this.reviews.verify(row.invocation.scope, row.id)))
                     throw projectTaskRuntimeError('ReviewCandidateChanged')
             }
         }

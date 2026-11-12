@@ -13,9 +13,6 @@ import {
 import {
     agentRuntimeModelSourceSchema,
     assistantTaskGroupContext,
-    type ProjectTaskExecutionPurpose,
-    type ProjectTaskSpecification,
-    type ProjectTaskReviewer,
     type ProjectPipelineCatalog
 } from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
@@ -95,38 +92,6 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         )
             throw invocationError('ModelSourceRequired')
         return target
-    }
-
-    /** Host-only review admission; authorization and background support are checked before confinement. */
-    async resolveReviewTarget(
-        scope: AgentInvocationScope,
-        bindingId: string,
-        mode: ProjectTaskReviewer['mode']
-    ): Promise<AgentTarget> {
-        const target = await this.resolveBackgroundTarget(scope, bindingId)
-        // The existing host runner confines only evidence-only Computer OpenCode reviews.
-        // Keep that policy at the Runtime boundary; target configuration cannot self-declare support.
-        // Execution review stays unavailable until its environment verifier is integrated.
-        if (mode !== 'evidence_only' || target.provider !== 'opencode' ||
-            !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
-            throw invocationError('Unsupported')
-        return target
-    }
-
-    /** Host-only review protocol boundary; an environment integration must supply the execution instructions. */
-    createExecutionReviewPrompt(
-        _purpose: Extract<ProjectTaskExecutionPurpose, { type?: 'review' }>,
-        _specification: ProjectTaskSpecification,
-        _implementationResult: string,
-        _instructions: string,
-        _sourceDirectory?: string
-    ): string {
-        throw invocationError('Unsupported')
-    }
-
-    /** Host-only candidate comparison, outside Project transactions. No installed verifier means no acceptance. */
-    async verifyExecutionReview(_scope: AgentInvocationScope, _invocationId: string): Promise<boolean> {
-        throw invocationError('Unsupported')
     }
 
     /** Read-only preflight for a host Pipeline before its durable work is instantiated. */
