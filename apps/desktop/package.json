@@ -5,18 +5,19 @@
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "pnpm build:windows-shell && node scripts/dev.mjs",
     "dev:web": "vite",
-    "build": "pnpm build:audio-capture-native && tsc --noEmit && vite build",
+    "build": "pnpm build:audio-capture-native && pnpm build:windows-shell && tsc --noEmit && vite build",
     "icons:macos": "node scripts/generate-macos-icons.mjs",
     "start": "electron .",
-    "test": "node --test tests/*.test.cjs tests/audio-capture/*.test.cjs",
+    "test": "pnpm build:windows-shell && node --test tests/*.test.cjs tests/audio-capture/*.test.cjs",
     "test:local": "node scripts/test-local.mjs",
     "test:shell:local": "node scripts/test-shell-local.mjs",
     "package": "pnpm build && electron-builder --dir",
     "package:installers": "pnpm build && electron-builder --publish never",
     "test:audio-native": "pnpm build:audio-capture-native && node --test native/audio-capture/*.test.cjs",
-    "build:audio-capture-native": "node scripts/build-audio-capture-native.mjs"
+    "build:audio-capture-native": "node scripts/build-audio-capture-native.mjs",
+    "build:windows-shell": "node scripts/build-windows-shell.mjs"
   },
   "devDependencies": {
     "@emoji-mart/data": "^1.2.1",
@@ -87,7 +88,8 @@
       "category": "Office"
     },
     "asarUnpack": [
-      "resources/audio-capture/**"
+      "resources/audio-capture/**",
+      "resources/shell/**"
     ],
     "protocols": [
       {

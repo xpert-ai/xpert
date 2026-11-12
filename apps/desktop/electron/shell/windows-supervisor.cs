@@ -5,11 +5,43 @@ using System.ComponentModel;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
 
 namespace Bosi {
     public static class ShellSupervisor {
+        [DataContract]
+        class Configuration {
+            [DataMember(IsRequired = true)] public string executable = null;
+            [DataMember(IsRequired = true)] public string cwd = null;
+            [DataMember(IsRequired = true)] public string script = null;
+            [DataMember(IsRequired = true)] public string pipe = null;
+            [DataMember(IsRequired = true)] public string token = null;
+        }
+
+        public static int Main(string[] args) {
+            Console.InputEncoding = new UTF8Encoding(false);
+            Console.OutputEncoding = new UTF8Encoding(false);
+            if (args.Length == 1 && args[0] == "--check") {
+                Console.WriteLine("{\"protocol\":1,\"pointerSize\":" + IntPtr.Size + "}");
+                return 0;
+            }
+            try {
+                // Configuration and the pipe token never appear in process arguments.
+                var line = Console.In.ReadLine();
+                if (line == null) return 1;
+                using (var input = new MemoryStream(Encoding.UTF8.GetBytes(line))) {
+                    var config = (Configuration)new DataContractJsonSerializer(typeof(Configuration)).ReadObject(input);
+                    return Run(config.executable, config.cwd, config.script, config.pipe, config.token);
+                }
+            } catch (Exception exception) {
+                Console.Error.WriteLine(exception.Message);
+                return 1;
+            }
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         struct BasicLimits {
             public long ProcessTime, JobTime;
@@ -118,19 +150,25 @@ namespace Bosi {
                     writer.AutoFlush = true;
                     writer.WriteLine(token);
                     try {
-                        // EOF means the owning worker died. Only this supervisor owns the control input.
-                        var reader = new Thread(() => {
-                            try { Console.In.ReadLine(); } catch (IOException) {}
-                            Interlocked.Exchange(ref stopping, 1);
-                        });
-                        reader.IsBackground = true;
-                        reader.Start();
                         job = CreateJobObjectW(IntPtr.Zero, IntPtr.Zero);
                         Check(job != IntPtr.Zero);
                         var limits = new ExtendedLimits();
                         limits.Basic.Flags = 0x2000; // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; no breakaway flags.
                         Check(SetInformationJobObject(job, 9, ref limits, (uint)Marshal.SizeOf(typeof(ExtendedLimits))));
                         writer.WriteLine("{\"ready\":true}");
+
+                        // The worker authorizes launch only after the authenticated ready receipt.
+                        // A queued cancellation or EOF during startup must never execute user code.
+                        if (Console.In.ReadLine() != "start") {
+                            Receipt(writer, "not_started", 1);
+                            return 0;
+                        }
+                        var reader = new Thread(() => {
+                            try { Console.In.ReadLine(); } catch (IOException) {}
+                            Interlocked.Exchange(ref stopping, 1);
+                        });
+                        reader.IsBackground = true;
+                        reader.Start();
 
                         var nul = CreateFileW("NUL", 0x80000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
                         Check(nul != new IntPtr(-1));

@@ -7,20 +7,12 @@ const { PassThrough } = require('node:stream')
 const { spawn } = require('node:child_process')
 const { shellEnvironment, windowsPowerShell } = require('./platform.cjs')
 
-const bootstrap = `
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
-try {
-  $config = [Console]::In.ReadLine() | ConvertFrom-Json
-  Add-Type -TypeDefinition ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($config.source)))
-  exit [Bosi.ShellSupervisor]::Run($config.executable, $config.cwd, $config.script, $config.pipe, $config.token)
-} catch {
-  [Console]::Error.WriteLine($_.ToString())
-  exit 1
+function supervisorPath(directory = __dirname) {
+  // spawn cannot execute inside ASAR. Use the helper shipped beside the app, never cwd/PATH.
+  let appRoot = path.resolve(directory, '../..')
+  if (path.basename(appRoot) === 'app.asar') appRoot += '.unpacked'
+  return path.join(appRoot, 'resources/shell/windows-supervisor.exe')
 }
-`
 
 function commandScript(commandPath) {
   return `
@@ -44,8 +36,9 @@ try {
 function spawnWindowsExecution(settings, command, directory) {
   if (settings.shell !== 'powershell.exe') throw new Error('INVALID_SETTINGS')
   const executable = windowsPowerShell()
+  const supervisor = supervisorPath()
   if (!fs.statSync(executable).isFile() || !fs.statSync(command.cwd).isDirectory()) throw new Error('INVALID_SETTINGS')
-  const source = fs.readFileSync(path.join(__dirname, 'windows-supervisor.cs')).toString('base64')
+  if (!fs.statSync(supervisor).isFile()) throw new Error('WINDOWS_SUPERVISOR_MISSING')
   const work = fs.mkdtempSync(path.join(directory, 'windows-'))
   const commandPath = path.join(work, 'command.ps1')
   const script = path.join(work, 'launch.ps1')
@@ -58,6 +51,8 @@ function spawnWindowsExecution(settings, command, directory) {
   let control
   let child
   let ended = false
+  let started = false
+  let stopping = false
   let finishReceipt
   const receiptDone = new Promise((resolve) => {
     finishReceipt = resolve
@@ -101,14 +96,8 @@ function spawnWindowsExecution(settings, command, directory) {
   server.listen(`\\\\.\\pipe\\${pipe}`)
   try {
     child = spawn(
-      executable,
-      [
-        '-NoLogo',
-        '-NoProfile',
-        '-NonInteractive',
-        '-EncodedCommand',
-        Buffer.from(bootstrap, 'utf16le').toString('base64')
-      ],
+      supervisor,
+      [],
       {
         cwd: command.cwd,
         windowsHide: true,
@@ -117,7 +106,7 @@ function spawnWindowsExecution(settings, command, directory) {
       }
     )
     child.stdin.on('error', () => undefined)
-    child.stdin.write(JSON.stringify({ source, executable, cwd: command.cwd, script, pipe, token }) + '\n')
+    child.stdin.write(JSON.stringify({ executable, cwd: command.cwd, script, pipe, token }) + '\n')
   } catch (error) {
     server.close()
     fs.rmSync(work, { recursive: true, force: true })
@@ -126,7 +115,13 @@ function spawnWindowsExecution(settings, command, directory) {
   return {
     child,
     receipt,
+    start() {
+      if (started || stopping || child.stdin.destroyed) return
+      started = true
+      child.stdin.write('start\n')
+    },
     stop(force = false) {
+      stopping = true
       if (force) child.kill()
       else if (!child.stdin.destroyed) child.stdin.write('cancel\n')
     },
@@ -150,4 +145,4 @@ function spawnWindowsExecution(settings, command, directory) {
   }
 }
 
-module.exports = { spawnWindowsExecution, commandScript, bootstrap }
+module.exports = { spawnWindowsExecution, commandScript, supervisorPath }

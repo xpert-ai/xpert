@@ -164,11 +164,20 @@ pipe and requests Job termination. Abrupt process/OS failure may produce
 `unknown`; this is not success, proof of rollback or permission to retry the command.
 No exactly-once side-effect or arbitrary-process recovery guarantee is claimed.
 
+Windows builds compile the supervisor once into an AnyCPU .NET Framework executable
+and ship it under `resources/shell`, unpacked from ASAR. Running a command does not
+compile C# or start an extra PowerShell host. The supervisor authenticates its receipt
+pipe and waits for an explicit `start` message before creating the command process.
+A cancellation or control EOF during startup returns `not_started`; an interrupted
+supervisor without a receipt still returns `unknown`. Startup remains inside the
+existing command deadline and cancellation grace period.
+
 ## Validate and package
 
 From the repository root (Node 24, Corepack pnpm):
 
 ```sh
+node apps/desktop/scripts/build-windows-shell.mjs
 node --test packages/desktop-protocol/test/*.test.cjs apps/desktop/tests/*.test.cjs
 corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand \
   --runTestsByPath packages/server-ai/src/desktop-shell/desktop-shell-auth.service.spec.ts \
@@ -204,14 +213,19 @@ rollout and Linux support are separate release work.
 
 ## Native Windows validation
 
-Run `node --test apps/desktop/tests/windows-shell-engine.test.cjs` on Windows. This
+First run `node apps/desktop/scripts/build-windows-shell.mjs`, then
+`node --test apps/desktop/tests/windows-shell-engine.test.cjs` on Windows. This
 suite covers Unicode and long commands, stdin/environment boundaries, exit codes,
-output limits, approval/replay, cancellation/deadlines, descendant cleanup, and
+output limits, approval/replay, startup cancellation/EOF, deadlines, descendant cleanup, and
 worker/supervisor crashes. It is skipped on macOS/Linux: passing the portable suites
 or compiling the C# helper there does not prove Windows execution.
 
+Build Windows installers on Windows, where the .NET Framework C# compiler is available.
+The `dev`, `build`, `test` and isolated CI build commands prepare the supervisor
+automatically; the installed application does not need a compiler. Packaging smoke
+checks execute the unpacked supervisor to detect missing files or an unavailable runtime.
 For a local, unsigned Windows x64 test package without installing developer tools
-on the target computer:
+on the target computer, run on the Windows build machine:
 
 ```sh
 corepack pnpm exec tsc -p .deploy/desktop/tsconfig.contracts.json
