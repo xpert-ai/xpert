@@ -3,6 +3,32 @@ import { lastValueFrom, of, throwError, toArray } from 'rxjs'
 import { RedisSseStreamService } from './redis-sse.service'
 
 describe('RedisSseStreamService', () => {
+    it('removes provider costs when reconnecting to a stream recorded before the public DTO changed', async () => {
+        const redis = createRedisMock()
+        const entries = [
+            {
+                type: ChatMessageTypeEnum.EVENT,
+                event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                data: { id: 'old', currency: 'USD', totalPrice: 2, chargedPoints: 0 }
+            },
+            {
+                type: ChatMessageTypeEnum.EVENT,
+                event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                data: { type: 'thread_context_usage', usage: { inputTokens: 18, totalPrice: 2, currency: 'USD' } }
+            },
+            { type: 'complete' }
+        ]
+        redis.sendCommand.mockImplementation(async (args: string[]) =>
+            args[0] === 'XRANGE' ? entries.map((entry, i) => [`${i + 1}-0`, ['data', JSON.stringify(entry)]]) : []
+        )
+        const service = new RedisSseStreamService(redis as never, undefined as never)
+        const replay = await service.createSseStream({ threadId: 'thread', runId: 'old', mode: 'join' })
+        const events = await lastValueFrom(replay.stream.pipe(toArray()))
+        expect(events[0].data).toMatchObject({ data: { id: 'old', chargedPoints: 0 } })
+        expect(events[1].data).toMatchObject({ data: { usage: { inputTokens: 18 } } })
+        expect(JSON.stringify(events)).not.toMatch(/totalPrice|currency/)
+    })
+
     it.each([0, 3 * 60 * 60 * 1000])(
         'starts a resumed stream after old completion markers following a %s ms pause',
         async (pauseMs) => {
@@ -270,6 +296,7 @@ describe('RedisSseStreamService', () => {
         const redis = createRedisMock()
         redis.eval.mockResolvedValue('1-0')
         const service = new RedisSseStreamService(redis as never, undefined as never)
+        const usageSummary = { lastInputTokens: 12, costs: [{ currency: 'USD', amount: 0.1, tokens: 42 }] }
         const data = {
             type: ChatMessageTypeEnum.EVENT,
             event: ChatMessageEventTypeEnum.ON_AGENT_END,
@@ -283,8 +310,10 @@ describe('RedisSseStreamService', () => {
                 totalTokens: 64,
                 inputTokens: 40,
                 outputTokens: 21,
+                usageSummary,
                 totalPrice: '0.1000000',
                 currency: 'USD',
+                chargedPoints: 0.75,
                 metadata: {
                     provider: 'openai',
                     model: 'gpt-test'
@@ -321,8 +350,7 @@ describe('RedisSseStreamService', () => {
                 totalTokens: 64,
                 inputTokens: 40,
                 outputTokens: 21,
-                totalPrice: '0.1000000',
-                currency: 'USD',
+                chargedPoints: 0.75,
                 metadata: {
                     provider: 'openai',
                     model: 'gpt-test'

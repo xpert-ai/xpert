@@ -14,7 +14,7 @@ export const pipelineModelUsageStatisticsSchema = z
     outputTokens: count.nullable(),
     totalTokens: count.nullable(),
     unpricedCalls: count,
-    costs: z.array(z.object({ currency: z.string(), amount: z.number().nonnegative(), calls: count }).strict()),
+    chargedPoints: z.number().nonnegative().nullable(),
     byModel: z.array(
       z
         .object({
@@ -54,7 +54,8 @@ export function pipelineModelUsageStatistics(
   coverage: Pick<
     PipelineModelUsageStatistics,
     'requestedExecutions' | 'executionsWithRecords' | 'truncated' | 'rejectedRecords'
-  >
+  >,
+  chargedPoints: number | null = null
 ): PipelineModelUsageStatistics {
   const distinct = new Map<string, PipelineModelUsageFact>()
   for (const fact of facts) {
@@ -75,18 +76,9 @@ export function pipelineModelUsageStatistics(
       totalTokens: sum('totalTokens')
     }
   }
-  const costs = new Map<string, { currency: string; amount: number; calls: number }>()
-  let unpricedCalls = 0
-  for (const call of calls) {
-    if (call.pricingStatus === 'unpriced' || !call.priceCurrency || call.priceAmount === null) {
-      unpricedCalls++
-      continue
-    }
-    const group = costs.get(call.priceCurrency) ?? { currency: call.priceCurrency, amount: 0, calls: 0 }
-    group.amount += call.priceAmount
-    group.calls++
-    costs.set(call.priceCurrency, group)
-  }
+  const unpricedCalls = calls.filter(
+    (call) => call.pricingStatus === 'unpriced' || !call.priceCurrency || call.priceAmount === null
+  ).length
   const models = new Map<string, PipelineModelUsageFact[]>()
   for (const call of calls) {
     const key = JSON.stringify([call.provider, call.model]),
@@ -99,7 +91,7 @@ export function pipelineModelUsageStatistics(
     ...coverage,
     ...totals(calls),
     unpricedCalls,
-    costs: [...costs.values()].sort((a, b) => a.currency.localeCompare(b.currency)),
+    chargedPoints,
     byModel: [...models.values()].map((group) => ({
       provider: group[0].provider,
       model: group[0].model,

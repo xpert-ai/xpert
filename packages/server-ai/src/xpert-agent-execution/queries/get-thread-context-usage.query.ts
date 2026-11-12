@@ -13,8 +13,6 @@ export type TThreadContextUsage = {
         output_tokens: number
         total_tokens: number
         embed_tokens: number
-        total_price: number
-        currency: string | null
     }
 }
 

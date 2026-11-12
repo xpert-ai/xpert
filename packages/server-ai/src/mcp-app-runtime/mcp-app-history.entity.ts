@@ -1,7 +1,7 @@
 import type { IChatConversation, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
-import type { McpAppInstanceSnapshot } from './mcp-app-instance-store.service'
+import type { McpAppHistoricalSnapshot } from './mcp-app-history-store.service'
 
 /** Initial server provenance survives the runtime lease, but never its owning conversation/execution. */
 @Entity('mcp_app_history')
@@ -23,5 +23,5 @@ export class McpAppHistory extends TenantOrganizationBaseEntity {
     execution?: IXpertAgentExecution
 
     @Column({ type: 'jsonb', select: false })
-    snapshot: McpAppInstanceSnapshot
+    snapshot: McpAppHistoricalSnapshot
 }

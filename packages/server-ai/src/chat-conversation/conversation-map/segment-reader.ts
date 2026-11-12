@@ -3,7 +3,7 @@ import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { messageAncestorPath } from '../message-path'
 import { humanMessageSummary } from './presentation'
 import { messageSegments, replySummary, type SegmentPath } from './segments'
-import type { MapNode } from './schema'
+import type { MapSourceNode as MapNode } from './schema'
 
 export type SegmentThread = Omit<SegmentPath, 'messages'> & { headMessageId?: string | null }
 

@@ -1,8 +1,16 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { randomUUID } = require('node:crypto')
-const { parseInput, parseCommand, parseReport, parseSettings, LIMITS } = require('..')
+const { parseInput, parseCommand, parseReport, parseSettings, parseComputerInfo, isShellCwd, LIMITS } = require('..')
 const ids = () => ({ version: 1, operationId: randomUUID(), connectionEpoch: randomUUID() })
+test('computer discovery reports a typed platform without carrying commands or credentials', () => {
+  assert.deepEqual(parseInput({ action: 'info', command: 'must not run' }), { action: 'info' })
+  const info = { available: true, platform: 'win32', name: 'Windows', shell: 'powershell.exe', cwd: 'C:\\work' }
+  assert.deepEqual(parseComputerInfo({ ...info, token: 'private' }), info)
+  assert.deepEqual(parseComputerInfo({ ...info, available: false }), { available: false })
+  assert.throws(() => parseComputerInfo({ ...info, platform: 'darwin' }))
+  assert.throws(() => parseComputerInfo({ ...info, cwd: '/tmp' }))
+})
 test('exec schema bounds commands and timeouts, and discards identity fields', () => {
   assert.deepEqual(parseInput({ action: 'exec', command: 'pwd', deviceId: 'forged' }), {
     action: 'exec',
@@ -50,6 +58,39 @@ test('only supported executable paths and absolute default directories are accep
   assert.equal(parseSettings(settings).shell, '/bin/zsh')
   for (const patch of [{ shell: '/tmp/script' }, { cwd: '.' }, { path: '\0' }])
     assert.throws(() => parseSettings({ ...settings, ...patch }))
+})
+
+test('Windows settings accept explicit PowerShell and fully qualified paths without accepting drive-relative paths', () => {
+  const settings = {
+    name: 'Windows',
+    shell: 'powershell.exe',
+    cwd: 'C:\\Users\\测试 User',
+    path: 'C:\\Windows;C:\\Tools'
+  }
+  assert.deepEqual(parseSettings(settings, 'win32'), settings)
+  assert.throws(() => parseSettings(settings, 'darwin'), /INVALID_SETTINGS/)
+  for (const cwd of ['C:\\work', 'D:/work space/中文', '\\\\server\\share\\project'])
+    assert.equal(isShellCwd(cwd, 'win32'), true, cwd)
+  for (const cwd of ['C:work', '\\work', '/tmp', '.', '\\\\?\\C:\\work', '\\\\.\\pipe\\device'])
+    assert.throws(() => parseSettings({ ...settings, cwd }, 'win32'), /INVALID_SETTINGS/, cwd)
+  assert.throws(() => parseSettings({ ...settings, shell: 'cmd.exe' }), /INVALID_SETTINGS/)
+})
+
+test('Windows wire commands preserve exact cwd for approval digests', () => {
+  const command = {
+    ...ids(),
+    type: 'exec',
+    grantId: randomUUID(),
+    argsHash: 'b'.repeat(64),
+    command: 'Get-Location',
+    cwd: 'D:\\Project 中文',
+    timeoutSec: 30,
+    deadline: Date.now() + 30000
+  }
+  assert.equal(parseCommand(command).cwd, command.cwd)
+  assert.equal(parseCommand(command, 'win32').cwd, command.cwd)
+  assert.throws(() => parseCommand(command, 'darwin'))
+  assert.throws(() => parseCommand({ ...command, cwd: 'D:relative' }))
 })
 
 test('exit evidence binds the original operation; legacy reports remain unconfirmed', () => {

@@ -16,6 +16,7 @@ import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Callable, Iterator, TypeVar
+from workspace_metadata import workspace_ownership
 
 T = TypeVar('T')
 _LOCKS: dict[str, threading.RLock] = {}
@@ -173,14 +174,24 @@ def publish(root: pathlib.Path, staged: pathlib.Path, before: dict[str, Entry], 
                     pass
 
 
+def restore_owner(descriptor: int, owner: list[int]) -> None:
+    info = os.fstat(descriptor)
+    # Even chown to the current owner makes OverlayFS copy a lower directory into tmpfs.
+    if [info.st_uid, info.st_gid] != owner:
+        os.fchown(descriptor, *owner)
+
+
 def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: StorageBudget,
-                operation: Callable[[pathlib.Path, pathlib.Path], T], accept: Callable[[T], bool]) -> T:
+                operation: Callable[[pathlib.Path, pathlib.Path], T], accept: Callable[[T], bool],
+                identity: tuple[int, int] | None = None) -> T:
     if any(character in str(workspace) + str(state_root) for character in (',', ':', '\\', '\n')):
         raise StorageBudgetError('Unsupported workspace mount path', 400)
     with _LOCKS_GUARD:
         lock = _LOCKS.setdefault(str(workspace), threading.RLock())
     with lock:
         before = manifest(workspace)
+        uid, gid = identity or (os.geteuid(), os.getegid())
+        ownership = workspace_ownership(workspace, uid, gid, before)
         directory = pathlib.Path(tempfile.mkdtemp(prefix='storage-budget-', dir=state_root))
         # NsJail resolves bind sources after entering its user namespace.
         # Allow traversal without exposing a listing of the staging directory.
@@ -197,7 +208,7 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
             for name in ('upper', 'work', 'tmp', 'run'):
                 (scratch / name).mkdir(mode=0o777)
             owner = workspace.stat()
-            os.chown(scratch / 'upper', owner.st_uid, owner.st_gid)
+            os.chown(scratch / 'upper', *ownership[''])
             os.chmod(scratch / 'upper', stat.S_IMODE(owner.st_mode) & 0o777)
             os.chmod(scratch / 'tmp', 0o1777)
             os.chmod(scratch / 'run', 0o1777)
@@ -208,8 +219,9 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
             # Host bind filesystems can reject overlay copy-up by a non-root jail
             # even when the file's owner has write access. Materialize existing
             # files as the host, within the same hard temporary cap, before entry.
-            for name, entry in before.items():
-                if entry.kind == 'file':
+            # Unreachable subtrees stay on the lower layer with their original access controls.
+            for name, owner_ids in ownership.items():
+                if name and before[name].kind == 'file':
                     with parent_fd(merged, name) as (parent, leaf):
                         descriptor = os.open(leaf, os.O_RDWR | os.O_NOFOLLOW, dir_fd=parent)
                         try:
@@ -218,6 +230,17 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
                                 os.pwrite(descriptor, first, 0)
                             else:
                                 os.ftruncate(descriptor, 0)
+                            restore_owner(descriptor, owner_ids)
+                        finally:
+                            os.close(descriptor)
+            # Copy-up also materializes parent directories. Preserve their consumer
+            # identity on the private overlay; never chmod/chown the durable share.
+            for name, owner_ids in ownership.items():
+                if name and before[name].kind == 'directory':
+                    with parent_fd(merged, name) as (parent, leaf):
+                        descriptor = os.open(leaf, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+                        try:
+                            restore_owner(descriptor, owner_ids)
                         finally:
                             os.close(descriptor)
             result = operation(merged, scratch)

@@ -437,7 +437,7 @@ describe('XpertProjectService direct and managed provisioning', () => {
             name: 'Case',
             status: 'active'
         })
-        expect(harness.transaction).toHaveBeenCalledTimes(1)
+        expect(harness.transaction).toHaveBeenCalledTimes(2)
         expect(harness.relation.of).toHaveBeenCalledWith('project-1')
         expect(harness.relation.add).toHaveBeenCalledWith([root.id, child.id])
         expect(harness.relation.add.mock.invocationCallOrder[0]).toBeLessThan(
@@ -584,6 +584,7 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         work(
             Object.assign(new EntityManager(undefined), {
                 getRepository: () => repository,
+                query: async () => [],
                 createQueryBuilder: () => relation
             })
         )

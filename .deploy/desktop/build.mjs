@@ -27,6 +27,7 @@ writeFileSync(
   JSON.stringify({ ...manifest, types: './index.d.ts' }, null, 2) + '\n'
 )
 run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
+run('apps/desktop/scripts/build-windows-shell.mjs', [])
 const testDirectories = ['packages/desktop-protocol/test', 'apps/desktop/tests', 'apps/desktop/tests/audio-capture']
 if (process.platform === 'darwin') testDirectories.push('apps/desktop/native/audio-capture')
 const tests = testDirectories.flatMap((dir) =>
@@ -34,7 +35,7 @@ const tests = testDirectories.flatMap((dir) =>
     .filter((file) => file.endsWith('.test.cjs') && !(process.platform === 'win32' && file === 'shell-engine.test.cjs'))
     .map((file) => `${dir}/${file}`)
 )
-// The Bash engine suite runs on macOS/Linux; Windows still runs all portable suites.
+// POSIX and Windows each run their native engine suite as well as the portable suites.
 run('--test', tests)
 run(require.resolve('typescript/bin/tsc'), ['--noEmit', '--project', 'apps/desktop/tsconfig.json'])
 run(

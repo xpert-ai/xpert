@@ -40,6 +40,14 @@ const connection = packagedConnection()
 const service = new DesktopService({ defaultConfig: connection })
 for (const key of ['apiUrl', 'webUrl', 'frameUrl']) assert.equal(service.config[key], connection[key])
 assert.equal(typeof packaged('./electron/shell/controller.cjs').DesktopShellController, 'function')
+if (process.platform === 'win32') {
+  const { supervisorPath } = packaged('./electron/shell/windows-execution.cjs')
+  const helper = supervisorPath()
+  assert.equal(helper, path.join(`${archive}.unpacked`, 'resources/shell/windows-supervisor.exe'))
+  const check = JSON.parse(execFileSync(helper, ['--check'], { encoding: 'utf8', timeout: 10000 }))
+  assert.equal(check.protocol, 1)
+  assert.equal(check.pointerSize, 8)
+}
 assert.match(fs.readFileSync(path.join(archive, 'dist/index.html'), 'utf8'), /<div id="root">/)
 console.log(
   `PASS: packaged Bosi ${version}, Electron ${process.versions.electron}, ${process.platform}/${process.arch}`

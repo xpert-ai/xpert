@@ -1,6 +1,8 @@
 import { configuredArtifactPolicies } from './testing/source-policies'
 import { MemoryRepository } from './testing/memory-repository'
 import { BadRequestException, GoneException, NotFoundException } from '@nestjs/common'
+import { environment } from '@xpert-ai/server-config'
+import { sign } from 'jsonwebtoken'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -46,6 +48,44 @@ describe('ArtifactsService', () => {
 
     afterEach(() => {
         rmSync(volumeRoot, { recursive: true, force: true })
+    })
+
+    it('accepts current and legacy login JWTs on both bearer paths and rejects reset and other purposes', async () => {
+        const secret = 'artifact-token-regression'
+        const config = jest.replaceProperty(environment, 'JWT_SECRET', secret)
+        try {
+            const payload = { id: 'member', tenantId: 'tenant' }
+            const reset = sign({ ...payload, iat: 111 }, secret)
+            const login = sign({ ...payload, iat: 222 }, secret)
+            const swapped = createHash('sha256').update(reset).digest('hex')
+            const existsBy = jest.fn(async (_entity: unknown, where: { token: string }) => where.token === swapped)
+            Object.assign(artifactRepository, { manager: { existsBy } })
+            Object.assign(service, { userService: { getIfExists: async () => payload } })
+            const request = (token: string) => ({ headers: { authorization: 'Bearer ' + token } })
+            expect(await service.resolvePrincipalFromRequest(request(reset))).toEqual({})
+            expect(await service.resolveAccessContextFromRequest(request(reset))).toEqual({ principal: {} })
+            expect(await service.resolvePrincipalFromRequest(request(login))).toEqual({
+                userId: 'member',
+                tenantId: 'tenant'
+            })
+            expect((await service.resolveAccessContextFromRequest(request(login))).authenticatedUser).toEqual(payload)
+            expect(existsBy).toHaveBeenCalledTimes(4)
+            existsBy.mockClear()
+            const access = sign({ ...payload, purpose: 'access' }, secret)
+            expect(await service.resolvePrincipalFromRequest(request(access))).toEqual({
+                userId: 'member',
+                tenantId: 'tenant'
+            })
+            expect((await service.resolveAccessContextFromRequest(request(access))).authenticatedUser).toEqual(payload)
+            for (const purpose of ['artifact_share', 'unknown', '', null, 0, {}]) {
+                const token = sign({ ...payload, purpose }, secret)
+                expect(await service.resolvePrincipalFromRequest(request(token))).toEqual({})
+                expect(await service.resolveAccessContextFromRequest(request(token))).toEqual({ principal: {} })
+            }
+            expect(existsBy).not.toHaveBeenCalled()
+        } finally {
+            config.restore()
+        }
     })
 
     it('reads a pinned version for an authorized copy without creating a link; rejects tampering and revoked versions', async () => {

@@ -39,12 +39,18 @@ import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { PluginTemplateInstallCommand } from '../../plugin-resource/commands/install-template.command'
 import { RunCreateStreamCommand } from '../../ai/commands/run-create-stream.command'
 import { XpertAgentExecutionStatusEnum, BosiCapability } from '@xpert-ai/contracts'
+import { CopilotCheckpointGetTupleQuery } from '../../copilot-checkpoint/queries/get-tuple.query'
 
 function fixture() {
     let binding: AssistantBinding | null = null
     let draft: { id: string; workspaceId: string; publishAt?: Date } | null = null
     let execution: { id: string; status: XpertAgentExecutionStatusEnum } | null = null
     const messages = { findOne: jest.fn(async () => ({ id: 'welcome-ai' })) }
+    const checkpoint = jest.fn(
+        async (_query: CopilotCheckpointGetTupleQuery): Promise<{ checkpoint: { id: string } } | undefined> => ({
+            checkpoint: { id: 'welcome-checkpoint' }
+        })
+    )
     let locked = false
     const stream = new Subject<MessageEvent>()
     const repo = {
@@ -136,7 +142,11 @@ function fixture() {
         workspaces as never,
         published as never,
         { execute } as never,
-        { execute: jest.fn(async () => null) } as never,
+        {
+            execute: jest.fn(async (query) =>
+                query instanceof CopilotCheckpointGetTupleQuery ? checkpoint(query) : null
+            )
+        } as never,
         { get: () => ({ workspace: workspaces.workspace }) } as never
     )
     return {
@@ -150,6 +160,7 @@ function fixture() {
         run,
         stream,
         messages,
+        checkpoint,
         execute,
         runners,
         workspaces,
@@ -344,6 +355,31 @@ describe('Bosi bootstrap recovery and ownership', () => {
         expect((await f.service.setup()).progress.phase).toBe('ready')
         await f.service.welcome()
         expect(f.run).toHaveBeenCalledTimes(2)
+    })
+    it('resends a preflight welcome with an AI placeholder but no saved graph state', async () => {
+        const f = fixture()
+        const initial = await f.service.create(choice)
+        const welcomeMessageId = f.binding.desktopBootstrap.welcomeMessageId
+        f.execution = { id: 'failed-preflight', status: XpertAgentExecutionStatusEnum.ERROR }
+        f.checkpoint.mockResolvedValue(undefined)
+        await f.service.welcome()
+        const command = f.execute.mock.calls
+            .map(([command]) => command)
+            .find((command) => command instanceof RunCreateStreamCommand)
+        expect(command.threadId).toBe(initial.progress.threadId)
+        expect(command.runCreate.input).toEqual({
+            action: 'send',
+            message: {
+                clientMessageId: welcomeMessageId,
+                input: { input: 'server-ai:BosiStartConversation' }
+            }
+        })
+        expect(f.checkpoint).toHaveBeenCalledWith(
+            new CopilotCheckpointGetTupleQuery({
+                thread_id: initial.progress.threadId,
+                checkpoint_ns: ''
+            })
+        )
     })
     it('recovers a preflight failure with no AI message using the same welcome thread and client message', async () => {
         const f = fixture()

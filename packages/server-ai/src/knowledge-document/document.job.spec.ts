@@ -495,14 +495,11 @@ describe('KnowledgeDocumentConsumer', () => {
             job
         )
 
-        const embeddingTokenUsed = commandBus.execute.mock.calls
-            .map(([command]) => command)
-            .filter((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
-            .reduce((total, command) => total + (command.input.tokenUsed ?? 0), 0)
-        const tokenRecordCommand = commandBus.execute.mock.calls
-            .map(([command]) => command)
-            .find((command): command is CopilotTokenRecordCommand => command instanceof CopilotTokenRecordCommand)
-        expect(tokenRecordCommand?.input.modelAccess).toBe(modelAccess)
+        const embeddingTokenUsed = embeddingChunks.reduce(
+            (total, chunk) => total + countTextTokens(chunk.metadata?.searchContent ?? chunk.pageContent),
+            0
+        )
+        expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(CopilotTokenRecordCommand))
         expect(documentService.update).toHaveBeenCalledWith(
             'doc-1',
             expect.objectContaining({
@@ -641,7 +638,7 @@ describe('KnowledgeDocumentConsumer', () => {
             expect(vectorStore.addKnowledgeDocument).toHaveBeenCalledTimes(mode === 'keyword' ? 0 : 1)
             expect(
                 commandBus.execute.mock.calls.filter(([command]) => command instanceof CopilotTokenRecordCommand)
-            ).toHaveLength(mode === 'keyword' ? 0 : 1)
+            ).toHaveLength(0)
 
             const finishUpdate = documentService.update.mock.calls.find(
                 ([, updates]) => updates.status === KBDocumentStatusEnum.FINISH

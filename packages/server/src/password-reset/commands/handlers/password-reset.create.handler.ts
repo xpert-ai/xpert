@@ -1,28 +1,18 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { PasswordResetCreateCommand } from './../password-reset.create.command';
-import { PasswordResetService } from './../../password-reset.service';
+import { issueResetToken, tokenDigest } from '../../reset-token'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { PasswordResetCreateCommand } from './../password-reset.create.command'
+import { PasswordResetService } from './../../password-reset.service'
 
 @CommandHandler(PasswordResetCreateCommand)
-export class PasswordResetCreateHandler
-	implements ICommandHandler<PasswordResetCreateCommand> {
-	
-	constructor(
-		private readonly _passwordResetService : PasswordResetService
-	) {}
+export class PasswordResetCreateHandler implements ICommandHandler<PasswordResetCreateCommand> {
+	constructor(private readonly _passwordResetService: PasswordResetService) {}
 
-	public async execute(
-		command: PasswordResetCreateCommand
-	) {
-		const { input } = command;
-		const { email, token } = input;
+	public async execute(command: PasswordResetCreateCommand) {
+		const { input } = command
+		const { email, userId, tenantId } = input
+		const token = issueResetToken()
 
-		try {
-			return await this._passwordResetService.create({
-				email,
-				token
-			});
-		} catch (error) {
-			//
-		}
+		await this._passwordResetService.create({ email, userId, tenantId, token: tokenDigest(token) })
+		return token
 	}
 }

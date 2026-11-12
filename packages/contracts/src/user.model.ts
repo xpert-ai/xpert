@@ -82,6 +82,18 @@ export interface IUserLoginInput {
   password: string
 }
 
+export interface AccessTokenClaims {
+  /** Login tokens issued before purpose marking omit this claim. */
+  purpose?: 'access'
+  id: string
+  thirdPartyId?: string
+  tenantId?: string
+  employeeId?: string | null
+  username?: string
+  role?: string | null
+  permissions?: string[] | null
+}
+
 export interface IAuthResponse {
   user: IUser
   token: string

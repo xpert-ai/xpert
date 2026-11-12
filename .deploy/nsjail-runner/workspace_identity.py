@@ -61,11 +61,13 @@ class WorkspaceIdentity:
         )
         return result.returncode == 0
 
-    def open_directory(self, parent: int, name: str) -> int:
+    def open_directory(self, parent: int, name: str, *, search_only: bool = False) -> int:
         if not name or name in ('.', '..') or '/' in name or '\\' in name or '\0' in name:
             raise OSError(errno.EINVAL, 'Invalid workspace directory component')
+        access = getattr(os, 'O_PATH', os.O_RDONLY) if search_only else os.O_RDONLY
+        flags = access | os.O_DIRECTORY | os.O_NOFOLLOW
         try:
-            return os.open(name, DIRECTORY_FLAGS, dir_fd=parent)
+            return os.open(name, flags, dir_fd=parent)
         except FileNotFoundError:
             pass
         if (os.geteuid(), os.getegid()) == (self.uid, self.gid):
@@ -87,7 +89,7 @@ class WorkspaceIdentity:
             if result.returncode:
                 code = int(result.stdout.strip()) if result.stdout.strip().isdigit() else errno.EIO
                 raise OSError(code, 'Cannot initialize directory with the configured workspace UID/GID')
-        return os.open(name, DIRECTORY_FLAGS, dir_fd=parent)
+        return os.open(name, flags, dir_fd=parent)
 
     def prepare_app_data(self, workspace: pathlib.Path) -> None:
         parent = os.open(workspace, DIRECTORY_FLAGS)

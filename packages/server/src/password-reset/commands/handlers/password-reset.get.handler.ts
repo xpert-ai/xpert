@@ -1,32 +1,23 @@
-import { NotFoundException } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { PasswordResetGetCommand } from './../password-reset.get.command';
-import { PasswordResetService } from './../../password-reset.service';
-import { IPasswordReset } from '@xpert-ai/contracts';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { IsNull, MoreThan, Not } from 'typeorm'
+import { PasswordResetGetCommand } from '../password-reset.get.command'
+import { PasswordResetService } from '../../password-reset.service'
+import { PasswordReset } from '../../password-reset.entity'
+import { invalidResetLink, resetTokenLifetimeMs } from '../../reset-token'
 
 @CommandHandler(PasswordResetGetCommand)
-export class PasswordResetGetHandler
-	implements ICommandHandler<PasswordResetGetCommand> {
-	
-	constructor(
-		private readonly _passwordResetService : PasswordResetService
-	) {}
+export class PasswordResetGetHandler implements ICommandHandler<PasswordResetGetCommand> {
+	constructor(private readonly resets: PasswordResetService) {}
 
-	public async execute(
-		command: PasswordResetGetCommand
-	): Promise<IPasswordReset> {
-		const { input } = command;
-		const { token } = input;
-
-		try {
-			return await this._passwordResetService.findOneByOptions({
-				where: { token },
-				order: {
-					createdAt: 'DESC'
-				}
-			});
-		} catch (error) {
-			throw new NotFoundException(error);
-		}
+	async execute({ digest }: PasswordResetGetCommand): Promise<PasswordReset> {
+		const ticket = await this.resets.findOneByOptions({
+			where: {
+				token: digest,
+				userId: Not(IsNull()),
+				createdAt: MoreThan(new Date(Date.now() - resetTokenLifetimeMs))
+			}
+		})
+		if (!ticket?.userId) throw invalidResetLink()
+		return ticket
 	}
 }

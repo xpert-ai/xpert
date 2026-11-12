@@ -14,7 +14,7 @@ jest.mock('@xpert-ai/server-core', () => {
 
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ForbiddenException } from '@nestjs/common'
-import type { TChatRequestHuman } from '@xpert-ai/contracts'
+import { createRuntimeSkillCapabilityId, type TChatRequestHuman } from '@xpert-ai/contracts'
 import fs from 'fs'
 import { GetFilePreviewQuery } from '../../file-understanding/queries/get-file-preview.query'
 import { GetOwnedStorageFileQuery } from '../../file-understanding/queries/get-owned-storage-file.query'
@@ -127,7 +127,10 @@ describe('createHumanMessage', () => {
         expect(queryBus.execute).not.toHaveBeenCalled()
     })
 
-    it('appends explicitly selected runtime skills to the agent human message', async () => {
+    it.each([
+        'skill-motor-bom',
+        createRuntimeSkillCapabilityId({ type: 'xpert', ownerId: 'xpert-1', skillId: 'skill-motor-bom' })
+    ])('names an explicitly selected workspace skill in the agent message for ID %s', async (skillId) => {
         const queryBus = {
             execute: jest.fn().mockImplementation((query) => {
                 if (query instanceof ListWorkspaceSkillsQuery) {
@@ -151,17 +154,17 @@ describe('createHumanMessage', () => {
             } as unknown as CommandBus,
             queryBus as unknown as QueryBus,
             {
-                selectedSkillIds: ['skill-motor-bom'],
+                selectedSkillIds: [skillId],
                 selectedSkillWorkspaceId: 'workspace-1',
                 human: {
                     input: 'Parse contract data from the documents',
                     runtimeCapabilities: {
                         mode: 'allowlist',
-                        skills: { workspaceId: 'workspace-1', ids: ['skill-motor-bom'] },
+                        skills: { workspaceId: 'workspace-1', ids: [skillId] },
                         plugins: { nodeKeys: [] },
                         subAgents: { nodeKeys: [] },
                         recommended: {
-                            skills: { workspaceId: 'workspace-1', ids: ['skill-motor-bom'] },
+                            skills: { workspaceId: 'workspace-1', ids: [skillId] },
                             plugins: { nodeKeys: [] },
                             subAgents: { nodeKeys: [] }
                         }

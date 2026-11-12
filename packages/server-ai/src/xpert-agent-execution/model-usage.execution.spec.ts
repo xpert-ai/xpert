@@ -30,8 +30,10 @@ describe('model usage execution projection', () => {
             })
         ]
 
-        const result = attachModelUsageDetails(execution, usages)
+        const result = attachModelUsageDetails(execution, usages, new Map([['child', 0]]))
 
+        expect(result.chargedPoints).toBeNull()
+        expect(result.subExecutions?.[0].chargedPoints).toBe(0)
         expect(result.totalTokens).toBe(16_518)
         expect(result.modelUsages?.map(({ requestId }) => requestId)).toEqual(['root-tool-call'])
         expect(result.subExecutions?.[0].totalTokens).toBe(111)

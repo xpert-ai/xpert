@@ -2,17 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
-import { IUser } from '@xpert-ai/contracts'
+import type { AccessTokenClaims, IUser } from '@xpert-ai/contracts'
+import type { Request } from 'express'
 import { AuthService } from '../auth.service'
 import { applyTokenPermissionCeiling } from './jwt-permissions'
 
-type JwtPayload = {
-	id: string
-	thirdPartyId: string
-	employeeId: string
-	username: string
-	permissions?: string[] | null
-}
+const extractToken = ExtractJwt.fromExtractors([
+	ExtractJwt.fromAuthHeaderAsBearerToken(),
+	ExtractJwt.fromHeader('x-api-key')
+])
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -21,19 +19,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 		private readonly configService: ConfigService
 	) {
 		super({
-			jwtFromRequest: ExtractJwt.fromExtractors([
-				ExtractJwt.fromAuthHeaderAsBearerToken(),
-				ExtractJwt.fromHeader('x-api-key') // when `jwt` in `x-api-key` header
-			]),
+			passReqToCallback: true,
+			jwtFromRequest: extractToken,
 			ignoreExpiration: false,
 			secretOrKey: configService.get('JWT_SECRET')
 		})
 	}
 
-	async validate(payload: JwtPayload, done: any) {
+	async validate(request: Request, payload: AccessTokenClaims, done: any) {
 		try {
 			// We use this to also attach the user object to the request context.
-			const user: IUser = await this.authService.getAuthenticatedUser(payload.id, payload.thirdPartyId)
+			const user: IUser = await this.authService.getAuthenticatedUser(payload.id, payload.thirdPartyId, {
+				token: extractToken(request),
+				purpose: payload.purpose
+			})
 
 			if (!user) {
 				return done(new UnauthorizedException('unauthorized'), false)

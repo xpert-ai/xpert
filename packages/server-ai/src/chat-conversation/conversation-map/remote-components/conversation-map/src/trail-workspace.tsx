@@ -138,6 +138,7 @@ export function TrailWorkspace({
             title: '',
             preview: '',
             expandable: false,
+            capabilities: ['locate'],
             conversationId: targetConversationId,
             threadId,
             messageId

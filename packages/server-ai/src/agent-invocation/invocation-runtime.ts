@@ -1,9 +1,16 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
-import { checkedControlObservation, invocationCanRelease, notStartedEvidence } from './invocation-control-evidence'
+import {
+    checkedControlObservation,
+    invocationCanRelease,
+    isBuiltinInlineGraph,
+    nativeGraphCancellation,
+    notStartedEvidence
+} from './invocation-control-evidence'
 import type { TaskControlPolicy } from '@xpert-ai/plugin-sdk'
 import { TaskControlRejected } from '@xpert-ai/server-core'
+import { ExecutionCancelledError } from '../execution-control/execution-cancelled.error'
 import { createHash, randomUUID } from 'crypto'
 import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
@@ -228,16 +235,27 @@ export class AgentInvocationRuntime {
             this.owned.set(id, { access: { ...access, signal: undefined }, target: record.invocation.executionTarget })
         const heartbeat = invocationStartupHeartbeat(async (leaseMs) => {
             const latest = await this.store.read(id, access.scope)
-            if (!latest || latest.invocation.startPendingId !== claimed.invocation.startPendingId ||
-                latest.invocation.status !== 'running' || latest.invocation.control ||
-                !(Date.parse(latest.invocation.startPendingUntil ?? '') > Date.now())) return false
+            if (
+                !latest ||
+                latest.invocation.startPendingId !== claimed.invocation.startPendingId ||
+                latest.invocation.status !== 'running' ||
+                latest.invocation.control ||
+                !(Date.parse(latest.invocation.startPendingUntil ?? '') > Date.now())
+            )
+                return false
             // A revision conflict leaves the existing fence intact; the next heartbeat retries it.
-            await this.store.replace({ ...latest, invocation: {
-                ...latest.invocation,
-                startPendingUntil: new Date(Date.now() + leaseMs).toISOString(),
-                revision: latest.invocation.revision + 1,
-                updatedAt: new Date().toISOString()
-            } }, latest.invocation.revision)
+            await this.store.replace(
+                {
+                    ...latest,
+                    invocation: {
+                        ...latest.invocation,
+                        startPendingUntil: new Date(Date.now() + leaseMs).toISOString(),
+                        revision: latest.invocation.revision + 1,
+                        updatedAt: new Date().toISOString()
+                    }
+                },
+                latest.invocation.revision
+            )
             return true
         }, 120_000)
         try {
@@ -262,10 +280,29 @@ export class AgentInvocationRuntime {
                     ? (await this.updateLatest(id, access, { ...observation, status: latest.invocation.status }, true))
                           .invocation
                     : (await this.updateLatest(id, access, observation, true)).invocation
-            if (task && invocationCanRelease(saved)) await this.tasks.receipt(task.id, 'completed')
+            if (task && invocationCanRelease(saved)) await this.tasks.receipt(task.id, 'completed', taskClaim)
             return saved.control ? this.control(id, access, 'inspect') : saved
         } catch (error) {
             const latest = await this.store.read(id, access.scope)
+            if (
+                error instanceof ExecutionCancelledError &&
+                access.controlAdapter === 'native-graph' &&
+                latest &&
+                isBuiltinInlineGraph(latest) &&
+                !strategy.capabilities.background
+            ) {
+                const saved = await this.updateLatest(
+                    id,
+                    access,
+                    nativeGraphCancellation(id, error.executionId, error.message),
+                    true,
+                    true,
+                    { value: undefined }
+                )
+                if (task && invocationCanRelease(saved.invocation))
+                    await this.tasks.receipt(task.id, 'completed', taskClaim)
+                return saved.invocation
+            }
             if (error instanceof AgentInvocationNotStartedError && !latest?.invocation.handle) {
                 if (task) await this.tasks.receipt(task.id, 'completed', taskClaim)
                 return (
@@ -288,8 +325,9 @@ export class AgentInvocationRuntime {
                 },
                 true
             )
-            if (task && suspended) await this.tasks.receipt(task.id, 'paused')
-            else if (task && access.controlAdapter === 'native-graph') await this.tasks.receipt(task.id, 'completed')
+            if (task && suspended) await this.tasks.receipt(task.id, 'paused', taskClaim)
+            else if (task && access.controlAdapter === 'native-graph')
+                await this.tasks.receipt(task.id, 'completed', taskClaim)
             throw error
         } finally {
             await heartbeat.stop()
@@ -455,6 +493,14 @@ export class AgentInvocationRuntime {
         ).invocation
     }
 
+    /** A coordinator proved this exact revision exited via its historical interrupt and completed child. */
+    async confirmCheckpointCancellation(record: StoredAgentInvocation): Promise<boolean> {
+        const { invocation } = record
+        if (!isBuiltinInlineGraph(record) || invocation.status !== 'cancelling' || invocation.control) return false
+        const observation = nativeGraphCancellation(invocation.id, invocation.id, invocation.error)
+        return Boolean(await this.save(record, observation, false, 'finish'))
+    }
+
     private async saveHostResponse(
         record: StoredAgentInvocation,
         hostResponse: NonNullable<AgentInvocation['hostResponse']>
@@ -535,7 +581,7 @@ export class AgentInvocationRuntime {
         access: AgentInvocationAccess,
         observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
         finishStart = false,
-        hostAdmission = false,
+        hostEvidence = false,
         expectedTarget?: { value: AgentInvocation['executionTarget'] }
     ) {
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -547,7 +593,9 @@ export class AgentInvocationRuntime {
             )
                 throw invocationError('CallConflict')
             if (invocationCanRelease(latest.invocation)) return latest
-            const checked = hostAdmission
+            if (hostEvidence && observation.controlEvidence?.source === 'native_graph' && !isBuiltinInlineGraph(latest))
+                throw invocationError('CallConflict')
+            const checked = hostEvidence
                 ? observation
                 : checkedControlObservation(
                       latest.invocation,
@@ -611,9 +659,11 @@ export class AgentInvocationRuntime {
                           ? undefined
                           : record.invocation.startPendingUntil,
                 startPendingId:
-                    startup === 'begin' ? randomUUID()
+                    startup === 'begin'
+                        ? randomUUID()
                         : startup === 'finish' || isAgentInvocationTerminal(observation.status)
-                          ? undefined : record.invocation.startPendingId,
+                          ? undefined
+                          : record.invocation.startPendingId,
                 revision: record.invocation.revision + 1,
                 updatedAt: new Date().toISOString()
             }

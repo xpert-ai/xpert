@@ -1,5 +1,5 @@
 import { QueryBus } from '@nestjs/cqrs'
-import { ISkillPackage, IXpert, resolveI18nText } from '@xpert-ai/contracts'
+import { ISkillPackage, IXpert, parseRuntimeSkillCapabilityId, resolveI18nText } from '@xpert-ai/contracts'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import {
     getRecommendedRuntimeSkillSelection,
@@ -73,7 +73,8 @@ function sanitizePromptLine(value: string) {
 async function resolveSelectedRuntimeSkills(
     queryBus: QueryBus,
     workspaceId: string,
-    skillIds: string[]
+    skillIds: string[],
+    xpertId?: string
 ): Promise<Array<{ id: string; name: string }>> {
     let skills: ISkillPackage[] = []
     if (workspaceId) {
@@ -88,10 +89,11 @@ async function resolveSelectedRuntimeSkills(
     }
 
     const skillById = new Map(skills.map((skill) => [skill.id, skill]))
-    return skillIds.map((id) => ({
-        id,
-        name: resolveSkillDisplayName(skillById.get(id), id)
-    }))
+    return skillIds.map((id) => {
+        const source = parseRuntimeSkillCapabilityId(id)
+        const workspaceSkillId = source?.type === 'xpert' && source.ownerId === xpertId ? source.skillId : id
+        return { id, name: resolveSkillDisplayName(skillById.get(workspaceSkillId), id) }
+    })
 }
 
 function formatSelectedRuntimeSkillsPrompt(skills: Array<{ id: string; name: string }>) {
@@ -114,7 +116,7 @@ export async function buildSelectedRuntimeSkillsPrompt(
     state: Partial<typeof AgentStateAnnotation.State>,
     originalHuman: Partial<typeof AgentStateAnnotation.State>['human'],
     resolvedHuman: Partial<typeof AgentStateAnnotation.State>['human'],
-    xpert?: Pick<IXpert, 'workspaceId'>
+    xpert?: Pick<IXpert, 'id' | 'workspaceId'>
 ) {
     const explicitSelection = getExplicitRuntimeSkillSelection(originalHuman, resolvedHuman)
     const selectedSkillIds = getRuntimeSelectedSkillIds(state, explicitSelection.ids)
@@ -123,6 +125,6 @@ export async function buildSelectedRuntimeSkillsPrompt(
     }
 
     const workspaceId = getRuntimeSelectedSkillWorkspaceId(state, explicitSelection.workspaceId, xpert)
-    const skills = await resolveSelectedRuntimeSkills(queryBus, workspaceId, selectedSkillIds)
+    const skills = await resolveSelectedRuntimeSkills(queryBus, workspaceId, selectedSkillIds, xpert?.id)
     return formatSelectedRuntimeSkillsPrompt(skills)
 }

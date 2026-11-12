@@ -16,6 +16,8 @@ export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
 export const WORKBENCH_AGENT_EVOLUTION_TARGET = 'agent-evolution.target'
 export const WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET = 'agent-evolution.change'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
+/** Locate a public message in the currently open group; never opens an Assistant's private runtime. */
+export const WORKBENCH_GROUP_MESSAGE_TARGET = 'group.message'
 /** Inspect an exact execution; embedded clients may open it without changing the active conversation. */
 export const WORKBENCH_ASSISTANT_EXECUTION_TARGET = 'assistant.execution'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
@@ -88,6 +90,7 @@ export type WorkbenchNavigationOpenTarget =
   | typeof WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+  | typeof WORKBENCH_GROUP_MESSAGE_TARGET
   | typeof WORKBENCH_ASSISTANT_EXECUTION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
   | typeof WORKBENCH_EXTENSION_VIEW_TARGET
@@ -110,6 +113,7 @@ export interface WorkbenchNavigationOpenPayload {
   sourceBlockIds?: string[]
   /** Transient source excerpt used for context/highlighting; the host must not place it in the URL. */
   evidenceText?: string
+  /** For `group.message`, the current public group ID. Hosts reject navigation to a different group. */
   conversationId?: string
   threadId?: string
   executionId?: string
@@ -125,7 +129,7 @@ export interface WorkbenchNavigationOpenPayload {
   viewKey?: string
   selectionId?: string
   parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
-  /** Exact visible message in the requested branch. */
+  /** Exact visible message in the requested branch, or a public group message for `group.message`. */
   messageId?: string
   /** Keep the originating Workbench view open during navigation. */
   preserveView?: boolean

@@ -7,6 +7,10 @@ import { DataSource, EntitySchema, Repository } from 'typeorm'
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs'
 import { UserType } from '@xpert-ai/contracts'
 import { AgentInvocationScope } from '@xpert-ai/plugin-sdk'
+import { unknownExecutionControl } from '@xpert-ai/contracts'
+import { ExecutionTaskControl, TaskControlStore } from '@xpert-ai/server-core'
+import { AgentInvocationRuntime } from './invocation-runtime'
+import { TaskControlCoordinator } from './task-control-coordinator.service'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { AgentInvocationEntity, AgentInvocationEventEntity, AgentInvocationWaitEntity } from './invocation.entity'
 import { AgentInvocationWaitStore } from './invocation-wait.store'
@@ -57,6 +61,7 @@ integration('durable task wait isolation / PostgreSQL', () => {
             ...scopedColumns,
             revision: { type: 'int' },
             invocation: { type: 'jsonb' },
+            updatedAt: { type: 'timestamptz', updateDate: true },
             providerSource: { type: 'jsonb' },
             nextObservationAt: { type: 'timestamptz', nullable: true }
         }
@@ -204,6 +209,101 @@ integration('durable task wait isolation / PostgreSQL', () => {
             { execute: async () => executionIdentityFixture(scope) } as unknown as CommandBus
         )
     }
+    it('recovers a historical native cancellation past unrelated writes and retries a lost task receipt', async () => {
+        const legacy = record()
+        const { invocation } = legacy
+        const id = invocation.id
+        invocation.status = 'cancelling'
+        invocation.request.target.provider = 'xpert'
+        invocation.controlAdapter = 'native-graph'
+        invocation.controlEvidence = unknownExecutionControl({ kind: 'invocation', id }, 'unsupported')
+        invocation.error = 'Stopped by user'
+        await store.insert(legacy)
+        const task = Object.assign(new ExecutionTaskControl(), {
+            id: randomUUID(),
+            resourceId: id,
+            rootId: randomUUID(),
+            claim: randomUUID(),
+            kind: 'invocation',
+            tenantId: scope.tenantId,
+            organizationId: scope.organizationId,
+            state: 'running'
+        })
+        const tasks = {
+            delivery: jest.fn().mockResolvedValue('lease'),
+            desired: jest.fn().mockResolvedValue('terminated'),
+            settleUnstarted: jest.fn().mockResolvedValue(false),
+            settled: jest.fn().mockResolvedValue(true),
+            descendants: jest.fn().mockResolvedValue([]),
+            delivered: jest.fn(),
+            receipt: jest.fn().mockRejectedValueOnce(Error('Lost task acknowledgement')).mockResolvedValue(undefined)
+        }
+        const runtime = new AgentInvocationRuntime(store, undefined)
+        const coordinator = new TaskControlCoordinator(
+            tasks as unknown as TaskControlStore,
+            database,
+            runtime,
+            undefined,
+            undefined,
+            undefined
+        )
+        await database.query(`CREATE TABLE execution_control ("executionId" uuid,"rootExecutionId" uuid,"graphEnded" boolean,
+            desired text,"tenantId" uuid,"organizationId" uuid,"threadId" varchar,work jsonb);
+            CREATE TABLE execution_task_control ("parentId" uuid,kind text,"currentExecutionId" varchar,"resourceId" varchar,
+            state text,"rootId" uuid,"tenantId" uuid,"organizationId" uuid);
+            CREATE TABLE copilot_checkpoint_writes (id uuid PRIMARY KEY,thread_id varchar,"tenantId" uuid,"organizationId" uuid,
+            checkpoint_ns text,channel text,type text,value bytea,"createdAt" timestamptz DEFAULT now())`)
+        await database.query("INSERT INTO execution_control VALUES ($1,$1,true,'terminated',$2,$3,'thread','[]')", [
+            scope.parentExecutionId,
+            scope.tenantId,
+            scope.organizationId
+        ])
+        await database.query("INSERT INTO execution_task_control VALUES ($1,'execution',$2,$2,'completed',$3,$4,$5)", [
+            task.id,
+            id,
+            task.rootId,
+            scope.tenantId,
+            scope.organizationId
+        ])
+        const interrupt = (status: string) => ({ value: { type: 'agent_invocation', invocationId: id, status } })
+        const exact = Buffer.from(JSON.stringify([interrupt('cancelling')]))
+        const write = async (key: string, data: Buffer, org = scope.organizationId) =>
+            database.query(
+                `INSERT INTO copilot_checkpoint_writes (id,thread_id,"tenantId","organizationId",checkpoint_ns,channel,type,value)
+            VALUES ($1,'thread',$2,$3,'','__interrupt__','json',$4)`,
+                [key, scope.tenantId, org, data]
+            )
+        await database.query(
+            `INSERT INTO copilot_checkpoint_writes (id,thread_id,"tenantId","organizationId",checkpoint_ns,channel,type,value)
+            SELECT ('00000000-0000-0000-0000-' || lpad(i::text,12,'0'))::uuid,'thread',$1,$2,'','__interrupt__','json',$3
+            FROM generate_series(1,40) i`,
+            [scope.tenantId, scope.organizationId, Buffer.from(JSON.stringify(interrupt('waiting')))]
+        )
+        await write(randomUUID(), exact, randomUUID())
+        await write(randomUUID(), Buffer.from('broken JSON ' + id))
+        await coordinator.deliver(task)
+        expect(tasks.receipt).not.toHaveBeenCalled()
+        expect((await store.read(id, scope)).invocation.status).toBe('cancelling')
+
+        await write('ffffffff-ffff-ffff-ffff-ffffffffffff', exact)
+        await database.query(`UPDATE execution_control SET work='[{"settled":false}]'`)
+        await coordinator.deliver(task)
+        expect(tasks.receipt).not.toHaveBeenCalled()
+        await database.query(`UPDATE execution_control SET work='[]'`)
+        await coordinator.deliver(task)
+        expect((await store.read(id, scope)).invocation).toMatchObject({
+            status: 'cancelled',
+            error: 'Stopped by user',
+            controlEvidence: { source: 'native_graph', executionId: id }
+        })
+        expect(tasks.receipt).toHaveBeenCalledWith(task.id, 'completed', task.claim)
+        expect(await runtime.confirmCheckpointCancellation(legacy)).toBe(false)
+        await database.query('TRUNCATE copilot_checkpoint_writes')
+        await coordinator.deliver(task)
+        expect(tasks.receipt).toHaveBeenCalledTimes(2)
+        expect(tasks.delivered).toHaveBeenLastCalledWith(task.id, 'lease', null)
+        expect((await store.read(id, scope)).invocation.revision).toBe(1)
+    })
     it('preserves a single-task checkpoint and supports repeated upgrades and independent group IDs', async () => {
         const legacy = await waits.records.findOneByOrFail({ id: legacyId })
         expect(legacy).toMatchObject({ state: 'waiting', request: null, threadId: 'thread' })

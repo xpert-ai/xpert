@@ -60,6 +60,8 @@ import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { createProjectWithAssistants } from './services/project-creation'
 import { withAppPlatformProjectLimit } from '../shared/app-platform-resource-policy'
 import { ensureProject } from './services/project-provisioning'
+import { deleteProjectRecord } from './services/purge/delete-project-record'
+import { withProjectProvisioning } from './services/purge/project-purge-receipt'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -140,17 +142,19 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     }
 
     private ensureProject(input: ProjectEnsureInput, lifecycle: 'managed' | 'direct'): Promise<ProjectEnsureResult> {
-        return ensureProject(
-            {
-                repository: this.repository,
-                queryBus: this.queryBus,
-                types: this.projectTypes,
-                initialize: (project) => this.contentService.initialize(project),
-                create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
-                resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
-            },
-            input,
-            lifecycle
+        return withProjectProvisioning(this.repository.manager, input, () =>
+            ensureProject(
+                {
+                    repository: this.repository,
+                    queryBus: this.queryBus,
+                    types: this.projectTypes,
+                    initialize: (project) => this.contentService.initialize(project),
+                    create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
+                    resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
+                },
+                input,
+                lifecycle
+            )
         )
     }
 
@@ -217,17 +221,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     async deleteProject(id: string) {
         const project = await this.findOne(id)
         this.projectTypes.assertPlatformLifecycle(project)
-        return this.repository.manager.transaction(async (manager) => {
-            await this.connectorService.deleteProjectBindings(
-                { projectId: project.id, tenantId: project.tenantId },
-                manager
-            )
-            return manager.getRepository(XpertProject).delete({
-                id: project.id,
-                tenantId: project.tenantId,
-                organizationId: project.organizationId ?? IsNull()
-            })
-        })
+        return this.repository.manager.transaction((manager) =>
+            deleteProjectRecord(manager, this.connectorService, project)
+        )
     }
 
     async softRemoveProject(id: string) {

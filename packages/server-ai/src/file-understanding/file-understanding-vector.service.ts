@@ -236,7 +236,7 @@ export class FileUnderstandingVectorService {
         }
     }
 
-    async deleteFileVectors(fileAssetId: string, asset?: FileAsset | null) {
+    async deleteFileVectors(fileAssetId: string, asset?: FileAsset | null, onFailure: 'warn' | 'throw' = 'warn') {
         const embeddings = await this.fileEmbeddingRepository.find({
             where: { fileAssetId },
             select: {
@@ -269,6 +269,7 @@ export class FileUnderstandingVectorService {
                     )
                     await vectorStore.delete({ ids: uniqueStrings(ids) })
                 } catch (error) {
+                    if (onFailure === 'throw') throw error
                     this.#logger.warn(
                         `Failed to delete file vectors for ${fileAssetId} in ${collectionName}: ${getErrorMessage(error)}`
                     )

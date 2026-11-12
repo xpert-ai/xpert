@@ -12,6 +12,7 @@ import {
     createRuntimeSkillCapabilityId,
     isRequiredMiddleware,
     normalizeMiddlewareProvider,
+    resolveI18nText as localizeText,
     TRuntimeSkillSource,
     TXpertGraph,
     TXpertTeamConnection,
@@ -35,7 +36,7 @@ import {
 import { normalizeRuntimeIcon } from './runtime-icon'
 import { RuntimeCommandService } from './runtime-command.service'
 import { t } from 'i18next'
-import { getRuntimePrimaryAgentKey } from './runtime-capabilities.helpers'
+import { getRuntimePrimaryAgentKey, type RuntimeCapabilityXpert } from './runtime-capabilities.helpers'
 
 @Injectable()
 export class RuntimeCapabilitiesService {
@@ -49,7 +50,7 @@ export class RuntimeCapabilitiesService {
         private readonly projectContentService: XpertProjectContentService
     ) {}
 
-    async getRuntimeCapabilities(xpert: IXpert, assistantId?: string, projectId?: string) {
+    async getRuntimeCapabilities(xpert: RuntimeCapabilityXpert, assistantId?: string, projectId?: string) {
         const normalizedProjectId = projectId?.trim() || undefined
         const targetXpertId = xpert.id ?? assistantId
         let projectAccess: XpertProjectAccess | null = null
@@ -131,13 +132,14 @@ export class RuntimeCapabilitiesService {
                   })
                 : xpert.workspaceId
                   ? await this.getRuntimeSkills(xpert.workspaceId, defaultSkillSelection, disabledSkillIds)
-                  : { skills: [], commands: [] }
-            : { skills: [], commands: [] }
+                  : { skills: [], commands: [], pluginSkillIds: undefined }
+            : { skills: [], commands: [], pluginSkillIds: undefined }
         const runtimeSkillWorkspaceId =
             xpert.workspaceId ?? (normalizedProjectId ? `project:${normalizedProjectId}` : undefined)
         const subAgents = agentKey && graph ? collectRuntimeSubAgents(graph, agentKey) : []
         const commandAllowList = {
             workspaceId: runtimeSkillWorkspaceId,
+            pluginSkillIds: runtimeSkills.pluginSkillIds,
             skillIds: runtimeSkills.skills.map((skill) => skill.id),
             pluginNodeKeys: plugins.map((plugin) => plugin.nodeKey),
             subAgentNodeKeys: subAgents.map((subAgent) => subAgent.nodeKey)
@@ -205,7 +207,7 @@ export class RuntimeCapabilitiesService {
         return (await this.getAccessibleWorkspaceSkillPackages(workspaceId, disabledSkillIds)).length
     }
 
-    private async getDisabledSkillIds(xpert: IXpert, assistantId?: string) {
+    private async getDisabledSkillIds(xpert: Pick<IXpert, 'id' | 'workspaceId'>, assistantId?: string) {
         const targetId = xpert.id ?? assistantId
         if (!xpert.workspaceId || !targetId) {
             return new Set<string>()
@@ -250,10 +252,15 @@ export class RuntimeCapabilitiesService {
                 )
             )
         }
+        const language = RequestContext.getLanguageCode()
+        const pluginSkillIds = new Map<string, string>()
         const skills = enabledItems.map((skill) => {
             const skillIndex = skill.skillIndex
             const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
             const runtimeSkillId = skillSource ? createRuntimeSkillCapabilityId(skillSource) : skill.id
+            if (skill.sharedSkillId?.startsWith('plugin:')) {
+                pluginSkillIds.set(skill.sharedSkillId, runtimeSkillId)
+            }
             const runtimeMeta = omitBy(
                 {
                     icon: normalizeRuntimeIcon(skill.metadata?.icon),
@@ -266,27 +273,31 @@ export class RuntimeCapabilitiesService {
             return {
                 id: runtimeSkillId,
                 workspaceId: skill.workspaceId,
-                label: resolveI18nText(skill.name, skillIndex?.name ?? skillIndex?.skillId ?? skill.id),
-                description: skillIndex?.description,
+                label:
+                    localizeText(skill.metadata?.displayName, language) ??
+                    localizeText(skill.name, language) ??
+                    skillIndex?.name ??
+                    skillIndex?.skillId ??
+                    skill.id,
+                description:
+                    localizeText(skill.metadata?.description, language) ??
+                    localizeText(skill.metadata?.summary, language) ??
+                    skillIndex?.description,
                 repositoryName: skillIndex?.repository?.name,
                 provider: skillIndex?.repository?.provider,
                 ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
                 ...(isDefault ? { default: true } : {})
             }
         })
-        const commands = enabledItems.flatMap((skill) => {
-            const skillSource = options?.source ? { ...options.source, skillId: skill.id } : null
-            const runtimeSkillId = skillSource ? createRuntimeSkillCapabilityId(skillSource) : skill.id
+        const commands = enabledItems.flatMap((skill, index) => {
+            const { id, label } = skills[index]
             return this.runtimeCommandService.normalizeSkillRuntimeSlashCommands(
-                { id: runtimeSkillId, metadata: skill.metadata },
-                {
-                    workspaceId,
-                    label: resolveI18nText(skill.name, skill.skillIndex?.name ?? skill.skillIndex?.skillId ?? skill.id)
-                }
+                { id, metadata: skill.metadata },
+                { workspaceId, label }
             )
         })
 
-        return { skills, commands }
+        return { skills, commands, pluginSkillIds }
     }
 
     private async getAccessibleWorkspaceSkillPackages(
@@ -331,9 +342,10 @@ export class RuntimeCapabilitiesService {
             ? await this.getRuntimeSkills(xpertWorkspaceId, defaultSelection, disabledSkillIds, {
                   source: { type: 'xpert', ownerId: xpertId, label: xpertLabel }
               })
-            : { skills: [], commands: [] }
+            : { skills: [], commands: [], pluginSkillIds: undefined }
         const projectSkills = await this.getProjectRuntimeSkills(projectId, projectLabel)
         return {
+            pluginSkillIds: xpertSkills.pluginSkillIds,
             skills: [...xpertSkills.skills, ...projectSkills.skills],
             commands: [...xpertSkills.commands, ...projectSkills.commands]
         }

@@ -20,6 +20,15 @@ const provider = (): IArtifactTypeProvider => ({
   authorize: async () => {},
   validateContent: () => {}
 })
+
+it('accepts public type icons while rejecting malformed declarations at registration', () => {
+  const definition = provider().definition
+  const icon = { type: 'svg', value: '<svg viewBox="0 0 24 24"/>' }
+  expect(artifactTypeDefinitionSchema.parse({ ...definition, icon }).icon).toEqual(icon)
+  expect(artifactTypeDefinitionSchema.safeParse({ ...definition, icon: { type: 'other', value: 'x' } }).success).toBe(
+    false
+  )
+})
 const registry = () =>
   new ArtifactTypeRegistry({ getProviders: () => [] } as unknown as DiscoveryService, new Reflector())
 

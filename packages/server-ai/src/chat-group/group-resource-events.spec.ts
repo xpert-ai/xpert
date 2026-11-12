@@ -17,7 +17,13 @@ describe('live group resource navigation', () => {
             rootMessageId: 'human-message',
             rootUserId: 'user',
             hop: 1,
-            resourceLinks: [{ referenceId: 'reference', projectId: 'usage-project', title: 'Inventory' }],
+            resourceLinks: [
+                {
+                    resource: { kind: 'group-reference', id: 'reference' },
+                    projectId: 'usage-project',
+                    title: 'Inventory'
+                }
+            ],
             resourceNavigation: {
                 requestId: 'request',
                 issuedAt: now,
@@ -30,7 +36,7 @@ describe('live group resource navigation', () => {
         const events = groupResourceEvents('viewer', now - 1)
         expect(events([message])).toEqual([
             {
-                referenceId: 'reference',
+                resource: { kind: 'group-reference', id: 'reference' },
                 projectId: 'usage-project',
                 title: 'Inventory',
                 requestId: 'request',

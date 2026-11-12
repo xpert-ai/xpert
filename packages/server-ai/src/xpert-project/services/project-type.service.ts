@@ -282,6 +282,27 @@ export class XpertProjectTypeService {
         return project ? {} : this.classification(ref)
     }
 
+    /** Validate the application-owned purge path without opening generic lifecycle APIs. */
+    async assertProvisionedPurge(project: XpertProject, xpertId: string) {
+        if (project.status !== 'archived') throw new BadRequestException(t('server-ai:Error.ProjectPurgeOwnerRequired'))
+        if (!project.applicationKey || !project.projectTypeKey) return this.assertPlatformLifecycle(project)
+        const ref = { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey }
+        const type = this.resolve(ref)
+        if (type.binding.kind !== 'entity') return this.assertPlatformLifecycle(project)
+        // The plugin capability must prove the live business binding and archived
+        // state; a caller-supplied Assistant id or display snapshot is insufficient.
+        const xpert = await this.xperts.getAccessiblePublishedXpert(xpertId)
+        const binding = await this.provider(type).resolve(this.context(ref, xpert.id, 'provision'), project.id)
+        if (
+            !binding.xpertId ||
+            binding.xpertId !== xpert.id ||
+            binding.status !== 'archived' ||
+            binding.name !== project.name
+        ) {
+            throw new ConflictException(t('server-ai:Error.ProjectManagedStateConflict'))
+        }
+    }
+
     /** Keep entity-owned lifecycle changes in the application, even when its plugin is unavailable. */
     assertPlatformLifecycle(project: XpertProjectClassification) {
         if (!project.applicationKey) return // Explicit legacy compatibility; backfill does not infer types.

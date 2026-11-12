@@ -11,7 +11,8 @@ import {
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
+import { GetRuntimeCapabilitiesCommand } from '../../../xpert/runtime-capabilities/get-runtime-capabilities.command'
 import {
     isPromptWorkflowInvocationCandidate,
     parsePromptWorkflowInvocation,
@@ -73,7 +74,8 @@ type PromptWorkflowInvocationDetails = PromptWorkflowInvocationResolution & {
 export class ResolvePromptWorkflowInvocationHandler implements IQueryHandler<ResolvePromptWorkflowInvocationQuery> {
     constructor(
         private readonly promptWorkflowService: PromptWorkflowService,
-        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
+        private readonly commandBus: CommandBus
     ) {}
 
     async execute(query: ResolvePromptWorkflowInvocationQuery) {
@@ -97,50 +99,63 @@ export class ResolvePromptWorkflowInvocationHandler implements IQueryHandler<Res
         }
 
         const commandProfile = await this.promptWorkflowService.resolveRuntimeCommandProfile(query.xpert)
-        return applyPromptWorkflowInvocation(query.input, [
-            ...commandProfile.xpertCommands,
-            ...commandProfile.workspaceCommands
-        ])
+        const invocation = parsePromptWorkflowInvocation(query.input.input)
+        if (!invocation || RESERVED_PROMPT_WORKFLOW_INVOCATION_NAMES.has(invocation.name)) return null
+        const source = findPromptWorkflowCommandSource(
+            [...commandProfile.xpertCommands, ...commandProfile.workspaceCommands],
+            invocation.name
+        )
+        if (!source) return null
+
+        let defaults = normalizeRuntimeCapabilitiesSelection(source.runtimeCapabilities)
+        if (defaults?.skills.ids.some((id) => id.startsWith('plugin:'))) {
+            const prepared = query.input.commandSource
+            if (
+                query.input.runtimeCapabilities &&
+                prepared?.kind === 'prompt_workflow' &&
+                prepared.name === source.name &&
+                prepared.source === 'runtime'
+            ) {
+                // The composer has already resolved the bindings and the user can remove individual skills.
+                defaults = null
+            } else {
+                const runtime = await this.commandBus.execute(
+                    new GetRuntimeCapabilitiesCommand(query.xpert, query.xpert.id, query.projectId)
+                )
+                const action = runtime.commands.find(
+                    (command) => command.name === source.name && command.source.type === source.sourceType
+                )?.action
+                defaults = normalizeRuntimeCapabilitiesSelection(
+                    action && 'runtimeCapabilities' in action ? action.runtimeCapabilities : null
+                )
+            }
+        }
+
+        return applyPromptWorkflowInvocation(query.input, source, invocation.args, defaults)
     }
 }
 
 function applyPromptWorkflowInvocation(
-    input: TChatRequestHuman | null | undefined,
-    sources: RuntimePromptWorkflowCommandSource[] | null | undefined
-): PromptWorkflowInvocationDetails | null {
-    if (!input || !sources?.length || typeof input.input !== 'string') {
-        return null
-    }
-
-    const invocation = parsePromptWorkflowInvocation(input.input)
-    if (!invocation) {
-        return null
-    }
-
-    if (RESERVED_PROMPT_WORKFLOW_INVOCATION_NAMES.has(invocation.name)) {
-        return null
-    }
-
-    const source = findPromptWorkflowCommandSource(sources, invocation.name)
-    if (!source) {
-        return null
-    }
-
+    input: TChatRequestHuman,
+    source: RuntimePromptWorkflowCommandSource,
+    args: string,
+    defaults: ReturnType<typeof normalizeRuntimeCapabilitiesSelection>
+): PromptWorkflowInvocationDetails {
     const runtimeCapabilities = mergeRuntimeCapabilitiesSelection(
         normalizeRuntimeCapabilitiesSelection(input.runtimeCapabilities),
-        normalizeRuntimeCapabilitiesSelection(source.runtimeCapabilities)
+        defaults
     )
     const commandSource = createPromptWorkflowCommandSource(source)
     const nextInput = compactObject<TChatRequestHuman>({
         ...input,
-        input: renderPromptWorkflowTemplate(source.template, invocation.args),
+        input: renderPromptWorkflowTemplate(source.template, args),
         commandSource,
         runtimeCapabilities
     })
 
     return {
         input: nextInput,
-        args: invocation.args,
+        args,
         commandSource,
         source
     }

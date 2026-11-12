@@ -7524,6 +7524,7 @@
       "TotalMessagesTooltip": "每个专家回答的消息数，专家作者和调试者对话除外",
       "TotalTokens": "总 Tokens",
       "TotalTokensTooltip": "每个专家消耗 Tokens 总量，专家作者和调试者对话除外",
+      "ExecutionChargedPoints": "本次执行已扣积点",
       "MembershipPointsUsed": "已用会员积点",
       "MembershipPointsUsedTooltip": "所选时间范围内消耗的会员积点。",
       "TokenAndPointsUsage": "Token 与会员积点使用量",

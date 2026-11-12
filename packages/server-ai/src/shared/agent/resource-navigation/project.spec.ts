@@ -3,9 +3,10 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { createProjectResourceNavigationTools } from './project'
 
 function fixture() {
-    const list = jest
-        .fn()
-        .mockResolvedValue({ items: [{ contentId: 'content-id', title: 'Inventory' }], hasMore: false })
+    const list = jest.fn().mockResolvedValue({
+        items: [{ resource: { kind: 'project-content', id: 'content-id' }, title: 'Inventory' }],
+        nextCursor: null
+    })
     const resolve = jest.fn().mockResolvedValue({
         viewKey: 'test__document',
         selectionId: 'artifact-id',
@@ -31,7 +32,8 @@ it('resolves a canonical document tab using the current actor, with a card fallb
             actor: { tenantId: 'tenant', organizationId: 'org', userId: 'viewer' },
             assistantId: 'assistant',
             projectId: 'project'
-        })
+        }),
+        expect.objectContaining({ search: 'Inventory' })
     )
     expect(f.resolve).toHaveBeenCalledWith(
         expect.objectContaining({ source: { providerKey: 'platform.content.catalog', resourceId: 'content-id' } })
