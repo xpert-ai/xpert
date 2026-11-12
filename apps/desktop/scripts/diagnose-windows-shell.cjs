@@ -2,14 +2,17 @@ const { spawn } = require('node:child_process')
 const { defaultSettings, shellEnvironment, windowsPowerShell } = require('../electron/shell/platform.cjs')
 const settings = defaultSettings()
 const base = shellEnvironment(settings)
-const extra = Object.keys(process.env).filter((key) => !Object.keys(base).some((name) => name.toLowerCase() === key.toLowerCase()))
-const groupSize = Math.ceil(extra.length / 6)
-const groups = Array.from({ length: 6 }, (_, index) => extra.slice(index * groupSize, (index + 1) * groupSize))
+const os = require('node:os')
+const path = require('node:path')
+const fs = require('node:fs')
+const fresh = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bosi-cache-')), 'ModuleAnalysisCache')
 const cases = [
-  ['full', process.env],
-  ['module-path', { ...base, PSModulePath: process.env.PSModulePath }],
-  ...groups.map((names, index) => [`group-${index}: ${names.join(',')}`, { ...base, ...Object.fromEntries(names.map((key) => [key, process.env[key]])) }])
+  ['cache-inherited', { ...base, PSModuleAnalysisCachePath: process.env.PSModuleAnalysisCachePath }],
+  ['cache-disabled', { ...base, PSModuleAnalysisCachePath: 'NUL' }],
+  ['cache-fresh', { ...base, PSModuleAnalysisCachePath: fresh }],
+  ['preload-core', base, "Import-Module Microsoft.PowerShell.Management; "]
 ]
+console.log(JSON.stringify({ cache: process.env.PSModuleAnalysisCachePath, fresh }))
 Promise.all(cases.map(([name, env, prefix = '']) => new Promise((resolve, reject) => {
   const started = Date.now()
   const script = prefix + "[Console]::WriteLine('started'); [Console]::WriteLine((Get-Location).Path); [Console]::WriteLine('done')"
@@ -21,7 +24,7 @@ Promise.all(cases.map(([name, env, prefix = '']) => new Promise((resolve, reject
   child.stdout.on('data', (data) => { stdout += data.toString() })
   child.stderr.on('data', (data) => { stderr += data.toString() })
   child.once('error', reject)
-  const timer = setTimeout(() => child.kill(), 30000)
+  const timer = setTimeout(() => child.kill(), 60000)
   child.once('close', (code) => {
     clearTimeout(timer)
     console.log(JSON.stringify({ name, code, ms: Date.now() - started, stdout: stdout.slice(-500), stderr: stderr.slice(-500) }))
