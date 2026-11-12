@@ -201,3 +201,55 @@ test('update metadata has distinct filenames for all six native targets', () => 
     ]
   )
 })
+
+test('OSS discovery selects the latest eligible channel even when the latest mac build has no feed', async () => {
+  const options = { platform: 'darwin', arch: 'arm64', mirrorDomain: 'download.example.com' }
+  const index = { schema: 1, tag: 'desktop-v0.4.2', feeds: { 'desktop-arm64-mac.yml': 'desktop-v0.4.1' } }
+  const fetcher = async (url) => {
+    assert.equal(url, 'https://download.example.com/bosi/latest.json')
+    return { ok: true, json: async () => index }
+  }
+  const feed = await findRelease({ ...options, fetcher })
+  assert.equal(feed.url, 'https://download.example.com/bosi/desktop-v0.4.1/')
+  assert.equal(feed.channel, 'desktop-arm64')
+  assert.equal(await findRelease({ ...options, arch: 'x64', fetcher }), null)
+})
+
+test('unusable OSS metadata falls back to official GitHub discovery', async () => {
+  for (const mirror of [
+    { ok: false },
+    {
+      ok: true,
+      json: async () => ({
+        schema: 1,
+        tag: 'desktop-v1.0.0',
+        feeds: { 'desktop-x64.yml': 'https://invalid.example' }
+      })
+    }
+  ]) {
+    const requests = []
+    const feed = await findRelease({
+      platform: 'win32',
+      arch: 'x64',
+      mirrorDomain: 'download.example.com',
+      fetcher: async (url) => {
+        requests.push(url)
+        return requests.length === 1
+          ? mirror
+          : {
+              ok: true,
+              json: async () => [
+                {
+                  draft: false,
+                  prerelease: false,
+                  tag_name: 'desktop-v1.0.0',
+                  assets: [{ name: 'desktop-x64.yml' }]
+                }
+              ]
+            }
+      }
+    })
+    assert.equal(requests.length, 2)
+    assert.equal(feed.url, 'https://github.com/xpert-ai/xpert/releases/download/desktop-v1.0.0/')
+  }
+})

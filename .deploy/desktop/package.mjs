@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { platforms } from './release-plan.mjs'
 const require = createRequire(import.meta.url)
-const { feedFor } = require('../../apps/desktop/electron/updates/config.cjs')
+const { feedFor, mirrorBase } = require('../../apps/desktop/electron/updates/config.cjs')
 export function removeEmptySigningCredentials(env = process.env) {
   // GitHub injects absent secrets as empty strings; electron-builder treats an
   // empty CSC_LINK as a certificate path pointing to the project directory.
@@ -27,14 +27,15 @@ export function packaging(plan, target, env = process.env, appDirectory = resolv
   )
   env = removeEmptySigningCredentials({ ...env })
   const original = JSON.parse(readFileSync(join(appDirectory, 'package.json'), 'utf8')).build
+  const base = mirrorBase(env.BOSI_OSS_DOMAIN)
   const config = {
     ...original,
     // electron-builder resolves hook strings from cwd, even with projectDir set.
     afterSign: resolve(appDirectory, original.afterSign),
-    extraMetadata: { version: plan.version },
+    extraMetadata: { version: plan.version, ...(base && { bosiMirrorDomain: env.BOSI_OSS_DOMAIN }) },
     // AppImage expands ${arch} to x86_64; receipts use the matrix's x64 name.
     artifactName: `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`,
-    publish: feedFor(`desktop-v${plan.version}`, target.arch)
+    publish: feedFor(`desktop-v${plan.version}`, target.arch, base)
   }
   let signing = 'unsigned'
   if (target.platform === 'mac') {

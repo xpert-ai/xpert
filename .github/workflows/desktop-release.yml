@@ -7,6 +7,7 @@ on:
       - '.changeset/**'
       - '.deploy/desktop/**'
       - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/desktop-oss.yml'
       - 'apps/desktop/**'
       - 'libs/template-installation/**'
       - 'packages/desktop-protocol/**'
@@ -21,6 +22,7 @@ on:
       - 'apps/desktop/package.json'
       - '.deploy/desktop/**'
       - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/desktop-oss.yml'
 
 permissions:
   contents: read
@@ -77,6 +79,7 @@ jobs:
     env:
       DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
       DESKTOP_TARGET: ${{ matrix.id }}
+      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
       XPERT_DESKTOP_API_URL: ${{ vars.XPERT_DESKTOP_API_URL }}
       XPERT_DESKTOP_WEB_URL: ${{ vars.XPERT_DESKTOP_WEB_URL }}
       XPERT_DESKTOP_CHATKIT_URL: ${{ vars.XPERT_DESKTOP_CHATKIT_URL }}
@@ -160,3 +163,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
         run: node .deploy/desktop/release.mjs
+
+  mirror:
+    needs: [prepare, release]
+    if: needs.release.result == 'success' && vars.BOSI_OSS_DOMAIN != ''
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/desktop-oss.yml
+    with:
+      tag: desktop-v${{ needs.prepare.outputs.version }}

@@ -108,3 +108,10 @@ test('stable updates are enabled only for installable packages, excluding ad-hoc
     assert.equal(packaging(stable, target, { CSC_LINK: 'certificate' }).config.extraMetadata.desktopUpdates, true)
   }
 })
+
+test('packaging embeds the public OSS host used for runtime discovery', () => {
+  const { config } = packaging(plan, platforms[0], { BOSI_OSS_DOMAIN: 'download.example.com' })
+  assert.equal(config.extraMetadata.bosiMirrorDomain, 'download.example.com')
+  assert.equal(config.publish.url, `https://download.example.com/bosi/desktop-v${plan.version}/`)
+  assert.throws(() => packaging(plan, platforms[0], { BOSI_OSS_DOMAIN: 'user@example.com/path' }), /hostname/)
+})

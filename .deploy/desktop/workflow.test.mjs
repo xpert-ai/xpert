@@ -45,3 +45,19 @@ test('packaging dependency tests run in the installed Desktop workspace before t
   assert.equal(steps[testIndex]['working-directory'], '.local/desktop-ci')
   assert.equal(steps[testIndex].if, undefined)
 })
+
+test('only the stable publisher and a main-branch backfill can assume the OSS role', () => {
+  const mirrorWorkflow = load(readFileSync(new URL('../../.github/workflows/desktop-oss.yml', import.meta.url), 'utf8'))
+  const caller = workflow.jobs.mirror
+  assert.equal(caller.uses, './.github/workflows/desktop-oss.yml')
+  assert.deepEqual(caller.needs, ['prepare', 'release'])
+  assert.equal(caller.with.tag, 'desktop-v${{ needs.prepare.outputs.version }}')
+  assert.match(caller.if, /needs\.release\.result == 'success'/)
+  assert.equal(workflow.jobs.build.env.BOSI_OSS_DOMAIN, '${{ vars.BOSI_OSS_DOMAIN }}')
+  assert.deepEqual(Object.keys(mirrorWorkflow.on).sort(), ['workflow_call', 'workflow_dispatch'])
+  const job = mirrorWorkflow.jobs.mirror
+  assert.equal(job.environment, 'bosi-oss')
+  assert.match(job.if, /github\.ref == 'refs\/heads\/main'/)
+  assert.equal(job.concurrency.group, 'bosi-oss-publisher')
+  assert.equal(mirrorWorkflow.permissions['id-token'], 'write')
+})

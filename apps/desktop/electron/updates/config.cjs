@@ -5,12 +5,21 @@ function metadataName(platform, arch) {
     platform === 'darwin' ? '-mac' : platform === 'linux' ? `-linux${arch === 'x64' ? '' : `-${arch}`}` : ''
   return `${channel(arch)}${suffix}.yml`
 }
-function feedFor(tag, arch) {
+function mirrorBase(domain) {
+  if (!domain) return undefined
+  if (
+    typeof domain !== 'string' ||
+    !/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?$/.test(domain)
+  )
+    throw new Error('BOSI_OSS_DOMAIN must be a lowercase hostname')
+  return `https://${domain}/bosi`
+}
+function feedFor(tag, arch, base = `https://github.com/${repository}/releases/download`) {
   return {
     provider: 'generic',
-    url: `https://github.com/${repository}/releases/download/${tag}/`,
+    url: `${base}/${tag}/`,
     channel: channel(arch),
     useMultipleRangeRequest: false
   }
 }
-module.exports = { repository, metadataName, feedFor }
+module.exports = { repository, metadataName, mirrorBase, feedFor }
