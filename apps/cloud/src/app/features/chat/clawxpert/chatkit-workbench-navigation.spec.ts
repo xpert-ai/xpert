@@ -1,7 +1,11 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { of, Subject, throwError } from 'rxjs'
-import type { XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
+import {
+  XpertWorkbenchInitialLayoutEnum,
+  type XpertExtensionViewManifest,
+  type XpertViewQuery
+} from '@xpert-ai/contracts'
 import { createChatkitWorkbenchNavigation } from './chatkit-workbench-navigation'
 
 const manifest: XpertExtensionViewManifest = {
@@ -38,6 +42,7 @@ function setup() {
     projectId: signal<string | null>('project-a'),
     routeKey: signal('assistant:project-a:thread-a'),
     defaultViewKey: signal<string | null>(null),
+    initialLayout: signal<XpertWorkbenchInitialLayoutEnum | null>(null),
     isChatkitView: (key: string | null) => key === manifest.key,
     views: { getSlotViews: jest.fn(() => of([manifest])) },
     selectProject: jest.fn(async () => true),
@@ -50,6 +55,18 @@ function setup() {
 afterEach(() => TestBed.resetTestingModule())
 
 describe('ChatKit Workbench route ownership', () => {
+  it('applies the configured maximized layout only to the default View on a plain entry', () => {
+    const h = setup()
+    h.defaultViewKey.set(manifest.key)
+    expect(h.state().view).toEqual({ viewKey: manifest.key })
+    h.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    expect(h.state().view).toEqual({ viewKey: manifest.key, layout: 'maximized' })
+    h.url.viewKey.set(manifest.key)
+    expect(h.state().view).toEqual({ viewKey: manifest.key })
+    h.url.viewLayout.set('split')
+    expect(h.state().view).toEqual({ viewKey: manifest.key, layout: 'split' })
+  })
+
   it('opens an authorized URL view maximized and persists a manual return to split layout', async () => {
     const h = setup()
     h.url.viewKey.set(manifest.key)

@@ -2,6 +2,7 @@ import { computed } from '@angular/core'
 import type { ChatKitWorkbenchNavigation } from '@xpert-ai/chatkit-types'
 import {
   AGENT_WORKBENCH_SLOT,
+  XpertWorkbenchInitialLayoutEnum,
   type WorkbenchAssistantProjectOpenRequest,
   type WorkbenchExtensionViewOpenRequest
 } from '@xpert-ai/contracts'
@@ -22,6 +23,7 @@ export function createChatkitWorkbenchNavigation(options: {
   projectId: () => string | null
   routeKey: () => string
   defaultViewKey: () => string | null
+  initialLayout: () => XpertWorkbenchInitialLayoutEnum | null
   isChatkitView: (key: string | null) => boolean
   views: Pick<ViewExtensionApiService, 'getSlotViews'>
   url: Pick<
@@ -32,7 +34,11 @@ export function createChatkitWorkbenchNavigation(options: {
 }) {
   let revision = 0
   const state = computed<LayoutAwareNavigation>(() => {
-    const viewKey = options.url.viewKey() ?? (options.url.viewClosed() ? null : options.defaultViewKey())
+    const routedViewKey = options.url.viewKey()
+    const viewKey = routedViewKey ?? (options.url.viewClosed() ? null : options.defaultViewKey())
+    const maximizeDefault =
+      !routedViewKey && options.initialLayout() === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized
+    const layout = maximizeDefault ? 'maximized' : options.url.viewLayout()
     return {
       // Legacy deep links carry a separately scoped Project; never apply that
       // query to the current session before its destination has been authorized.
@@ -42,7 +48,7 @@ export function createChatkitWorkbenchNavigation(options: {
           ? {
               viewKey,
               ...options.url.viewQuery(),
-              ...(options.url.viewLayout() ? { layout: options.url.viewLayout()! } : {})
+              ...(layout ? { layout } : {})
             }
           : null
     }

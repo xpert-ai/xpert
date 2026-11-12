@@ -1,8 +1,10 @@
 import './clawxpert-conversation-detail.test-setup'
 import { TestBed } from '@angular/core/testing'
+import { Router } from '@angular/router'
 import { of, Subject } from 'rxjs'
 import { XpertWorkbenchInitialLayoutEnum, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { ClawXpertConversationDetailComponent } from './clawxpert-conversation-detail.component'
+import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
 import {
   buildFixedViewManifest,
   configureConversationDetailTests,
@@ -21,6 +23,43 @@ const remoteView: XpertExtensionViewManifest['view'] = {
   component: { isolation: 'iframe', entry: 'test-view' },
   dataSource: { mode: 'platform' }
 }
+
+describe('Configured Workbench entry', () => {
+  const setup = configureConversationDetailTests([ClawXpertWorkbenchViewUrlState])
+
+  it('maximizes the default on entry and restores a manual split or dismissal on remount', async () => {
+    const { facade, viewExtensionApi } = setup()
+    const viewKey = 'bid.view-provider__bid.studio'
+    facade.defaultViewKey.set(viewKey)
+    facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest(viewKey, { view: remoteView })]))
+    const router = TestBed.inject(Router)
+    router.resetConfig([{ path: 'chat/x/:assistant/c', children: [] }])
+    const entry = '/chat/x/bid/c'
+    await router.navigateByUrl(entry)
+    let fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    const workbench = () => getRuntimeInput().workbench!()!
+    expect(workbench().navigation?.view).toEqual({ viewKey, layout: 'maximized' })
+    expect(router.url).toBe(entry)
+
+    const splitView = { viewKey, layout: 'split' } as const
+    await workbench().onNavigationChange!({ projectId: null, view: splitView })
+    expect(router.parseUrl(router.url).queryParams).toEqual({ view: viewKey, viewLayout: 'split' })
+    fixture.destroy()
+    fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    expect(workbench().navigation?.view).toEqual(splitView)
+
+    await workbench().onNavigationChange!({ projectId: null, view: null })
+    expect(router.parseUrl(router.url).queryParams).toEqual({ view: '' })
+    fixture.destroy()
+    fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    expect(workbench().navigation?.view).toBeNull()
+  })
+})
 
 describe('ChatKit-only conversation shell', () => {
   const setup = configureConversationDetailTests()
