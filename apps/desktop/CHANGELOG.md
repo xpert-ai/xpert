@@ -1,5 +1,11 @@
 # @xpert-ai/desktop
 
+## 0.4.2
+
+### Patch Changes
+
+- bfe1c41: Discover stable updates and download the matching installer from the configured Bosi OSS release mirror.
+
 ## 0.4.1
 
 ### Patch Changes
