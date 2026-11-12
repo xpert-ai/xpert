@@ -1,5 +1,32 @@
 # @xpert-ai/plugin-draft
 
+## 12.1.1
+
+### Patch Changes
+
+- 7e9e3db: Support a separate browser-reachable signing endpoint for private S3-compatible buckets, preserve object content types through unified uploads and quota wrappers, validate signed URL expiry, encode public object keys, and invalidate tenant settings caches after changing the default provider. Document the POSIX Workspace/Artifact boundary and add real MinIO regression coverage.
+- Updated dependencies [31fa495]
+- Updated dependencies [31fa495]
+- Updated dependencies [3c37f0f]
+- Updated dependencies [8d2caf2]
+- Updated dependencies [31fa495]
+- Updated dependencies [fc9bd43]
+- Updated dependencies [31fa495]
+- Updated dependencies [23d499f]
+- Updated dependencies [f36d183]
+- Updated dependencies [1c02f14]
+- Updated dependencies [591a751]
+- Updated dependencies [0e41849]
+- Updated dependencies [d3523eb]
+- Updated dependencies [e31bdce]
+- Updated dependencies [7e9e3db]
+- Updated dependencies [d500d54]
+- Updated dependencies [58f86f3]
+- Updated dependencies [8ba2e83]
+- Updated dependencies [04954f6]
+  - @xpert-ai/contracts@3.34.0
+  - @xpert-ai/plugin-sdk@3.34.0
+
 ## 12.1.0
 
 ### Minor Changes

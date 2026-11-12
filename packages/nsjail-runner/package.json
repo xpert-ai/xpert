@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/nsjail-runner",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "private": true,
   "description": "Release metadata for the Xpert NsJail runner Docker image"
 }

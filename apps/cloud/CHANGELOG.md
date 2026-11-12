@@ -1,5 +1,57 @@
 # @xpert-ai/xpert-ui
 
+## 3.34.0
+
+### Patch Changes
+
+- d06faed: Store existing Artifact content through the system FileStorage provider while preserving storage-agnostic logical references, protected local content, Artifact authorization and fixed versions. Read tenant storage settings from the SDK request context. Changing system storage configuration requires operator-managed data migration without changing file references.
+
+  The internal Artifact byte storage implementation is beta and may change incompatibly. No new Workspace file API or public reference fields are introduced.
+
+- 31fa495: Add atomic acceptance and group-scoped placement of published Artifact grants, with authenticated source-management and conversation-scoped list, read, query and removal endpoints. Reuse the Artifact library viewer while keeping group references out of ordinary Project catalogs and retaining legacy source authorization.
+
+  Read integrity-checked fixed version bytes and revalidate grants, group membership, reference state and provider registration before releasing presentation results. Keep authoring Project identity separate from the group's runtime Project. Interactive queries require an explicit type allowlist and use the current viewer's data permissions; drafts, export and source file browsing are not exposed.
+
+- 31fa495: Add the OS foundation for explicit cross-project use of a fixed published Artifact version by one group in the same organization. Source managers issue expiring read grants, group owners accept or remove them, and source managers can revoke them. Recheck group membership, the bound runtime Project, source status and resource policy on each authorized read; persist lifecycle and access audits.
+
+  Artifact types must opt in to authenticated group use and can enforce resource-specific delegation policy. Grants do not confer source Project membership, data query permissions, draft access, editing, export, copying or onward sharing. Viewer/reference APIs and application integration follow in separate batches.
+
+- 7fa90aa: Bridge source Artifact grant management from embedded authoring Views through the authenticated Cloud and Bosi hosts. Validate the current Assistant, canonical source Project, declared View commands/actions and account continuity before forwarding requests. Keep login credentials inside the host and return only domain responses; group hosts do not expose source-management authority.
+- 172929f: Add an opt-in Assistant capability that attaches the user-input middleware to the primary Agent. Capability changes use the existing graph composition and removal flow without adding a feature flag.
+- 3c37f0f: Support native Windows PowerShell commands in Bosi with platform discovery, Windows working directories, per-command approval, and Job Object supervision for cancellation and descendant completion.
+- 8d2caf2: Provide a host-owned conversation resource directory for current Project content and accepted references in the exact group audience. Add semantic type, origin and cursor filters to Resource Assistant discovery, and support authorized Project content navigation in group conversations. Revalidate runtime membership, project binding and reference grants without copying shared resources into Project catalogs.
+
+  Reuse the canonical resource locator in group links and live navigation events. Normalize historical flat reference/content IDs when reading persisted messages, while new messages use only `resource.kind` and `resource.id`.
+
+- fc9bd43: Export Desktop's voice control and unread Assistant summary types from the public contracts entry point. Use package imports throughout Desktop instead of reaching into contracts source files, including notification parsers and Assistant ordering.
+- 31fa495: Add explicit group analysis consent, exact published binding delegation, scoped resource query tools, execution audits and post-query/publication authorization checks. Keep existing read grants view-only and preserve upstream viewer data permissions.
+
+  Resolve analytics from the existing Artifact Type registration and execute through Analytics Runtime independently of presentation providers. Share fixed-version content checks between viewing and analysis, retain domain parameter constraints, and keep group execution APIs internal to the host.
+
+- 23d499f: Show authorized public group messages, participant filters and causal reply relationships in Conversation Map. Keep private Assistant execution records separately authorized and add a current-group message navigation target.
+
+  Unify direct and group conversation map projections, typed relationships, paging and capability-driven shared views.
+
+- f36d183: Use a dedicated direct creation path for group Projects while retaining application-managed provisioning. Recover interrupted content initialization without overwriting owner edits or Project classification, and reject entity-managed types, unavailable types and conflicting existing Projects from direct creation.
+
+  Name the shared implementation `ensureProject` in `project-provisioning.ts`. Clarify that an `updated` result includes initialization recovery for an existing Project and does not necessarily indicate metadata changes.
+
+- 1c02f14: Automatically project allowlisted Widget, resource card and MCP App result snapshots into group transcripts. Publish from the runtime producer, reconcile on completion, preserve card-only results and deduplicate updates independently of final reply completion. Retain group analysis delivery checks and exclude private App sessions, raw tool steps and reasoning.
+- 591a751: Limit group Composer Project type choices to the Assistant's configured type. Derive group Project creation and binding validation from the primary Assistant, reject mismatched types, and retain general Project compatibility for Assistants and legacy Projects without an explicit type.
+- 0e41849: Keep group Projects independent by default and require explicit consent to reuse a Project used by another group. Filter discovery by usage, primary Assistant type and Project management rights before pagination; serialize cross-group binding attempts and require Composer selections to use the group binding flow.
+- d3523eb: Reject group sends that target Assistants requiring an unbound Project before persisting messages or delivery receipts. Return a typed `GROUP_PROJECT_REQUIRED` error with the affected participant IDs, while preserving accepted-message retries and allowing the original request after Project binding.
+- e31bdce: Distinguish partial and final group replies with an explicit replyStage. Only a committed final tool reply completes the sender's answer and suppresses the last automatic answer for the same request. Preserve progress, collaboration, retries and legacy final-reply semantics.
+- 7e9e3db: Support a separate browser-reachable signing endpoint for private S3-compatible buckets, preserve object content types through unified uploads and quota wrappers, validate signed URL expiry, encode public object keys, and invalidate tenant settings caches after changing the default provider. Document the POSIX Workspace/Artifact boundary and add real MinIO regression coverage.
+- 58f86f3: Include the shared resource type icon contracts and Plugin SDK metadata. The API preserves provider-declared icons in authorized group resource links for card rendering.
+- d500d54: Define fixed-version group resource grants, references, bounded analysis policies and Workbench navigation contracts. Add opt-in artifact type validation, optional Artifact Type analytics bindings and query-provider sharing checks and a typed grant-management capability for external authoring plugins.
+
+  Keep source and runtime Project identities separate, and defer the legacy short-ID generator until first use so importing shared contracts remains compatible with embedded View CSP. Runtime authorization, query execution and client workflows follow in separate changes.
+
+- 8ba2e83: Expose an installation-bound asynchronous PluginContext.readConfig() method that reads current configuration from the database on demand, without background polling. Preserve scope and runtime artifact boundaries and fail explicitly on unavailable or invalid configuration. The synchronous config snapshot remains compatible with existing plugins.
+- 04954f6: Scope decorated Tool component keys to their owning plugin. Reject conflicting root-module provider declarations before Nest construction and report the failed plugin without blocking healthy platform traffic. Keep deployment convergence strict and preserve artifact identity, lease and recovery fences.
+- 219faae: Upgrade ChatKit UI to 0.22.0 and shared types to 0.20.3 for governed shared resources and Workbench navigation. Align the workspace, API, Web and Desktop dependency locks with the published releases.
+- 54f469b: Move ordinary user-input and Plan Mode behavior into the configured middleware. Register a fixed tool schema and use existing runtime state for prompts and response validation, without extending the plugin SDK context or injecting question-specific middleware during subgraph construction. Plan Mode requires the user-input capability, and configuration and publication reject unsupported Agent connections.
+
 ## 3.33.1
 
 ### Patch Changes
