@@ -132,6 +132,10 @@
               {
                 "group": "Navigation Performance",
                 "pages": ["en/proposals/assistant-view-navigation-performance"]
+              },
+              {
+                "group": "Project Tasks",
+                "pages": ["en/proposals/project-task-cli-startup"]
               }
             ]
           },
@@ -283,6 +287,10 @@
               {
                 "group": "导航性能",
                 "pages": ["zh-Hans/proposals/assistant-view-navigation-performance"]
+              },
+              {
+                "group": "项目任务",
+                "pages": ["zh-Hans/proposals/project-task-cli-startup"]
               }
             ]
           },
