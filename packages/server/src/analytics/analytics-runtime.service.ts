@@ -1,5 +1,7 @@
 // All source kinds share the same deadline, actor check, provider dispatch and post-query revalidation.
 import { Inject, Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { GroupAnalyticsBindingCommand } from './commands/group-analytics-binding.command'
 import { randomUUID } from 'node:crypto'
 import { t } from 'i18next'
 import {
@@ -44,7 +46,8 @@ export const ANALYTICS_SOURCE_RESOLVERS = Symbol('ANALYTICS_SOURCE_RESOLVERS')
 export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 	constructor(
 		private readonly providers: AnalyticsProviderRegistry,
-		@Inject(ANALYTICS_SOURCE_RESOLVERS) private readonly resolvers: readonly AnalyticsSourceResolver[]
+		@Inject(ANALYTICS_SOURCE_RESOLVERS) private readonly resolvers: readonly AnalyticsSourceResolver[],
+		private readonly commands: CommandBus
 	) {
 		if (new Set(resolvers.map((item) => item.kind)).size !== resolvers.length)
 			throw new Error('Duplicate analytics source resolver')
@@ -95,6 +98,68 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		})
 	}
 
+	/** Host orchestration validates source disclosure authority; this does not grant recipient data access. */
+	async authorizeGroupSharing(actor: DataSourceActor, binding: AnalyticsQueryRequest['binding']) {
+		authorizeAnalyticsActor(actor)
+		const parsed = analyticsQueryRequestSchema.safeParse({ binding, controls: {} })
+		if (!parsed.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
+		await this.withProvider(actor, binding.source, binding.providerId, async (provider, context) => {
+			if (!provider.authorizeGroupSharing) throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+			await provider.authorizeGroupSharing(parsed.data.binding, context)
+		})
+	}
+
+	/** Host-only group execution resolves bindings through accepted consent, never caller-provided native queries. */
+	async queryGroupReference(
+		actor: DataSourceActor,
+		reference: { groupId: string; referenceId: string; datasetKey: string },
+		controls: AnalyticsQueryRequest['controls']
+	) {
+		authorizeAnalyticsActor(actor)
+		const selected = await this.commands.execute(
+			new GroupAnalyticsBindingCommand(actor, reference.groupId, reference.referenceId, reference.datasetKey)
+		)
+		const parsed = analyticsQueryRequestSchema.safeParse({ binding: selected.binding, controls })
+		if (!parsed.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
+		const normalized = analyticsQueryRequestSchema.safeParse({
+			binding: parsed.data.binding,
+			controls: await selected.normalizeControls(parsed.data.controls)
+		})
+		if (!normalized.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
+		const { binding } = normalized.data
+		await selected.revalidate()
+		const result = await this.withProvider(
+			actor,
+			binding.source,
+			binding.providerId,
+			async (provider, context) => {
+				if (
+					!provider.descriptor.operations.some(
+						(operation) =>
+							operation.readOnly &&
+							operation.name === binding.operation &&
+							operation.contractVersion === binding.contractVersion
+					)
+				)
+					throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+				return normalizeAnalyticsResult(
+					binding,
+					await provider.execute(
+						binding,
+						resolveAnalyticsParameters(binding, normalized.data.controls),
+						context
+					),
+					context.executionId,
+					context.maxRows
+				)
+			},
+			undefined,
+			selected.source ? async () => selected.source : undefined
+		)
+		await selected.revalidate()
+		return selected.project(result)
+	}
+
 	async query(actor: DataSourceActor, input: AnalyticsQueryRequest, execution?: AnalyticsQueryExecution) {
 		authorizeAnalyticsActor(actor)
 		const parsed = analyticsQueryRequestSchema.safeParse(input)
@@ -130,7 +195,8 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		source: AnalyticsSourceRef,
 		providerId: string,
 		run: (provider: AnalyticsQueryProvider, context: AnalyticsProviderContext) => Promise<T>,
-		parent?: AnalyticsQueryExecution
+		parent?: AnalyticsQueryExecution,
+		resolveSource?: () => Promise<Awaited<ReturnType<AnalyticsSourceResolver['resolve']>>>
 	): Promise<T> {
 		const resolver = this.resolvers.find((item) => item.kind === source.kind)
 		if (!resolver) throw analyticsError('ANALYTICS_SOURCE_KIND_UNAVAILABLE')
@@ -163,7 +229,7 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 				(async () => {
 					let resolved: Awaited<ReturnType<AnalyticsSourceResolver['resolve']>>
 					try {
-						resolved = await resolver.resolve(actor, source)
+						resolved = await (resolveSource ? resolveSource() : resolver.resolve(actor, source))
 					} catch {
 						throw analyticsError('ANALYTICS_SOURCE_UNAVAILABLE')
 					}

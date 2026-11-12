@@ -53,7 +53,12 @@ export class ArtifactLibraryService implements ArtifactLibraryApi {
             .createQueryBuilder()
             .insert()
             .values({
-                ...where,
+                tenantId: input.actor.tenantId,
+                organizationId: input.actor.organizationId,
+                projectId: input.projectId,
+                artifactId: input.artifactId,
+                groupId: null,
+                useGrantId: null,
                 id: randomUUID(),
                 versionId: input.versionId,
                 title: (resolved.artifact.title || resolved.fileName).slice(0, 200),

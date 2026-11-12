@@ -2,7 +2,6 @@ jest.mock('../../../execution-control/execution-cancel.service', () => ({ Execut
 jest.mock('../../../execution-control/execution-control.store', () => ({ ExecutionControlStore: class {} }))
 jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({ MessageCheckpointService: class {} }))
 jest.mock('../../../chat-conversation/thread-run-control.service', () => ({ ThreadRunControlService: class {} }))
-jest.mock('isolated-vm', () => ({ ExternalCopy: class {}, Isolate: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: jest.requireActual('@xpert-ai/plugin-sdk').RequestContext
 }))

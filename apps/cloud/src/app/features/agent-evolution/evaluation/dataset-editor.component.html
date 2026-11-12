@@ -1,0 +1,366 @@
+<header class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-6">
+  <nav class="flex items-center gap-2 text-sm text-text-secondary" [attr.aria-label]="prefix + 'Title' | translate">
+    {{ 'XP.AgentEvolution.Title' | translate }} <i class="ri-arrow-right-s-line"></i>
+    {{ 'XP.AgentEvolution.TabEvaluation' | translate }} <i class="ri-arrow-right-s-line"></i
+    ><span class="font-medium text-foreground">{{ prefix + 'Crumb' | translate }}</span>
+  </nav>
+  <button z-button zSize="lg" zType="outline" [zDisabled]="freezing()" (click)="closed.emit()">
+    <i class="ri-arrow-left-line"></i>{{ prefix + 'Back' | translate }}
+  </button>
+</header>
+<main class="mx-auto w-full max-w-[1430px] px-4 py-5 sm:px-6 xl:px-8">
+  <h1 class="xp-page-title">{{ prefix + 'Title' | translate }}</h1>
+  <p class="mt-1 text-sm text-text-secondary">
+    {{ name() }} · {{ 'XP.AgentEvolution.ScopeType.' + candidate().targetScope.type | translate }} ·
+    {{ prefix + 'Intro' | translate }}
+  </p>
+  <fieldset [disabled]="freezing()" class="mt-4 min-w-0 space-y-4">
+    <section class="rounded-lg border border-border bg-card">
+      <header class="flex items-center justify-between gap-2 px-4 py-3">
+        <h2 class="text-lg font-semibold">{{ prefix + 'Info' | translate }}</h2>
+        <button
+          z-button
+          zType="ghost"
+          type="button"
+          [attr.aria-expanded]="advanced()"
+          (click)="advanced.set(!advanced())"
+        >
+          {{ prefix + 'Versions' | translate }}<i class="ri-arrow-down-s-line"></i>
+        </button>
+      </header>
+      <div [formGroup]="details" class="grid gap-4 px-4 pb-4 sm:grid-cols-[2fr_1fr_1fr]">
+        <label class="block text-sm text-text-secondary"
+          >{{ prefix + 'Name' | translate
+          }}<input z-input class="mt-1 w-full" formControlName="name" [placeholder]="defaultName()"
+        /></label>
+        <div>
+          <span class="text-sm text-text-secondary">{{ 'XP.AgentEvolution.EvaluatorVersion' | translate }}</span>
+          <p class="mt-1 break-all font-mono">{{ meta().evaluatorVersion?.trim() || '—' }}</p>
+        </div>
+        <div>
+          <span class="text-sm text-text-secondary">{{ prefix + 'MetricVersion' | translate }}</span>
+          <p class="mt-1 break-all font-mono">{{ meta().metricVersion?.trim() || defaultMetric() }}</p>
+        </div>
+      </div>
+      @if (advanced()) {
+        <div [formGroup]="details" class="grid gap-4 border-t border-border p-4 sm:grid-cols-[2fr_1fr_1fr]">
+          <label class="text-sm text-text-secondary"
+            >{{ 'XP.AgentEvolution.DatasetId' | translate
+            }}<input z-input class="mt-1 w-full" formControlName="datasetId" [placeholder]="defaultId()"
+          /></label>
+          <label class="text-sm text-text-secondary"
+            >{{ 'XP.AgentEvolution.EvaluatorVersion' | translate
+            }}<input z-input class="mt-1 w-full" formControlName="evaluatorVersion"
+          /></label>
+          <label class="text-sm text-text-secondary"
+            >{{ prefix + 'MetricVersion' | translate
+            }}<input z-input class="mt-1 w-full" formControlName="metricVersion" [placeholder]="defaultMetric()"
+          /></label>
+        </div>
+        @if (previous(); as d) {
+          <p class="px-4 pb-3 text-sm text-text-secondary">
+            {{
+              prefix + 'LastVersions'
+                | translate: { evaluator: d.evaluatorVersion || '—', metrics: d.metricDefinitionVersion }
+            }}
+          </p>
+        }
+      }
+    </section>
+    <section class="overflow-hidden rounded-lg border border-border bg-card">
+      <header class="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h2 class="text-lg font-semibold">
+            {{ prefix + 'Samples' | translate }}
+            <span class="ml-1 rounded bg-muted px-1.5 text-sm">{{ drafts().length }}</span>
+          </h2>
+          <p class="mt-1 text-sm text-text-secondary">{{ prefix + 'SampleHint' | translate }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button z-button zType="outline" (click)="openImport()">
+            <i class="ri-upload-2-line"></i>{{ prefix + 'Import' | translate }}
+          </button>
+          <button z-button zType="outline" (click)="edit(-1)">
+            <i class="ri-add-line"></i>{{ prefix + 'Add' | translate }}
+          </button>
+        </div>
+      </header>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-1 border-y border-border bg-muted/35 px-4 py-2 text-sm">
+        <span class="text-text-secondary">{{ prefix + 'Gate' | translate }}</span>
+        @for (
+          stat of [
+            { key: 'Total', count: drafts().length, min: 50 },
+            { key: 'Affected', count: analysis().affected, min: 20 },
+            { key: 'High', count: analysis().highRisk, min: 10 }
+          ];
+          track stat.key
+        ) {
+          <span
+            ><i
+              aria-hidden="true"
+              [class]="
+                stat.count >= stat.min ? 'ri-check-line text-text-success' : 'ri-circle-line text-text-secondary'
+              "
+            ></i>
+            {{ prefix + stat.key | translate }} {{ stat.count }} / {{ stat.min }}</span
+          >
+        }
+      </div>
+      @if (analysis().problems.length) {
+        <div role="status" class="mx-4 my-3 rounded-md border border-border p-3 text-sm">
+          <p class="font-semibold">{{ prefix + 'NeedsFix' | translate: { n: analysis().problems.length } }}</p>
+          <ul class="mt-1 max-h-48 overflow-y-auto">
+            @for (row of analysis().problems; track row.index) {
+              <li>
+                <button class="text-left text-text-destructive hover:underline" (click)="edit(row.index)">
+                  {{ prefix + 'Row' | translate: { n: row.index + 1 } }} ·
+                  @for (key of row.errors; track key) {
+                    {{ prefix + key | translate }}{{ $last ? '' : ' · ' }}
+                  }
+                  @if (row.duplicateOf !== undefined) {
+                    ({{ prefix + 'Row' | translate: { n: row.duplicateOf + 1 } }})
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[690px] table-fixed text-left text-sm">
+          <colgroup>
+            <col class="w-[18%]" />
+            <col class="w-[24%]" />
+            <col class="w-[17%]" />
+            <col class="w-[21%]" />
+            <col class="w-[9%]" />
+            <col class="w-[11%]" />
+          </colgroup>
+          <thead class="bg-muted/40 text-text-secondary [&_th]:px-4 [&_th]:py-2 [&_th]:font-medium">
+            <tr>
+              @for (key of ['Identity', 'Input', 'Expected', 'Slice', 'Risk']; track key) {
+                <th scope="col">{{ prefix + key | translate }}</th>
+              }
+              <th scope="col">
+                <span class="sr-only">{{ prefix + 'Edit' | translate }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2">
+            @for (row of visible(); track row.index) {
+              <tr [class.bg-destructive/5]="row.errors.length > 0">
+                <td>
+                  <span class="block truncate font-mono" [title]="row.draft.caseId">{{ row.draft.caseId || '—' }}</span
+                  ><span class="text-text-secondary"
+                    >{{ prefix + 'Revision' | translate }} {{ row.draft.revision ?? '—' }}</span
+                  >
+                </td>
+                <td>
+                  <span class="block truncate" [title]="row.inputPreview">{{ row.inputPreview || '—' }}</span>
+                </td>
+                <td>
+                  <span class="block truncate" [title]="row.expectedLabel">{{ row.expectedLabel || '—' }}</span>
+                  @if (row.expectedRaw && row.expectedRaw !== row.expectedLabel) {
+                    <span class="block truncate text-text-secondary" [title]="row.expectedRaw">{{
+                      row.expectedRaw
+                    }}</span>
+                  }
+                </td>
+                <td>
+                  <span class="block truncate font-mono" [title]="row.draft.slice">{{
+                    row.draft.slice || 'stable'
+                  }}</span>
+                </td>
+                <td>
+                  {{
+                    ['low', 'medium', 'high'].includes(row.draft.risk)
+                      ? (prefix + 'Risk_' + row.draft.risk | translate)
+                      : '—'
+                  }}
+                </td>
+                <td class="text-right">
+                  <button
+                    z-button
+                    zType="ghost"
+                    [attr.aria-label]="prefix + 'EditRow' | translate: { n: row.index + 1 }"
+                    (click)="edit(row.index)"
+                  >
+                    {{ prefix + 'Edit' | translate }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="p-8 text-center text-text-secondary">{{ prefix + 'Empty' | translate }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer
+        class="flex items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm text-text-secondary"
+      >
+        <span>{{ prefix + 'Count' | translate: { n: drafts().length } }}</span>
+        <div class="flex items-center gap-2">
+          <button
+            z-button
+            zType="ghost"
+            [attr.aria-label]="prefix + 'Prev' | translate"
+            [zDisabled]="page() <= 1"
+            (click)="page.set(page() - 1)"
+          >
+            <i class="ri-arrow-left-s-line"></i></button
+          >{{ page() }} / {{ pages()
+          }}<button
+            z-button
+            zType="ghost"
+            [attr.aria-label]="prefix + 'Next' | translate"
+            [zDisabled]="page() >= pages()"
+            (click)="page.set(page() + 1)"
+          >
+            <i class="ri-arrow-right-s-line"></i>
+          </button>
+        </div>
+      </footer>
+    </section>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-sm text-text-secondary">{{ prefix + 'FreezeHint' | translate }}</p>
+      <button
+        z-button
+        zSize="lg"
+        [zLoading]="freezing()"
+        [zDisabled]="!analysis().valid || facade.mutating()"
+        (click)="checkFreeze()"
+      >
+        {{ prefix + 'CheckFreeze' | translate }} <i class="ri-arrow-right-line"></i>
+      </button>
+    </div>
+  </fieldset>
+</main>
+<ng-template #importDialog>
+  <section xpDialogLayout="standard" class="max-h-[90dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ prefix + 'Import' | translate }}</h2>
+      <p xpDialogDescription>{{ prefix + 'Replace' | translate }}</p>
+    </header>
+    <div xpDialogBody class="space-y-3">
+      <label class="block text-sm font-medium"
+        >{{ prefix + 'Array' | translate
+        }}<textarea z-input class="mt-1 w-full font-mono" rows="8" [formControl]="importText"></textarea>
+      </label>
+      <label class="block text-sm font-medium"
+        >{{ 'XP.AgentEvolution.ImportJsonFile' | translate
+        }}<input
+          class="mt-1 block w-full text-sm"
+          type="file"
+          accept=".json,application/json"
+          #file
+          (change)="readFile(file)"
+      /></label>
+      @if (importError()) {
+        <p role="alert" class="text-sm text-text-destructive">{{ prefix + importError() | translate }}</p>
+      }
+    </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" (click)="dismiss()">{{ 'XP.ACTIONS.Cancel' | translate }}</button
+      ><button z-button [zDisabled]="reading()" (click)="applyImport()">{{ prefix + 'Apply' | translate }}</button>
+    </footer>
+  </section>
+</ng-template>
+<ng-template #rowDialog>
+  <section xpDialogLayout="wide" class="max-h-[90dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
+        {{ rowIndex() < 0 ? (prefix + 'Add' | translate) : (prefix + 'EditRow' | translate: { n: rowIndex() + 1 }) }}
+      </h2>
+      <p xpDialogDescription>{{ prefix + 'EditHint' | translate }}</p>
+    </header>
+    <div xpDialogBody>
+      <form id="evolution-case-edit" [formGroup]="rowForm" (ngSubmit)="saveRow()" class="grid gap-3 sm:grid-cols-2">
+        <label class="text-sm"
+          >{{ prefix + 'Id' | translate }}<input z-input class="mt-1 w-full" formControlName="caseId"
+        /></label>
+        <label class="text-sm"
+          >{{ prefix + 'Revision' | translate
+          }}<input z-input type="number" step="1" class="mt-1 w-full" formControlName="revision"
+        /></label>
+        <label class="text-sm"
+          >{{ prefix + 'Input' | translate }} JSON<textarea
+            z-input
+            rows="4"
+            class="mt-1 w-full font-mono"
+            formControlName="input"
+          ></textarea>
+        </label>
+        <label class="text-sm"
+          >{{ prefix + 'Expected' | translate }} JSON<textarea
+            z-input
+            rows="4"
+            class="mt-1 w-full font-mono"
+            formControlName="expected"
+          ></textarea>
+        </label>
+        <label class="text-sm"
+          >{{ prefix + 'Slice' | translate }}<input z-input class="mt-1 w-full" formControlName="slice"
+        /></label>
+        <label class="text-sm"
+          >{{ prefix + 'Risk' | translate
+          }}<select
+            xpDialogControl="single"
+            class="mt-1 w-full rounded-md border border-border bg-background px-2"
+            formControlName="risk"
+          >
+            <option disabled value="">—</option>
+            @for (r of ['low', 'medium', 'high']; track r) {
+              <option [value]="r">{{ prefix + 'Risk_' + r | translate }}</option>
+            }
+          </select></label
+        >
+        <label class="text-sm sm:col-span-2"
+          >{{ prefix + 'Evidence' | translate }}<input z-input class="mt-1 w-full" formControlName="evidenceRef"
+        /></label>
+        @if (rowErrors().length) {
+          <p role="alert" class="text-sm text-text-destructive sm:col-span-2">
+            @for (key of rowErrors(); track key) {
+              {{ prefix + key | translate }}{{ $last ? '' : ' · ' }}
+            }
+          </p>
+        }
+      </form>
+    </div>
+    <footer xpDialogFooter>
+      @if (rowIndex() >= 0) {
+        <button z-button zType="ghost" class="mr-auto" (click)="removeRow()">
+          {{ prefix + 'Remove' | translate }}
+        </button>
+      }
+      <button z-button zType="outline" (click)="dismiss()">{{ 'XP.ACTIONS.Cancel' | translate }}</button
+      ><button z-button type="submit" form="evolution-case-edit">{{ prefix + 'SaveRow' | translate }}</button>
+    </footer>
+  </section>
+</ng-template>
+<ng-template #freezeDialog>
+  <section xpDialogLayout="standard" class="max-h-[90dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ prefix + 'Confirm' | translate }}</h2>
+      <p xpDialogDescription>{{ prefix + 'Immutable' | translate }}</p>
+    </header>
+    <dl
+      xpDialogBody
+      class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-5 gap-y-2 text-sm [&_dt]:text-text-secondary [&_dd]:break-all"
+    >
+      <dt>{{ prefix + 'Name' | translate }}</dt>
+      <dd>{{ meta().name?.trim() || defaultName() }}</dd>
+      <dt>{{ 'XP.AgentEvolution.DatasetId' | translate }}</dt>
+      <dd>{{ meta().datasetId?.trim() || defaultId() }}</dd>
+      <dt>{{ prefix + 'Samples' | translate }}</dt>
+      <dd>{{ drafts().length }}</dd>
+      <dt>{{ 'XP.AgentEvolution.EvaluatorVersion' | translate }} / {{ prefix + 'MetricVersion' | translate }}</dt>
+      <dd>{{ meta().evaluatorVersion?.trim() || '—' }} / {{ meta().metricVersion?.trim() || defaultMetric() }}</dd>
+    </dl>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" (click)="dismiss()">{{ prefix + 'ContinueEdit' | translate }}</button
+      ><button z-button (click)="freeze()">{{ prefix + 'Confirm' | translate }}</button>
+    </footer>
+  </section>
+</ng-template>

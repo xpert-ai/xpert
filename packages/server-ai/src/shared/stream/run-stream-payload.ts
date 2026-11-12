@@ -1,6 +1,12 @@
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
+import {
+    CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE,
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum
+} from '@xpert-ai/contracts'
 import type { IChatMessage, IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Exclude, Expose, instanceToPlain } from 'class-transformer'
+
+import { publicExecution } from '../../xpert-agent-execution/public-execution'
 
 export type StreamPayloadWithObjectData = object & {
     data: object
@@ -67,10 +73,7 @@ export class AgentEndStreamDTO {
     outputTokens?: IXpertAgentExecution['outputTokens']
 
     @Expose()
-    totalPrice?: IXpertAgentExecution['totalPrice']
-
-    @Expose()
-    currency?: IXpertAgentExecution['currency']
+    chargedPoints?: IXpertAgentExecution['chargedPoints']
 
     @Expose()
     metadata?: IXpertAgentExecution['metadata']
@@ -137,6 +140,23 @@ function toPlainObject(value: object) {
 
 function serializeEventData(eventName: string, data: object) {
     switch (eventName) {
+        case ChatMessageEventTypeEnum.ON_CHAT_EVENT:
+            if (
+                'type' in data &&
+                data.type === CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE &&
+                'usage' in data &&
+                isObjectLike(data.usage)
+            ) {
+                const usage = Object.fromEntries(
+                    Object.entries(data.usage).filter(([key]) =>
+                        ['contextTokens', 'inputTokens', 'outputTokens', 'totalTokens', 'embedTokens'].includes(key)
+                    )
+                )
+                return { ...data, usage }
+            }
+            return removeNilProperties(data)
+        case ChatMessageEventTypeEnum.ON_AGENT_START:
+            return removeNilProperties(publicExecution(data))
         case ChatMessageEventTypeEnum.ON_MESSAGE_END:
             return toPlainObject(new ChatMessageEndStreamDTO(data))
         case ChatMessageEventTypeEnum.ON_AGENT_END:

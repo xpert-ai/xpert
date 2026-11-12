@@ -1,6 +1,6 @@
 import { invoke } from '../host'
 import type { HostMethods } from '../types'
-import type { VoiceServerControl } from '../../../../packages/contracts/src/ai/realtime-voice.transport'
+import type { VoiceServerControl } from '@xpert-ai/contracts'
 import { CallSounds } from './call-sounds'
 
 type Ticket = HostMethods['voiceStart']['output']

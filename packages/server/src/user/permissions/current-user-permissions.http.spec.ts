@@ -229,7 +229,10 @@ describe('current request permissions through real authentication and scope chec
 		expect(
 			await (await request(token([view]), {}, '/me/permissions?userId=admin&roleId=admin&tenantId=other')).json()
 		).toEqual([view])
-		expect(getAuthenticatedUser).toHaveBeenLastCalledWith('viewer', undefined)
+		expect(getAuthenticatedUser).toHaveBeenLastCalledWith('viewer', undefined, {
+			token: expect.any(String),
+			purpose: undefined
+		})
 	})
 
 	it('rejects unauthenticated, invalid and expired credentials', async () => {

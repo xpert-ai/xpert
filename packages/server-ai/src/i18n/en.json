@@ -58,6 +58,16 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PasswordResetInvalid": "Password reset link is invalid or expired.",
+        "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
+        "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",
+        "PluginProviderClaimDuplicate": "Duplicate {{kind}} '{{key}}' inside the plugin",
+        "PluginProviderClaimConflict": "{{kind}} '{{key}}' is already registered by '{{pluginName}}' in scope '{{scopeKey}}'",
+        "ImmutableStorageProviderUnavailable": "The configured file storage provider is unavailable.",
+        "ImmutableContentPathInvalid": "Invalid immutable content path.",
+        "ImmutableContentBytesInvalid": "Invalid immutable content bytes or content exceeds 50 MiB.",
+        "ImmutableContentNotFound": "Immutable content was not found.",
+        "ImmutableContentDigestMismatch": "Immutable content digest mismatch.",
         "OrganizationAutomationUnavailableUser": "Unavailable user",
         "OrganizationAutomationAccessDenied": "Organization automation authority is unavailable or revoked.",
         "EmbeddingRebuildRecoveryInvalid": "Rebuild recovery does not accept task or scope overrides.",
@@ -181,6 +191,9 @@
         "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",
+        "GroupProjectRequired": "Choose a Project for the required Assistants before sending this message.",
+        "GroupProjectReuseRequired": "This Project is already used by another group. Choose Reuse existing Project and confirm sharing its resources.",
+        "GroupProjectTypeUnsupported": "Choose the Project type supported by this group's primary Assistant.",
         "GroupInputInvalid": "Invalid group message or request.",
         "GroupMessageConflict": "This group message can no longer be sent.",
         "ApplicationSetupScopeRequired": "Select an organization before configuring the application.",
@@ -525,6 +538,7 @@
         "ActorTokenRuntimeIdentityMismatch": "The token runtime identity is missing or does not match the current caller.",
         "ActorTokenProviderUnavailable": "Outbound actor token provider is not configured.",
         "ProjectPurgeFileMismatch": "File does not belong to the Project being permanently deleted.",
+        "ProjectPurgeInProgress": "Permanent Project deletion is in progress or complete. Refresh and retry.",
         "ProjectPurgeOwnerRequired": "Only the owner can permanently delete an archived Project.",
         "ContextCompressionSummaryInvalid": "The summary returned an invalid format and was not applied.",
         "ContextCompressionSummaryInputBudget": "The history exceeds the summary model input budget. The summary was not requested.",
@@ -1215,6 +1229,10 @@
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
         "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "ArtifactGroupReferenceInvalid": "ARTIFACT_GROUP_REFERENCE_INVALID: Invalid group artifact request.",
+        "ArtifactUseGrantDenied": "ARTIFACT_USE_GRANT_DENIED: This group cannot use the published artifact under this grant.",
+        "ArtifactUseGrantNotFound": "ARTIFACT_USE_GRANT_NOT_FOUND: The grant or published artifact version was not found.",
+        "ArtifactUseGrantConflict": "ARTIFACT_USE_GRANT_CONFLICT: The grant changed. Reload before continuing.",
         "ArtifactDraftAccessDenied": "ARTIFACT_DRAFT_ACCESS_DENIED: You do not have access to this draft.",
         "ArtifactDraftRevisionInvalid": "ARTIFACT_DRAFT_REVISION_INVALID: The draft revision is invalid.",
         "ArtifactDraftMimeInvalid": "ARTIFACT_DRAFT_MIME_INVALID: This file type cannot be used for an Artifact draft.",
@@ -1378,7 +1396,13 @@
         "EmbeddingBatchSizeInvalid": "Embedding batch size must be an integer between 1 and 2048.",
         "BusinessAreaAccessDenied": "Business area permission is required for this operation.",
         "BusinessAreaNotFound": "Business area was not found in the current organization.",
-        "BusinessAreaInvalidSubject": "Select an active organization member or a directory user group."
+        "BusinessAreaInvalidSubject": "Select an active organization member or a directory user group.",
+        "ResourceAnalysisDenied": "This resource has no matching data-analysis authorization. Ask the source data owner and group owner to authorize this scope.",
+        "ResourceAnalysisUnsupported": "This resource does not support governed analysis.",
+        "ResourceAnalysisInvalid": "The analysis query does not match the allowed field types or operations.",
+        "ResourceAnalysisIncomplete": "The upstream dataset is incomplete. Aggregation would produce an unreliable total.",
+        "ResourceAnalysisBudget": "The analysis query exceeds its allowed query, row or result-size budget.",
+        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters."
     },
     "Mcp": {
         "Test": {
@@ -1574,7 +1598,9 @@
     },
     "UserInput": {
         "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
-        "UnsupportedMode": "Non-blocking user input is not supported by this runtime."
+        "UnsupportedMode": "Non-blocking user input is not supported by this runtime.",
+        "UnsupportedAgent": "User input requires a visible primary Agent without structured output.",
+        "PlanModeRequiresCapability": "Enable Ask for user input for this Assistant before using Plan Mode."
     },
     "TemplateSync": {
         "Summary": "Built-in template synchronization: {{added}} added, {{updated}} updated, {{adopted}} adopted, {{preserved}} preserved, {{conflicted}} conflicts.",

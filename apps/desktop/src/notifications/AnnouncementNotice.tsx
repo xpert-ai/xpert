@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { Bell, X } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import type { Announcement } from '../../../../packages/contracts/src/user-notification.schema'
+import type { Announcement } from '@xpert-ai/contracts'
 import { t } from '../i18n'
 
 export function AnnouncementText({ text }: { text: string }) {

@@ -1,5 +1,6 @@
 // Delivery leases coordinate replicas, but never grant permission to replay business work.
 // Native checkpoints and handler receipts prove local boundaries; remote unknown remains unknown.
+import { hasReturnedInlineCancellation } from './inline-cancellation-checkpoint'
 import { invocationCanRelease } from './invocation-control-evidence'
 import { invocationFailureReason } from './invocation-errors'
 import { Injectable, Logger } from '@nestjs/common'
@@ -86,15 +87,34 @@ export class TaskControlCoordinator {
             .getRepository(AgentInvocationEntity)
             .findOneBy({ id: task.resourceId, tenantId: task.tenantId, organizationId: task.organizationId })
         if (!record) throw new Error('Invocation receipt unavailable')
-        const children = (await this.tasks.descendants(task.id)).filter(
-            (child) => child.parentId === task.id && child.kind === 'execution'
-        )
         if (record.invocation.controlAdapter === 'native-graph') {
             // Inline graphs are drained by their actual host call and phase-1 tool receipts.
             // A suspended call has exited; termination can discard its checkpoint without starting it again.
-            if (desired === 'terminated' && task.state === 'paused') await this.tasks.receipt(task.id, 'completed')
+            const { invocation } = record
+            if (
+                task.claim &&
+                invocation.controlEvidence?.source === 'native_graph' &&
+                record.providerSource?.kind === 'builtin' &&
+                invocationCanRelease(invocation)
+            ) {
+                // The host may have stopped after saving the result but before acknowledging the task.
+                await this.tasks.receipt(task.id, 'completed', task.claim)
+            } else if (desired === 'terminated' && task.state === 'paused') {
+                await this.tasks.receipt(task.id, 'completed')
+            } else if (
+                desired === 'terminated' &&
+                task.claim &&
+                (await this.tasks.settled(task.id, false)) &&
+                (await hasReturnedInlineCancellation(this.database, record, task)) &&
+                (await this.runtime.confirmCheckpointCancellation(record))
+            ) {
+                await this.tasks.receipt(task.id, 'completed', task.claim)
+            }
             return
         }
+        const children = (await this.tasks.descendants(task.id)).filter(
+            (child) => child.parentId === task.id && child.kind === 'execution'
+        )
         if (desired === 'paused' && children.length && (await this.tasks.settled(task.id, true))) {
             await this.tasks.receipt(task.id, 'paused')
             return

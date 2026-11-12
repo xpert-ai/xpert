@@ -1,524 +1,496 @@
-import { ActivatedRoute, Router } from '@angular/router'
-import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
-import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
-import {
-  changeFilter,
-  evolutionEntries,
-  selectedEvolutionEntry,
-  selectedReplayEvaluation,
-  type EvolutionChangeFilter
-} from '../shared/evolution-change-presentation'
+import { stageEvidence } from './stage-evidence'
+import { ReleaseDetailsComponent } from './release-details.component'
+import { ReleaseTrendComponent } from './release-trend.component'
 import { CommonModule } from '@angular/common'
-import { DOCUMENT } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { Store } from '@cloud/app/@core'
-import { injectTheme } from '@cloud/app/@core/theme'
-import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { firstValueFrom, map } from 'rxjs'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { Store, AIPermissionsEnum } from '@cloud/app/@core'
+import { injectActiveScope } from '@cloud/app/@core/state'
 import {
   ZardAlertDialogService,
-  ZardBadgeComponent,
   ZardButtonComponent,
-  ZardCardImports,
   ZardComboboxComponent,
-  ZardInputDirective
+  ZardInputDirective,
+  ZardMenuImports,
+  ZardSearchInputComponent
 } from '@xpert-ai/headless-ui'
-import type { EvolutionAuditEvent, ReleaseDeployment, ReleaseRuntimeObservation } from '@xpert-ai/contracts'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import type { EChartsOption } from 'echarts'
-import { firstValueFrom } from 'rxjs'
-import { startWith } from 'rxjs/operators'
-import { readAgentEvolutionChartTheme } from '../agent-evolution-chart-theme'
+import type {
+  ReleaseDeployment,
+  EvolutionAuditEvent,
+  EvolutionRuntimeObservation,
+  EvolutionCanaryTestOverride,
+  EvolutionLifecycleRecord
+} from '@xpert-ai/contracts'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { isEvolutionAdministratorRole, percent, sameEvolutionScope, shortId } from '../agent-evolution.types'
+import { AgentEvolutionApiService } from '../agent-evolution-api.service'
+import { isEvolutionAdministratorRole, sameEvolutionScope } from '../agent-evolution.types'
+import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
+import { evolutionEntries, selectedReplayEvaluation } from '../shared/evolution-change-presentation'
+import { loadAllEvolutionPages } from '../shared/evolution-pagination'
+import { targetLabel } from '../targets/target-directory'
+import { compactId } from '../evaluation/replay-presentation'
+import {
+  productionPointer,
+  isServing,
+  reviewedCorrect,
+  canaryAttribution,
+  nextReleaseStep
+} from './release-presentation'
 
-interface RuntimePoint extends ReleaseRuntimeObservation {
-  channel: string
-  dataSource: 'deterministic_replay' | 'runtime_telemetry'
+type View = 'history' | 'directory' | 'observations' | 'audit' | 'test' | 'trend' | 'details'
+type LoadStatus = 'loading' | 'ready' | 'error'
+const emptyEvidence = {
+  rows: [] as EvolutionRuntimeObservation[],
+  overrides: null as EvolutionCanaryTestOverride[] | null
 }
-
-interface ReleaseAction {
-  label: string
-  description: string
-  enabled: boolean
-}
-
 @Component({
   standalone: true,
   selector: 'xp-agent-evolution-release',
   imports: [
-    EvolutionChangePickerComponent,
-    EvolutionChangePanelComponent,
     CommonModule,
     FormsModule,
-    EchartsDirective,
+    RouterLink,
     TranslateModule,
-    ZardBadgeComponent,
     ZardButtonComponent,
     ZardComboboxComponent,
     ZardInputDirective,
-    ...ZardCardImports
+    ZardSearchInputComponent,
+    ...ZardMenuImports,
+    EvolutionChangePanelComponent,
+    ReleaseTrendComponent,
+    ReleaseDetailsComponent
   ],
   templateUrl: './release.component.html',
-  host: { class: 'block' }
+  host: { class: 'flex min-h-0 min-w-0 flex-1 overflow-hidden' }
 })
 export class AgentEvolutionReleaseComponent {
   readonly facade = inject(AgentEvolutionFacade)
-  private readonly route = inject(ActivatedRoute)
-  private readonly router = inject(Router)
-  readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
-  readonly changeType = computed(() => changeFilter(this.query().get('changeStatus')))
+  private api = inject(AgentEvolutionApiService)
+  private scope = injectActiveScope()
+  private route = inject(ActivatedRoute)
+  private router = inject(Router)
+  private translate = inject(TranslateService)
+  private dialog = inject(ZardAlertDialogService)
+  private destroy = inject(DestroyRef)
+  private store = inject(Store)
+  readonly q = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  readonly fragment = toSignal(this.route.fragment, { initialValue: this.route.snapshot.fragment })
+  readonly lang = toSignal(this.translate.onLangChange)
+  readonly prefix = 'XP.AgentEvolution.ReleaseWorkbench.'
+  readonly canManage = toSignal(
+    this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.EVOLUTION_MANAGE))),
+    { initialValue: this.store.hasPermission(AIPermissionsEnum.EVOLUTION_MANAGE) }
+  )
+  readonly user = toSignal(this.store.user$, { initialValue: this.store.user })
+  readonly admin = computed(() => isEvolutionAdministratorRole(this.user()?.role?.name))
+  readonly term = signal('')
+  readonly pageSize = 8
+  readonly auditPage = signal(1)
+  readonly observationsPage = signal(1)
+  readonly retry = signal(0)
+  readonly subject = signal('')
+  readonly reason = signal('')
+  readonly minutes = signal(30)
+  readonly short = compactId
+  readonly correct = reviewedCorrect
+  readonly view = computed<View>(() => {
+    const v = this.q().get('view') || this.fragment()
+    return v === 'directory' ||
+      v === 'audit' ||
+      v === 'observations' ||
+      v === 'test' ||
+      v === 'trend' ||
+      v === 'details'
+      ? v
+      : 'history'
+  })
   readonly entries = computed(() =>
     evolutionEntries(this.facade.contextLifecycleRecords(), this.facade.visibleTargets(), 'release')
   )
-  readonly selection = computed(() =>
-    selectedEvolutionEntry(this.entries(), this.changeType(), this.query().get('changeId'))
-  )
-  readonly resource = computed(
-    () => this.facade.contextChanges().find((item) => item.changeId === this.selection()?.id) ?? null
-  )
-  selectChange(id: string | null) {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { changeId: id },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    })
-  }
-  filterChanges(type: EvolutionChangeFilter) {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { changeStatus: type, changeType: null, changeId: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    })
-  }
-
-  readonly #alertDialog = inject(ZardAlertDialogService)
-  readonly #translate = inject(TranslateService)
-  readonly #document = inject(DOCUMENT)
-  readonly #theme = injectTheme()
-  readonly #store = inject(Store)
-  readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
-  readonly currentUser = toSignal(this.#store.user$, { initialValue: this.#store.user })
-
-  readonly manualTestSubjectKey = signal('')
-  readonly manualTestReason = signal('')
-  readonly manualTestExpiresInMinutes = signal(30)
-
-  readonly percent = percent
-  readonly shortId = shortId
-  readonly release = computed(
-    () =>
-      this.facade.contextReleases().find((item) => item.releasePackageId === this.selection()?.releasePackageId) ?? null
-  )
-  readonly gatePolicy = computed(() => this.release()?.gatePolicy ?? null)
-  readonly isAdministrator = computed(() => isEvolutionAdministratorRole(this.currentUser()?.role?.name))
-  readonly showManualTestOverride = computed(
-    () => this.isAdministrator() && this.gatePolicy()?.profile === 'manual_test'
-  )
-  readonly canCreateManualTestOverride = computed(
-    () =>
-      this.showManualTestOverride() &&
-      this.release()?.status === 'canary' &&
-      !!this.manualTestSubjectKey().trim() &&
-      !!this.manualTestReason().trim() &&
-      Number.isInteger(this.manualTestExpiresInMinutes()) &&
-      this.manualTestExpiresInMinutes() >= 1 &&
-      this.manualTestExpiresInMinutes() <= 120
-  )
-  readonly manualTestOverrides = computed(() => {
-    const releasePackageId = this.release()?.releasePackageId
-    return this.facade
-      .dashboard()
-      .canaryTestOverrides.filter((item) => item.releasePackageId === releasePackageId)
-      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+  readonly filtered = computed(() => {
+    const filter = this.q().get('changeStatus')
+    return this.entries().filter((r) => !filter || filter === 'all' || r.publicationStatus === filter)
   })
-
-  readonly evaluation = computed(() => {
-    const release = this.release()
-    return selectedReplayEvaluation(
+  readonly directory = computed(() =>
+    this.filtered().filter((e) =>
+      [e.title, e.id, this.name(e.targetId), this.title(e)]
+        .join(' ')
+        .toLowerCase()
+        .includes(this.term().trim().toLowerCase())
+    )
+  )
+  readonly targetOptions = computed(() => [
+    { value: 'all', label: this.t('XP.AgentEvolution.Overview.AllTargets') },
+    ...this.facade.visibleTargets().map((t) => ({ value: t.targetId, label: this.name(t.targetId) }))
+  ])
+  readonly statusOptions = computed(() => [
+    { value: 'all', label: this.t(this.prefix + 'AllStatus') },
+    ...Array.from(new Set(this.entries().map((r) => r.publicationStatus))).map((s) => ({
+      value: s,
+      label: this.status(s)
+    }))
+  ])
+  readonly selected = computed(() => {
+    const id = this.q().get('changeId'),
+      entries = this.filtered()
+    if (id) return entries.find((e) => e.id === id) ?? null
+    const active = this.facade
+      .contextReleases()
+      .filter((r) => isServing(r, productionPointer(r, this.facade.contextPointers())))
+    return entries.find((e) => active.some((r) => r.releasePackageId === e.releasePackageId)) ?? entries[0] ?? null
+  })
+  readonly resource = computed(() => this.facade.contextChanges().find((c) => c.changeId === this.selected()?.id))
+  readonly release = computed(() =>
+    this.facade
+      .contextReleases()
+      .find((r) => r.releasePackageId === this.selected()?.releasePackageId && r.candidateId === this.selected()?.id)
+  )
+  readonly target = computed(() => this.facade.visibleTargets().find((t) => t.targetId === this.selected()?.targetId))
+  readonly ptr = computed(() => {
+    const r = this.release()
+    return r ? productionPointer(r, this.facade.contextPointers()) : undefined
+  })
+  readonly serving = computed(() => {
+    const r = this.release()
+    return !!r && isServing(r, this.ptr())
+  })
+  readonly stages = computed(() => {
+    const r = this.release()
+    return r
+      ? this.facade
+          .dashboard()
+          .deployments.filter((s) => s.releasePackageId === r.releasePackageId && sameEvolutionScope(s.scope, r.scope))
+          .sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.deploymentId.localeCompare(b.deploymentId))
+      : []
+  })
+  readonly production = computed(() =>
+    this.stages()
+      .filter((s) => s.channel === 'production')
+      .at(-1)
+  )
+  readonly focusStage = computed(() => {
+    const id = this.q().get('stage')
+    return id ? this.stages().find((s) => s.deploymentId === id) : (this.production() ?? this.stages().at(-1))
+  })
+  readonly stageOptions = computed(() =>
+    this.stages().map((s) => ({ value: s.deploymentId, label: this.stageName(s) + ' · ' + s.sampleCount }))
+  )
+  readonly experience = computed(() =>
+    this.facade.dashboard().experiences.find((e) => e.sourceReleasePackageId === this.release()?.releasePackageId)
+  )
+  readonly step = computed(() => {
+    const r = this.release()
+    return r ? nextReleaseStep(r, this.stages(), this.ptr(), this.target(), !!this.experience(), Date.now()) : null
+  })
+  readonly run = computed(() =>
+    selectedReplayEvaluation(
       this.facade.dashboard().evaluations,
       this.resource()?.evaluation,
-      release?.candidateId
+      this.release()?.candidateId
     )
+  )
+  readonly busy = computed(
+    () => this.facade.mutating() || this.facade.releaseJobPending(this.release()?.releasePackageId ?? '')
+  )
+  readonly job = computed(() => {
+    const j = this.facade.activeJob()
+    return j?.resourceId && j.resourceId === this.release()?.releasePackageId ? j : null
   })
-  readonly targetName = computed(() => {
-    this.localeChange()
-    const release = this.release()
-    return (
-      this.facade.dashboard().targets.find((target) => target.targetId === release?.targetId)?.displayName ??
-      release?.targetId ??
-      this.#translate.instant('XP.AgentEvolution.Capability')
-    )
+  readonly allowStep = computed(
+    () =>
+      this.canManage() &&
+      (this.release()?.gatePolicy?.profile !== 'manual_test' || this.admin() || this.step()?.command === 'install')
+  )
+  readonly canReadTestHistory = computed(() => this.admin() && this.release()?.gatePolicy?.profile === 'manual_test')
+  readonly allowTest = computed(
+    () => this.canManage() && this.canReadTestHistory() && this.release()?.status === 'canary'
+  )
+  readonly allowRollback = computed(
+    () =>
+      this.canManage() &&
+      this.serving() &&
+      !!this.target()?.capabilities.rollback &&
+      !!this.release()?.rollbackVersionId &&
+      (!this.ptr()?.rollbackVersionId || this.release()?.rollbackVersionId === this.ptr()?.rollbackVersionId)
+  )
+  readonly allowPause = computed(() => this.canManage() && ['shadow', 'canary'].includes(this.release()?.status ?? ''))
+  readonly testValid = computed(
+    () =>
+      this.allowTest() &&
+      !!this.subject().trim() &&
+      !!this.reason().trim() &&
+      Number.isInteger(this.minutes()) &&
+      this.minutes() >= 1 &&
+      this.minutes() <= 120
+  )
+  readonly evidence = signal(emptyEvidence)
+  readonly evidenceStatus = signal<LoadStatus>('loading')
+  readonly audits = signal({ items: [] as EvolutionAuditEvent[], total: 0 })
+  readonly auditStatus = signal<LoadStatus>('loading')
+  readonly stageSources = computed(() => {
+    const stage = this.focusStage(),
+      release = this.release()
+    return stage && release ? stageEvidence(stage, release, this.evidence().rows, this.evidence().overrides) : null
   })
-  readonly target = computed(() => {
-    const release = this.release()
-    return this.facade.dashboard().targets.find((target) => target.targetId === release?.targetId) ?? null
+  readonly stageRows = computed(() => this.stageSources()?.rows.map((entry) => entry.row) ?? [])
+  readonly visibleRows = computed(() =>
+    this.stageRows().slice((this.observationsPage() - 1) * this.pageSize, this.observationsPage() * this.pageSize)
+  )
+  readonly half = computed(() => {
+    const s = this.stages()
+      .filter((i) => i.channel === 'canary' && i.canaryPercent === 50)
+      .at(-1)
+    return s && this.release() && this.evidenceStatus() === 'ready'
+      ? canaryAttribution(s, this.release()!, this.evidence().rows, this.evidence().overrides)
+      : null
   })
-  readonly pointer = computed(() => {
-    const release = this.release()
-    if (!release) return null
+  readonly evidenceKey = computed(() => {
+    const r = this.release()
+    return !r || this.view() === 'directory'
+      ? ''
+      : JSON.stringify([
+          this.scope(),
+          r.releasePackageId,
+          this.facade.loadedAt(),
+          this.retry(),
+          this.stages().map((s) => [s.deploymentId, s.sampleCount])
+        ])
+  })
+  readonly auditKey = computed(() => {
+    const r = this.release()
+    return this.view() === 'audit' && r
+      ? JSON.stringify([
+          this.scope(),
+          r.releasePackageId,
+          this.auditPage(),
+          this.facade.loadedAt(),
+          this.retry(),
+          r.status,
+          this.stages().map((s) => s.sampleCount)
+        ])
+      : ''
+  })
+  readonly selectedId = computed(() => this.selected()?.id)
+  readonly focusedId = computed(() => this.focusStage()?.deploymentId)
+  constructor() {
+    effect(() => {
+      const target = this.q().get('target')
+      untracked(() => {
+        if (target && target !== this.facade.selectedTargetId()) this.facade.selectTarget(target)
+      })
+    })
+    effect(() => {
+      this.scope()
+      this.selectedId()
+      untracked(() => {
+        this.auditPage.set(1)
+        this.subject.set('')
+        this.reason.set('')
+        this.minutes.set(30)
+      })
+    })
+    effect(() => {
+      this.focusedId()
+      untracked(() => this.observationsPage.set(1))
+    })
+    effect((cleanup) => {
+      const key = this.evidenceKey()
+      let alive = true
+      cleanup(() => (alive = false))
+      untracked(async () => {
+        this.evidenceStatus.set('loading')
+        this.evidence.set(emptyEvidence)
+        const r = this.release()
+        if (!key || !r) return
+        try {
+          const [rows, overrides] = await Promise.all([
+            loadAllEvolutionPages((page) =>
+              firstValueFrom(
+                this.api.listReleaseObservations({
+                  releasePackageId: r.releasePackageId,
+                  targetId: r.targetId,
+                  page,
+                  pageSize: 100
+                })
+              )
+            ),
+            firstValueFrom(this.api.listCanaryTestOverrides(r.releasePackageId)).catch(() => null)
+          ])
+          if (alive && key === this.evidenceKey()) {
+            this.evidence.set({ rows: rows.filter((o) => sameEvolutionScope(o.scope, r.scope)), overrides })
+            this.evidenceStatus.set('ready')
+          }
+        } catch {
+          if (alive) this.evidenceStatus.set('error')
+        }
+      })
+    })
+    effect((cleanup) => {
+      const key = this.auditKey()
+      let alive = true
+      cleanup(() => (alive = false))
+      untracked(async () => {
+        this.auditStatus.set('loading')
+        this.audits.set({ items: [], total: 0 })
+        const r = this.release()
+        if (!key || !r) return
+        try {
+          const p = await firstValueFrom(
+            this.api.listReleaseAudits({
+              releasePackageId: r.releasePackageId,
+              targetId: r.targetId,
+              page: this.auditPage(),
+              pageSize: this.pageSize
+            })
+          )
+          if (alive && key === this.auditKey()) {
+            this.audits.set(p)
+            this.auditStatus.set('ready')
+          }
+        } catch {
+          if (alive) this.auditStatus.set('error')
+        }
+      })
+    })
+  }
+  t(key: string, vars?: Record<string, unknown>): string {
+    this.lang()
+    return this.translate.instant(key, vars)
+  }
+  name(id: string) {
+    this.lang()
+    const t = this.facade.visibleTargets().find((t) => t.targetId === id)
+    return t ? targetLabel(t, this.translate.currentLang) : id
+  }
+  title(record: EvolutionLifecycleRecord) {
+    const c = this.facade.dashboard().candidates.find((c) => c.candidateId === record.id)
     return (
       this.facade
-        .dashboard()
-        .pointers.find(
-          (pointer) => pointer.targetId === release.targetId && sameEvolutionScope(pointer.scope, release.scope)
-        ) ?? null
+        .contextProposals()
+        .find((p) => c && p.proposalId === c.proposalId && p.revision === c.proposalRevision)?.title ||
+      record.presentation?.title ||
+      record.title
     )
-  })
-  readonly deployments = computed(() => {
-    const release = this.release()
-    return this.facade
-      .dashboard()
-      .deployments.filter((deployment) => !release || deployment.releasePackageId === release.releasePackageId)
-      .sort((left, right) => left.startedAt.localeCompare(right.startedAt))
-  })
-  readonly auditEvents = computed(() => {
-    const release = this.release()
-    return this.facade
-      .dashboard()
-      .audits.filter((audit) => !release || audit.releasePackageId === release.releasePackageId)
-      .slice(0, 12)
-  })
-  readonly totalSamples = computed(() =>
-    this.deployments().reduce((sum, deployment) => sum + deployment.sampleCount, 0)
-  )
-  readonly severeErrors = computed(() => this.deployments().reduce((sum, item) => sum + item.severeErrors, 0))
-  readonly runtimePoints = computed<RuntimePoint[]>(() =>
-    this.deployments().flatMap((deployment) => {
-      if (deployment.observations?.length) {
-        return deployment.observations.map((observation) => ({
-          ...observation,
-          channel: deployment.channel,
-          dataSource: deployment.dataSource
-        }))
-      }
-      return [
-        {
-          observationId: `${deployment.deploymentId}-aggregate`,
-          observedAt: deployment.completedAt ?? deployment.startedAt,
-          sequence: 1,
-          sampleCount: deployment.sampleCount,
-          baselineAccuracy: this.evaluation()?.metrics.baselineAccuracy ?? 0,
-          candidateAccuracy: deployment.candidateAccuracy,
-          severeErrors: deployment.severeErrors,
-          p95LatencyMs: this.evaluation()?.metrics.p95LatencyMs ?? 0,
-          averageCost: this.evaluation()?.metrics.averageCost ?? 0,
-          channel: deployment.channel,
-          dataSource: deployment.dataSource ?? 'deterministic_replay'
-        }
-      ]
+  }
+  status(s: string) {
+    if (['preparing', 'review', 'publishing', 'published', 'closed', 'blocked'].includes(s))
+      return this.t(this.prefix + 'state_' + s)
+    return this.t('XP.AgentEvolution.Status.' + s, { Default: s })
+  }
+  auditSummary(a: EvolutionAuditEvent) {
+    if (a.action === 'canary.manual_test_override_created')
+      return this.t('XP.AgentEvolution.CanaryTestOverrideCreatedAuditSummary', {
+        subjectKey: a.metadata?.subjectKey ?? '—',
+        reason: a.metadata?.reason ?? '—'
+      })
+    if (a.action === 'canary.manual_test_override_consumed')
+      return this.t('XP.AgentEvolution.CanaryTestOverrideConsumedAuditSummary', {
+        subjectKey: a.metadata?.subjectKey ?? '—',
+        executionId: a.metadata?.executionId ?? '—'
+      })
+    return a.summary
+  }
+  stageName(s: ReleaseDeployment) {
+    return s.channel === 'canary'
+      ? this.t(this.prefix + 'Canary', { n: s.canaryPercent })
+      : this.t(this.prefix + (s.channel === 'production' ? 'Production' : 'Shadow'))
+  }
+  version(id: string | undefined) {
+    if (!id) return '—'
+    const v = this.facade.dashboard().versions.find((v) => v.versionId === id)
+    return compactId(v?.semanticVersion || id.split(':').at(-1) || id)
+  }
+  hitSource(o: EvolutionRuntimeObservation) {
+    return this.stageSources()?.rows.find((entry) => entry.row.observationId === o.observationId)?.source ?? 'unknown'
+  }
+  toggleRetry() {
+    this.retry.update((n) => n + 1)
+  }
+  goto(view: View, id = this.selected()?.id, stage: string | null = null) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeId: id ?? null, view: view === 'history' ? null : view, stage },
+      queryParamsHandling: 'merge'
     })
-  )
-  readonly latestAccuracy = computed(
-    () => this.runtimePoints().at(-1)?.candidateAccuracy ?? this.evaluation()?.metrics.candidateAccuracy ?? 0
-  )
-  readonly runtimeDataSource = computed(() => {
-    this.localeChange()
-    const sources = [...new Set(this.runtimePoints().map((point) => point.dataSource))]
-    return (
-      sources
-        .map((source) =>
-          this.#translate.instant(`XP.AgentEvolution.DataSourceType.${source}`, {
-            Default: source
-          })
-        )
-        .join(' + ') || this.#translate.instant('XP.AgentEvolution.NoRuntimeObservations')
+  }
+  selectTarget(id: string | null) {
+    this.facade.selectTarget(id || 'all')
+    this.term.set('')
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { target: id === 'all' ? null : id, view: this.view() === 'directory' ? 'directory' : null }
+    })
+  }
+  filterStatus(s: string | null) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { changeStatus: s || 'all', view: 'directory', changeId: null, stage: null },
+      queryParamsHandling: 'merge'
+    })
+  }
+  private identity() {
+    const r = this.release()
+    return JSON.stringify([
+      this.scope(),
+      r?.releasePackageId,
+      r?.status,
+      r?.canaryPercent,
+      this.ptr()?.revision,
+      this.view()
+    ])
+  }
+  async command(action: 'next' | 'pause' | 'rollback' | 'test') {
+    const r = this.release(),
+      step = this.step(),
+      identity = this.identity(),
+      subject = this.subject().trim(),
+      reason = this.reason().trim(),
+      minutes = this.minutes()
+    const allowed = () =>
+      !this.busy() &&
+      (action === 'next'
+        ? !!step && this.allowStep() && this.step()?.command === step.command && !this.step()?.reason
+        : action === 'pause'
+          ? this.allowPause()
+          : action === 'rollback'
+            ? this.allowRollback()
+            : this.testValid())
+    if (!r || !allowed()) return
+    const key = action === 'next' ? step!.command : action
+    const label = this.t(this.prefix + 'action_' + key)
+    const ok = await firstValueFrom(
+      this.dialog.confirm({
+        layout: 'standard',
+        title: label,
+        description: this.t(this.prefix + 'confirm_' + key, {
+          from: this.version(r.targetVersionId),
+          to: this.version(r.rollbackVersionId),
+          subject,
+          target: this.name(r.targetId)
+        }),
+        actionText: label,
+        cancelText: this.t('XP.ACTIONS.Cancel')
+      })
     )
-  })
-  readonly releaseDecision = computed(() => {
-    this.localeChange()
-    const release = this.release()
-    const activePointer = this.pointer()
-    const governedDeployments = this.deployments().filter((deployment) => deployment.channel !== 'production')
-    const deploymentGatePassed =
-      governedDeployments.length > 0 &&
-      governedDeployments.every((deployment) => !!deployment.completedAt && deployment.severeErrors === 0)
-    const passed =
-      release?.status === 'active' &&
-      this.resource()?.evaluation?.passed === true &&
-      deploymentGatePassed &&
-      activePointer?.activeVersionId === release.targetVersionId
-    return {
-      passed,
-      label: this.#translate.instant(passed ? 'XP.AgentEvolution.KeepActive' : 'XP.AgentEvolution.WaitingForGates'),
-      detail: this.#translate.instant(
-        passed ? 'XP.AgentEvolution.ReleaseDecisionPassedDetail' : 'XP.AgentEvolution.ReleaseDecisionPendingDetail'
-      )
-    }
-  })
-  readonly primaryAction = computed<ReleaseAction | null>(() => {
-    this.localeChange()
-    const release = this.release()
-    const target = this.target()
-    if (!release || !this.gatePolicy()) return null
-    if (release.status === 'approved' && target?.capabilities.install)
-      return this.releaseAction('InstallImmutableVersion')
-    if (release.status === 'installed' && target?.capabilities.shadow) return this.releaseAction('StartShadow')
-    if (release.status === 'shadow' && target?.capabilities.canary) {
-      const policy = this.gatePolicy()!
-      return this.releaseAction(
-        'StartCanary5',
-        deploymentGatePassed(
-          this.deployments().at(-1),
-          'shadow',
-          policy.shadowMinimumSamples,
-          policy.shadowMinimumDurationHours
-        )
-      )
-    }
-    if (release.status === 'canary' && release.canaryPercent < 50) {
-      const percent = release.canaryPercent === 5 ? 25 : 50
-      const policy = this.gatePolicy()!
-      return {
-        label: this.#translate.instant('XP.AgentEvolution.ExpandCanary', { percent }),
-        description: this.#translate.instant('XP.AgentEvolution.ExpandCanaryDescription'),
-        enabled: deploymentGatePassed(
-          this.deployments().at(-1),
-          'canary',
-          policy.canaryMinimumSamples,
-          policy.canaryMinimumDurationHours
-        )
-      }
-    }
-    if (release.status === 'canary') {
-      const policy = this.gatePolicy()!
-      return this.releaseAction(
-        'ActivateProduction',
-        deploymentGatePassed(
-          this.deployments().at(-1),
-          'canary',
-          policy.productionCanaryMinimumSamples,
-          policy.productionCanaryMinimumDurationHours,
-          50
-        )
-      )
-    }
-    if (
-      release.status === 'active' &&
-      !this.facade.dashboard().experiences.some((item) => item.sourceReleasePackageId === release.releasePackageId)
+    if (!ok || this.destroy.destroyed || identity !== this.identity() || !allowed()) return
+    if (action === 'next') await this.facade.runReleaseAction(r, step!.command)
+    else if (action === 'pause') await this.facade.pauseRelease(r.releasePackageId)
+    else if (action === 'rollback') await this.facade.rollbackRelease(r.releasePackageId)
+    else if (
+      await this.facade.createCanaryTestOverride(r.releasePackageId, {
+        subjectKey: subject,
+        reason,
+        expiresInMinutes: minutes
+      })
     ) {
-      const policy = this.gatePolicy()!
-      const production = this.deployments()
-        .slice()
-        .reverse()
-        .find((deployment) => deployment.channel === 'production')
-      return this.releaseAction(
-        'CreateStableExperience',
-        deploymentGatePassed(
-          production,
-          'production',
-          policy.experienceMinimumSamples,
-          policy.experienceMinimumDurationHours
-        )
-      )
-    }
-    return null
-  })
-
-  private releaseAction(key: string, enabled = true): ReleaseAction {
-    return {
-      label: this.#translate.instant(`XP.AgentEvolution.${key}`),
-      description: this.#translate.instant(`XP.AgentEvolution.${key}Description`),
-      enabled
+      this.subject.set('')
+      this.reason.set('')
+      this.minutes.set(30)
+      this.toggleRetry()
     }
   }
-
-  readonly timeline = computed(() => {
-    this.localeChange()
-    const release = this.release()
-    const deployments = this.deployments()
-    const active = release?.status === 'active'
-    return [
-      {
-        label: this.#translate.instant('XP.AgentEvolution.ApprovalPassed'),
-        detail: release?.approvalIds.length
-          ? this.#translate.instant('XP.AgentEvolution.ApproverCount', { count: release.approvalIds.length })
-          : '—',
-        done: !!release?.approvalIds.length
-      },
-      ...deployments.map((deployment) => ({
-        label:
-          deployment.channel === 'shadow'
-            ? this.#translate.instant('XP.AgentEvolution.Shadow')
-            : deployment.channel === 'canary'
-              ? this.#translate.instant('XP.AgentEvolution.CanaryPercent', { percent: deployment.canaryPercent })
-              : this.#translate.instant('XP.AgentEvolution.ProductionTelemetry'),
-        detail: this.#translate.instant('XP.AgentEvolution.SampleCount', { count: deployment.sampleCount }),
-        done: !!deployment.completedAt && deployment.severeErrors === 0
-      })),
-      {
-        label: this.#translate.instant('XP.AgentEvolution.Production'),
-        detail: this.#translate.instant(
-          active ? 'XP.AgentEvolution.PointerSwitched' : 'XP.AgentEvolution.PendingActivation'
-        ),
-        done: active
-      }
-    ]
-  })
-
-  readonly runtimeOptions = computed<EChartsOption>(() => {
-    this.#theme()
-    this.localeChange()
-    const chartTheme = readAgentEvolutionChartTheme(this.#document)
-    const points = this.runtimePoints()
-    const accuracies = points.flatMap((point) => [point.baselineAccuracy * 100, point.candidateAccuracy * 100])
-    const minimumAccuracy = accuracies.length ? Math.min(...accuracies) : 0
-    return {
-      animationDuration: 350,
-      color: [chartTheme.production, chartTheme.candidate],
-      tooltip: { trigger: 'axis' },
-      legend: { right: 8, top: 0, textStyle: { color: chartTheme.label, fontSize: 11 } },
-      grid: { left: 45, right: 18, top: 38, bottom: 28 },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: points.map(
-          (point) =>
-            `${this.#translate.instant(`XP.AgentEvolution.ChannelType.${point.channel}`, { Default: point.channel })} · ${point.sampleCount}`
-        ),
-        axisLine: { lineStyle: { color: chartTheme.divider, opacity: 0.28 } },
-        axisLabel: { color: chartTheme.muted, fontSize: 10 }
-      },
-      yAxis: {
-        type: 'value',
-        min: Math.max(0, Math.floor(minimumAccuracy - 5)),
-        max: 100,
-        axisLabel: { formatter: '{value}%', color: chartTheme.muted, fontSize: 10 },
-        splitLine: { lineStyle: { color: chartTheme.divider, opacity: 0.18 } }
-      },
-      series: [
-        {
-          name: this.#translate.instant('XP.AgentEvolution.Production'),
-          type: 'line',
-          smooth: true,
-          symbolSize: 6,
-          data: points.map((point) => Number((point.baselineAccuracy * 100).toFixed(2)))
-        },
-        {
-          name: this.#translate.instant('XP.AgentEvolution.Candidate'),
-          type: 'line',
-          smooth: true,
-          symbol: 'none',
-          lineStyle: { width: 2 },
-          areaStyle: { opacity: 0.08 },
-          data: points.map((point) => Number((point.candidateAccuracy * 100).toFixed(2)))
-        }
-      ]
-    }
-  })
-
-  async performPrimaryAction() {
-    const release = this.release()
-    const action = this.primaryAction()
-    if (!release || !action || !action.enabled) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.NextReleaseTitle', {
-          Default: `${action.label}?`
-        }),
-        description: this.#translate.instant('XP.AgentEvolution.NextReleaseDescription', {
-          Default: action.description
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.ConfirmReleaseAction', { Default: action.label }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (confirmed) await this.facade.runReleaseAction(release)
-  }
-
-  async pause() {
-    const release = this.release()
-    if (!release) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.PauseReleaseTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.PauseReleaseDescription'),
-        actionText: this.#translate.instant('XP.AgentEvolution.PauseReleaseAction'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (confirmed) await this.facade.pauseRelease(release.releasePackageId)
-  }
-
-  async rollback() {
-    const release = this.release()
-    if (!release) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.RollbackTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.RollbackDescription', {
-          from: release.targetVersionId,
-          to: release.rollbackVersionId
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.RollbackAction'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (confirmed) await this.facade.rollbackRelease(release.releasePackageId)
-  }
-
-  async createManualTestOverride() {
-    const release = this.release()
-    if (!release || !this.canCreateManualTestOverride()) return
-    const subjectKey = this.manualTestSubjectKey().trim()
-    const reason = this.manualTestReason().trim()
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmDescription', {
-          subjectKey
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.CreateCanaryTestOverride'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (!confirmed) return
-    const created = await this.facade.createCanaryTestOverride(release.releasePackageId, {
-      subjectKey,
-      reason,
-      expiresInMinutes: this.manualTestExpiresInMinutes()
-    })
-    if (created) {
-      this.manualTestSubjectKey.set('')
-      this.manualTestReason.set('')
-      this.manualTestExpiresInMinutes.set(30)
-    }
-  }
-
-  auditSummary(audit: EvolutionAuditEvent) {
-    if (audit.action === 'canary.manual_test_override_created') {
-      return this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideCreatedAuditSummary', {
-        subjectKey: audit.metadata?.subjectKey ?? '—',
-        reason: audit.metadata?.reason ?? '—'
-      })
-    }
-    if (audit.action === 'canary.manual_test_override_consumed') {
-      return this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConsumedAuditSummary', {
-        subjectKey: audit.metadata?.subjectKey ?? '—',
-        executionId: audit.metadata?.executionId ?? '—'
-      })
-    }
-    return audit.summary
-  }
-}
-
-function deploymentGatePassed(
-  deployment: ReleaseDeployment | undefined,
-  channel: ReleaseDeployment['channel'],
-  minimumSamples: number,
-  minimumDurationHours: number,
-  canaryPercent?: number
-) {
-  if (!deployment || deployment.channel !== channel || deployment.severeErrors > 0) return false
-  if (canaryPercent !== undefined && deployment.canaryPercent !== canaryPercent) return false
-  if (deployment.sampleCount < minimumSamples) return false
-  const startedAt = Date.parse(deployment.startedAt)
-  return Number.isFinite(startedAt) && Date.now() - startedAt >= minimumDurationHours * 60 * 60 * 1000
 }

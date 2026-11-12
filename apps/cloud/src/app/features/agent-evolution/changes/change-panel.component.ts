@@ -28,6 +28,7 @@ import { changeDetailPresentation } from './change-detail-presentation'
 export class EvolutionChangePanelComponent {
   readonly change = input.required<EvolutionChange>()
   readonly lifecycle = input<EvolutionLifecycleRecord | null>(null)
+  readonly readOnly = input(false)
   readonly reason = signal('')
   readonly mode = input<'evaluation' | 'release'>('evaluation')
   private readonly facade = inject(AgentEvolutionFacade)
@@ -69,11 +70,16 @@ export class EvolutionChangePanelComponent {
   readonly passed = computed(() => this.change().evaluation?.checks.filter((item) => item.passed).length ?? 0)
   readonly steps = computed(() => this.detail().steps)
   readonly canReview = computed(
-    () => this.canManage() && this.change().evaluation?.passed === true && this.change().status === 'pending_approval'
+    () =>
+      !this.readOnly() &&
+      this.canManage() &&
+      this.change().evaluation?.passed === true &&
+      this.change().status === 'pending_approval'
   )
   readonly combinedPublication = computed(() => this.change().strategy.definition.publication.mode === 'version_write')
   readonly canPublish = computed(
     () =>
+      !this.readOnly() &&
       this.canManage() &&
       this.change().evaluation?.passed === true &&
       (this.change().status === 'approved' || (this.combinedPublication() && this.change().status === 'publishing'))
@@ -93,13 +99,11 @@ export class EvolutionChangePanelComponent {
     if (this.busy() || !this.canReview() || !change.evaluation || !this.reason().trim()) return
     if (decision === 'approved' && this.combinedPublication())
       return this.facade.approveAndPublishChange(change, this.reason())
-    return decision === 'approved'
-      ? this.facade.approveCandidate(change.changeId, change.evaluation.runId, this.reason())
-      : this.facade.rejectCandidate(change.changeId, change.evaluation.runId, this.reason())
+    return this.facade.decideChange(change, decision, this.reason())
   }
   publish() {
     if (this.busy() || !this.canPublish()) return
     if (this.combinedPublication()) return this.facade.publishApprovedChange(this.change())
-    return this.facade.packageRelease(this.change().changeId, this.change().evaluation!.runId, [])
+    return this.facade.packageRelease(this.change())
   }
 }

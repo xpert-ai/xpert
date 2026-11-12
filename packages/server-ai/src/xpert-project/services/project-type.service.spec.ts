@@ -77,13 +77,18 @@ describe('application Project types', () => {
 
     it('limits application users to types declared by their authorized published assistants', async () => {
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
-            id: 'owner', tenantId: 'tenant', role: { name: RolesEnum.APP_USER }
+            id: 'owner',
+            tenantId: 'tenant',
+            role: { name: RolesEnum.APP_USER }
         } as IUser)
         const f = fixture()
         f.xperts.getAccessiblePublishedXpert.mockResolvedValue({
-            ...xpert, options: { workspaceScope: { mode: 'project-required', projectType: ref } }
+            ...xpert,
+            options: { workspaceScope: { mode: 'project-required', projectType: ref } }
         })
-        expect((await f.service.list('assistant')).items.map((type) => type.applicationKey)).toEqual([ref.applicationKey])
+        expect((await f.service.list('assistant')).items.map((type) => type.applicationKey)).toEqual([
+            ref.applicationKey
+        ])
         f.xperts.getAccessiblePublishedXpert.mockResolvedValue(xpert)
         expect((await f.service.list('assistant')).items).toEqual([])
     })
@@ -337,6 +342,68 @@ describe('application Project types', () => {
         plugins[0].scopeKey = 'another-org'
         expect(() => service.resolve(ref)).toThrow()
     })
+    it('allows an archived entity purge only through its live business binding, preserving the generic API restriction', async () => {
+        const f = fixture()
+        const project = Object.assign(new XpertProject(), {
+            ...ref,
+            id: 'project',
+            name: desired.name,
+            status: 'archived'
+        })
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            status: 'archived',
+            xpertId: xpert.id,
+            viewKey: 'automotive__cases',
+            selectionId: 'case'
+        })
+        await expect(f.service.assertProvisionedPurge(project, xpert.id)).resolves.toBeUndefined()
+        expect(f.provider.resolve).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant',
+                organizationId: 'org',
+                xpertId: xpert.id,
+                purpose: 'provision',
+                ...ref
+            }),
+            'project'
+        )
+        expect(() => f.service.assertPlatformLifecycle(project)).toThrow()
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            xpertId: xpert.id,
+            viewKey: 'automotive__cases',
+            selectionId: 'case'
+        })
+        await expect(f.service.assertProvisionedPurge(project, xpert.id)).rejects.toThrow()
+    })
+
+    it('rejects an unbound Assistant or unavailable provider before application purge', async () => {
+        const f = fixture()
+        const project = Object.assign(new XpertProject(), {
+            ...ref,
+            id: 'project',
+            name: desired.name,
+            status: 'archived'
+        })
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            status: 'archived',
+            xpertId: 'other',
+            viewKey: 'automotive__cases',
+            selectionId: 'case'
+        })
+        await expect(f.service.assertProvisionedPurge(project, xpert.id)).rejects.toThrow()
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            status: 'archived',
+            viewKey: 'automotive__cases'
+        })
+        await expect(f.service.assertProvisionedPurge(project, xpert.id)).rejects.toThrow()
+        f.plugins.length = 0
+        await expect(f.service.assertProvisionedPurge(project, xpert.id)).rejects.toThrow()
+    })
+
     it('cannot turn a removed application into platform-managed data', () => {
         const { service, plugins } = fixture()
         plugins.length = 0

@@ -1,5 +1,9 @@
+import { groupDisplayCases } from './testing/group-display.postgres.cases'
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
 import { groupDeliveryStatusCases } from './testing/group-delivery-status.postgres.cases'
+import { groupReplyStageCases } from './testing/group-reply-stage.postgres.cases'
+import { groupProjectPreflightCases } from './group-project/testing/group-project-preflight.postgres.cases'
 import i18next from 'i18next'
 import { GroupProjectService } from './group-project/group-project.service'
 import { XpertProjectService } from '../xpert-project/project.service'
@@ -88,7 +92,7 @@ const schemas = [
         columns: {
             ...base,
             conversationId: uuid,
-            createdInThreadId: uuid,
+            createdInThreadId: text,
             executionId: uuid,
             role: text,
             content: json,
@@ -204,12 +208,14 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     let db: DataSource
     let messages: GroupMessagesService
     let runtime: GroupRuntimeService
+    let tools: GroupToolsService
     let projects: GroupProjectService
-    const binding = { addXpert: jest.fn() }
+    const binding = { addXpert: jest.fn(), ensureDirectProject: jest.fn() }
     const projectAccess = {
         assertCanManage: jest.fn(async (id) => ({ project: { id, name: 'Test project' } })),
         assertCanRead: jest.fn(async (id) => ({ project: { id, name: 'Test project' } }))
     }
+    let resources: GroupResourceToolsService
     let interactions: GroupInteractionsService
     let group: ChatConversation
     let a: GroupParticipant, b: GroupParticipant, c: GroupParticipant, e: GroupParticipant
@@ -245,7 +251,11 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
                 GroupRuntimeService,
                 { provide: DataSource, useValue: db },
                 { provide: GroupAccessService, useValue: access },
-                { provide: GroupToolsService, useValue: { create: () => undefined } },
+                GroupToolsService,
+                {
+                    provide: GroupResourceToolsService,
+                    useValue: { createAnalysisTools: () => [], validateAnalysisDelivery: async () => {} }
+                },
                 { provide: ThreadRunControlService, useValue: control },
                 { provide: QueryBus, useValue: {} },
                 GroupInteractionsService,
@@ -255,7 +265,9 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         projects = module.get(GroupProjectService)
         messages = module.get(GroupMessagesService)
         runtime = module.get(GroupRuntimeService)
+        tools = module.get(GroupToolsService)
         interactions = module.get(GroupInteractionsService)
+        resources = module.get(GroupResourceToolsService)
     })
     groupTaskResultCases(() => ({
         db,
@@ -275,6 +287,42 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         c,
         e,
         prepare: (receipt, queue) => runtime.prepare(job(receipt, queue))
+    }))
+    groupDisplayCases(() => ({
+        db,
+        messages,
+        runtime,
+        tools,
+        group,
+        c,
+        resources,
+        prepare: (receipt) => runtime.prepare(job(receipt))
+    }))
+    groupReplyStageCases(() => ({
+        db,
+        messages,
+        runtime,
+        tools,
+        group,
+        a,
+        c,
+        e,
+        prepare: (receipt) => runtime.prepare(job(receipt))
+    }))
+    groupProjectPreflightCases(() => ({
+        db,
+        messages,
+        projects,
+        group,
+        c,
+        e,
+        ensureDirectProject: binding.ensureDirectProject,
+        primaryProjectType: (projectType) =>
+            access.assistant.mockImplementation(async (id: string) =>
+                id === group.xpertId ? { options: { workspaceScope: { mode: 'project-required', projectType } } } : {}
+            ),
+        requireProject: () =>
+            access.assistant.mockResolvedValue({ options: { workspaceScope: { mode: 'project-required' } } })
     }))
     afterAll(async () => {
         if (db) {

@@ -45,17 +45,12 @@ export function wrapNativeAgentInvocation<Input, Output>(
         if (!callId) throw invocationError('InvalidRequest')
         const capabilities = new DefaultRuntimeCapabilityRegistry().register(NativeAgentExecution, {
             execute: async (invocationId) => {
-                let output: Output
-                try {
-                    const invoke = () => graph.invoke(state, {
+                const invoke = () =>
+                    graph.invoke(state, {
                         ...config,
                         configurable: { ...config.configurable, agentInvocationId: invocationId }
                     })
-                    output = await (context.run ? context.run(invoke) : invoke())
-                } catch (error) {
-                    if (error instanceof ExecutionCancelledError) return { status: 'cancelled', error: error.message }
-                    throw error
-                }
+                const output = await (context.run ? context.run(invoke) : invoke())
                 const [type, bytes] = await serde.dumpsTyped(output)
                 return {
                     status: 'succeeded',
@@ -83,7 +78,11 @@ export function wrapNativeAgentInvocation<Input, Output>(
             }
         })
         if (result.status !== 'succeeded') {
-            if (result.status === 'cancelled') throw new ExecutionCancelledError(result.id, result.error)
+            if (result.status === 'cancelled') {
+                const executionId =
+                    result.controlEvidence?.source === 'native_graph' ? result.controlEvidence.executionId : result.id
+                throw new ExecutionCancelledError(executionId, result.error)
+            }
             if (result.status === 'failed' || result.status === 'unknown') {
                 throw invocationError('DispatchUnknown')
             }

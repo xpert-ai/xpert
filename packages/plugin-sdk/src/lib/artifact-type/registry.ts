@@ -45,6 +45,13 @@ export class ArtifactTypeRegistry extends BaseStrategyRegistry<IArtifactTypeProv
     )
       throw new Error('ARTIFACT_TYPE_INVALID')
     artifactTypeDefinitionSchema.parse(provider.definition)
+    if (
+      provider.analytics &&
+      (typeof provider.analytics.resolveBindings !== 'function' ||
+        (provider.analytics.normalizeControls !== undefined &&
+          typeof provider.analytics.normalizeControls !== 'function'))
+    )
+      throw new Error('ARTIFACT_TYPE_ANALYTICS_INVALID')
     const identity: unknown = JSON.parse(key)
     if (
       !Array.isArray(identity) ||

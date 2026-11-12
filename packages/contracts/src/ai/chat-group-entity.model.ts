@@ -44,7 +44,7 @@ export interface IGroupMessageRecipient extends IBasePerTenantAndOrganizationEnt
   status: ChatGroupDeliveryStatus
   /** Whether this delivery should invoke the recipient Assistant via the existing message queue. */
   wake: boolean
-  /** Public group reply that fulfills this request. */
+  /** Persisted final reply by this recipient; progress replies never claim completion. */
   replyMessageId?: string | null
   /** Recorded Assistant execution and its runtime input message. */
   executionId?: string | null

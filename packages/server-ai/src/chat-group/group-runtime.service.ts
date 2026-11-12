@@ -1,3 +1,5 @@
+import { groupDisplayContent } from './group-display'
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { legacyThreadGraphRevision } from '../chat-conversation/thread-graph-revision'
 // Invariants: reserve exactly one writer per Assistant runtime; never re-execute an ambiguous started run.
 // Busy inputs use the existing persisted steer path, while public messages remain in the group timeline.
@@ -8,7 +10,7 @@ import { GroupOutboxService } from './group-outbox.service'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { Injectable } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { DataSource, MoreThan, In, Not, IsNull } from 'typeorm'
+import { DataSource, MoreThan, In, Not } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import { XpertAgentExecutionStatusEnum, TChatCheckpointReference } from '@xpert-ai/contracts'
@@ -40,7 +42,8 @@ export class GroupRuntimeService {
         private readonly queries: QueryBus,
         private readonly interactions: GroupInteractionsService,
         private readonly outbox: GroupOutboxService,
-        private readonly composer: GroupComposerService
+        private readonly composer: GroupComposerService,
+        private readonly resourceTools: GroupResourceToolsService
     ) {}
 
     /**
@@ -256,7 +259,9 @@ export class GroupRuntimeService {
                     (row) =>
                         row.id !== source.id &&
                         row.groupCommunication?.senderId !== member.id &&
-                        !row.groupCommunication?.recipientIds.includes(member.id)
+                        (!row.groupCommunication?.recipientIds.includes(member.id) ||
+                            (row.groupCommunication?.intent === 'reply' &&
+                                row.groupCommunication.replyStage === 'progress'))
                 )
                 .map((row) => ({
                     id: row.id,
@@ -349,7 +354,12 @@ export class GroupRuntimeService {
                 isDraft: false,
                 runtimePrincipal: { type: 'assistant', xpertId: member.subjectId },
                 execution: { id: receipt.executionId },
-                tools: [this.tools.create(receipt, member)],
+                tools: [
+                    this.tools.create(receipt, member, (group, userId) =>
+                        this.resourceTools.validateAnalysisDelivery(receipt, member, group, userId)
+                    ),
+                    ...this.resourceTools.createAnalysisTools(receipt, member)
+                ],
                 context: { groupId: group.id, groupParticipantId: member.id },
                 streamPersistence:
                     action !== 'steer'
@@ -498,20 +508,47 @@ export class GroupRuntimeService {
             where: { conversationId: member.runtimeConversationId, executionId: execution.id, role: 'ai' },
             order: { createdAt: 'ASC' }
         })
-        const visible = outputs.filter((output) => chatMessageText(output.content))
-        const replyTarget = completed ? await this.automaticReplyTarget(member, source) : undefined
+        const visible = outputs
+            .map((output) => ({
+                output,
+                text: chatMessageText(output.content),
+                display: groupDisplayContent(output.content, output.events)
+            }))
+            .filter(({ text, display }) => text || display.length)
+        const lastTextId = visible.filter(({ text }) => text).at(-1)?.output.id
+        const reply = completed ? await this.automaticReply(member, source, receipt) : { kind: 'message' as const }
         let publicationBlocked = false
-        for (const [index, output] of visible.entries()) {
+        for (const { output, text, display } of visible) {
             if (!member.active) break
-            const text = chatMessageText(output.content)
             const publicationId = `output:${output.id}`
-            const isAnswer = completed && index === visible.length - 1 && !!replyTarget
+            const isLast = output.id === lastTextId
             try {
+                await this.resourceTools.validateAnalysisDelivery(receipt, member, group, root.rootUserId)
+                if (display.length)
+                    await this.messages.publish(
+                        group,
+                        member,
+                        { intent: 'message', recipientIds: [], text: '', clientMessageId: output.id },
+                        root,
+                        `display:${output.id}`,
+                        true,
+                        source.id,
+                        undefined,
+                        display
+                    )
+                // Final-tool deduplication applies only to text; displays remain independent non-completing messages.
+                if (!text || (isLast && reply.kind === 'tool-final')) continue
                 await this.messages.publish(
                     group,
                     member,
-                    isAnswer
-                        ? { intent: 'reply', replyToMessageId: replyTarget, text, clientMessageId: output.id }
+                    isLast && reply.kind === 'reply'
+                        ? {
+                              intent: 'reply',
+                              replyStage: 'final',
+                              replyToMessageId: reply.messageId,
+                              text,
+                              clientMessageId: output.id
+                          }
                         : { intent: 'message', recipientIds: [], text, clientMessageId: output.id },
                     root,
                     publicationId,
@@ -567,7 +604,11 @@ export class GroupRuntimeService {
         await this.outbox.flush(receipt.groupId)
     }
     /** A turn that asks E/B for help posts progress. Their correlated reply returns to the still-open parent request. */
-    private async automaticReplyTarget(member: GroupParticipant, source: ChatMessage): Promise<string | undefined> {
+    private async automaticReply(
+        member: GroupParticipant,
+        source: ChatMessage,
+        delivery: GroupMessageRecipient
+    ): Promise<{ kind: 'reply'; messageId: string } | { kind: 'message' | 'tool-final' }> {
         const messages = this.db.getRepository(ChatMessage)
         const receipts = this.db.getRepository(GroupMessageRecipient)
         const root = parseGroupCommunication(source.groupCommunication)
@@ -595,10 +636,23 @@ export class GroupRuntimeService {
                 })
             else break
         }
-        if (!target) return undefined
+        if (!target) return { kind: 'message' }
         const receipt = await receipts.findOneBy({ messageId: target, participantId: member.id })
-        if (!receipt || receipt.replyMessageId || ['blocked', 'canceled', 'failed'].includes(receipt.status))
-            return undefined
+        if (!receipt) return { kind: 'message' }
+        if (receipt.replyMessageId) {
+            const answer = await messages.findOneBy({ id: receipt.replyMessageId, conversationId: member.groupId })
+            const communication = answer ? parseGroupCommunication(answer.groupCommunication) : undefined
+            // Completion belongs to this request and recipient, not the whole run or root causal chain.
+            // Legacy replies without replyStage were final. Automatic projections retain their retry path.
+            const toolFinal =
+                answer?.groupPublicationId?.startsWith('tool:') &&
+                communication?.intent === 'reply' &&
+                communication.replyStage !== 'progress' &&
+                communication.senderId === member.id &&
+                communication.replyToMessageId === target
+            return { kind: toolFinal ? 'tool-final' : 'message' }
+        }
+        if (['blocked', 'canceled', 'failed'].includes(receipt.status)) return { kind: 'message' }
         const outgoing = await messages
             .createQueryBuilder('message')
             .where('message.conversationId = :groupId', { groupId: member.groupId })
@@ -606,16 +660,38 @@ export class GroupRuntimeService {
             .andWhere("message.groupCommunication ->> 'senderId' = :sender", { sender: member.id })
             .andWhere("message.groupCommunication ->> 'intent' = 'request'")
             .getMany()
-        if (
-            outgoing.length &&
-            (await receipts.countBy({
+        if (outgoing.length) {
+            const children = await receipts.findBy({
                 messageId: In(outgoing.map((message) => message.id)),
-                replyMessageId: IsNull(),
                 status: Not(In(['blocked', 'canceled', 'failed']))
-            }))
-        )
-            return undefined
-        return target
+            })
+            if (children.some((child) => !child.replyMessageId)) return { kind: 'message' }
+            const answerIds = children.map((child) => child.replyMessageId).filter((id): id is string => Boolean(id))
+            const awaiting = answerIds.length
+                ? await receipts.findBy({
+                      messageId: In(answerIds),
+                      participantId: member.id,
+                      id: Not(delivery.id),
+                      status: In(['pending', 'starting', 'steering'])
+                  })
+                : []
+            // A child's final being published does not mean the caller has seen it. Otherwise
+            // the first continuation can close the parent while another reply is still queued.
+            for (const answer of awaiting) {
+                const consumedSteer =
+                    answer.executionId === delivery.executionId &&
+                    (await messages
+                        .createQueryBuilder('message')
+                        .where('message.conversationId = :id', { id: member.runtimeConversationId })
+                        .andWhere("message.messageEnvelope -> 'correlation' ->> 'messageId' = :receipt", {
+                            receipt: answer.id
+                        })
+                        .andWhere('message.followUpStatus = :status', { status: 'consumed' })
+                        .getExists())
+                if (!consumedSteer) return { kind: 'message' }
+            }
+        }
+        return { kind: 'reply', messageId: target }
     }
 }
 

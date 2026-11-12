@@ -11,6 +11,7 @@ describe('evolution business search before pagination', () => {
         andWhere: jest.fn().mockReturnThis(),
         innerJoin: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         getManyAndCount: jest.fn().mockResolvedValue([[], 0])
@@ -22,7 +23,10 @@ describe('evolution business search before pagination', () => {
                 { provide: getDataSourceToken(), useValue: {} },
                 ...AGENT_EVOLUTION_ENTITIES.map((entity) => ({
                     provide: getRepositoryToken(entity),
-                    useValue: { createQueryBuilder: () => query }
+                    useValue: {
+                        createQueryBuilder: () => query,
+                        metadata: { primaryColumns: [{ propertyName: 'id' }] }
+                    }
                 }))
             ]
         }).compile()

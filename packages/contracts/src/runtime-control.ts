@@ -13,6 +13,13 @@ export type RuntimeRestartMode = 'self-signal' | 'rolling-self-signal'
 
 export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed' | 'awaiting_restart'
 
+/** Host-attested rejection before a plugin module enters the Nest container. */
+export interface IRuntimePluginFailureIsolation {
+  stage: 'provider-preflight'
+  version: string
+  runtimeRevision?: string
+}
+
 export interface IRuntimePluginRequirement {
   scopeKey: string
   pluginName: string

@@ -1,0 +1,162 @@
+<div class="max-h-[min(62dvh,42rem)] overflow-y-auto break-words pr-1 text-base [overflow-wrap:anywhere]">
+  @switch (data.view) {
+    @case ('identity') {
+      <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 [&_dt]:text-sm [&_dt]:text-text-secondary">
+        @for (pair of identity; track pair[0]) {
+          <dt>{{ p + pair[0] | translate }}</dt>
+          <dd class="font-mono text-sm">{{ pair[1] || '—' }}</dd>
+        }
+        <dt>{{ p + 'Scope' | translate }}</dt>
+        <dd>
+          {{ p + ('Scope_' + c.scope.type) | translate }}
+          @if (c.scope.type === 'project' || c.scope.type === 'workspace') {
+            · <code>{{ c.scope.key }}</code>
+          }
+          @for (item of c.scope.dimensions | keyvalue; track item.key) {
+            · {{ item.key }}: {{ item.value }}
+          }
+        </dd>
+        <dt>{{ p + 'Mode' | translate }}</dt>
+        <dd>{{ p + c.strategy.definition.publication.mode | translate }}</dd>
+        <dt>{{ p + 'Threshold' | translate }}</dt>
+        <dd>
+          {{
+            p + 'Gate'
+              | translate: { risk: c.strategy.riskLevel, n: ['R3', 'R4'].includes(c.strategy.riskLevel) ? 3 : 2 }
+          }}
+        </dd>
+      </dl>
+      <details #full (toggle)="expanded.set(full.open)" class="mt-4 border-t border-border pt-3">
+        <summary class="cursor-pointer text-sm text-text-secondary">{{ p + 'FullRecord' | translate }}</summary>
+        @if (expanded()) {
+          <div class="mt-3">
+            <xp-evolution-change-panel [change]="c" [lifecycle]="data.record ?? null" [readOnly]="true" />
+          </div>
+        }
+      </details>
+    }
+    @case ('source') {
+      @for (source of c.presentation?.business?.evidence ?? []; track source.key) {
+        <article class="mb-3">
+          <h3 class="font-semibold">{{ source.documentName || (p + 'Evidence' | translate) }}</h3>
+          <blockquote class="my-2 border-l-2 border-border pl-3">
+            {{ source.quote || ('XP.AgentEvolution.ChangeDetail.NoQuote' | translate) }}
+          </blockquote>
+          @if (source.page !== undefined) {
+            <p class="text-sm">{{ 'XP.AgentEvolution.ChangeDetail.Page' | translate: { page: source.page } }}</p>
+          }
+          @if (source.document; as doc) {
+            <a
+              class="text-sm text-text-accent hover:underline"
+              [routerLink]="['/xpert/knowledge', doc.knowledgebaseId, 'documents', doc.documentId]"
+              (click)="ref.close()"
+              >{{ 'XP.AgentEvolution.ChangeDetail.ViewSource' | translate }}</a
+            >
+          }
+        </article>
+      }
+      @if (data.proposal; as proposal) {
+        <h3 class="font-semibold">{{ proposal.title }}</h3>
+        <p class="mt-2">{{ proposal.problemStatement }}</p>
+        <p class="mt-2">{{ proposal.changeHypothesis }}</p>
+      }
+      @if (c.presentation?.business; as biz) {
+        <p>{{ txt(biz.rationale) || txt(biz.proposal) }}</p>
+        <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+          @for (field of biz.context; track field.key) {
+            <dt class="text-sm text-text-secondary">{{ txt(field.label) }}</dt>
+            <dd>{{ field.value || '—' }}</dd>
+          }
+        </dl>
+      }
+      @if (c.learningEventIds.length || c.evidence.length) {
+        <details class="mt-3">
+          <summary class="cursor-pointer text-sm">{{ p + 'EvidenceRefs' | translate }}</summary>
+          @for (item of c.evidence; track $index) {
+            <p class="mt-1 font-mono text-sm">{{ item.uri }} · {{ item.version }}</p>
+          }
+          @for (id of c.learningEventIds; track id) {
+            <p class="mt-1 font-mono text-sm">{{ id }}</p>
+          }
+        </details>
+      }
+      @if (
+        !c.presentation?.business?.evidence?.length &&
+        !data.proposal &&
+        !c.evidence.length &&
+        !c.learningEventIds.length
+      ) {
+        <p>{{ 'XP.AgentEvolution.ChangeDetail.NoEvidence' | translate }}</p>
+      }
+      @if (link; as target) {
+        <a
+          class="mt-3 inline-block text-sm text-text-accent hover:underline"
+          [routerLink]="target.commands"
+          [queryParams]="target.queryParams"
+          (click)="ref.close()"
+          >{{ 'XP.AgentEvolution.ChangeDetail.CheckSourceInWorkbench' | translate }}</a
+        >
+      }
+    }
+    @case ('checks') {
+      @if (data.replay; as run) {
+        <p class="mb-2 text-sm text-text-secondary">
+          {{ p + 'Snapshot' | translate }} · <code>{{ run.datasetSnapshotId }}</code>
+        </p>
+        <a
+          class="mb-3 inline-block text-sm text-text-accent hover:underline"
+          routerLink="/agent-evolution/evaluation"
+          [queryParams]="{ changeId: c.changeId, target: c.targetId, runId: run.runId }"
+          (click)="ref.close()"
+          >{{ p + 'ReplayReport' | translate }} <i class="ri-arrow-right-line"></i
+        ></a>
+        <table class="w-full text-left text-sm [&_td]:border-t [&_td]:border-border [&_td]:py-1.5 [&_th]:font-medium">
+          <thead>
+            <tr>
+              @for (k of ['Case', 'Before', 'After', 'Outcome']; track k) {
+                <th>{{ p + k | translate }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of run.caseResults; track $index) {
+              <tr>
+                <td [title]="row.caseId">
+                  <code>{{ row.caseId.slice(0, 8) }}</code>
+                </td>
+                <td>{{ output(row.baselineOutput) }}</td>
+                <td>{{ output(row.candidateOutput) }}</td>
+                <td>{{ 'XP.AgentEvolution.ReplayWorkbench.' + outcome(row) | translate }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      @for (check of c.evaluation?.checks; track check.checkId) {
+        <details class="border-b border-border py-2 text-sm">
+          <summary class="cursor-pointer">
+            <strong>{{ localized('CheckNames.' + check.checkId, check.title) }}</strong> ·
+            {{ p + (check.blocking ? 'Required' : 'Optional') | translate }} ·
+            {{ p + (check.passed ? 'Pass' : check.blocking ? 'Fail' : 'Attention') | translate }}
+          </summary>
+          <p class="mt-2 text-text-secondary">{{ localized('ReasonCodes.' + check.details, check.details) }}</p>
+        </details>
+      } @empty {
+        @if (!data.replay) {
+          <p>{{ p + 'NoChecks' | translate }}</p>
+        }
+      }
+      @for (item of c.evaluation?.readiness; track item.key) {
+        <p class="mt-3 text-sm">
+          {{ txt(item.label) }} · {{ p + 'Readiness_' + item.status | translate }}
+          @for (reason of item.reasons; track $index) {
+            · {{ localized('ReasonCodes.' + reason, reason) }}
+          }
+        </p>
+      }
+    }
+  }
+</div>
+<div class="mt-4 flex justify-end border-t border-border pt-3">
+  <button z-button zType="outline" (click)="ref.close()">{{ p + 'Return' | translate }}</button>
+</div>

@@ -1,8 +1,11 @@
 import { z } from 'zod/v3'
+import { iconDefinitionSchema } from '@xpert-ai/contracts'
 
 /** Package exports are a runtime boundary; reject malformed declarations before registration. */
 export const artifactTypeDefinitionSchema = z
   .object({
+    contentTypeId: z.string().trim().min(1).max(200).optional(),
+    icon: iconDefinitionSchema.optional(),
     title: z
       .object({
         en_US: z.string().trim().min(1).max(200),
@@ -13,6 +16,14 @@ export const artifactTypeDefinitionSchema = z
       .optional(),
     kinds: z.array(z.enum(['html', 'markdown', 'pdf', 'pptx', 'image', 'file', 'site', 'presentation'])).min(1),
     collection: z.object({ allowCopy: z.boolean() }).strict().optional(),
+    useGrants: z
+      .object({
+        audience: z.literal('group'),
+        permission: z.literal('read'),
+        queryOperations: z.array(z.string().min(1).max(80)).max(32).optional()
+      })
+      .strict()
+      .optional(),
     versioning: z
       .object({ mode: z.literal('draft-only') })
       .strict()
@@ -48,6 +59,10 @@ export const artifactTypeDefinitionSchema = z
     presentation: z.object({ mode: z.enum(['file', 'snapshot', 'authenticated']) }).strict()
   })
   .strict()
+  .refine(
+    (definition) => !definition.useGrants || definition.presentation.mode === 'authenticated',
+    'Group use grants require an authenticated presentation'
+  )
   .refine(
     (definition) =>
       definition.sharing?.projectAccess !== 'link-audience' ||

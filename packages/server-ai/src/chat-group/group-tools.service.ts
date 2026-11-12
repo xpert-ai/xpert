@@ -28,11 +28,15 @@ export class GroupToolsService {
     ) {}
 
     /** Bind this run’s public messaging tool; each invocation rechecks the live runtime and membership. */
-    create(recipient: GroupMessageRecipient, member: GroupParticipant) {
+    create(
+        recipient: GroupMessageRecipient,
+        member: GroupParticipant,
+        beforePublish?: (group: ChatConversation, userId: string) => Promise<void>
+    ) {
         return new DynamicStructuredTool({
             name: 'send_group_message',
             description:
-                'Send a public group message as yourself. request asks recipients to respond; reply answers a specific request and derives its recipient; message posts progress without invoking assistants. Returns immediately; do not wait or poll for a response.',
+                'Send a public group message as yourself. request asks recipients to respond; message posts information without invoking assistants. reply answers replyToMessageId and requires replyStage: progress gives a partial answer without completing the request or waking its requester; final completes your answer and suppresses the automatic final answer for that same request. Reply recipients are derived by the server. Returns immediately; do not wait or poll for a response.',
             schema: groupToolInputSchema,
             func: async (input, _runManager, config) => {
                 const thread = await this.db
@@ -66,6 +70,7 @@ export class GroupToolsService {
                         if (!target) throw groupDenied()
                         if (target.kind === 'assistant') await this.access.assistant(target.subjectId)
                     }
+                    await beforePublish?.(group, root.rootUserId)
                     return this.messages.publish(
                         group,
                         current,

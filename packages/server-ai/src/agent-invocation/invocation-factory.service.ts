@@ -1,3 +1,6 @@
+// Invariants: replay retains the persisted caller, never the next turn's ambient identity.
+// Target resolution rechecks resource access; installed runtime declarations grant no actor access.
+// Project catalog preparation may persist bindings, but must never launch an executor.
 import { AuthorizeProjectPipelineRuntimeCommand } from '../xpert-project/pipeline/runtime/pipeline-runtime-access.command'
 import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { ClaimAgentRuntimeResultsCommand } from '../handoff/runtime-messaging/runtime-message.commands'
@@ -205,6 +208,12 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
     }
 
     async listProjectBindings(scope: AgentInvocationScope) {
+        const api = this.createCapturedApi(scope)
+        // New workspaces have no bindings yet. Resolve permitted presets before the query
+        // so the first catalog read can return their stable, workspace-scoped binding IDs.
+        for (const { provider, reference } of await api.listManaged()) {
+            await api.resolveManaged({ provider, reference })
+        }
         const bindings = await this.bindings.find({
             where: {
                 tenantId: scope.tenantId,
@@ -218,7 +227,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             { bindingId: string; title: string; provider: string; revision: string } | GroupTaskTargetItem
         > = this.commands ? await this.commands.execute(new ListGroupTaskTargetsCommand(scope)) : []
         for (const binding of candidates) {
-            const target = await this.createCapturedApi(scope).resolve(binding.id)
+            const target = await api.resolve(binding.id)
             items.push({
                 bindingId: binding.id,
                 title: binding.title,

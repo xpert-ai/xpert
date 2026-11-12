@@ -5,9 +5,16 @@ import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './
 import type { Repository } from 'typeorm'
 import type { QueryBus } from '@nestjs/cqrs'
 import type { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 jest.mock('@xpert-ai/server-core', () => ({ TenantOrganizationBaseEntity: class {} }))
-jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: {} }))
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    RequestContext: {
+        currentTenantId: jest.fn(),
+        getOrganizationId: jest.fn(),
+        currentUserId: jest.fn()
+    }
+}))
 jest.mock('i18next', () => ({ t: (_key: string, opts: { defaultValue: string }) => opts.defaultValue }))
 
 const scope = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() }
@@ -26,7 +33,8 @@ function fixture() {
         findOneBy: jest.fn(async (where: object) =>
             Object.entries(where).every(([k, v]) => Reflect.get(device, k) === v) ? device : null
         ),
-        update: jest.fn()
+        update: jest.fn(),
+        save: jest.fn()
     }
     const grants = {
         findOneBy: jest.fn(async (where: object) =>
@@ -46,6 +54,30 @@ function fixture() {
 }
 
 describe('Desktop Shell authorization', () => {
+    it('registers Windows devices using the same authenticated scope and validates platform/settings together', async () => {
+        const f = fixture()
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue(scope.tenantId)
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(scope.organizationId)
+        jest.mocked(RequestContext.currentUserId).mockReturnValue(scope.userId)
+        const body = {
+            installationId: randomUUID(),
+            platform: 'win32',
+            settings: { name: 'Windows', shell: 'powershell.exe', cwd: 'C:\\Users\\测试 User', path: 'C:\\Windows' }
+        }
+        const result = await f.service.register(body)
+        expect(result.deviceId).toBeDefined()
+        expect(f.devices.save).toHaveBeenCalledWith(
+            expect.objectContaining({ ...scope, platform: 'win32', shell: 'powershell.exe', cwd: body.settings.cwd })
+        )
+        for (const patch of [
+            { platform: 'darwin' },
+            { platform: 'linux' },
+            { settings: { ...body.settings, cwd: 'C:relative' } },
+            { settings: { ...body.settings, shell: '/bin/bash' } }
+        ])
+            await expect(f.service.register({ ...body, ...patch })).rejects.toMatchObject({ status: 400 })
+        expect(f.devices.save).toHaveBeenCalledTimes(1)
+    })
     it('uses only identity fields when passed the richer runtime scope', async () => {
         const f = fixture()
         const runScope = {

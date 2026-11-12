@@ -36,5 +36,7 @@ export * from './referral/index'
 export * from './actor-token/index'
 
 export * from './analytics/analytics.module'
+export * from './analytics/analytics-runtime.service'
+export * from './analytics/commands/group-analytics-binding.command'
 
 export * from './task-control'

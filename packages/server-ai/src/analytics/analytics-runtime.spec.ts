@@ -1,5 +1,6 @@
 import { INestApplication, BadRequestException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
 import type { AnalyticsBinding, AnalyticsSourceRef } from '@xpert-ai/contracts'
 import {
     AnalyticsProviderRegistry,
@@ -65,7 +66,8 @@ describe('one Analytics Runtime for governed sources', () => {
         discover = jest.fn(),
         resolve = jest.fn(),
         revalidate = jest.fn(),
-        list = jest.fn()
+        list = jest.fn(),
+        groupBinding = jest.fn()
     const provider: AnalyticsQueryProvider = {
         descriptor: {
             id: 'file.table',
@@ -81,6 +83,7 @@ describe('one Analytics Runtime for governed sources', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(actor.userId)
         list.mockReset().mockReturnValue([provider])
+        groupBinding.mockReset()
         execute.mockReset().mockResolvedValue(result)
         revalidate.mockReset().mockResolvedValue(undefined)
         resolve.mockReset().mockImplementation(async (_actor, ref) => ({
@@ -97,6 +100,7 @@ describe('one Analytics Runtime for governed sources', () => {
             controllers: [AnalyticsController],
             providers: [
                 AnalyticsRuntimeService,
+                { provide: CommandBus, useValue: { execute: groupBinding } },
                 { provide: AnalyticsProviderRegistry, useValue: { list } },
                 {
                     provide: ANALYTICS_SOURCE_RESOLVERS,
@@ -154,29 +158,106 @@ describe('one Analytics Runtime for governed sources', () => {
             ...provider.descriptor,
             sharing: { mode: 'owner_only' as const, reasonCode: 'ANALYTICS_DEFINITION_PRIVATE' }
         }
-        const service = new AnalyticsRuntimeService(registry, [
-            {
-                kind: 'definition',
-                resolve,
-                list: async () => [{ source, name: 'Private script', providers: [restricted] }]
-            }
-        ])
+        const service = new AnalyticsRuntimeService(
+            registry,
+            [
+                {
+                    kind: 'definition',
+                    resolve,
+                    list: async () => [{ source, name: 'Private script', providers: [restricted] }]
+                }
+            ],
+            app.get(CommandBus)
+        )
         expect((await service.list(actor))[0].providers[0].sharing).toEqual(restricted.sharing)
         register.mockReturnValue([{ ...provider, descriptor: restricted }])
-        const publicSource = new AnalyticsRuntimeService(registry, [
-            {
-                kind: 'definition',
-                resolve,
-                list: async () => [
-                    {
-                        source,
-                        name: 'Public source',
-                        providers: [{ ...provider.descriptor, sharing: { mode: 'viewer_permissions' } }]
-                    }
-                ]
-            }
-        ])
+        const publicSource = new AnalyticsRuntimeService(
+            registry,
+            [
+                {
+                    kind: 'definition',
+                    resolve,
+                    list: async () => [
+                        {
+                            source,
+                            name: 'Public source',
+                            providers: [{ ...provider.descriptor, sharing: { mode: 'viewer_permissions' } }]
+                        }
+                    ]
+                }
+            ],
+            app.get(CommandBus)
+        )
         expect((await publicSource.list(actor))[0].providers[0].sharing?.mode).toBe('owner_only')
+    })
+    it('resolves an exact group binding without substituting the requesting human', async () => {
+        const grantCheck = jest.fn().mockResolvedValue(undefined)
+        const project = jest.fn((dataset) => ({ ...dataset, rows: [] }))
+        groupBinding.mockResolvedValue({
+            binding,
+            source: { source, providerIds: ['file.table'], options: { shared: true }, revalidate },
+            revalidate: grantCheck,
+            project,
+            normalizeControls: async (controls) => controls
+        })
+        const dataset = await runtime.queryGroupReference(
+            actor,
+            { groupId: uuid, referenceId: uuid, datasetKey: 'sales' },
+            {}
+        )
+        expect(dataset.rows).toEqual([])
+        expect(project).toHaveBeenCalledTimes(1)
+        expect(resolve).not.toHaveBeenCalled()
+        expect(grantCheck).toHaveBeenCalledTimes(2)
+        expect(revalidate).toHaveBeenCalledTimes(1)
+        expect(execute).toHaveBeenCalledWith(binding, {}, expect.objectContaining({ actor, options: { shared: true } }))
+        expect(groupBinding).toHaveBeenCalledWith(
+            expect.objectContaining({ actor, groupId: uuid, referenceId: uuid, datasetKey: 'sales' })
+        )
+    })
+    it('normalizes fixed-version domain controls before parameter checks, without granting native query overrides', async () => {
+        const parameterized = {
+            ...binding,
+            parameters: [
+                { name: 'plant', controlId: 'plant', type: 'string' as const, required: true, allowedValues: ['A'] }
+            ]
+        }
+        const normalizeControls = jest.fn(async () => ({ plant: 'A' }))
+        groupBinding.mockResolvedValue({
+            binding: parameterized,
+            revalidate: async () => {},
+            project: (dataset) => dataset,
+            normalizeControls
+        })
+        await runtime.queryGroupReference(actor, { groupId: uuid, referenceId: uuid, datasetKey: 'sales' }, {})
+        expect(normalizeControls).toHaveBeenCalledWith({})
+        expect(execute).toHaveBeenCalledWith(parameterized, { plant: 'A' }, expect.objectContaining({ actor }))
+        execute.mockClear()
+        normalizeControls.mockResolvedValueOnce({ plant: 'B' })
+        await expect(
+            runtime.queryGroupReference(actor, { groupId: uuid, referenceId: uuid, datasetKey: 'sales' }, {})
+        ).rejects.toThrow()
+        expect(execute).not.toHaveBeenCalled()
+    })
+    it('does not release group results when either the grant or upstream access changes', async () => {
+        const grantCheck = jest.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('revoked'))
+        const project = jest.fn((dataset) => dataset)
+        groupBinding.mockResolvedValue({
+            binding,
+            revalidate: grantCheck,
+            project,
+            normalizeControls: async (controls) => controls
+        })
+        await expect(
+            runtime.queryGroupReference(actor, { groupId: uuid, referenceId: uuid, datasetKey: 'sales' }, {})
+        ).rejects.toThrow('revoked')
+        expect(project).not.toHaveBeenCalled()
+        grantCheck.mockReset().mockResolvedValue(undefined)
+        revalidate.mockRejectedValue(new Error('source denied'))
+        await expect(
+            runtime.queryGroupReference(actor, { groupId: uuid, referenceId: uuid, datasetKey: 'sales' }, {})
+        ).rejects.toThrow()
+        expect(project).not.toHaveBeenCalled()
     })
     it.each([
         { ...binding, source: { kind: 'definition', definitionId: uuid } },

@@ -12,6 +12,7 @@ import {
 import { LoaderCircle, Search, Check, Users } from 'lucide-react'
 import { invoke } from '../host'
 import { t } from '../i18n'
+import { BotAvatar } from '../avatar'
 import type { GroupCandidate } from './types'
 
 export function CreateGroupDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
@@ -116,9 +117,17 @@ export function CreateGroupDialog({ onClose, onCreated }: { onClose: () => void;
                     onClick={() => setAssistantId(item.subjectId)}
                     className={`flex w-full items-center gap-3 rounded-md p-2.5 text-left text-sm hover:bg-muted ${assistantId === item.subjectId ? 'bg-muted' : ''}`}
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs">
-                      {item.name.slice(0, 1)}
-                    </span>
+                    <BotAvatar
+                      size="compact"
+                      bot={{
+                        id: item.subjectId,
+                        avatar: item.avatar,
+                        avatarUrl: item.avatar?.url ?? null,
+                        avatarEmoji: item.avatar?.emoji
+                          ? { id: item.avatar.emoji.id ?? '', unified: item.avatar.emoji.unified ?? null }
+                          : null
+                      }}
+                    />
                     <span className="flex-1 truncate">{item.name}</span>
                     {assistantId === item.subjectId && <Check className="size-4" />}
                   </button>

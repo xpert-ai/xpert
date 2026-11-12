@@ -1,18 +1,20 @@
 // Invariants: choosing a Project never grants human membership or changes a started runtime's Project.
 // Validate all selected Assistants first; caller-generated creation IDs make interrupted setup repairable.
-import { Injectable } from '@nestjs/common'
-import { AIPermissionsEnum, ChatGroupProject, ChatGroupProjectInput } from '@xpert-ai/contracts'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { AIPermissionsEnum, ChatGroupProject, ChatGroupProjectInput, GENERAL_PROJECT_TYPE } from '@xpert-ai/contracts'
+import { t } from 'i18next'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource, EntityManager, In } from 'typeorm'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
-import { ChatMessage } from '../../chat-message/chat-message.entity'
+import { canBindEmptyGroupRuntime } from './group-project-binding'
 import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectFeatureGuard } from '../../xpert-project/guards/project-feature.guard'
 import { GroupAccessService } from '../group-access.service'
 import { GroupParticipant } from '../group.entity'
 import { groupConflict, groupDenied } from '../group.errors'
+import { assertGroupProjectReuse, assertGroupProjectType } from './group-project-policy'
 
 @Injectable()
 export class GroupProjectService {
@@ -61,15 +63,35 @@ export class GroupProjectService {
             .findBy({ ...scope, groupId, active: true, kind: 'assistant', id: In(input.participantIds) })
         if (members.length !== input.participantIds.length || !members.some((m) => m.subjectId === group.xpertId))
             throw groupDenied()
-        for (const member of members) await this.access.assistant(member.subjectId)
-        if (input.project.mode === 'existing') await this.projectAccess.assertCanManage(projectId)
-        else if (!RequestContext.hasPermissions([AIPermissionsEnum.XPERT_PROJECT_CREATE])) throw groupDenied()
+        let primaryProjectType = GENERAL_PROJECT_TYPE
+        for (const member of members) {
+            const assistant = await this.access.assistant(member.subjectId)
+            if (member.subjectId === group.xpertId)
+                primaryProjectType = assistant.options?.workspaceScope?.projectType ?? GENERAL_PROJECT_TYPE
+        }
+        if (
+            input.project.mode === 'create' &&
+            input.project.projectType &&
+            (input.project.projectType.applicationKey !== primaryProjectType.applicationKey ||
+                input.project.projectType.projectTypeKey !== primaryProjectType.projectTypeKey)
+        )
+            throw new BadRequestException(t('server-ai:Error.GroupProjectTypeUnsupported'))
+        if (input.project.mode === 'existing') {
+            const { project } = await this.projectAccess.assertCanManage(projectId)
+            assertGroupProjectType(project, primaryProjectType)
+        } else if (!RequestContext.hasPermissions([AIPermissionsEnum.XPERT_PROJECT_CREATE])) throw groupDenied()
         return this.db.transaction(async (manager) => {
             const locked = await manager.findOneOrFail(ChatConversation, {
                 where: { ...scope, id: groupId },
                 lock: { mode: 'pessimistic_write' }
             })
             if (locked.projectId && locked.projectId !== projectId) throw groupConflict()
+            await assertGroupProjectReuse(
+                manager,
+                locked,
+                projectId,
+                input.project.mode === 'existing' && input.project.reuse === true
+            )
             if (
                 !(await manager.findOneBy(GroupParticipant, {
                     ...scope,
@@ -91,17 +113,19 @@ export class GroupProjectService {
                     where: { threadId: member.runtimeThreadId },
                     lock: { mode: 'pessimistic_write' }
                 })
-                const started =
-                    thread.status !== 'idle' || (await manager.existsBy(ChatMessage, { conversationId: runtime.id }))
-                if (started && runtime.projectId !== projectId) throw groupConflict()
+                if (
+                    runtime.projectId !== projectId &&
+                    !(await canBindEmptyGroupRuntime(manager, member, runtime, thread))
+                )
+                    throw groupConflict()
             }
             if (input.project.mode === 'create')
-                await this.projects.ensureManagedProject({
+                await this.projects.ensureDirectProject({
                     projectId,
                     name: input.project.name,
                     xpertId: group.xpertId,
                     status: 'active',
-                    projectType: { applicationKey: 'platform', projectTypeKey: 'general' }
+                    projectType: primaryProjectType
                 })
             for (const member of members) await this.projects.addXpert(projectId, member.subjectId)
             const { project } = await this.projectAccess.assertCanManage(projectId)

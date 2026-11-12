@@ -15,9 +15,10 @@ export interface ShellExecutionEvidence {
   state: 'exited' | 'not_started'
   coverage: 'descendants'
 }
+export type ShellPlatform = 'darwin' | 'win32'
 export interface ShellSettings {
   name: string
-  shell: '/bin/zsh' | '/bin/bash'
+  shell: '/bin/zsh' | '/bin/bash' | 'powershell.exe'
   cwd: string
   path: string
 }
@@ -27,8 +28,12 @@ export interface ShellExecInput {
   cwd?: string
   timeout_sec?: number
 }
+export type ShellComputerInfo =
+  | { available: false }
+  | { available: true; platform: ShellPlatform; name: string; shell: ShellSettings['shell']; cwd: string }
 export type ShellInput =
   | ShellExecInput
+  | { action: 'info' }
   | { action: 'status'; operationId: string; cursor?: number }
   | { action: 'cancel'; operationId: string }
 export interface ShellScope {

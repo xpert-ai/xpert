@@ -1,6 +1,7 @@
 jest.mock('@xpert-ai/server-core', () => ({
     ApiKeyOrClientSecretAuthGuard: class ApiKeyOrClientSecretAuthGuard {},
-    Public: () => () => undefined,
+    PermissionGuard: class PermissionGuard {},
+    Permissions: (...permissions: string[]) => Reflect.metadata('testPermissions', permissions),
     TransformInterceptor: class TransformInterceptor {}
 }))
 
@@ -8,9 +9,14 @@ jest.mock('./published-xpert-access.service', () => ({
     PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
 
+import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { XpertAccessController } from './xpert-access.controller'
 
 describe('XpertAccessController', () => {
+    it('requires the chat consumer permission for the published lookup', () => {
+        expect(Reflect.getMetadata('testPermissions', XpertAccessController)).toEqual([AIPermissionsEnum.CHAT_VIEW])
+    })
+
     it('returns the accessible xpert id and avatar without exposing runtime internals', async () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn(async () => ({

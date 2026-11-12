@@ -10,7 +10,8 @@ export class ResolvePromptWorkflowInvocationQuery extends Query<PromptWorkflowIn
 
     constructor(
         public readonly xpert: Pick<IXpert, 'id' | 'workspaceId' | 'commandProfile' | 'graph' | 'agent'>,
-        public readonly input: TChatRequestHuman
+        public readonly input: TChatRequestHuman,
+        public readonly projectId?: string
     ) {
         super()
     }

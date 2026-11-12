@@ -136,7 +136,19 @@ describe('PluginInstanceService', () => {
 		)
 		getOrganizationPluginRoot.mockImplementation((organizationId: string) => `/tmp/${organizationId}`)
 		loadedPlugins.length = 0
-		service = new PluginInstanceService(repo as any, loadedPlugins, strategyBus as any)
+		service = new PluginInstanceService(repo, loadedPlugins, strategyBus, {
+			createReader: () => async () => ({ live: true })
+		})
+	})
+
+	it('attaches an on-demand reader to hot installations without replacing an existing reader', async () => {
+		const plugin = { name: '@test/live', scopeKey: 'org-1', organizationId: 'org-1', ctx: { config: {} } }
+		loadedPlugins.push(plugin)
+		service.syncLoadedPluginConfig('org-1', '@test/live', { selected: 'new' }, 'tenant-1', 'org-1')
+		const reader = loadedPlugins[0].ctx.readConfig
+		await expect(reader()).resolves.toEqual({ live: true })
+		service.syncLoadedPluginConfig('org-1', '@test/live', {}, 'tenant-1', 'org-1')
+		expect(loadedPlugins[0].ctx.readConfig).toBe(reader)
 	})
 
 	it('refresh detaches runtime without deleting the startup registration, manifest or any version directories', async () => {

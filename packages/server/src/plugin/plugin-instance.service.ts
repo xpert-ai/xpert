@@ -27,6 +27,7 @@ import { clearPluginLoadFailure } from './plugin.helper'
 import { normalizePluginSourceConfig } from './source-config'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
 import { resolvePluginScope } from './plugin-scope'
+import { PluginConfigurationReader } from './configuration/plugin-configuration-reader.service'
 
 @Injectable()
 export class PluginInstanceService extends TenantOrganizationAwareCrudService<PluginInstance> {
@@ -38,7 +39,8 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		private repo: Repository<PluginInstance>,
 		@Inject(LOADED_PLUGINS)
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
-		private readonly strategyBus: StrategyBus
+		private readonly strategyBus: StrategyBus,
+		private readonly configurationReader: PluginConfigurationReader
 	) {
 		super(repo)
 	}
@@ -232,6 +234,8 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 
 		if (plugin) {
 			plugin.ctx.config = config ?? {}
+			// Hot installations acquire their reader after the installation row has committed.
+			plugin.ctx.readConfig ??= this.configurationReader.createReader(plugin)
 		}
 	}
 

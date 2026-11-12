@@ -23,7 +23,7 @@ describe('embedding input guard', () => {
         expect(guarded.map((chunk) => chunk.metadata.chunkId)).toEqual(
             guarded.map((_, index) => `bom-sheet-1::embedding-part:${index + 1}`)
         )
-        expect(guarded.every((chunk) => chunk.metadata.embeddingSplitCount === guarded.length)).toBe(true)
+        for (const chunk of guarded) expect(chunk.metadata).toHaveProperty('embeddingSplitCount', guarded.length)
     })
 
     it('does not split a hierarchy parent that is not embedded', () => {

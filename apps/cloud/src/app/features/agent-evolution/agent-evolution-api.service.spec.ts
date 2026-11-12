@@ -16,6 +16,13 @@ describe('AgentEvolutionApiService', () => {
 
   afterEach(() => httpMock.verify())
 
+  it('lets the server select evidence across pages from the reviewed event', () => {
+    service.diagnose('event-on-page-two').subscribe()
+    const request = httpMock.expectOne('/api/agent-evolution/diagnoses')
+    expect(request.request.body).toEqual({ seedEventId: 'event-on-page-two', strategyId: 'feedback_learning' })
+    request.flush({ diagnoses: [], clusters: [] })
+  })
+
   it('binds datasets to named evaluation steps in the frozen strategy', () => {
     service.evaluateChange('EVO-1', { functional: 'DS-1', regression: 'DS-2' }).subscribe()
     const request = httpMock.expectOne('/api/agent-evolution/changes/EVO-1/evaluations')
@@ -33,6 +40,17 @@ describe('AgentEvolutionApiService', () => {
     expect(response).toEqual(EMPTY_EVOLUTION_DASHBOARD)
   })
 
+  it('isolates observations and audit pages to the requested release', () => {
+    const query = { releasePackageId: 'release-two', targetId: 'a', page: 2, pageSize: 8 }
+    service.listReleaseAudits(query).subscribe()
+    service.listReleaseObservations(query).subscribe()
+    for (const endpoint of ['audit-events', 'runtime-observations']) {
+      const r = httpMock.expectOne((r) => r.url === '/api/agent-evolution/' + endpoint)
+      expect(r.request.params.get('releasePackageId')).toBe(query.releasePackageId)
+      expect(r.request.params.get('page')).toBe('2')
+      r.flush({ items: [], total: 0 })
+    }
+  })
   it('synchronizes registered targets', () => {
     let response: EvolutionTargetDescriptor[] | undefined
     service.synchronizeTargets().subscribe((value) => (response = value))

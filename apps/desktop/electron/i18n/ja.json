@@ -374,7 +374,7 @@
   "Could not load Shell status.": "Shell の状態を取得できませんでした。",
   "Could not update Desktop Shell.": "デスクトップ Shell を更新できませんでした。",
   "Loading Shell status…": "Shell の状態を読み込み中…",
-  "Desktop Shell requires the native macOS app.": "デスクトップ Shell は macOS ネイティブアプリで利用できます。",
+  "Desktop Shell requires the native macOS or Windows app.": "デスクトップ Shell には macOS または Windows のネイティブアプリが必要です。",
   "Connected": "接続済み",
   "Connecting…": "接続中…",
   "Disabled": "無効",

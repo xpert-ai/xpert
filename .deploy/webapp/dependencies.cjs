@@ -9,7 +9,15 @@ const { spawnSync } = require('node:child_process')
 const root = path.resolve(__dirname, '../..')
 const packages = ['apps/cloud', 'packages/contracts', 'packages/desktop-protocol', 'packages/ui', 'libs/formly']
 const lock = '.deploy/webapp/pnpm-lock.yaml'
-const forbidden = ['node-pty', 'isolated-vm', 'sharp', 'ffmpeg-ffprobe-static', 'electron', 'cypress']
+const forbidden = [
+  'node-pty',
+  'isolated-vm',
+  'quickjs-emscripten',
+  'sharp',
+  'ffmpeg-ffprobe-static',
+  'electron',
+  'cypress'
+]
 
 function copy(source, destination) {
   fs.mkdirSync(path.dirname(destination), { recursive: true })

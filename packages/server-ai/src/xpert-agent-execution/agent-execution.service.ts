@@ -5,8 +5,10 @@ import { assign, omit } from 'lodash'
 import { DeepPartial, FindManyOptions, In, IsNull, Repository } from 'typeorm'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { XpertAgentExecution } from './agent-execution.entity'
-import type { TExecutionUsageRecord } from './types'
+import { accumulateActualExecutionUsage, type TExecutionUsageRecord } from './types'
 import { executionCompletedAt } from './execution-timing'
+
+import { postedPointsByExecutionSql } from '../membership/posted-model-points'
 
 @Injectable()
 export class XpertAgentExecutionService extends TenantOrganizationAwareCrudService<XpertAgentExecution> {
@@ -43,6 +45,25 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
                     changes.metadata = { ...current.metadata, ...changes.metadata, recovery: current.metadata.recovery }
                 else delete changes.metadata
             }
+            // Lifecycle snapshots may predate durable usage callbacks. Only a snapshot
+            // carrying at least the current usage can replace the accumulated fields.
+            if (current.usageSummary && (!changes.usageSummary || (changes.tokens ?? 0) < (current.tokens ?? 0))) {
+                for (const field of [
+                    'usageSummary',
+                    'tokens',
+                    'inputTokens',
+                    'outputTokens',
+                    'totalPrice',
+                    'currency',
+                    'inputUnitPrice',
+                    'inputPriceUnit',
+                    'outputUnitPrice',
+                    'outputPriceUnit',
+                    'responseLatency'
+                ] as const) {
+                    delete changes[field]
+                }
+            }
             // Keep the freshly loaded audit values unchanged so TypeORM generates updatedAt.
             assign(current, changes, { completedAt })
             return manager.save(current)
@@ -51,26 +72,29 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
 
     async recordUsage(id: string, usage: TExecutionUsageRecord) {
         await this.repository.manager.transaction(async (manager) => {
-            await manager.increment(XpertAgentExecution, { id }, 'tokens', usage.tokens)
-
-            if (usage.type !== 'estimated' && usage.details) {
-                const details = usage.details
-                await manager.update(
-                    XpertAgentExecution,
-                    { id },
-                    {
-                        responseLatency: typeof details.latency === 'number' ? details.latency / 1000 : 0,
-                        currency: details.currency,
-                        totalPrice: details.totalPrice,
-                        inputTokens: details.promptTokens,
-                        inputUnitPrice: details.promptUnitPrice,
-                        inputPriceUnit: details.promptPriceUnit,
-                        outputTokens: details.completionTokens,
-                        outputUnitPrice: details.completionUnitPrice,
-                        outputPriceUnit: details.completionPriceUnit
-                    }
-                )
+            if (usage.type === 'estimated' || !usage.details) {
+                await manager.increment(XpertAgentExecution, { id }, 'tokens', usage.tokens)
+                return
             }
+            const current = await manager.findOne(XpertAgentExecution, {
+                where: { id },
+                select: {
+                    id: true,
+                    tokens: true,
+                    inputTokens: true,
+                    outputTokens: true,
+                    currency: true,
+                    totalPrice: true,
+                    usageSummary: true
+                },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!current) throw new NotFoundException()
+            await manager.update(
+                XpertAgentExecution,
+                { id },
+                accumulateActualExecutionUsage(current, usage.details, usage.tokens)
+            )
         })
     }
 
@@ -94,6 +118,15 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
             },
             { status: XpertAgentExecutionStatusEnum.INTERRUPTED, error, completedAt: new Date() }
         )
+    }
+
+    async getChargedPoints(tenantId: string, executionIds: string[]): Promise<Map<string, number>> {
+        if (!tenantId || !executionIds.length) return new Map()
+        const rows: { id: string; points: string }[] = await this.repository.manager.query(
+            `WITH requested AS (SELECT unnest($2::uuid[]) AS id) ${postedPointsByExecutionSql('requested')}`,
+            [tenantId, executionIds]
+        )
+        return new Map(rows.map((row) => [row.id, Number(row.points)]))
     }
 
     async findAllByXpertAgent(

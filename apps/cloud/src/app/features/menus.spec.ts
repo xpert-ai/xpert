@@ -10,6 +10,13 @@ import { environment } from '../../environments/environment'
 import { getFeatureMenus, getSettingsMenuItems } from './menus'
 
 describe('getSettingsMenuItems', () => {
+  it('requires XPERT_EDIT for Analytics definitions in organization settings', () => {
+    const analytics = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION).find((item) => item.path === 'analytics')
+
+    expect(analytics?.data?.permissionKeys).toEqual([AIPermissionsEnum.XPERT_EDIT])
+    expect(getSettingsMenuItems(RequestScopeLevel.TENANT).some((item) => item.path === 'analytics')).toBe(false)
+  })
+
   it('removes legacy Analytics settings menus', () => {
     const removedPaths = ['chatbi', 'certification']
     const menus = getSettingsMenuItems(RequestScopeLevel.ORGANIZATION)

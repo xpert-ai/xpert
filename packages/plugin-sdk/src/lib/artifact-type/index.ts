@@ -4,7 +4,9 @@ import type {
   ArtifactKind,
   ArtifactLinkVersionMode,
   ArtifactTypeReference,
-  I18nObject
+  IArtifactUseGrant,
+  I18nObject,
+  IconDefinition
 } from '@xpert-ai/contracts'
 import type { ContentOperation } from '../content-resource'
 import type { ArtifactLinkAccessInput } from '../runtime/capabilities/artifacts'
@@ -34,15 +36,44 @@ export type ArtifactTypeLink = {
   expiresAt?: Date | string | null
   allowDownload?: boolean
 }
+/**
+ * Delegation facts passed to a type's assertUseGrant hook for domain-specific restrictions.
+ * Projects, group and fixed version are host-resolved; this is neither an actor credential nor an analysis permission.
+ * The host owns lifecycle/concurrency checks and separately validates ResourceAnalysisPolicy when requested.
+ */
+export type ArtifactUseGrantPolicy = Pick<
+  IArtifactUseGrant,
+  'artifactId' | 'versionId' | 'ownerProjectId' | 'targetProjectId' | 'targetGroupId' | 'permission' | 'expiresAt'
+>
+/** Declarative type capabilities validated by the host; opt-in metadata never substitutes for per-operation authorization. */
 export interface ArtifactTypeDefinition {
+  /** Semantic catalog type for cross-surface discovery. Metadata only; does not register a Project-owned copy. */
+  contentTypeId?: string
   /** Localized semantic type name shown by libraries independently of the storage/rendering kind. */
   title?: I18nObject
+  /** Public type icon for resource cards. Display metadata only; never conveys access or navigation. */
+  icon?: IconDefinition
   kinds: readonly ArtifactKind[]
   /** Copying bytes into another Project changes their lifecycle and sharing boundary. Custom views must opt in. */
   collection?: { allowCopy: boolean }
   content?: { mimeTypes: readonly string[]; maxBytes: number }
   /** A managed application owns publication; generic version uploads cannot bypass its draft workflow. */
   versioning?: { mode: 'draft-only' }
+  /**
+   * Opt in to fixed published versions used by another group's Project; omission disables group grants for this type.
+   * Requires authenticated presentation. This does not enable draft/edit/copy/export access or bypass data ACLs.
+   */
+  useGrants?: {
+    /** Group-scoped audience; other groups sharing the same Project receive no implicit access. */
+    audience: 'group'
+    /** Only read use is supported; do not model authoring access by adding operations to queryOperations. */
+    permission: 'read'
+    /**
+     * Additional allowlist intersected with presentation-provider operations; omitted/empty permits no interactive queries.
+     * This controls viewer interactions, separately from Agent analysis consent. Providers still enforce upstream data ACLs.
+     */
+    queryOperations?: readonly string[]
+  }
   sharing?: {
     /** Opt in to authenticated Project shares beyond membership; source ACL and data policy still apply. */
     projectAccess?: 'link-audience'
@@ -85,8 +116,18 @@ export interface IArtifactTypeProvider {
   validateLegacyContent?(source: ArtifactTypeSource, content: Buffer, mimeType: string): Promise<void> | void
   assertPublication?(source: ArtifactTypeSource, access: ArtifactLinkAccessInput): Promise<void> | void
   assertLink?(source: ArtifactTypeSource, link: ArtifactTypeLink): Promise<void> | void
+  /**
+   * Reject delegation that violates this resource's domain policy, using the host-resolved source and grant facts.
+   * Called on offer, acceptance and granted reads; throw to deny. Omission retains all platform checks.
+   * Does not grant source membership or replace the Analytics query provider's dataset-sharing authorization.
+   */
+  assertUseGrant?(source: ArtifactTypeSource, grant: ArtifactUseGrantPolicy): Promise<void> | void
   readonly snapshot?: ArtifactSnapshotProvider
+  /** Optional fixed-version dataset declarations; queries and sharing authority remain with platform Analytics. */
+  readonly analytics?: import('./analytics').ArtifactTypeAnalytics
 }
 
 export * from './registry'
+export type { ArtifactVersionContext } from './version-context'
+export type { ArtifactAnalyticsBinding, ArtifactTypeAnalytics } from './analytics'
 export type { ArtifactTypeReference, ArtifactTypeBinding } from '@xpert-ai/contracts'

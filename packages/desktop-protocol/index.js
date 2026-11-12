@@ -34,13 +34,30 @@ function isId(value) {
 function isFinal(state) {
   return FINAL.includes(state)
 }
-function parseSettings(value) {
+function isShellPlatform(value) {
+  return value === 'darwin' || value === 'win32'
+}
+function isShellForPlatform(shell, platform) {
+  return (
+    (platform === 'win32' && shell === 'powershell.exe') ||
+    (platform === 'darwin' && ['/bin/zsh', '/bin/bash'].includes(shell))
+  )
+}
+function isShellCwd(value, platform) {
+  if (!text(value, 4096)) return false
+  const windows = /^[a-z]:[\\/]/i.test(value) || /^\\\\[^\\/?.][^\\/]*\\[^\\/]+(?:\\|$)/.test(value)
+  if (platform === 'win32') return windows
+  if (platform === 'darwin') return value.startsWith('/')
+  return platform === undefined && (windows || value.startsWith('/'))
+}
+function parseSettings(value, platform) {
+  const shellPlatform = value?.shell === 'powershell.exe' ? 'win32' : 'darwin'
   if (
     !object(value) ||
     !text(value.name, 100) ||
-    !['/bin/zsh', '/bin/bash'].includes(value.shell) ||
-    !text(value.cwd, 4096) ||
-    !value.cwd.startsWith('/') ||
+    !['/bin/zsh', '/bin/bash', 'powershell.exe'].includes(value.shell) ||
+    (platform !== undefined && platform !== shellPlatform) ||
+    !isShellCwd(value.cwd, shellPlatform) ||
     !text(value.path, 8192)
   )
     fail('INVALID_SETTINGS')
@@ -48,6 +65,7 @@ function parseSettings(value) {
 }
 function parseInput(value) {
   if (!object(value)) fail()
+  if (value.action === 'info') return { action: 'info' }
   if (value.action === 'exec') {
     if (
       !text(value.command, LIMITS.command) ||
@@ -74,7 +92,20 @@ function parseInput(value) {
     ...(value.action === 'status' ? { cursor: value.cursor ?? 0 } : {})
   }
 }
-function parseCommand(value) {
+function parseComputerInfo(value) {
+  if (!object(value)) fail()
+  if (value.available === false) return { available: false }
+  if (
+    value.available !== true ||
+    !isShellPlatform(value.platform) ||
+    !text(value.name, 100) ||
+    !isShellForPlatform(value.shell, value.platform) ||
+    !isShellCwd(value.cwd, value.platform)
+  )
+    fail()
+  return { available: true, platform: value.platform, name: value.name, shell: value.shell, cwd: value.cwd }
+}
+function parseCommand(value, platform) {
   if (
     !object(value) ||
     value.version !== VERSION ||
@@ -98,8 +129,7 @@ function parseCommand(value) {
     !text(value.argsHash, 64) ||
     !/^[a-f0-9]{64}$/.test(value.argsHash) ||
     !integer(value.deadline, 1, Number.MAX_SAFE_INTEGER) ||
-    !text(value.cwd, 4096) ||
-    !value.cwd.startsWith('/')
+    !isShellCwd(value.cwd, platform)
   )
     fail()
   const input = parseInput({ action: 'exec', command: value.command, cwd: value.cwd, timeout_sec: value.timeoutSec })
@@ -187,8 +217,11 @@ module.exports = {
   STATES,
   isId,
   isFinal,
+  isShellPlatform,
+  isShellCwd,
   parseSettings,
   parseInput,
+  parseComputerInfo,
   parseCommand,
   parseReport
 }

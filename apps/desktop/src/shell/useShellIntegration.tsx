@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { DesktopShellState } from '../types'
 import type { ChatKitOptions } from '@xpert-ai/chatkit-types'
-import { parsePreparation } from '@xpert-ai/desktop-protocol'
+import { parsePreparation, parseComputerInfo } from '@xpert-ai/desktop-protocol'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
 import { t } from '../i18n'
@@ -48,8 +48,23 @@ export function useShellIntegration(scope?: string) {
   const handlers: Pick<ChatKitOptions, 'onClientTool' | 'approvals'> = {
     onClientTool: async ({ name, params, id, tool_call_id }) => {
       const callId = tool_call_id || id
-      if (name !== 'desktop_shell_prepare') throw new Error('Unsupported client tool')
+      if (name !== 'desktop_shell_prepare' && name !== 'desktop_shell_info') throw new Error('Unsupported client tool')
       try {
+        if (name === 'desktop_shell_info') {
+          const state = await invoke('shellState')
+          const info = parseComputerInfo(
+            state.available && state.policy !== 'deny' && state.settings
+              ? {
+                  available: true,
+                  platform: state.platform,
+                  name: state.settings.name,
+                  shell: state.settings.shell,
+                  cwd: state.settings.cwd
+                }
+              : { available: false }
+          )
+          return { tool_call_id: callId, name, status: 'success', content: JSON.stringify(info) }
+        }
         const request = parsePreparation(params)
         const result = await invoke('shellPrepare', request)
         return { tool_call_id: callId, name, status: 'success', content: JSON.stringify(result) }

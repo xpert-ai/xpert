@@ -1,6 +1,8 @@
 import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { ExecutionControlEvidenceService } from '../execution-control/execution-control-evidence.service'
 import { GroupProjectService } from './group-project/group-project.service'
+import { ArtifactGroupReferenceService } from '../artifacts/group-references/artifact-group-reference.service'
+import { ArtifactGroupViewService } from '../artifacts/group-references/artifact-group-view.service'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
@@ -25,6 +27,7 @@ import { GROUP_CONTROLLERS } from '../ai/groups'
 import { GroupWorkbenchGuard } from '../ai/groups/group-workbench.guard'
 import { WorkspaceFileAccessModule } from '../workspace-file-access/workspace-file-access.module'
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
+import { ImagePreviewService } from '../workspace-file-access/image-preview/image-preview.service'
 import { GroupScopeGuard } from '../ai/groups/group-scope.guard'
 import { GetRuntimeCapabilitiesHandler } from '../xpert/runtime-capabilities/get-runtime-capabilities.handler'
 import { RuntimeCapabilitiesService } from '../xpert/runtime-capabilities/runtime-capabilities.service'
@@ -147,8 +150,11 @@ class WorkspaceStubModule {}
 class ViewStubModule {}
 
 @Module({
-    providers: [{ provide: WorkspaceFileAccessService, useValue: {} }],
-    exports: [WorkspaceFileAccessService]
+    providers: [
+        { provide: WorkspaceFileAccessService, useValue: {} },
+        { provide: ImagePreviewService, useValue: {} }
+    ],
+    exports: [WorkspaceFileAccessService, ImagePreviewService]
 })
 class FileAccessStubModule {}
 
@@ -162,7 +168,12 @@ class FileAccessStubModule {}
         RouterModule.register([{ path: 'ai', module: GroupHttpTestModule }])
     ],
     controllers: GROUP_CONTROLLERS,
-    providers: [GroupScopeGuard, GroupWorkbenchGuard]
+    providers: [
+        GroupScopeGuard,
+        GroupWorkbenchGuard,
+        { provide: ArtifactGroupReferenceService, useValue: {} },
+        { provide: ArtifactGroupViewService, useValue: {} }
+    ]
 })
 class GroupHttpTestModule {}
 
@@ -175,6 +186,10 @@ describe('ChatGroupModule integration boundary', () => {
         jest.spyOn(GroupScopeGuard.prototype, 'canActivate').mockResolvedValue(true)
         jest.spyOn(ApiKeyOrClientSecretAuthGuard.prototype, 'canActivate').mockResolvedValue(true)
         module = await Test.createTestingModule({ imports: [DatabaseStubModule, GroupHttpTestModule] })
+            .overrideGuard(ApiKeyOrClientSecretAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideGuard(GroupScopeGuard)
+            .useValue({ canActivate: () => true })
             .overrideModule(ExecutionControlModule)
             .useModule(ControlStubModule)
             .overrideModule(ViewExtensionModule)
@@ -256,17 +271,61 @@ describe('ChatGroupModule integration boundary', () => {
         const valid = { project: { mode: 'create', id, name: '  Test  ' }, participantIds: [id] }
         expect((await put(valid)).status).toBe(200)
         expect(set).toHaveBeenCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test' } })
+        const projectType = { applicationKey: 'test:dashboard', projectTypeKey: 'dashboard' }
+        expect((await put({ ...valid, project: { ...valid.project, projectType } })).status).toBe(200)
+        expect(set).toHaveBeenLastCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test', projectType } })
+        const reuse = { project: { mode: 'existing', projectId: id, reuse: true }, participantIds: [id] }
+        expect((await put(reuse)).status).toBe(200)
+        expect(set).toHaveBeenLastCalledWith(id, reuse)
         for (const invalid of [
             { ...valid, participantIds: [] },
             { ...valid, participantIds: [id, id] },
             { ...valid, project: { ...valid.project, ownerId: id } },
             { ...valid, project: { ...valid.project, name: '' } },
+            { ...valid, project: { ...valid.project, projectType: { ...projectType, projectTypeKey: '' } } },
+            { ...valid, project: { ...valid.project, projectType: { ...projectType, binding: { kind: 'project' } } } },
+            { project: { mode: 'existing', projectId: id, projectType }, participantIds: [id] },
+            { ...reuse, project: { ...reuse.project, reuse: 'true' } },
+            { ...valid, project: { ...valid.project, reuse: true } },
             { ...valid, organizationId: id }
         ])
             expect((await put(invalid)).status).toBe(400)
-        expect(set).toHaveBeenCalledTimes(1)
+        expect(set).toHaveBeenCalledTimes(3)
         set.mockRejectedValueOnce(new ForbiddenException('project access denied'))
         expect((await put({ project: { mode: 'existing', projectId: id }, participantIds: [id] })).status).toBe(403)
+    })
+    it('validates Project usage at the HTTP boundary and preserves group membership denials', async () => {
+        const composer = module.get(GroupComposerService)
+        const member = jest.spyOn(composer, 'member').mockResolvedValue(Object.assign(new GroupParticipant(), { id }))
+        const list = jest.spyOn(composer, 'listProjects').mockResolvedValue({ items: [], total: 0 })
+        const url = `${origin}/api/ai/groups/${id}/members/${id}/composer/available?xpertId=${id}`
+        try {
+            expect((await fetch(url)).status).toBe(200)
+            expect(member).toHaveBeenCalledWith(id, id, id)
+            expect(list).toHaveBeenLastCalledWith(
+                id,
+                { xpertId: id, skip: 0, take: 25, status: undefined, filter: { unclassified: false } },
+                'independent'
+            )
+            expect((await fetch(`${url}&groupProjectUsage=reuse&skip=2&take=5`)).status).toBe(200)
+            expect(list).toHaveBeenLastCalledWith(
+                id,
+                { xpertId: id, skip: 2, take: 5, status: undefined, filter: { unclassified: false } },
+                'reuse'
+            )
+            member.mockClear()
+            list.mockClear()
+            for (const query of ['groupProjectUsage=all', 'reuse=true', 'groupProjectUsage=reuse&take=101'])
+                expect((await fetch(`${url}&${query}`)).status).toBe(400)
+            expect(member).not.toHaveBeenCalled()
+            expect(list).not.toHaveBeenCalled()
+            member.mockRejectedValueOnce(new ForbiddenException('member denied'))
+            expect((await fetch(`${url}&groupProjectUsage=reuse`)).status).toBe(403)
+            expect(list).not.toHaveBeenCalled()
+        } finally {
+            member.mockRestore()
+            list.mockRestore()
+        }
     })
     it('routes resource requests through concrete Composer operations after member checks', async () => {
         const composer = module.get(GroupComposerService)

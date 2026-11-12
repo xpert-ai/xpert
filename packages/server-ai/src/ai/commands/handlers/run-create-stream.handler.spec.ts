@@ -286,6 +286,7 @@ describe('normalizeRunStreamMessage', () => {
                     outputTokens: 21,
                     totalPrice: '0.1000000',
                     currency: 'USD',
+                    chargedPoints: 0.75,
                     metadata: {
                         provider: 'openai',
                         model: 'gpt-test'
@@ -352,8 +353,7 @@ describe('normalizeRunStreamMessage', () => {
             embedTokens: 3,
             inputTokens: 40,
             outputTokens: 21,
-            totalPrice: '0.1000000',
-            currency: 'USD',
+            chargedPoints: 0.75,
             metadata: {
                 provider: 'openai',
                 model: 'gpt-test'

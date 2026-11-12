@@ -1,3 +1,8 @@
+import { ResourceAssistantMiddleware } from './middlewares/resource-assistant.middleware'
+import { ConversationResourceService } from './discovery/conversation-resource.service'
+import { DiscoverConversationResourcesHandler } from './commands/handlers/discover-conversation-resources.handler'
+import { ResolveProjectResourceNavigationHandler } from './commands/handlers/resolve-project-resource-navigation.handler'
+import { ResourceAssistantCapabilityProvider } from './capabilities/resource-assistant.capability'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ContentResourceOperation } from './catalog/content-operation.entity'
 import { ContentOperations } from './catalog/content-operations.service'
@@ -51,6 +56,11 @@ import { ContentResourceEntry } from './catalog/content-entry.entity'
         ])
     ],
     providers: [
+        ConversationResourceService,
+        DiscoverConversationResourcesHandler,
+        ResolveProjectResourceNavigationHandler,
+        ResourceAssistantCapabilityProvider,
+        ResourceAssistantMiddleware,
         ContentOperations,
         ContentCatalogMaintenance,
         ContentEditorPreferences,

@@ -48,6 +48,13 @@ export type TXpertAgentExecutionCheckpoint = {
   isCurrent?: boolean
 }
 
+/** Priced model usage for one execution, in each provider's reported currency. */
+export type ExecutionUsageSummary = {
+  costs: Array<{ currency: string; amount: number; tokens: number }>
+  /** Most recent positive prompt measurement for the context-window indicator. */
+  lastInputTokens: number
+}
+
 /**
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
@@ -66,9 +73,13 @@ export type TXpertAgentExecution = TXpertExecution & {
    * Latency of response from provider (s)
    */
   responseLatency?: number
+  /** Posted point debits for this execution alone. Absent until a linked debit is recorded. */
+  chargedPoints?: number | null
   // Token usage
-  totalPrice?: number
-  currency?: string
+  usageSummary?: ExecutionUsageSummary | null
+  /** Available when the priced calls have a single currency. */
+  totalPrice?: number | null
+  currency?: string | null
   inputTokens?: number
   inputUnitPrice?: number
   inputPriceUnit?: number

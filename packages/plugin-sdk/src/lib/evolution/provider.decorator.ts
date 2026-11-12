@@ -3,6 +3,7 @@ import { STRATEGY_META_KEY } from '../types'
 
 export const EVOLUTION_TARGET_PROVIDER = 'EVOLUTION_TARGET_PROVIDER'
 
+/** Declares the stable registration key of an evolution target provider. */
 export const EvolutionTargetProviderStrategy = (providerKey: string) =>
   applyDecorators(
     SetMetadata(EVOLUTION_TARGET_PROVIDER, providerKey),

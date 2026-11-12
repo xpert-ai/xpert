@@ -71,6 +71,9 @@ export interface AnalyticsQueryProvider {
   readonly descriptor: AnalyticsProviderDescriptor
   readonly configuration?: AnalyticsConfigurationEntry
   readonly authoring?: AnalyticsDefinitionAuthoring
+  /** Explicit source authority to disclose this binding's results to a group.
+   * Read access alone is insufficient. Unsupported providers must remain view-only. */
+  authorizeGroupSharing?(binding: AnalyticsBinding, context: AnalyticsProviderContext): Promise<void>
   /** Validate and normalize immutable configuration at publication. */
   validateConfiguration?(
     options: Record<string, JSONValue>,

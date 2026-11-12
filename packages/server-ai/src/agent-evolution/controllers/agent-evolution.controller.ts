@@ -1,4 +1,6 @@
 import type {
+    EvolutionLearningQuery,
+    ConfirmLearningProposalRequest,
     BuildCandidateCommand,
     DiagnoseLearningEventsRequest,
     CreateDatasetSnapshotRequest,
@@ -8,13 +10,18 @@ import type {
     CreateReleasePackageRequest,
     DecideCandidateApprovalRequest,
     EvaluateCandidateCommand,
+    EvolutionReleaseEvidenceQuery,
     EvolutionPageQuery,
     ResolveCapabilityExecutionPlanRequest,
     ReviewLearningEventRequest,
     StartDeploymentRequest
 } from '@xpert-ai/contracts'
+import { CheckedProposalService } from '../learning/checked-proposal.service'
+import { LearningDirectoryService } from '../learning/learning-directory.service'
+import { z } from 'zod/v3'
+import { changeError } from '../changes/change.errors'
 import { AIPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
-import { PermissionGuard, Permissions, RequestContext } from '@xpert-ai/server-core'
+import { PermissionGuard, Permissions, RequestContext, ZodValidationPipe } from '@xpert-ai/server-core'
 import { environment } from '@xpert-ai/server-config'
 import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -26,6 +33,11 @@ import {
     AgentEvolutionService
 } from '../application'
 
+const diagnosisInput = z.union([
+    z.object({ strategyId: z.string().min(1), seedEventId: z.string().min(1) }).strict(),
+    z.object({ strategyId: z.string().min(1), eventIds: z.array(z.string().min(1)).nonempty() }).strict()
+])
+
 @ApiTags('Agent Evolution')
 @ApiBearerAuth()
 @Controller()
@@ -35,6 +47,8 @@ export class AgentEvolutionController {
         private readonly service: AgentEvolutionService,
         private readonly governance: AgentEvolutionGovernanceService,
         private readonly analyst: AgentEvolutionAnalystService,
+        private readonly learning: LearningDirectoryService,
+        private readonly checked: CheckedProposalService,
         private readonly queue: AgentEvolutionQueueService,
         private readonly runtime: AgentEvolutionRuntimeService
     ) {}
@@ -81,10 +95,62 @@ export class AgentEvolutionController {
         return this.governance.listLearningEvents(commandContext(), normalizeQuery(query))
     }
 
+    @Get('learning/events')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
+    reviewQueue(@Query() query: Record<string, string>) {
+        return this.learning.events(requestScope(), learningQuery(query))
+    }
+
+    @Get('learning/proposals')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
+    proposalHistory(@Query() query: Record<string, string>) {
+        return this.learning.proposals(requestScope(), learningQuery(query))
+    }
+
+    @Get('learning/events/:id/check')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
+    checkProposal(@Param('id') id: string) {
+        return this.analyst.checkProposal(commandContext(), id)
+    }
+
+    @Post('learning/events/:id/proposal')
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
+    async confirmProposal(
+        @Param('id') id: string,
+        @Body(
+            new ZodValidationPipe(
+                z
+                    .object({
+                        snapshot: z.string().min(1),
+                        title: z.string().trim().min(1).max(500),
+                        problemStatement: z.string().trim().min(1).max(2000).optional(),
+                        changeHypothesis: z.string().trim().min(1).max(2000)
+                    })
+                    .strict(),
+                () => changeError('invalid_evidence_selection')
+            )
+        )
+        body: ConfirmLearningProposalRequest
+    ) {
+        return this.checked.create(commandContext(), id, body)
+    }
+
     @Patch('learning-events/:eventId/review')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
-    reviewLearningEvent(@Param('eventId') eventId: string, @Body() body: ReviewLearningEventRequest) {
+    reviewLearningEvent(
+        @Param('eventId') eventId: string,
+        @Body(
+            new ZodValidationPipe(z.object({ reviewStatus: z.enum(['pending', 'golden', 'ignored']) }), () =>
+                changeError('invalid_review_status')
+            )
+        )
+        body: ReviewLearningEventRequest
+    ) {
         return this.governance.reviewLearningEvent(commandContext(), eventId, body.reviewStatus)
     }
 
@@ -105,7 +171,10 @@ export class AgentEvolutionController {
     @Post('diagnoses')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_MANAGE)
-    diagnoseLearningEvents(@Body() body: DiagnoseLearningEventsRequest) {
+    diagnoseLearningEvents(
+        @Body(new ZodValidationPipe(diagnosisInput, () => changeError('invalid_evidence_selection')))
+        body: DiagnoseLearningEventsRequest
+    ) {
         return this.analyst.diagnose(commandContext(), body)
     }
 
@@ -206,15 +275,15 @@ export class AgentEvolutionController {
     @Get('runtime-observations')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
-    listRuntimeObservations(@Query() query: EvolutionPageQuery) {
-        return this.governance.listRuntimeObservations(commandContext(), normalizeQuery(query))
+    listRuntimeObservations(@Query() query: EvolutionReleaseEvidenceQuery) {
+        return this.governance.listRuntimeObservations(commandContext(), normalizeReleaseEvidence(query))
     }
 
     @Get('audit-events')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.EVOLUTION_VIEW, AIPermissionsEnum.XPERT_EDIT)
-    listAuditEvents(@Query() query: EvolutionPageQuery) {
-        return this.governance.listAuditEvents(commandContext(), normalizeQuery(query))
+    listAuditEvents(@Query() query: EvolutionReleaseEvidenceQuery) {
+        return this.governance.listAuditEvents(commandContext(), normalizeReleaseEvidence(query))
     }
 
     @Get('experiences')
@@ -339,6 +408,26 @@ function commandContext() {
                 ? ('administrator' as const)
                 : ('standard' as const),
         actorType: 'human' as const
+    }
+}
+
+function learningQuery(raw: Record<string, string>): EvolutionLearningQuery {
+    return {
+        ...normalizeQuery(raw),
+        includeFixtures: raw.includeFixtures === 'true',
+        corrected: raw.corrected === 'true',
+        grouped: raw.grouped === 'true',
+        eventId: raw.eventId?.slice(0, 240),
+        proposalId: raw.proposalId?.slice(0, 240),
+        revision: Number(raw.revision) || undefined
+    }
+}
+
+function normalizeReleaseEvidence(query: EvolutionReleaseEvidenceQuery): EvolutionReleaseEvidenceQuery {
+    return {
+        ...normalizeQuery(query),
+        releasePackageId:
+            typeof query.releasePackageId === 'string' ? query.releasePackageId.trim().slice(0, 240) : undefined
     }
 }
 

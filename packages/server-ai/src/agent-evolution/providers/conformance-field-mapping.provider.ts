@@ -139,7 +139,7 @@ export class ConformanceFieldMappingProvider implements EvolutionTargetProvider 
                 metricKey: 'severe_errors',
                 value: result.severeError ? 1 : 0,
                 unit: 'count',
-                blocking: true
+                blocking: result.severeError
             }
         ]
     }

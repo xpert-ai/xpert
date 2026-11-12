@@ -61,6 +61,7 @@ import {
     mergeRuntimeContextWithEnv
 } from '../../../environment'
 import { isPlanModeEnabledFromState, XpertWorkAreaResolver } from '../../../shared'
+import { assertPlanModeAvailable } from '../../../shared/agent/plan-mode-admission'
 import { ExecutionCancelService } from '../../../execution-control/execution-cancel.service'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
@@ -279,6 +280,15 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
         )
 
+        if (planMode) {
+            try {
+                assertPlanModeAvailable(xpertGraph, agent, options)
+            } catch (error) {
+                if (execution?.id) this.executionCancelService.unregister(execution.id)
+                throw error
+            }
+        }
+
         const currentRevision = threadGraphRevision(xpertGraph, undefined, agent?.team)
         const graphRevision =
             (await this.threadRunControl?.recordGraph(
@@ -463,7 +473,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     input: state[STATE_VARIABLE_HUMAN].input,
                     [STATE_VARIABLE_SYS]: runtimeSystemState,
                     [STATE_VARIABLE_HUMAN]: {
-                        ...state[STATE_VARIABLE_HUMAN]
+                        ...state[STATE_VARIABLE_HUMAN],
+                        ...(planMode ? { planMode: true } : {})
                     },
                     inputIdentity: { id: options.inputMessageId ?? execution.id },
                     memories

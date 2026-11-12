@@ -10,6 +10,7 @@ import {
   getTenantGlobalScopeKey
 } from '../types'
 import { StrategyBus } from '../core/strategy-bus'
+import { artifactTypeDefinitionSchema } from './definition.schema'
 
 const type = { pluginName: '@example/reports', resourceType: 'report' }
 const scope = { tenantId: 'tenant-a', organizationId: 'org-a' }
@@ -19,10 +20,49 @@ const provider = (): IArtifactTypeProvider => ({
   authorize: async () => {},
   validateContent: () => {}
 })
+
+it('accepts public type icons while rejecting malformed declarations at registration', () => {
+  const definition = provider().definition
+  const icon = { type: 'svg', value: '<svg viewBox="0 0 24 24"/>' }
+  expect(artifactTypeDefinitionSchema.parse({ ...definition, icon }).icon).toEqual(icon)
+  expect(artifactTypeDefinitionSchema.safeParse({ ...definition, icon: { type: 'other', value: 'x' } }).success).toBe(
+    false
+  )
+})
 const registry = () =>
   new ArtifactTypeRegistry({ getProviders: () => [] } as unknown as DiscoveryService, new Reflector())
 
 describe('Artifact type extension protocol', () => {
+  it('registers optional analytics on the existing type without requiring a presentation provider', () => {
+    const r = registry()
+    const analytics = { resolveBindings: async () => [] }
+    const p = { ...provider(), analytics }
+    r.register(artifactTypeKey(type), p, plugin())
+    expect(r.requireBinding(r.bind(type, scope), scope).analytics).toBe(analytics)
+    r.remove(scope.organizationId, type.pluginName)
+    expect(() => r.requireBinding({ ...type, scopeKey: scope.organizationId }, scope)).toThrow('UNAVAILABLE')
+  })
+  it('rejects malformed optional analytics hooks at registration', () => {
+    for (const analytics of [{}, { resolveBindings: () => [], normalizeControls: true }]) {
+      expect(() =>
+        registry().register(artifactTypeKey(type), { ...provider(), analytics } as IArtifactTypeProvider, plugin())
+      ).toThrow('ARTIFACT_TYPE_ANALYTICS_INVALID')
+    }
+  })
+
+  it('accepts group use grants only for authenticated read-only presentations', () => {
+    const p = provider()
+    p.definition.useGrants = { audience: 'group', permission: 'read' }
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).toThrow()
+    p.definition.presentation = { mode: 'authenticated' }
+    expect(() => registry().register(artifactTypeKey(type), p, plugin())).not.toThrow()
+    for (const useGrants of [
+      { audience: 'organization', permission: 'read' },
+      { audience: 'group', permission: 'write' }
+    ]) {
+      expect(artifactTypeDefinitionSchema.safeParse({ ...p.definition, useGrants }).success).toBe(false)
+    }
+  })
   it('allows Project link audiences only for authenticated organization or workspace shares', () => {
     const p = provider()
     p.definition.sharing = {

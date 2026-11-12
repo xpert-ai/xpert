@@ -228,6 +228,7 @@ describe('MembershipService: billing', () => {
 
     it('records xpert usage against the xpert creator membership', async () => {
         const xpertRepository = {
+            existsBy: jest.fn().mockResolvedValue(false),
             findOne: jest.fn().mockResolvedValue({
                 id: 'xpert-1',
                 createdById: 'owner-user'

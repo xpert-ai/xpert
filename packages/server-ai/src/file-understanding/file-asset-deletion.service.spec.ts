@@ -2,7 +2,7 @@ import { FileAssetDeletionService } from './file-asset-deletion.service'
 import { ForbiddenException } from '@nestjs/common'
 
 describe('FileAssetDeletionService', () => {
-    it.each(['ordinary', 'purge', 'wrong-project', 'denied'] as const)(
+    it.each(['ordinary', 'purge', 'purge-failure', 'wrong-project', 'denied'] as const)(
         'enforces deletion boundary: %s',
         async (mode) => {
             const asset = {
@@ -64,10 +64,24 @@ describe('FileAssetDeletionService', () => {
                 expect(fileAssetRepository.delete).not.toHaveBeenCalled()
                 return
             }
+            if (mode === 'purge-failure') {
+                fileVectorService.deleteFileVectors.mockRejectedValueOnce(new Error('backend unavailable'))
+                await expect(handler.purgeProjectFile('file-1', 'project-1')).rejects.toThrow('backend unavailable')
+                expect(fileEmbeddingRepository.delete).not.toHaveBeenCalled()
+                expect(fileArtifactRepository.delete).not.toHaveBeenCalled()
+                expect(fileAssetRepository.delete).not.toHaveBeenCalled()
+                await handler.purgeProjectFile('file-1', 'project-1')
+                expect(fileAssetRepository.delete).toHaveBeenCalledTimes(1)
+                return
+            }
             if (mode === 'ordinary') await handler.delete('file-1')
             else await handler.purgeProjectFile('file-1', 'project-1')
 
-            expect(fileVectorService.deleteFileVectors).toHaveBeenCalledWith('file-1', asset)
+            expect(fileVectorService.deleteFileVectors).toHaveBeenCalledWith(
+                'file-1',
+                asset,
+                mode === 'ordinary' ? 'warn' : 'throw'
+            )
             expect(fileAssetAccessService.resolve).toHaveBeenCalledWith({
                 locator: { fileAssetId: 'file-1' },
                 authority: { kind: 'current-owner' },

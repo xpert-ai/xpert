@@ -1,7 +1,7 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GENERAL_PROJECT_TYPE, type XpertProjectListFilter } from '@xpert-ai/contracts'
 import { XpertProjectTypeService } from './services/project-type.service'
-import { findMyProjects, findAvailableProjects } from './services/project-list-query'
+import { findMyProjects, findAvailableProjects, type GroupProjectAvailability } from './services/project-list-query'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -59,7 +59,9 @@ import { XpertProjectXpertBindingService } from './services/project-xpert-bindin
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
 import { createProjectWithAssistants } from './services/project-creation'
 import { withAppPlatformProjectLimit } from '../shared/app-platform-resource-policy'
-import { ensureManagedProject } from './services/project-managed-provisioning'
+import { ensureProject } from './services/project-provisioning'
+import { deleteProjectRecord } from './services/purge/delete-project-record'
+import { withProjectProvisioning } from './services/purge/project-purge-receipt'
 
 @Injectable()
 export class XpertProjectService extends TenantOrganizationAwareCrudService<XpertProject> {
@@ -127,20 +129,32 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     }
 
     /**
-     * Create or reconcile a caller-idempotent Chat Project and Assistant link.
+     * Create or reconcile an application-managed Project and its business state.
      * The authenticated user remains the owner and the caller-supplied id is never replaced.
      */
     ensureManagedProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
-        return ensureManagedProject(
-            {
-                repository: this.repository,
-                queryBus: this.queryBus,
-                types: this.projectTypes,
-                initialize: (project) => this.contentService.initialize(project),
-                create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
-                resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
-            },
-            input
+        return this.ensureProject(input, 'managed')
+    }
+
+    /** Create ordinary Project types and repair retries while preserving existing names, status and membership. */
+    ensureDirectProject(input: ProjectEnsureInput): Promise<ProjectEnsureResult> {
+        return this.ensureProject(input, 'direct')
+    }
+
+    private ensureProject(input: ProjectEnsureInput, lifecycle: 'managed' | 'direct'): Promise<ProjectEnsureResult> {
+        return withProjectProvisioning(this.repository.manager, input, () =>
+            ensureProject(
+                {
+                    repository: this.repository,
+                    queryBus: this.queryBus,
+                    types: this.projectTypes,
+                    initialize: (project) => this.contentService.initialize(project),
+                    create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
+                    resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
+                },
+                input,
+                lifecycle
+            )
         )
     }
 
@@ -207,17 +221,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
     async deleteProject(id: string) {
         const project = await this.findOne(id)
         this.projectTypes.assertPlatformLifecycle(project)
-        return this.repository.manager.transaction(async (manager) => {
-            await this.connectorService.deleteProjectBindings(
-                { projectId: project.id, tenantId: project.tenantId },
-                manager
-            )
-            return manager.getRepository(XpertProject).delete({
-                id: project.id,
-                tenantId: project.tenantId,
-                organizationId: project.organizationId ?? IsNull()
-            })
-        })
+        return this.repository.manager.transaction((manager) =>
+            deleteProjectRecord(manager, this.connectorService, project)
+        )
     }
 
     async softRemoveProject(id: string) {
@@ -281,6 +287,7 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         status?: 'active' | 'archived' | 'all'
         skip?: number
         take?: number
+        group?: GroupProjectAvailability
     }) {
         return findAvailableProjects(this.repository, await this.resolveAccessibleCurrentXpert(input.xpertId), input)
     }

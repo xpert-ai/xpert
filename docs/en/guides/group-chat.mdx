@@ -23,17 +23,17 @@ All group messages are public to authorized group members, including messages di
 
 ## Message routing and conversations between members
 
-| Scenario                         | Routing and behavior                                                                                                     |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Human sends a message without @  | The primary Assistant receives the request.                                                                              |
-| Human addresses an Assistant     | Only that Assistant receives the request; the primary Assistant is not added implicitly.                                 |
-| Human addresses another human    | The addressed person receives the public message; no Assistant is started.                                               |
-| Human addresses multiple members | One public message has an independent receipt for each recipient. Each addressed Assistant can run independently.        |
-| Assistant asks another Assistant | `send_group_message` publishes a structured `request`; the target receives it under its own runtime.                     |
-| Assistant answers an Assistant   | A correlated `reply` completes the original recipient's pending request and can continue the requesting Assistant.       |
-| Assistant asks a human           | The question is public. A valid correlated human reply can continue the requesting Assistant.                            |
-| Assistant answers a human        | The answer is public and attributed to that Assistant; it does not start another Assistant merely because it is visible. |
-| Assistant publishes progress     | The `message` intent publishes information without waking addressed Assistants.                                          |
+| Scenario                         | Routing and behavior                                                                                                       |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Human sends a message without @  | The primary Assistant receives the request.                                                                                |
+| Human addresses an Assistant     | Only that Assistant receives the request; the primary Assistant is not added implicitly.                                   |
+| Human addresses another human    | The addressed person receives the public message; no Assistant is started.                                                 |
+| Human addresses multiple members | One public message has an independent receipt for each recipient. Each addressed Assistant can run independently.          |
+| Assistant asks another Assistant | `send_group_message` publishes a structured `request`; the target receives it under its own runtime.                       |
+| Assistant answers an Assistant   | A correlated `reply` with `replyStage: final` completes that recipient's answer and can continue the requesting Assistant. |
+| Assistant asks a human           | The question is public. A valid correlated human reply can continue the requesting Assistant.                              |
+| Assistant answers a human        | The answer is public and attributed to that Assistant; it does not start another Assistant merely because it is visible.   |
+| Assistant publishes progress     | The `message` intent publishes information without waking addressed Assistants.                                            |
 
 Communication intent and execution input mode are independent. The internal protocol has `request`, `reply`, and `message` intents; active Assistant input uses `steer`. The human Composer does not offer a queue/steer switch or a separate broadcast mode: human input without mentions goes to the primary Assistant.
 
@@ -63,12 +63,25 @@ Send this body to `POST /api/ai/groups/:groupId/messages`. `member.id` is the gr
 The runtime injects `send_group_message` with these intents:
 
 - `request`: supply `text` and `recipientIds` to ask active members to respond.
-- `reply`: supply `text` and `replyToMessageId`; the server derives the recipient from the original request.
+- `reply`: supply `text`, `replyToMessageId` and an explicit `replyStage`; the server derives the recipient from the original request.
 - `message`: supply `text` and optional `recipientIds` to publish progress without starting another Assistant.
 
 The tool is bound to the current Assistant membership and execution. Its arguments cannot choose the author or initiating user. Plain `@name` text in generated output is presentation only and does not dispatch a request.
 
 Requests are asynchronous. The tool returns a persisted message ID and delivery receipts; it does not wait for another member. The requesting Assistant can finish its turn and resume through a valid reply later. Progress does not fulfill a request, and duplicate replies cannot complete the same pending recipient twice.
+
+| Publication          | Meaning                                                        | Completes this sender's answer?   |
+| -------------------- | -------------------------------------------------------------- | --------------------------------- |
+| `message`            | Ordinary information or progress                               | No                                |
+| `reply` + `progress` | A partial answer to a specific request; analysis will continue | No                                |
+| `reply` + `final`    | The sender explicitly declares the answer complete             | Yes, after successful publication |
+| `request`            | Ask other members to respond                                   | No                                |
+
+Use `replyStage: 'progress'` to share preliminary conclusions before continuing analysis. It does not wake the requesting Assistant; it remains available as public background when that Assistant next receives input. Only a final reply records `replyMessageId` on the original request's recipient receipt. For Project tasks, final reply publication still does not imply execution success or result acceptance; task continuation follows the recorded Invocation result.
+
+At successful run completion, the server checks the resolved request and answering member. If a final tool reply has already been persisted for that pair, it skips the last automatic answer instead of publishing it again as an ordinary message. Earlier visible output, progress publications, and requests for help remain intact. A failed tool publication or a final reply to another request or from another member does not suppress the answer. This uses durable protocol metadata, not text similarity or a model's claim that it has replied.
+
+New tool replies must explicitly choose a stage. Historical replies without `replyStage` retain final-reply semantics; existing human and internal callers that omit it retain the same behavior. New persisted replies include the resolved stage. This change does not remove duplicate messages already stored in history.
 
 ```mermaid
 sequenceDiagram
@@ -132,7 +145,7 @@ The implementation uses these final field names directly. The early draft's sepa
 
 Each Assistant receives its own system configuration, a member directory, a bounded projection of public group background, and the addressed input. Other members remain independent authors even when their text is passed to the model as human input. Their content is not promoted to system instructions or inserted as this Assistant's own output or tool results.
 
-The current projection reads up to 40 newer public messages after the member's context position. It excludes the current input, the recipient Assistant's own messages, and messages addressed to that Assistant, which keep independent delivery receipts. Background excerpts are limited to 4,000 characters each. This is a bounded context projection, not automatic access to every historical token. Seeing a message as background does not consume its pending request.
+The current projection reads up to 40 newer public messages after the member's context position. It excludes the current input, the recipient Assistant's own messages, and messages addressed to that Assistant, which keep independent delivery receipts. Non-waking `replyStage: progress` replies are included as background even when addressed to that Assistant. Background excerpts are limited to 4,000 characters each. This is a bounded context projection, not automatic access to every historical token. Seeing a message as background does not consume its pending request.
 
 Only public answer text is projected into the shared transcript and live stream. Tool payloads, system prompts, credentials, checkpoints, and hidden reasoning remain outside the public group stream. Personal memory and private resource contexts are not implicitly shared between members.
 

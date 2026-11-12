@@ -12,6 +12,7 @@ import { ArtifactContentAccess } from '../artifact-content-access'
 import { ContentIdentityService } from '../../content-resource/content-identity.service'
 import { ContentResourceService } from '../../content-resource/content-resource.service'
 import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
+import { FindOperator } from 'typeorm'
 
 const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'owner' }
 const scope = { actor, projectId: 'project' }
@@ -22,6 +23,8 @@ async function fixture() {
         id: 'reference',
         ...actor,
         projectId: scope.projectId,
+        groupId: null,
+        useGrantId: null,
         artifactId: 'artifact',
         versionId: 'version',
         title: 'Published conversation',
@@ -31,7 +34,13 @@ async function fixture() {
     }
     const references = {
         findOneBy: jest.fn(async (where: object) =>
-            Object.entries(where).every(([key, value]) => Reflect.get(row, key) === value) ? row : null
+            Object.entries(where).every(([key, value]) =>
+                value instanceof FindOperator && value.type === 'isNull'
+                    ? Reflect.get(row, key) == null
+                    : Reflect.get(row, key) === value
+            )
+                ? row
+                : null
         ),
         update: jest.fn(async () => ({ affected: 1 }))
     }

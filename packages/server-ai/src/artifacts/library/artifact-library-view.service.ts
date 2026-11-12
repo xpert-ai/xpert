@@ -10,6 +10,8 @@ import { ArtifactTypesService } from '../types/artifact-types.service'
 import { ArtifactTypeViews } from '../types/artifact-type-views'
 import { ArtifactPresentationService } from '../presentation/artifact-presentation.service'
 import { runWithCapturedRequestContext } from '../../shared/request-context'
+import { ArtifactGroupViewService } from '../group-references/artifact-group-view.service'
+import { artifactReferenceActor } from '../group-references/artifact-group-reference.scope'
 
 @Injectable()
 export class ArtifactLibraryViewService {
@@ -19,7 +21,8 @@ export class ArtifactLibraryViewService {
         private readonly artifacts: ArtifactsService,
         private readonly types: ArtifactTypesService,
         private readonly views: ArtifactTypeViews,
-        private readonly presentations: ArtifactPresentationService
+        private readonly presentations: ArtifactPresentationService,
+        private readonly groupViews: ArtifactGroupViewService
     ) {}
     async scope(id: string): Promise<ArtifactLibraryScope> {
         const actor = {
@@ -52,6 +55,8 @@ export class ArtifactLibraryViewService {
         return { ...selected, scope, content }
     }
     async read(id: string): Promise<ArtifactLibraryView> {
+        const groupId = await this.group(id)
+        if (groupId) return this.groupViews.read(artifactReferenceActor(), groupId, id)
         const { reference, scope, content } = await this.content(id)
         const provider = this.types.provider(content.artifact)
         let view: ArtifactLibraryView['content']
@@ -96,6 +101,8 @@ export class ArtifactLibraryViewService {
         return { title: reference.title, revision: reference.revision, content: view }
     }
     async query(id: string, query: ArtifactPresentationQuery) {
+        const groupId = await this.group(id)
+        if (groupId) return this.groupViews.query(artifactReferenceActor(), groupId, id, query)
         const { reference, scope, content } = await this.content(id)
         const result = await this.presentations.queryVersion(content, query)
         await this.recheck(scope, id, reference.revision)
@@ -123,5 +130,14 @@ export class ArtifactLibraryViewService {
         const current = await this.library.resolve(scope, id)
         if (current.reference.revision !== revision)
             throw new ConflictException(t('server-ai:Error.ContentOperationInvalid'))
+    }
+    private async group(id: string) {
+        const actor = artifactReferenceActor()
+        const reference = await this.access.references.findOneBy({
+            id,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId
+        })
+        return reference?.groupId
     }
 }

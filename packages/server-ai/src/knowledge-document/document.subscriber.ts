@@ -1,15 +1,7 @@
-import { DocumentTypeEnum } from '@xpert-ai/contracts'
+import { DocumentTypeEnum, isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent } from 'typeorm'
-import { Knowledgebase } from '../core/entities/internal'
+import { Knowledgebase } from '../knowledgebase/persistence/knowledgebase.entity'
 import { KnowledgeDocument } from './document.entity'
-
-function isSystemManagedDocument(document: Partial<KnowledgeDocument> | null | undefined) {
-    if (!document?.metadata || typeof document.metadata !== 'object') {
-        return false
-    }
-
-    return 'systemManaged' in document.metadata && document.metadata.systemManaged === true
-}
 
 @EventSubscriber()
 export class KnowledgeDocumentSubscriber implements EntitySubscriberInterface<KnowledgeDocument> {
@@ -26,20 +18,18 @@ export class KnowledgeDocumentSubscriber implements EntitySubscriberInterface<Kn
      * @param event
      */
     async beforeInsert(event: InsertEvent<KnowledgeDocument>) {
-        if (event.entity.knowledgebaseId && event.entity.sourceType !== DocumentTypeEnum.FOLDER) {
-            await event.manager.query(
-                'UPDATE "knowledgebase" SET "keywordAnalyzerLocked" = true WHERE "id" = $1 AND "keywordAnalyzerLocked" = false',
-                [event.entity.knowledgebaseId]
-            )
-        }
-        if (event.entity.sourceType !== DocumentTypeEnum.FOLDER && !isSystemManagedDocument(event.entity)) {
-            const kbRepo = event.queryRunner.manager.getRepository(Knowledgebase)
-            const kb = await kbRepo.findOneBy({ id: event.entity.knowledgebaseId })
-            if (kb) {
-                kb.documentNum ??= 0
-                kb.documentNum += 1
-                await kbRepo.save(kb)
-            }
+        const { knowledgebaseId, sourceType, metadata } = event.entity
+        if (!knowledgebaseId || sourceType === DocumentTypeEnum.FOLDER) return
+
+        // This write-once setting is deliberately excluded from ordinary ORM updates.
+        await event.manager.query(
+            'UPDATE "knowledgebase" SET "keywordAnalyzerLocked" = true WHERE "id" = $1 AND "keywordAnalyzerLocked" = false',
+            [knowledgebaseId]
+        )
+        if (isKnowledgeDocumentVisible(metadata)) {
+            await event.manager
+                .getRepository(Knowledgebase)
+                .update({ id: knowledgebaseId }, { documentNum: () => 'COALESCE("documentNum", 0) + 1' })
         }
     }
 }

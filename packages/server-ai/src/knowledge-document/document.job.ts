@@ -1,6 +1,5 @@
 import { Document } from '@langchain/core/documents'
 import {
-    AiModelTypeEnum,
     IKnowledgebase,
     IKnowledgeDocument,
     KnowledgeDocumentProcessingMode,
@@ -18,7 +17,6 @@ import { Inject, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ChunkMetadata, countTextTokens } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
-import { CopilotTokenRecordCommand } from '../copilot-user'
 import { KnowledgebaseService, KnowledgeDocumentStore } from '../knowledgebase/index'
 import { KnowledgeDocLoadCommand } from './commands'
 import { KnowledgeDerivedIndexPublicationService } from './derived-index-publication.service'
@@ -115,7 +113,6 @@ export class KnowledgeDocumentConsumer {
     }
 
     async _processJob(knowledgebase: IKnowledgebase, docs: IKnowledgeDocument<KnowledgeDocumentMetadata>[], job: Job) {
-        const copilot = knowledgebase?.copilotModel?.copilot
         const keywordOnly = knowledgebase.recall?.mode === 'keyword'
         let vectorStore: KnowledgeDocumentStore
         try {
@@ -268,19 +265,8 @@ export class KnowledgeDocumentConsumer {
                             tokenUsed += countTextTokens(contentForEmbedding)
                         })
                         embeddingTokenUsed += tokenUsed
-                        await this.commandBus.execute(
-                            new CopilotTokenRecordCommand({
-                                tenantId: knowledgebase.tenantId,
-                                requestId: `knowledge-document:${job.id}:${document.id}:${count}`,
-                                organizationId: knowledgebase.organizationId,
-                                userId: job.data.userId,
-                                copilotId: copilot.id,
-                                tokenUsed,
-                                model: vectorStore.embeddingModel,
-                                modelType: AiModelTypeEnum.TEXT_EMBEDDING,
-                                modelAccess: vectorStore.modelAccess
-                            })
-                        )
+                        // Local counts are document statistics, not provider billing facts.
+                        // The embedding adapter reports actual usage to the shared model ledger.
                         await vectorStore.addKnowledgeDocument(document, batch)
                         count++
                         const progress =

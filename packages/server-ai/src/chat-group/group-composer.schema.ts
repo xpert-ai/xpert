@@ -51,6 +51,7 @@ export const composerResourcesQuery = composerScopeQuery.extend({
 })
 export const composerProjectsQuery = z
     .object({
+        groupProjectUsage: z.enum(['independent', 'reuse']).default('independent'),
         xpertId: z.string().uuid(),
         applicationKey: z.string().max(200).optional(),
         projectTypeKey: z.string().max(200).optional(),

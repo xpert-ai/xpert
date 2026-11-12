@@ -3,6 +3,7 @@ function createWorkbenchMethods(ClientError) {
   const id = (value) =>
     typeof value === 'string' && /^[a-zA-Z0-9_.:-]{1,200}$/.test(value) && !['.', '..'].includes(value)
   return {
+    ...require('./artifact-grants.cjs').createArtifactGrantMethods(ClientError),
     async workbenchSession({
       botId,
       target,

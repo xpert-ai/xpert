@@ -1,26 +1,10 @@
 <div class="flex justify-start gap-4 mb-4 flex-1">
-  @for (total of totals(); track total.key) {
-    <div class="flex items-start p-1">
-      <div class="group">
-        <div
-          class="flex flex-row items-center text-3xl font-semibold text-text-secondary group-hover:text-text-primary break-all"
-        >
-          {{ total.usage.tokens | number }}
-        </div>
-        <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
-          {{ 'XP.Xpert.ConsumedTokens' | translate: { Default: 'Consumed Tokens' } }}
-          @if (displayMode() === 'membership') {
-            <div class="font-medium text-primary-600">
-              {{ total.usage.membershipPointsUsed | number: '1.0-10' }}
-              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
-            </div>
-          } @else {
-            <div class="font-medium text-orange-400">
-              (~ {{ total.usage.price | currency: total.currency : 'symbol' : '0.0-7' }})
-            </div>
-          }
-        </div>
+  @for (group of groups(); track group.name) {
+    <div class="p-1">
+      <div class="text-3xl font-semibold text-text-secondary">
+        {{ group.points | number: '1.0-10' }} {{ 'XP.Membership.PointsShort' | translate }}
       </div>
+      <div class="text-sm text-text-tertiary">{{ group.name }}</div>
     </div>
   }
 </div>

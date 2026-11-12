@@ -64,12 +64,11 @@ export class ArtifactContentRuntimeService implements ArtifactContentApi {
                 t('server-ai:Error.ArtifactContentTooLarge', { defaultValue: 'ARTIFACT_CONTENT_TOO_LARGE' })
             )
         const hash = createHash('sha256').update(input.buffer).digest('hex')
-        const ref = this.reference(artifact, hash),
-            location = artifactContentStorage(this.volumes, ref)
-        await location.storage.withLock(location.path, async () => {
-            await this.authorized(input.artifactId, 'write', true)
-            await location.storage.write(location.path, input.buffer)
-        })
+        const ref = this.reference(artifact, hash)
+        const location = artifactContentStorage(this.volumes, ref)
+        await this.authorized(input.artifactId, 'write', true)
+        // The key includes the digest; concurrent retries can only write identical bytes.
+        await location.storage.write(location.path, input.buffer)
         return ref
     }
     async read(ref: WorkspacePortableFileReference) {

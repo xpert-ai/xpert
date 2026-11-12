@@ -28,6 +28,28 @@ describe('GetThreadContextUsageHandler', () => {
         )
     })
 
+    it('uses the latest prompt size and omits provider prices for a multi-call execution', async () => {
+        const costs = [
+            { currency: 'USD', amount: 1, tokens: 8 },
+            { currency: 'CNY', amount: 2, tokens: 9 }
+        ]
+        findOne.mockResolvedValueOnce({
+            ...measured,
+            inputTokens: 15,
+            totalPrice: null,
+            currency: null,
+            usageSummary: { lastInputTokens: 7, costs }
+        })
+        const result = await handler.execute(new GetThreadContextUsageQuery('thread-1', 'agent-1'))
+        expect(result.usage).toEqual({
+            context_tokens: 7,
+            input_tokens: 15,
+            output_tokens: measured.outputTokens,
+            total_tokens: measured.tokens,
+            embed_tokens: 0
+        })
+    })
+
     it.each([XpertAgentExecutionStatusEnum.ERROR, XpertAgentExecutionStatusEnum.SUCCESS])(
         'keeps the last measured input when a newer %s execution has no model usage',
         async (status) => {

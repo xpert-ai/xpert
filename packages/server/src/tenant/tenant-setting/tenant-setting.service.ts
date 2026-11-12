@@ -6,9 +6,11 @@ import {
 	MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { getDefaultTenantId, RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import type { Cache } from 'cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindManyOptions, In, Repository } from 'typeorm'
 import { indexBy, keys, object, pluck } from 'underscore'
@@ -26,7 +28,8 @@ const retentionSettingNames = [
 export class TenantSettingService extends TenantAwareCrudService<TenantSetting> {
 	constructor(
 		@InjectRepository(TenantSetting)
-		private tenantSettingRepository: Repository<TenantSetting>
+		private tenantSettingRepository: Repository<TenantSetting>,
+		@Inject(CACHE_MANAGER) private readonly cacheManager: Pick<Cache, 'del'>
 	) {
 		super(tenantSettingRepository)
 	}
@@ -82,6 +85,8 @@ export class TenantSettingService extends TenantAwareCrudService<TenantSetting> 
 		}
 
 		await this.tenantSettingRepository.save(saveInput)
+		// Subsequent uploads must not keep the previous provider for the five-minute cache TTL.
+		await this.cacheManager.del(`tenantSettings_${tenantId}`)
 		return object(pluck(saveInput, 'name'), pluck(saveInput, 'value'))
 	}
 

@@ -10,6 +10,16 @@ export const groupToolInputSchema = z
         intent: z.enum(['request', 'reply', 'message']),
         text: z.string().min(1).max(32000),
         recipientIds: z.array(z.string().uuid()).max(16).optional(),
-        replyToMessageId: z.string().uuid().optional()
+        replyToMessageId: z.string().uuid().optional(),
+        replyStage: z
+            .enum(['progress', 'final'])
+            .optional()
+            .describe(
+                'Required for intent=reply only: progress gives a partial answer and keeps the request open; final completes your answer. Omit for message/request.'
+            )
     })
     .strict()
+    .refine((input) => (input.intent === 'reply' ? input.replyStage !== undefined : input.replyStage === undefined), {
+        path: ['replyStage'],
+        message: 'Replies require an explicit replyStage; other intents must omit it'
+    })

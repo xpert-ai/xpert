@@ -21,10 +21,10 @@
         </div>
         <div class="flex-[33%]">
           <div class="text-sm leading-[18px] font-medium text-text-quaternary">
-            {{ 'XP.KEY_WORDS.TotalTokens' | translate: { Default: 'Total Tokens' } }}
+            {{ 'XP.Copilot.ExecutionChargedPoints' | translate: { Default: 'Points charged to this execution' } }}
           </div>
           <div class="flex items-center gap-1 h-[18px] text-sm leading-3 font-semibold">
-            <span>{{ execution.totalTokens ?? execution.tokens ?? 0 | number }}</span>
+            <span>{{ execution.chargedPoints == null ? '—' : (execution.chargedPoints | number: '1.0-10') }}</span>
           </div>
         </div>
       </div>

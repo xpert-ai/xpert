@@ -20,12 +20,20 @@
         "outputPath": "dist/packages/plugins/draft",
         "main": "packages/plugins/draft/src/index.ts",
         "tsConfig": "packages/plugins/draft/tsconfig.lib.json",
-        "assets": [],
+        "assets": [
+          {
+            "glob": "*.yaml",
+            "input": "packages/plugins/draft/src/lib/customer-intent/templates",
+            "output": "templates"
+          }
+        ],
         "project": "packages/plugins/draft/package.json",
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
           "@xpert-ai/contracts",
+          "@langchain/core",
+          "yaml",
           "@nestjs/config",
           "@nestjs/common",
           "@nestjs/core",

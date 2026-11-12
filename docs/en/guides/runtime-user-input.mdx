@@ -8,6 +8,8 @@ Non-blocking questions are not implemented. Their persistence, human-message del
 
 ## Usage
 
+Enable **Ask for user input** in the Assistant’s **Capabilities** settings and choose **Save and publish**. The capability defaults to off. The capability attaches a user-input middleware to the primary Agent and applies to its ChatKit, API and trigger runs. Sub-agents do not inherit this tool. Leave it off when a run must finish without waiting for a form response.
+
 1. Start a task in an ordinary Assistant conversation, for example: “Arrange an internal training session. First ask me for the training goals, budget, and participating departments.” The model checks existing context before asking for missing information that affects the result.
 2. A question panel appears near the ChatKit composer. Execution waits for input; filling a field does not submit the form automatically.
 3. Select “Submit and continue.” The client validates the fields and focuses the first error. The server validates the answers again before resuming the original task.
@@ -86,8 +88,10 @@ Ordinary input recovery reuses the existing conversation, execution identity, pe
 
 ## Plan Mode and authorization boundaries
 
-- Visible Agents without structured output automatically receive the form tool in ordinary mode. Hidden Agents and structured-output paths do not receive it.
-- Plan Mode retains the original `questions` protocol, plan clarification, and `implement_plan` implementation-confirmation flow.
+- The capability attaches the tool to the primary Agent. Capability composition and publication validation reject connections to sub-agents, hidden Agents or Agents with structured output.
+- Plan Mode requires the Assistant's **Ask for user input** capability. The invocation entry rejects Plan Mode when that capability is absent. With it enabled, Plan Mode retains the `questions` protocol, plan clarification, and `implement_plan` implementation-confirmation flow. If tool preferences disable the question tool on the configured middleware, it presents the plan and ends without requesting implementation confirmation.
+- The middleware registers one fixed tool schema containing mutually exclusive `fields` and `questions` formats. It uses the existing `state.human.planMode` in runtime hooks to add the appropriate instructions and validate the allowed format. Subgraph construction does not inject Plan Mode prompts or rewrite providers or schemas, and the plugin SDK context has no additional mode or Agent-options fields.
+- The server validates question IDs, selected options and response identity, and derives the result purpose from the original request. Cancellation discards supplied answers.
 - Ordinary forms always use `purpose: clarification`. Even a field named `implement_plan` cannot authorize implementation.
 - Input collection and tool HITL authorization remain separate. Forms do not collect passwords, tokens, or other credentials.
 
@@ -98,8 +102,9 @@ ChatKit paths are relative to the separate `chatkit-js` repository. Other paths 
 | Responsibility                 | Key files                                                                                                                                           |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Shared protocol and validation | ChatKit `packages/chatkit/src/user-input-form.ts` and `interrupt.ts`.                                                                               |
-| Tool and trusted results       | `packages/server-ai/src/shared/agent/user-input.ts` and `runtime-user-input.ts`.                                                                    |
-| Agent injection                | `packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts`.                                                                         |
+| Tool and trusted results       | `packages/server-ai/src/xpert-middleware/request-user-input.middleware.ts` and `packages/server-ai/src/shared/agent/user-input.ts`.                 |
+| Plan question results          | `packages/server-ai/src/shared/agent/user-input-plan.ts`.                                                                                           |
+| Capability composition         | `packages/server-ai/src/xpert-template/capabilities/builtin-capabilities.ts`.                                                                       |
 | Form and date components       | ChatKit `packages/chatkit-ui/src/components/composer/user-input-form-panel.tsx` and `user-input-date-field.tsx`.                                    |
 | Client submission and recovery | ChatKit `packages/chatkit-ui/src/providers/stream/interrupts/useStreamUserInput.ts` and `useStreamInterrupts.ts`.                                   |
 | History card                   | ChatKit `packages/chatkit-ui/src/components/thread/messages/request-user-input-result-card.tsx`.                                                    |

@@ -1,0 +1,375 @@
+<header
+  class="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2 sm:px-6 xl:px-8"
+>
+  <nav [attr.aria-label]="p + 'Title' | translate" class="flex items-center gap-2 text-sm text-text-secondary">
+    <span>{{ 'XP.AgentEvolution.Title' | translate }}</span
+    ><i class="ri-arrow-right-s-line" aria-hidden="true"></i
+    ><a routerLink="/agent-evolution/release" [queryParams]="historyQuery()" class="hover:underline">{{
+      'XP.AgentEvolution.TabRelease' | translate
+    }}</a
+    ><i class="ri-arrow-right-s-line" aria-hidden="true"></i
+    ><strong aria-current="page" class="font-medium text-foreground">{{ p + 'Title' | translate }}</strong>
+  </nav>
+  <div class="flex gap-2">
+    <a routerLink="/agent-evolution/release" [queryParams]="historyQuery()" z-button zType="outline" zSize="lg"
+      ><i class="ri-arrow-left-line" aria-hidden="true"></i>{{ p + 'Back' | translate }}</a
+    >
+    <button type="button" z-button zType="outline" zSize="lg" [zDisabled]="!stage() || mismatch()" (click)="showRaw()">
+      <i class="ri-braces-line" aria-hidden="true"></i>{{ p + 'Raw' | translate }}
+    </button>
+  </div>
+</header>
+<main class="min-h-0 flex-1 overflow-y-auto">
+  <div class="mx-auto w-full max-w-[1430px] space-y-6 px-4 py-7 sm:px-8">
+    @if (lookup().status === 'loading' || (stage() && !facade.loadedAt() && !facade.error())) {
+      <p role="status">{{ 'XP.Common.Loading' | translate }}</p>
+    } @else if (mismatch() || !stage()) {
+      <h1 class="xp-page-title">{{ p + 'Title' | translate }}</h1>
+      <p role="status" class="text-sm text-text-secondary">
+        {{ p + (mismatch() ? 'missing' : lookup().status) | translate }}
+      </p>
+      @if (lookup().status === 'denied' || lookup().status === 'failed') {
+        <button z-button zType="outline" (click)="retry()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
+      }
+    } @else if (stage(); as s) {
+      @if (!linked()) {
+        <h1 class="xp-page-title">{{ p + 'Title' | translate }}</h1>
+        <p class="text-sm text-text-secondary">{{ p + 'RawOnly' | translate }}</p>
+        <pre tabindex="0" class="max-h-[65dvh] overflow-auto rounded-md bg-muted/50 p-4 text-xs">{{ s | json }}</pre>
+      } @else {
+        <div>
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 class="xp-page-title">{{ p + 'StageTitle' | translate: { stage: stageName() } }}</h1>
+            <span class="rounded border border-border bg-muted/50 px-2 py-0.5 text-xs font-medium">{{
+              (s.completedAt ? w + 'StageEnded' : 'XP.AgentEvolution.Status.' + s.status) | translate
+            }}</span>
+          </div>
+          <p class="mt-1 text-sm text-text-secondary">
+            {{ title() }} · {{ targetName() }} · {{ 'XP.AgentEvolution.ScopeType.' + s.scope.type | translate }}
+          </p>
+        </div>
+        <section class="overflow-hidden rounded-lg border border-border bg-card" aria-labelledby="stage-title">
+          <header class="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5">
+            <h2 id="stage-title" class="text-lg font-semibold">{{ p + 'Stage' | translate }}</h2>
+            <span class="text-xs text-text-secondary" [title]="s.deploymentId"
+              >{{ p + 'IdSuffix' | translate }} · {{ s.deploymentId.slice(-8) }}</span
+            >
+          </header>
+          <dl
+            class="grid gap-4 px-4 pb-5 sm:grid-cols-[1fr_1fr_1.35fr] [&_dt]:text-sm [&_dt]:text-text-secondary [&_dd]:mt-1 [&_strong]:block [&_strong]:break-words [&_strong]:text-lg [&_strong]:font-semibold [&_small]:text-sm [&_small]:text-text-secondary"
+          >
+            <div>
+              <dt>{{ p + 'Version' | translate }}</dt>
+              <dd>
+                <strong class="font-mono" [title]="release()!.targetVersionId">{{
+                  version(release()!.targetVersionId)
+                }}</strong
+                ><small
+                  >{{ p + 'Rollback' | translate }}
+                  <span class="font-mono" [title]="release()!.rollbackVersionId">{{
+                    version(release()!.rollbackVersionId)
+                  }}</span></small
+                >
+              </dd>
+            </div>
+            <div>
+              <dt>{{ p + (s.channel === 'canary' ? 'CanaryShare' : 'Channel') | translate }}</dt>
+              <dd>
+                <strong>{{ s.channel === 'canary' ? s.canaryPercent + '%' : stageName() }}</strong>
+                @if (s.channel === 'canary') {
+                  <small>{{ p + 'ShareHint' | translate }}</small>
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>{{ p + 'Window' | translate }} · {{ zone() }}</dt>
+              <dd>
+                <strong class="tabular-nums"
+                  >{{ s.startedAt | date: 'HH:mm:ss' }} –
+                  @if (s.completedAt) {
+                    @if ((s.completedAt | date: 'yyyy-MM-dd') !== (s.startedAt | date: 'yyyy-MM-dd')) {
+                      {{ s.completedAt | date: 'yyyy-MM-dd' }}
+                    }
+                    {{ s.completedAt | date: 'HH:mm:ss' }}
+                  } @else {
+                    {{ p + 'OpenEnd' | translate }}
+                  }</strong
+                ><small>{{ s.startedAt | date: 'yyyy-MM-dd' }}</small>
+              </dd>
+            </div>
+          </dl>
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/35 px-4 py-2.5 text-sm"
+          >
+            <div class="flex flex-wrap items-center gap-2">
+              <i
+                class="ri-circle-fill text-[0.5rem]"
+                [class]="pointer() ? 'text-text-success' : 'text-muted-foreground'"
+                aria-hidden="true"
+              ></i
+              ><b class="font-medium">{{ p + 'Current' | translate }}</b>
+              @if (pointer(); as ptr) {
+                <span class="break-all font-mono" [title]="ptr.activeVersionId">{{
+                  version(ptr.activeVersionId)
+                }}</span>
+                @if (live(); as prod) {
+                  <span class="text-text-secondary">{{
+                    p + 'ProductionSince'
+                      | translate
+                        : {
+                            time:
+                              (prod.stage.startedAt
+                              | date
+                                : ((prod.stage.startedAt | date: 'yyyy-MM-dd') === (s.startedAt | date: 'yyyy-MM-dd')
+                                    ? 'HH:mm:ss'
+                                    : 'yyyy-MM-dd HH:mm:ss'))
+                          }
+                  }}</span>
+                }
+              } @else {
+                <span class="text-text-secondary">{{ p + 'NoPointer' | translate }}</span>
+              }
+            </div>
+            @if (live(); as prod) {
+              @if (prod.stage.deploymentId !== s.deploymentId) {
+                <a routerLink="/agent-evolution/release" [queryParams]="prod.query" class="font-medium hover:underline"
+                  >{{ w + 'ViewProduction' | translate }} <i class="ri-arrow-right-up-line" aria-hidden="true"></i
+                ></a>
+              }
+            }
+          </div>
+        </section>
+        <section aria-labelledby="stage-observations" class="overflow-hidden rounded-lg border border-border bg-card">
+          <header class="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5">
+            <div>
+              <h2 id="stage-observations" class="text-lg font-semibold">{{ p + 'Observations' | translate }}</h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                {{
+                  p + (s.dataSource === 'runtime_telemetry' ? 'StageOnly' : 'ReplayOnly')
+                    | translate: { stage: stageName() }
+                }}
+              </p>
+            </div>
+            <span class="rounded border border-border px-2 text-xs font-medium"
+              ><i class="ri-focus-2-line" aria-hidden="true"></i>
+              {{ 'XP.AgentEvolution.DataSourceType.' + s.dataSource | translate }}</span
+            >
+          </header>
+          <dl
+            class="grid grid-cols-[1fr_1fr_1.35fr] gap-2 px-4 pb-3.5 [&_dt]:text-sm [&_dt]:text-text-secondary [&_dd]:mt-1 [&_dd]:text-xl [&_dd]:font-semibold [&_dd]:tabular-nums"
+          >
+            <div>
+              <dt>{{ (s.dataSource === 'runtime_telemetry' ? p + 'Reviewed' : w + 'Samples') | translate }}</dt>
+              <dd>{{ s.sampleCount }}</dd>
+            </div>
+            <div>
+              <dt>{{ p + 'Correct' | translate }}</dt>
+              <dd>{{ correct(s) }} / {{ s.sampleCount }}</dd>
+            </div>
+            <div>
+              <dt>{{ w + 'Severe' | translate }}</dt>
+              <dd [class]="s.severeErrors ? 'text-text-destructive' : ''">{{ s.severeErrors }}</dd>
+            </div>
+          </dl>
+          @if (s.dataSource === 'runtime_telemetry') {
+            @if (evidence(); as ev) {
+              @if (s.channel === 'canary') {
+                <div
+                  role="group"
+                  [attr.aria-label]="p + 'HitFilter' | translate"
+                  class="flex flex-wrap gap-1 border-t border-border px-4 py-2"
+                >
+                  @for (f of filters; track f) {
+                    <button
+                      type="button"
+                      class="rounded-md border px-2 py-1 text-sm font-medium disabled:opacity-60"
+                      [class]="
+                        f === filter()
+                          ? 'border-border bg-muted'
+                          : 'border-transparent text-text-secondary hover:bg-muted/50'
+                      "
+                      [disabled]="f !== 'all' && !ev.attributable"
+                      [attr.aria-pressed]="f === filter()"
+                      (click)="select(f)"
+                    >
+                      {{ p + f | translate }} <span class="ml-1 tabular-nums">{{ count(f) }}</span>
+                    </button>
+                  }
+                </div>
+                @if (!ev.attributable) {
+                  <p role="status" class="px-4 pb-2 text-sm text-text-secondary">
+                    {{ p + 'UnknownSource' | translate }}
+                    <button class="text-text-accent hover:underline" (click)="retry()">
+                      {{ 'XP.AgentEvolution.Retry' | translate }}
+                    </button>
+                  </p>
+                }
+              }
+              @if (!ev.complete) {
+                <p class="px-4 py-2 text-sm text-text-secondary">
+                  {{ p + 'Incomplete' | translate: { n: ev.rows.length, total: s.sampleCount } }}
+                </p>
+              }
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[46rem] text-left text-base">
+                  <thead
+                    class="border-y border-border bg-muted/45 text-sm text-text-secondary [&_th]:px-4 [&_th]:py-2.5 [&_th]:font-medium"
+                  >
+                    <tr>
+                      <th scope="col">
+                        {{ w + 'Time' | translate }} <i class="ri-arrow-down-line" aria-hidden="true"></i>
+                      </th>
+                      <th scope="col">{{ w + 'Execution' | translate }}</th>
+                      @if (s.channel === 'canary') {
+                        <th scope="col">{{ p + 'Hit' | translate }}</th>
+                      }
+                      <th scope="col">{{ w + 'Outcome' | translate }}</th>
+                      <th scope="col">{{ w + 'Baseline' | translate }}</th>
+                      <th scope="col">{{ w + 'Severe' | translate }}</th>
+                      <th scope="col">{{ w + 'Latency' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-border [&_td]:whitespace-nowrap [&_td]:px-4 [&_td]:py-3">
+                    @for (entry of visible(); track entry.row.observationId) {
+                      @let o = entry.row;
+                      <tr>
+                        <td [title]="(o.observedAt | date: 'yyyy-MM-dd HH:mm:ss') || ''">
+                          {{ o.observedAt | date: 'HH:mm:ss' }}
+                        </td>
+                        <td class="font-mono text-sm" [title]="o.executionId">
+                          {{ o.executionId | slice: 0 : 18 }}{{ o.executionId.length > 18 ? '…' : '' }}
+                        </td>
+                        @if (s.channel === 'canary') {
+                          <td>{{ p + entry.source | translate }}</td>
+                        }
+                        <td>
+                          @if (o.success) {
+                            <i class="ri-check-line text-text-success" aria-hidden="true"></i>
+                          }
+                          {{ w + (o.success ? 'Correct' : 'Incorrect') | translate }}
+                        </td>
+                        <td class="text-text-secondary">
+                          {{
+                            (o.baselineSuccess == null
+                              ? p + 'Unrecorded'
+                              : w + (o.baselineSuccess ? 'Correct' : 'Incorrect')
+                            ) | translate
+                          }}
+                        </td>
+                        <td>{{ w + (o.severeError ? 'Yes' : 'No') | translate }}</td>
+                        <td class="tabular-nums">{{ o.latencyMs | number: '1.2-2' }} ms</td>
+                      </tr>
+                    } @empty {
+                      <tr>
+                        <td
+                          [attr.colspan]="s.channel === 'canary' ? 7 : 6"
+                          class="text-center text-sm text-text-secondary"
+                        >
+                          {{ w + 'NoObservations' | translate }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <footer
+                aria-live="polite"
+                class="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2 text-sm text-text-secondary"
+              >
+                <span>{{ p + 'RowCount' | translate: { n: visible().length, total: ev.rows.length } }}</span>
+                @if (pages() > 1) {
+                  <div class="flex items-center gap-2">
+                    {{ currentPage() }} / {{ pages() }}
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon-sm"
+                      [attr.aria-label]="w + 'Previous' | translate"
+                      [zDisabled]="currentPage() === 1"
+                      (click)="page.set(currentPage() - 1)"
+                    >
+                      <i class="ri-arrow-left-s-line"></i>
+                    </button>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon-sm"
+                      [attr.aria-label]="w + 'Next' | translate"
+                      [zDisabled]="currentPage() >= pages()"
+                      (click)="page.set(currentPage() + 1)"
+                    >
+                      <i class="ri-arrow-right-s-line"></i>
+                    </button>
+                  </div>
+                }
+              </footer>
+            } @else if (evidence() === null) {
+              <p role="alert" class="p-4 text-sm">
+                {{ w + 'LoadError' | translate }}
+                <button z-button zType="outline" (click)="retry()">{{ 'XP.AgentEvolution.Retry' | translate }}</button>
+              </p>
+            } @else {
+              <p role="status" class="p-4 text-sm">{{ 'XP.Common.Loading' | translate }}</p>
+            }
+          } @else if (s.dataSource === 'deterministic_replay') {
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[34rem] text-left text-sm">
+                <thead class="border-y border-border bg-muted/45 text-text-secondary [&_th]:px-4 [&_th]:py-2">
+                  <tr>
+                    @for (k of ['Time', 'Samples', 'Accuracy', 'Baseline', 'Severe']; track k) {
+                      <th scope="col">{{ w + k | translate }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border [&_td]:px-4 [&_td]:py-2">
+                  @for (o of s.observations; track o.observationId) {
+                    <tr>
+                      <td>{{ o.observedAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+                      <td>{{ o.sampleCount }}</td>
+                      <td>{{ o.candidateAccuracy | percent: '1.0-1' }}</td>
+                      <td>
+                        {{
+                          o.baselineAccuracy == null
+                            ? (p + 'Unrecorded' | translate)
+                            : (o.baselineAccuracy | percent: '1.0-1')
+                        }}
+                      </td>
+                      <td>{{ o.severeErrors }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5">{{ w + 'NoObservations' | translate }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+        @if (s.channel === 'canary' && s.dataSource === 'runtime_telemetry') {
+          <p class="flex items-start gap-2 text-sm text-text-secondary">
+            <i class="ri-information-line" aria-hidden="true"></i>{{ p + 'AttributionNote' | translate }}
+          </p>
+        }
+      }
+    }
+  </div>
+</main>
+<ng-template #rawTemplate>
+  <section xpDialogLayout="standard" class="max-h-[73dvh]">
+    <header xpDialogHeader>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 xpDialogHeading>{{ p + 'RawTitle' | translate }}</h2>
+          <p xpDialogDescription>{{ stageName() }} · {{ p + 'ReadOnly' | translate }}</p>
+        </div>
+        <button type="button" z-button zType="outline" (click)="closeRaw()">
+          {{ 'XP.AgentEvolution.TargetDetail.Close' | translate }}
+        </button>
+      </div>
+    </header>
+    <div xpDialogBody>
+      <pre tabindex="0" class="overflow-auto font-mono text-sm leading-relaxed">{{ stage() | json }}</pre>
+    </div>
+  </section>
+</ng-template>

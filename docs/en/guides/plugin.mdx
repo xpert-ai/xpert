@@ -424,7 +424,14 @@ The host expands each map key into a separate `APP` component. `REPLACE_WITH_*` 
 
 ## Related guides
 
+- [Plugin installation, updates, and failure isolation](/en/guides/plugin-installation-publication)
 - [Unified File Upload Architecture](/en/guides/file-upload-architecture)
 - [MinIO File Storage Plugin](/en/guides/minio-file-storage)
 - [RustFS File Storage Plugin](/en/guides/rustfs-file-storage)
 - [Agent Middleware](/en/guides/agent-middleware)
+
+## Component names and load failures
+
+A decorated Tool provider's `componentKey` is unique **within its plugin and installation scope**. Two different plugins can both use `tools`; their provider names and public Tool names still need to differ within the same scope.
+
+The host checks the root module's provider declarations before Nest instantiates them. A detected conflict or invalid descriptor rejects that whole plugin and records its load failure, while healthy plugins and platform APIs remain available when runtime admission confirms the remaining requirements. The failed plugin's deployment status remains failed. Fix the declarations and explicitly refresh/reinstall it. Keep decorated providers directly in the root module; this validation does not isolate arbitrary JavaScript imports, constructors or lifecycle-hook failures.

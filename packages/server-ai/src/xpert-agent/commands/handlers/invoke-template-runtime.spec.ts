@@ -12,11 +12,6 @@ jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
         new (jest.requireActual('@nestjs/common').ConflictException)(message)
 }))
 
-jest.mock('isolated-vm', () => ({
-    ExternalCopy: class ExternalCopy {},
-    Isolate: class Isolate {}
-}))
-
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
@@ -70,6 +65,10 @@ jest.mock('../../../shared', () => ({
 
 jest.mock('../../../chat-message/chat-message.entity', () => ({
     ChatMessage: class ChatMessage {}
+}))
+
+jest.mock('../../../shared/volume', () => ({
+    VolumeClient: jest.requireMock('../../../shared').VolumeClient
 }))
 
 jest.mock('../../../knowledgebase', () => ({

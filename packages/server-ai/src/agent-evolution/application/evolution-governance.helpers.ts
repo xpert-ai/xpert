@@ -1,3 +1,5 @@
+import { z } from 'zod/v3'
+import { changeError } from '../changes/change.errors'
 import { randomUUID } from 'crypto'
 import { BadRequestException } from '@nestjs/common'
 import type {
@@ -61,7 +63,8 @@ export function assertUniqueCaseRevisions(cases: GoldenCaseRevision[]) {
     if (new Set(keys).size !== keys.length) throw new BadRequestException('Golden Dataset contains duplicate cases')
 }
 
-export function sameScope(left: EvolutionScope, right: EvolutionScope) {
+export function sameScope(left: EvolutionScope | undefined, right: EvolutionScope | undefined) {
+    if (!left || !right) return false
     return (
         left.type === right.type &&
         left.key === right.key &&
@@ -71,6 +74,43 @@ export function sameScope(left: EvolutionScope, right: EvolutionScope) {
 
 export function sortedDimensions(dimensions: EvolutionScope['dimensions']) {
     return Object.fromEntries(Object.entries(dimensions ?? {}).sort(([left], [right]) => left.localeCompare(right)))
+}
+
+const metricObservations = z.array(
+    z.object({
+        metricKey: z.string().min(1),
+        value: z.number().finite(),
+        unit: z.enum(['ratio', 'count', 'milliseconds', 'currency']),
+        slice: z.string().optional(),
+        blocking: z.boolean()
+    })
+)
+
+export function scoredReplayCase(caseId: string, result: ReplayCaseResult, observations: unknown): ReplayCaseResult {
+    const metrics = metricObservations.safeParse(observations)
+    if (result.caseId !== caseId || !metrics.success) changeError('invalid_provider_replay_metrics')
+    return {
+        ...result,
+        observations: metrics.data.map(({ metricKey, value, unit, slice, blocking }) => ({
+            metricKey,
+            value,
+            unit,
+            ...(slice === undefined ? {} : { slice }),
+            blocking
+        }))
+    }
+}
+
+export function blockingMetricReasons(results: ReplayCaseResult[]): string[] {
+    return [
+        ...new Set(
+            results.flatMap((result) =>
+                (result.observations ?? [])
+                    .filter((metric) => metric.blocking)
+                    .map((metric) => `provider_metric:${metric.metricKey}`)
+            )
+        )
+    ].sort()
 }
 
 export function aggregateMetrics(results: ReplayCaseResult[]): EvaluationMetrics {

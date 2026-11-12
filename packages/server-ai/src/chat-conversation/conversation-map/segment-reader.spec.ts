@@ -1,5 +1,5 @@
 import { readSegments, type SegmentThread } from './segment-reader'
-import { mapPageSchema } from './schema'
+import { mapSourcePageSchema } from './schema'
 
 const thread: SegmentThread = { threadId: 'main', title: 'Current', current: true, status: 'idle', headMessageId: 'a2' }
 const scope = { conversationId: 'c', tenantId: 'tenant', organizationId: 'org' }
@@ -38,7 +38,7 @@ describe('tree summary query efficiency', () => {
         expect(nodes[0]).not.toHaveProperty('questionId')
         expect(JSON.stringify(nodes)).not.toContain('Not returned')
         expect(() =>
-            mapPageSchema.parse({
+            mapSourcePageSchema.parse({
                 nodes,
                 nextOffset: null,
                 total: 1,

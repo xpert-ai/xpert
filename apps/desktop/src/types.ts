@@ -69,6 +69,7 @@ export type HostResult<T> =
       retryAfterMs?: number
     }
 export interface DesktopShellState {
+  platform?: string
   policy: ShellPolicy
   available: boolean
   enabled: boolean
@@ -219,6 +220,25 @@ export interface HostMethods {
   closeProfileView: { input: string; output: { closed: boolean } }
   profileViewRequest: { input: ProfileViewRequest; output: unknown }
   workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }
+  /**
+   * Request source Artifact grant management through the authenticated host.
+   * The main process rechecks the Assistant, source Project, View manifest and account generation.
+   * Login credentials stay in the host; this bridge does not grant access by itself.
+   */
+  manageArtifactGrant: {
+    input: {
+      /** Local Desktop bot whose current Assistant must match hostId. */
+      botId: string
+      /** Published Assistant hosting the source authoring View. */
+      hostId: string
+      /** Server-declared View key; its manifest must permit the requested grant action. */
+      viewKey: string
+      /** Untrusted remote command payload; the main process and server validate it before use. */
+      payload: unknown
+    }
+    /** Domain action response only; authentication and authorization failures may reject the IPC call. */
+    output: { success: boolean; data?: unknown }
+  }
 
   sidebarState: { input: undefined; output: SidebarState }
   updateSidebar: { input: SidebarUpdate; output: SidebarState }

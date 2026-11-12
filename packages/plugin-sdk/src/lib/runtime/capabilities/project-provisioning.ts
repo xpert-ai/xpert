@@ -45,7 +45,10 @@ export type ProjectEnsureResult = {
   xpertIds: string[]
   /** Bindings for the requested role expectations, not all members. Check xpertIds before assigning an executor. */
   assistantBindings: ProjectAssistantBinding[]
-  /** Whether this call inserted the Project or reconciled an existing one. */
+  /**
+   * `created` inserts a new Project; `updated` reuses an existing Project and ensures its content is initialized.
+   * `updated` does not guarantee metadata changes: direct creation retries preserve existing names and status.
+   */
   operation: 'created' | 'updated'
 }
 
@@ -61,6 +64,8 @@ export interface ProjectProvisioningApi {
   }): Promise<{ projectId: string }>
   /** Create or reconcile a Chat Project without changing its caller-supplied id. */
   ensure(input: ProjectEnsureInput): Promise<ProjectEnsureResult>
+  /** Check the permanent-deletion fence while the caller holds its business record lock, before restoring. */
+  assertRestorable?(input: { projectId: string; xpertId: string }): Promise<void>
   /** Owner-only physical deletion of an archived plugin-bound Project and its workspace. */
   purge?(input: { projectId: string; xpertId: string }): Promise<{ projectId: string; deleted: boolean }>
 }

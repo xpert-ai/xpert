@@ -1,0 +1,156 @@
+<section
+  aria-labelledby="rule-heading"
+  class="overflow-hidden rounded-lg border border-border bg-card text-card-foreground"
+>
+  <header class="flex flex-wrap items-center justify-between gap-2 px-4 py-3.5">
+    <h2 id="rule-heading" class="text-lg font-semibold">{{ 'XP.AgentEvolution.RuleBaseline' | translate }}</h2>
+    @if (status(); as s) {
+      <span
+        class="rounded border px-2 py-0.5 text-xs font-medium"
+        [class]="
+          s === 'current'
+            ? 'border-text-success/20 bg-text-success/5 text-text-success'
+            : s === 'blocked' || s === 'update_available'
+              ? 'border-border bg-muted/50 text-text-warning'
+              : 'border-border bg-muted/50 text-text-secondary'
+        "
+        >{{ p + 'Status.' + s | translate }}</span
+      >
+    }
+  </header>
+  <dl class="grid gap-4 px-4 pb-3.5 text-base sm:grid-cols-2">
+    <div>
+      <dt class="text-text-secondary">{{ p + 'Source' | translate }}</dt>
+      <dd class="mt-1 font-medium">{{ sourceLabel() }}</dd>
+    </div>
+    <div>
+      <dt class="text-text-secondary">{{ 'XP.AgentEvolution.Provider' | translate }}</dt>
+      <dd class="mt-1 break-all font-mono text-sm">
+        {{ descriptor()?.providerKey }} @ {{ descriptor()?.providerVersion }}
+      </dd>
+    </div>
+  </dl>
+  @if (loading()) {
+    <p role="status" class="px-4 pb-4 text-sm text-text-secondary">{{ 'XP.Common.Loading' | translate }}</p>
+  } @else if (status(); as s) {
+    <div
+      role="status"
+      class="mx-4 mb-3 flex items-start gap-2 rounded-md bg-muted/50 px-3 py-2 text-base text-text-secondary"
+    >
+      <i class="ri-information-line shrink-0" aria-hidden="true"></i>
+      <div class="min-w-0 break-words">
+        {{ p + 'Hint.' + s | translate }}
+        @for (issue of issues(); track $index) {
+          <span>{{ issue }}</span>
+        }
+      </div>
+    </div>
+    @if (failure() === 'unsupported') {
+      <div class="px-4 pb-4 text-sm text-text-secondary">
+        <p>{{ p + 'UnsupportedBody' | translate }}</p>
+        @if (releaseCandidate(); as id) {
+          <a
+            z-button
+            zType="outline"
+            zSize="default"
+            class="mt-2"
+            routerLink="/agent-evolution/release"
+            [queryParams]="{ target: targetId(), changeId: id }"
+            >{{ p + 'OpenRelease' | translate }} <i class="ri-arrow-right-up-line" aria-hidden="true"></i
+          ></a>
+        }
+      </div>
+    } @else if (failure()) {
+      <button type="button" z-button zSize="default" zType="outline" class="mx-4 mb-4" (click)="retry()">
+        {{ p + 'Retry' | translate }}
+      </button>
+    } @else if (data(); as inspection) {
+      <div
+        role="group"
+        [attr.aria-label]="p + 'Mode' | translate"
+        class="flex gap-5 border-y border-border px-4 text-sm font-medium"
+      >
+        @for (mode of [false, true]; track mode) {
+          <button
+            type="button"
+            [attr.aria-pressed]="raw() === mode"
+            (click)="raw.set(mode)"
+            class="border-b-2 px-0.5 py-2.5 focus-visible:outline-ring"
+            [class]="
+              raw() === mode
+                ? 'border-foreground text-foreground'
+                : 'border-transparent text-text-secondary hover:text-foreground'
+            "
+          >
+            {{ p + (mode ? 'Raw' : 'Compare') | translate }}
+          </button>
+        }
+      </div>
+      @if (!raw()) {
+        @if (rows().length) {
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[38rem] table-fixed text-left text-base">
+              <thead class="bg-muted/50 text-text-secondary">
+                <tr>
+                  <th scope="col" class="w-1/4 px-4 py-2 font-medium">{{ p + 'Rule' | translate }}</th>
+                  <th scope="col" class="px-4 py-2 font-medium">
+                    {{ p + 'Active' | translate }}
+                    @if (inspection.current; as cur) {
+                      · {{ cur.version.semanticVersion ? 'v' + cur.version.semanticVersion : cur.version.versionId }}
+                    }
+                  </th>
+                  <th scope="col" class="px-4 py-2 font-medium">
+                    {{ p + 'Preview' | translate }}
+                    @if (!inspection.preview.ready) {
+                      · {{ p + 'CannotExport' | translate }}
+                    }
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border border-t border-border">
+                @for (row of rows(); track row.key) {
+                  <tr>
+                    <th scope="row" class="break-words px-4 py-2 align-top font-normal">{{ row.label }}</th>
+                    <td
+                      class="break-words px-4 py-2 align-top tabular-nums"
+                      [class]="row.key === 'algorithmVersion' ? 'font-mono text-xs' : ''"
+                    >
+                      {{ row.active }}
+                    </td>
+                    <td
+                      class="break-words px-4 py-2 align-top tabular-nums"
+                      [class]="row.key === 'algorithmVersion' ? 'font-mono text-xs' : ''"
+                    >
+                      {{ inspection.preview.ready ? row.source : (p + 'Status.blocked' | translate) }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="px-4 py-4 text-sm text-text-secondary">{{ p + 'NoRows' | translate }}</div>
+        }
+      } @else {
+        <div class="grid gap-4 px-4 py-3 md:grid-cols-2">
+          @for (source of [false, true]; track source) {
+            <section class="min-w-0">
+              <h3 class="mb-2 text-base font-medium">
+                {{
+                  p + (!source ? 'Snapshot' : inspection.preview.ready ? 'ProviderPreview' : 'Diagnostics') | translate
+                }}
+              </h3>
+              <pre
+                tabindex="0"
+                class="max-h-96 overflow-auto rounded-md bg-muted/60 p-3 font-mono text-xs leading-relaxed"
+                >{{
+                  (source ? comparison()?.source : comparison()?.active) ?? (p + 'UnavailableBody' | translate)
+                }}</pre
+              >
+            </section>
+          }
+        </div>
+      }
+    }
+  }
+</section>

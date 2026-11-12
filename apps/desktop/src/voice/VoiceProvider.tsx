@@ -6,7 +6,7 @@ import { t } from '../i18n'
 import { invoke } from '../host'
 import { VoiceRuntime, type CallTarget, type VoiceState, type VoiceDiagnostic } from './runtime'
 import { voiceDiagnosticMessage } from './diagnostics'
-import type { VoiceServerControl } from '../../../../packages/contracts/src/ai/realtime-voice.transport'
+import type { VoiceServerControl } from '@xpert-ai/contracts'
 
 type Task = Extract<VoiceServerControl, { type: 'task' }>
 type VoiceContextValue = {

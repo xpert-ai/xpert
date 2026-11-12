@@ -720,7 +720,7 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   getStatisticsTokenCost(id: string, timeRange: string[]) {
-    return this.httpClient.get<{ date: string; tokens: number; price: number; model: string; currency: string }[]>(
+    return this.httpClient.get<{ date: string; tokens: number; chargedPoints: number | null; model: string }[]>(
       this.apiBaseUrl + `/${id}/statistics/token-costs`,
       {
         params: timeRangeToParams(new HttpParams(), timeRange)

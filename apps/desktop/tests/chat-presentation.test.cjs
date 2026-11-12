@@ -32,6 +32,47 @@ function loadRenderer(file, imports, globals = {}) {
 
 const avatarColors = loadRenderer('avatar/color.ts', { '../../electron/theme-defaults.json': defaults })
 
+test('local computer discovery reads settings without connecting, approving or executing', async () => {
+  const calls = []
+  const state = {
+    available: true,
+    policy: 'ask',
+    platform: 'win32',
+    settings: { name: 'Windows', shell: 'powershell.exe', cwd: 'C:\\Users\\Test', path: 'private PATH' }
+  }
+  const { useShellIntegration } = loadRenderer('shell/useShellIntegration.tsx', {
+    react: { useState: () => [null, () => {}], useEffect: () => {} },
+    'react/jsx-runtime': require('react/jsx-runtime'),
+    '@xpert-ai/desktop-protocol': require('@xpert-ai/desktop-protocol'),
+    '@xpert-ai/shadcn-ui': Object.fromEntries(
+      ['Dialog', 'DialogContent', 'DialogHeader', 'DialogTitle'].map((name) => [name, () => null])
+    ),
+    '../host': {
+      invoke: async (method) => {
+        calls.push(method)
+        return state
+      }
+    },
+    '../i18n': { t: (key) => key },
+    './ShellSettings': { ShellSettings: () => null }
+  })
+  const handlers = useShellIntegration().handlers
+  const response = await handlers.onClientTool({ name: 'desktop_shell_info', id: 'info', params: {} })
+  assert.deepEqual(JSON.parse(response.content), {
+    available: true,
+    platform: 'win32',
+    name: 'Windows',
+    shell: 'powershell.exe',
+    cwd: 'C:\\Users\\Test'
+  })
+  assert.deepEqual(calls, ['shellState'])
+  state.policy = 'deny'
+  assert.deepEqual(
+    JSON.parse((await handlers.onClientTool({ name: 'desktop_shell_info', id: 'info', params: {} })).content),
+    { available: false }
+  )
+})
+
 test('presentation and Assistant/group navigation reuse the frame with isolated options and listeners', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }

@@ -1,10 +1,22 @@
 // Invariants: host preparation never executes; approval remains bound to exact arguments on both sides.
 import { interrupt } from '@langchain/langgraph'
 import { t } from 'i18next'
-import type { ShellPreparationRequest, ShellPreparation } from '@xpert-ai/contracts'
-import { isId } from '@xpert-ai/desktop-protocol'
+import type { ShellPreparationRequest, ShellPreparation, ShellComputerInfo } from '@xpert-ai/contracts'
+import { isId, isShellCwd, parseComputerInfo } from '@xpert-ai/desktop-protocol'
 import type { ClientToolRequest, ClientToolResponse, HITLRequest, HITLResponse } from '@xpert-ai/chatkit-types'
-import { shellError } from './desktop-shell.errors'
+import { parseShellBoundary, shellError } from './desktop-shell.errors'
+
+export async function requestShellComputerInfo(toolCallId: string): Promise<ShellComputerInfo> {
+    const callId = `${toolCallId}:info`
+    const request: ClientToolRequest = {
+        clientToolCalls: [{ id: callId, name: 'desktop_shell_info', args: {} }]
+    }
+    const response = (await interrupt(request)) as ClientToolResponse
+    const message = response?.toolMessages?.find((item) => item.tool_call_id === callId)
+    if (!message || message.status === 'error') return { available: false }
+    if (typeof message.content !== 'string') shellError('INVALID_MESSAGE')
+    return parseShellBoundary(parseComputerInfo, JSON.parse(message.content))
+}
 
 function preparation(value: unknown): ShellPreparation {
     if (
@@ -17,8 +29,7 @@ function preparation(value: unknown): ShellPreparation {
         !('deviceName' in value) ||
         typeof value.deviceName !== 'string' ||
         !('cwd' in value) ||
-        typeof value.cwd !== 'string' ||
-        !value.cwd.startsWith('/') ||
+        !isShellCwd(value.cwd) ||
         !('expiresAt' in value) ||
         typeof value.expiresAt !== 'number' ||
         !Number.isFinite(value.expiresAt) ||

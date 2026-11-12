@@ -1,3 +1,6 @@
+import { groupDisplayContent } from './group-display'
+import { chatMessageText } from '../shared/chat-message-text'
+import type { ChatGroupDisplay } from '@xpert-ai/contracts'
 import { GroupComposerService } from './group-composer.service'
 import { isEqual } from 'lodash-es'
 // Invariants: authors come from authentication/execution bindings, not message text.
@@ -19,7 +22,7 @@ import { GroupParticipant, GroupMessageRecipient, GroupInteraction } from './gro
 import { GroupAccessService } from './group-access.service'
 import { publicMembers } from './group-members.service'
 import { parseGroupCommunication, GroupSendInput } from './group.schema'
-import { groupConflict, groupDenied, groupExecutionError } from './group.errors'
+import { groupConflict, groupDenied, groupExecutionError, groupProjectRequired } from './group.errors'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { consumedGroupReceipts } from './group-delivery-status'
@@ -31,16 +34,18 @@ export function publicMessage(
     failedExecutions: XpertAgentExecution[] = [],
     consumedReceipts: ReadonlySet<string> = new Set()
 ): ChatGroupMessage {
+    const display = groupDisplayContent(message.content)
     return {
         id: message.id,
         clientMessageId: message.messageEnvelope?.correlation?.messageId ?? message.id,
         sequence: message.sequence,
-        text: typeof message.content === 'string' ? message.content : '',
+        text: chatMessageText(message.content) ?? '',
+        ...(display.length ? { display } : {}),
         createdAt: message.createdAt.toISOString(),
         communication: parseGroupCommunication(message.groupCommunication),
         runtimeParticipantIds: [
             ...new Set([
-                ...(message.groupPublicationId?.match(/^(output|tool):/)
+                ...(message.groupPublicationId?.match(/^(output|display|tool):/)
                     ? [parseGroupCommunication(message.groupCommunication).senderId]
                     : []),
                 ...receipts
@@ -124,8 +129,24 @@ export class GroupMessagesService {
         publicationId?: string,
         projection = false,
         causedByMessageId?: string,
-        hostContext?: Pick<ChatGroupCommunication, 'projectTask' | 'runtimeResult'>
+        hostContext?: Pick<
+            ChatGroupCommunication,
+            'projectTask' | 'runtimeResult' | 'resourceLinks' | 'resourceNavigation'
+        >,
+        display?: ChatGroupDisplay[]
     ) {
+        const blocks = display ? groupDisplayContent(display) : []
+        if (
+            display &&
+            (author.kind !== 'assistant' ||
+                input.intent !== 'message' ||
+                !publicationId?.startsWith('display:') ||
+                !blocks.length)
+        )
+            throw groupDenied()
+        const content = blocks.length
+            ? [...(input.text ? [{ type: 'text' as const, text: input.text }] : []), ...blocks]
+            : input.text
         if (!author.active || author.groupId !== group.id) throw groupDenied()
         const recipients = input.intent === 'reply' ? [] : input.recipientIds
         let authorizedRecipients = recipients
@@ -136,14 +157,17 @@ export class GroupMessagesService {
             if (!original) throw groupConflict()
             authorizedRecipients = [parseGroupCommunication(original.groupCommunication).senderId]
         }
+        const projectRequired = new Set<string>()
         if (author.kind === 'user') {
             for (const id of authorizedRecipients) {
                 const target = await this.db
                     .getRepository(GroupParticipant)
                     .findOneBy({ id, groupId: group.id, active: true })
                 if (!target) throw groupDenied()
-                if (target.kind === 'assistant' && input.intent !== 'message')
-                    await this.access.assistant(target.subjectId)
+                if (target.kind === 'assistant' && input.intent !== 'message') {
+                    const assistant = await this.access.assistant(target.subjectId)
+                    if (assistant.options?.workspaceScope?.mode === 'project-required') projectRequired.add(target.id)
+                }
             }
         }
         if (input.composer) {
@@ -188,8 +212,8 @@ export class GroupMessagesService {
                 if (projection && sender.kind === 'assistant' && communication.senderId === sender.id) {
                     // A paused/canceled visible answer is durable. Resuming updates that same public message.
                     if (communication.intent === input.intent || communication.intent === 'reply') {
-                        if (existing.content !== input.text) {
-                            existing.content = input.text
+                        if (!isEqual(existing.content, content)) {
+                            existing.content = content
                             await manager.save(existing)
                             await manager.increment(ChatConversation, { id: group.id }, 'revision', 1)
                         }
@@ -201,15 +225,17 @@ export class GroupMessagesService {
                     if (communication.intent !== 'message' || input.intent !== 'reply') throw groupConflict()
                 } else {
                     if (
-                        existing.content !== input.text ||
+                        !isEqual(existing.content, content) ||
                         communication.senderId !== sender.id ||
                         communication.intent !== input.intent ||
                         !isEqual(communication.projectTask, hostContext?.projectTask) ||
+                        !isEqual(communication.resourceLinks, hostContext?.resourceLinks) ||
                         (hostContext?.runtimeResult &&
                             !isEqual(communication.runtimeResult, hostContext.runtimeResult)) ||
                         !isEqual(communication.composer, input.composer) ||
                         (input.intent === 'reply'
-                            ? communication.replyToMessageId !== input.replyToMessageId
+                            ? communication.replyToMessageId !== input.replyToMessageId ||
+                              (communication.replyStage ?? 'final') !== (input.replyStage ?? 'final')
                             : JSON.stringify(communication.recipientIds) !== JSON.stringify(recipients))
                     )
                         throw groupConflict()
@@ -249,6 +275,23 @@ export class GroupMessagesService {
                 ? await manager.findBy(GroupParticipant, { groupId: group.id, id: In(targets), active: true })
                 : []
             if (members.length !== targets.length) throw groupDenied()
+            // The group lock serializes this check with project binding. Idempotent retries above
+            // still return their original receipt; new invalid sends never reach persistence/outbox.
+            const missingProject: string[] = []
+            for (const member of members) {
+                if (!projectRequired.has(member.id)) continue
+                const runtime = await manager.findOneBy(ChatConversation, {
+                    id: member.runtimeConversationId,
+                    tenantId: group.tenantId,
+                    organizationId: group.organizationId,
+                    purpose: 'group_assistant_runtime'
+                })
+                if (!runtime) throw groupDenied()
+                const selectedProject =
+                    input.composer?.participantId === member.id ? input.composer.projectId : undefined
+                if (!runtime.projectId && !selectedProject) missingProject.push(member.id)
+            }
+            if (missingProject.length) throw groupProjectRequired(group.id, missingProject)
             const rootUserId =
                 sender.kind === 'user' && input.intent !== 'reply' ? sender.subjectId : inherited?.rootUserId
             if (!rootUserId) throw groupDenied()
@@ -267,7 +310,9 @@ export class GroupMessagesService {
                 intent: input.intent,
                 senderId: sender.id,
                 recipientIds: targets,
-                ...(input.intent === 'reply' ? { replyToMessageId: input.replyToMessageId } : {}),
+                ...(input.intent === 'reply'
+                    ? { replyToMessageId: input.replyToMessageId, replyStage: input.replyStage ?? 'final' }
+                    : {}),
                 ...(causedByMessageId ? { causedByMessageId } : {}),
                 rootMessageId: inherited?.rootMessageId ?? id,
                 rootUserId,
@@ -297,7 +342,7 @@ export class GroupMessagesService {
                     createdInThreadId: group.threadId,
                     createdById: sender.kind === 'user' ? sender.subjectId : sender.principalUserId,
                     role: sender.kind === 'user' ? 'human' : 'ai',
-                    content: input.text,
+                    content,
                     sequence: existing?.sequence ?? locked.lastMessageSequence,
                     groupCommunication: communication,
                     groupPublicationId: key,
@@ -316,6 +361,12 @@ export class GroupMessagesService {
                 })
             )
             if (existing) await manager.delete(GroupMessageRecipient, { messageId: id })
+            // Partial replies remain public background; only final replies continue the requester.
+            // Formal task replies use the persisted Invocation result to wake their caller.
+            const canWake =
+                hostContext?.runtimeResult ||
+                input.intent === 'request' ||
+                (input.intent === 'reply' && input.replyStage !== 'progress' && !inherited?.projectTask)
             const receipts = await manager.save(
                 GroupMessageRecipient,
                 members.map((member) =>
@@ -325,23 +376,12 @@ export class GroupMessagesService {
                         groupId: group.id,
                         messageId: id,
                         participantId: member.id,
-                        // Formal task replies stay visible, but only the persisted Invocation result wakes the caller.
-                        wake:
-                            member.kind === 'assistant' &&
-                            (hostContext?.runtimeResult ||
-                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
-                                ? true
-                                : false,
-                        status:
-                            member.kind === 'assistant' &&
-                            (hostContext?.runtimeResult ||
-                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
-                                ? 'pending'
-                                : 'consumed'
+                        wake: member.kind === 'assistant' && !!canWake,
+                        status: member.kind === 'assistant' && canWake ? 'pending' : 'consumed'
                     })
                 )
             )
-            if (replyReceipt) {
+            if (replyReceipt && input.intent === 'reply' && input.replyStage !== 'progress') {
                 replyReceipt.replyMessageId = id
                 await manager.save(replyReceipt)
             }

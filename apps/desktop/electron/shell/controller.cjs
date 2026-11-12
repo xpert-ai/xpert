@@ -1,14 +1,22 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const os = require('node:os')
 const { randomUUID, createHash } = require('node:crypto')
 const { fork } = require('node:child_process')
 const { apiRootUrl } = require('../connection/urls.mjs')
-const { parseSettings, isId, parsePreparation, parsePolicy } = require('@xpert-ai/desktop-protocol')
+const {
+  parseSettings,
+  isId,
+  isShellPlatform,
+  isShellCwd,
+  parsePreparation,
+  parsePolicy
+} = require('@xpert-ai/desktop-protocol')
+const { defaultSettings, shellEnvironment } = require('./platform.cjs')
 
 class DesktopShellController {
-  constructor(service, directory) {
+  constructor(service, directory, { platform = process.platform } = {}) {
     this.service = service
+    this.platform = platform
     this.directory = directory
     this.child = null
     this.deviceId = null
@@ -24,25 +32,21 @@ class DesktopShellController {
     const file = path.join(directory, 'settings.json')
     try {
       const saved = JSON.parse(fs.readFileSync(file, 'utf8'))
-      this.settings = parseSettings(saved.settings)
+      this.settings = parseSettings(saved.settings, this.platform)
       for (const [key, policy] of Object.entries(saved.policies || {})) {
         if (/^[a-f0-9]{64}$/.test(key) && ['ask', 'allow', 'deny'].includes(policy)) this.policies[key] = policy
       }
       this.installationId = isId(saved.installationId) ? saved.installationId : randomUUID()
     } catch {
       this.installationId = randomUUID()
-      this.settings = {
-        name: os.hostname(),
-        shell: '/bin/zsh',
-        cwd: os.homedir(),
-        path: '/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin'
-      }
+      this.settings = defaultSettings(this.platform)
     }
   }
   snapshot() {
     return {
       policy: this.policy(),
-      available: process.platform === 'darwin',
+      available: isShellPlatform(this.platform),
+      platform: this.platform,
       enabled: !!this.deviceId,
       connected: this.connected,
       deviceId: this.deviceId,
@@ -87,7 +91,7 @@ class DesktopShellController {
     return this.snapshot()
   }
   async configureSettings(value) {
-    const settings = parseSettings(value)
+    const settings = parseSettings(value, this.platform)
     if (!fs.statSync(settings.cwd).isDirectory()) throw new Error('INVALID_SETTINGS')
     await this.disable()
     this.settings = settings
@@ -116,6 +120,7 @@ class DesktopShellController {
     if (!this.connected) throw new Error('DEVICE_OFFLINE')
     const key = JSON.stringify([scope, input.runId, input.toolCallId])
     const cwd = input.cwd || this.settings.cwd
+    if (!isShellCwd(cwd, this.platform)) throw new Error('INVALID_SETTINGS')
     const argsHash = createHash('sha256')
       .update(JSON.stringify([input.command, cwd, input.timeoutSec]))
       .digest('hex')
@@ -211,14 +216,14 @@ class DesktopShellController {
     })
   }
   async enable(value) {
-    if (process.platform !== 'darwin') throw new Error('UNSUPPORTED_PLATFORM')
-    const settings = parseSettings(value)
+    if (!isShellPlatform(this.platform)) throw new Error('UNSUPPORTED_PLATFORM')
+    const settings = parseSettings(value, this.platform)
     if (!fs.statSync(settings.cwd).isDirectory()) throw new Error('INVALID_SETTINGS')
     await this.disable()
     const generation = this.generation
     const registration = await this.service.request('/api/desktop-shell/devices', {
       method: 'POST',
-      body: { installationId: this.installationId, platform: process.platform, settings }
+      body: { installationId: this.installationId, platform: this.platform, settings }
     })
     if (generation !== this.generation) throw new Error('SESSION_CHANGED')
     if (!isId(registration.deviceId) || typeof registration.token !== 'string') throw new Error('INVALID_MESSAGE')
@@ -229,7 +234,8 @@ class DesktopShellController {
     const child = fork(path.join(__dirname, 'worker.cjs'), [], {
       execPath: process.execPath,
       stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-      env: { HOME: os.homedir(), TMPDIR: os.tmpdir(), PATH: settings.path, ELECTRON_RUN_AS_NODE: '1' }
+      windowsHide: true,
+      env: { ...shellEnvironment(settings), ELECTRON_RUN_AS_NODE: '1' }
     })
     this.child = child
     child.on('message', (message) => {

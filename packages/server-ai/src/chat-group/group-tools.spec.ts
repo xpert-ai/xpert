@@ -181,7 +181,7 @@ describe('send_group_message runtime tool', () => {
 
     it('leaves reply recipient derivation to the publication service', async () => {
         const { tool, original, messages, access } = await fixture()
-        const args = { intent: 'reply', text: 'Reviewed', replyToMessageId: original.id }
+        const args = { intent: 'reply', replyStage: 'final', text: 'Reviewed', replyToMessageId: original.id }
         await tool.invoke({ type: 'tool_call', name: tool.name, id: 'reply-1', args })
         expect(messages.publish).toHaveBeenCalledWith(
             expect.anything(),
@@ -282,7 +282,13 @@ describe('send_group_message runtime tool', () => {
             const { tool, other, original, messages, outbox } = await fixture()
             const args =
                 invalid === 'reply-target'
-                    ? { intent: 'reply', text: 'Hi', replyToMessageId: original.id, recipientIds: [other.id] }
+                    ? {
+                          intent: 'reply',
+                          replyStage: 'final',
+                          text: 'Hi',
+                          replyToMessageId: original.id,
+                          recipientIds: [other.id]
+                      }
                     : {
                           intent: 'request',
                           text: invalid === 'whitespace' ? ' ' : 'Hi',
@@ -302,5 +308,23 @@ describe('send_group_message runtime tool', () => {
             tool.invoke({ type: 'tool_call', name: tool.name, id: 'call-1', args: { intent: 'message', text: 'Hi' } })
         ).rejects.toThrow('publication failed')
         expect(outbox.flush).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        { intent: 'reply' },
+        { intent: 'reply', replyStage: 'done' },
+        { intent: 'message', replyStage: 'final' },
+        { intent: 'request', replyStage: 'progress' }
+    ])('rejects an invalid or missing reply stage before publication: %j', async (input) => {
+        const { tool, original, messages } = await fixture()
+        await expect(
+            tool.invoke({
+                type: 'tool_call',
+                name: tool.name,
+                id: 'invalid-stage',
+                args: { ...input, text: 'Answer', replyToMessageId: original.id }
+            })
+        ).rejects.toThrow()
+        expect(messages.publish).not.toHaveBeenCalled()
     })
 })

@@ -6,7 +6,7 @@ import { Repository, In, IsNull } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { QueryBus } from '@nestjs/cqrs'
 import type { ShellScope } from '@xpert-ai/contracts'
-import { LIMITS, isId, parseSettings, parsePreparation } from '@xpert-ai/desktop-protocol'
+import { LIMITS, isId, isShellPlatform, isShellCwd, parseSettings, parsePreparation } from '@xpert-ai/desktop-protocol'
 import { DesktopShellDevice, DesktopShellGrant, DesktopShellOperation } from './desktop-shell.entities'
 import { parseShellBoundary, shellError } from './desktop-shell.errors'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
@@ -43,11 +43,12 @@ export class DesktopShellAuthService {
             !('installationId' in body) ||
             !isId(body.installationId) ||
             !('platform' in body) ||
-            body.platform !== 'darwin' ||
+            !isShellPlatform(body.platform) ||
             !('settings' in body)
         )
             shellError('INVALID_MESSAGE')
-        const settings = parseShellBoundary(parseSettings, body.settings)
+        const platform = body.platform
+        const settings = parseShellBoundary((value) => parseSettings(value, platform), body.settings)
         const scope = currentShellScope()
         const existing = await this.devices.findOneBy({ ...scopeFields(scope), installationId: body.installationId })
         if (existing) await this.disable(existing.id, scope)
@@ -59,7 +60,7 @@ export class DesktopShellAuthService {
             id,
             ...scopeFields(scope),
             installationId: body.installationId,
-            platform: 'darwin',
+            platform,
             name: settings.name,
             shell: settings.shell,
             cwd: settings.cwd,
@@ -128,8 +129,9 @@ export class DesktopShellAuthService {
         const input = parseShellBoundary(parsePreparation, body)
         const scope = currentShellScope()
         const device = await this.requireDevice(deviceId, scope)
-        const grant = await this.issueGrant(deviceId, input.assistantId, input.threadId)
         const cwd = input.cwd ?? device.cwd
+        if (!isShellCwd(cwd, device.platform)) shellError('INVALID_MESSAGE')
+        const grant = await this.issueGrant(deviceId, input.assistantId, input.threadId)
         const argsHash = createHash('sha256')
             .update(JSON.stringify([input.command, cwd, input.timeoutSec]))
             .digest('hex')

@@ -22,7 +22,7 @@ describe('global retention settings HTTP boundary', () => {
 	const otherTenantId = '00000000-0000-0000-0000-000000000002'
 	const settingId = '00000000-0000-0000-0000-000000000003'
 	const repository = { find: jest.fn(), save: jest.fn(), update: jest.fn(), delete: jest.fn() }
-	const service = new TenantSettingService(repository as unknown as Repository<TenantSetting>)
+	const service = new TenantSettingService(repository as unknown as Repository<TenantSetting>, { del: jest.fn() })
 	let app: INestApplication
 	let origin: string
 

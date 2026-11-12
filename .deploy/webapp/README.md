@@ -7,7 +7,7 @@ browser recorder's runtime validation and TypeScript declarations. API, the Desk
 application and optional server plugins are not installed.
 
 Angular, Nx and their frontend native binaries (for example esbuild and SWC) are
-still required. Server-only modules such as `node-pty`, `isolated-vm`, `sharp` and
+still required. Server-only modules such as `node-pty`, `quickjs-emscripten`, `sharp` and
 FFmpeg, and Desktop/E2E downloads such as Electron and Cypress are excluded.
 
 When adding a frontend dependency, declare it in the appropriate workspace

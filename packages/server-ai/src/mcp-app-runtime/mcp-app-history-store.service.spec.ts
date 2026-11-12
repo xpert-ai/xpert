@@ -1,5 +1,6 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { getMetadataArgsStorage, type Repository } from 'typeorm'
+import { toolResultForHistoryResume } from './mcp-app-history-visualization'
 import { McpAppHistory } from './mcp-app-history.entity'
 import { MCP_APP_HISTORY_MAX_BYTES, McpAppHistoryStoreService } from './mcp-app-history-store.service'
 import type { McpAppInstanceSnapshot } from './mcp-app-instance-store.service'
@@ -97,6 +98,62 @@ describe('McpAppHistoryStoreService', () => {
         })
     })
 
+    it('round trips only the versioned chart fields alongside the initial result after expiry', async () => {
+        const initial = snapshot()
+        const key = 'xpertai/history-visualization'
+        const field = { key: 'amount', label: 'Amount', role: 'measure', dataType: 'number' }
+        const target = { entityId: 'cube', entityTypeCode: 'semantic_cube', externalKey: 'sales' }
+        const descriptor = {
+            version: 1,
+            type: 'uose.sql.cube_slice',
+            title: 'Sales',
+            target,
+            visualizationSpec: { fields: [field], view: { kind: 'bar', valueField: 'amount' } }
+        }
+        const result = { structuredContent: { effect: { rows: [{ amount: 24 }] } } }
+        initial.toolResult = {
+            ...result,
+            _meta: {
+                session: 'secret',
+                [key]: {
+                    ...descriptor,
+                    request: { headers: 'secret' },
+                    target: { ...target, token: 'secret' },
+                    visualizationSpec: {
+                        fields: [{ ...field, private: 'secret' }],
+                        view: { ...descriptor.visualizationSpec.view, html: 'secret' }
+                    }
+                }
+            }
+        }
+        initial.expiresAt = Date.now() - 1
+        await service.preserve(initial)
+        const historical = await service.find('app-1')
+        expect(JSON.stringify(inserted.snapshot)).not.toContain('secret')
+        expect(historical?.toolResult).toEqual(result)
+        expect(historical?.historyVisualization).toEqual(descriptor)
+        expect(toolResultForHistoryResume(historical?.toolResult, historical?.historyVisualization)).toEqual({
+            ...result,
+            _meta: { [key]: descriptor }
+        })
+        expect(historical?.toolResult).toEqual(result)
+    })
+
+    it.each([{ version: 2 }, { version: 1, type: 'sql', target: null }])(
+        'keeps history usable for invalid chart metadata',
+        async (descriptor) => {
+            await service.preserve({
+                ...snapshot(),
+                toolResult: { structuredContent: { rows: [] }, _meta: { 'xpertai/history-visualization': descriptor } }
+            })
+            const historical = await service.find('app-1')
+            expect(historical?.historyVisualization).toBeUndefined()
+            expect(toolResultForHistoryResume(historical?.toolResult, historical?.historyVisualization)).toEqual({
+                structuredContent: { rows: [] }
+            })
+        }
+    )
+
     it.each(['tenant', 'organization'])('denies a different %s scope', async (scope) => {
         await service.preserve(snapshot())
         if (scope === 'tenant') jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-2')
@@ -133,6 +190,28 @@ describe('McpAppHistoryStoreService', () => {
         await expect(service.find('app-1')).resolves.toBeNull()
         row.snapshot = { ...snapshot(), resourceUri: 'https://unexpected.example' }
         await expect(service.find('app-1')).resolves.toBeNull()
+    })
+
+    it('retains the original table when the presentation alone exceeds the storage limit', async () => {
+        const result = { structuredContent: { rows: [{ count: 0 }] } }
+        await service.preserve({
+            ...snapshot(),
+            toolResult: {
+                ...result,
+                _meta: {
+                    'xpertai/history-visualization': {
+                        version: 1,
+                        type: 'chart',
+                        title: 'x'.repeat(MCP_APP_HISTORY_MAX_BYTES),
+                        target: { entityId: 'cube', entityTypeCode: 'semantic_cube', externalKey: 'cube' },
+                        visualizationSpec: { fields: [], view: { kind: 'table' } }
+                    }
+                }
+            }
+        })
+        const restored = await service.find('app-1')
+        expect(restored?.toolResult).toEqual(result)
+        expect(restored?.historyVisualization).toBeUndefined()
     })
 
     it('bounds history without truncating or writing an oversized initial result', async () => {

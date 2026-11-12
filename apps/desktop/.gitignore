@@ -3,3 +3,4 @@ release/
 .local/
 
 resources/audio-capture/audio-capture*
+resources/shell/windows-supervisor.exe

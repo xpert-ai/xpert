@@ -153,6 +153,11 @@ export interface PluginContext<TConfig extends object = any> {
   app?: INestApplicationContext // Nest runtime context (injected after startup)
   logger: PluginLogger // Logger wrapper provided by SDK
   config: TConfig // Final config after validation and merging
+  /** Read current persisted configuration after host initialization or hot installation completes.
+   * No background polling or cross-call cache. Errors propagate instead of returning stale configuration.
+   * Optional for compatibility with older hosts; `config` remains the synchronous local snapshot.
+   */
+  readConfig?(): Promise<TConfig>
   tenantId?: string | null
   organizationId?: string | null
   scopeKey?: string | null

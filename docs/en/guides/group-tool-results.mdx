@@ -1,0 +1,43 @@
+---
+title: 'Tool results in group chat'
+description: 'Display data cards, resource cards and MCP App result snapshots independently of final replies.'
+---
+
+Group Assistants automatically publish recognized presentation results produced by tools. The Assistant does not need to copy those results through `send_group_message`.
+
+## Supported results
+
+| Result        | Group presentation                              | Initial scope                                                                                                     |
+| ------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Widget        | Existing A2UI data-card renderer                | Flat A2UI messages; read-only snapshots without source-session actions                                            |
+| Resource Card | Title, description and supported content blocks | Copied cards do not grant access; open, download and file-preview actions remain unavailable from these snapshots |
+| MCP App       | Text and structured result snapshot             | No source App iframe, instance, token, tool input or bridge                                                       |
+
+For accepted group resources, use the existing shared-resource entry or `resource_open` to open the Workbench. That route continues to authorize the current viewer.
+
+Ordinary tool activity, raw `output` / `artifact`, reasoning, memory and unknown components remain private to the execution record. A nested object that happens to resemble a card is not selected. Apps without displayable results, media blocks, legacy Widget config, malformed results and oversized blocks are not automatically published in this phase. Authorized users can inspect the execution record.
+
+## Reply completion
+
+Display snapshots are ordinary messages (`intent: message`). They neither wake another Assistant nor mark a request as answered.
+
+- `reply + progress` supplies a partial conclusion while analysis continues.
+- `reply + final` explicitly completes the answer to a request.
+- After a successful final tool reply, automatic final text is suppressed while display results are retained.
+- A result without text is still saved and displayed; a snapshot alone does not replace a final reply.
+
+Updates to the same runtime reply reuse its public display message and sequence. Refresh and reconnect read the same durable record instead of appending duplicate cards. The runtime producer owns publication; no browser observer is required.
+
+## Authorization and data scope
+
+Published snapshots are visible to group members. Executions using shared-resource analysis wait for terminal delivery checks; revoked grants or inactive membership prevent new publication. Already published results remain group history and are not retroactively deleted when source authorization is revoked.
+
+Viewing a dashboard definition, querying shared data, opening a resource and controlling an App session remain separate capabilities. A snapshot does not expand data access or transfer the source Assistant's session credentials.
+
+## Plugin integration and verification
+
+Keep emitting existing `component` messages (`data.type: Widget` or `McpApp`) and `resource_card` messages. No new Provider or tool-name convention is required. The platform selects explicit types and extracts permitted fields. Incremental components must retain stable IDs. A runtime reply projects at most 32 blocks, with a 128 KiB per-block and 256 KiB total snapshot budget; blocks exceeding those limits are skipped.
+
+Verify results with final text, results without text, cards after a final tool reply, reconnect/history, revoked analysis grants, and exclusion of ordinary tools and reasoning. Group MCP results must never reconnect to the author's interactive App session.
+
+Interactive Widgets, arbitrary resource-card actions and group MCP Apps require explicit group action routing, per-viewer authorization and a publication contract in a later phase. This phase introduces no such extension API.

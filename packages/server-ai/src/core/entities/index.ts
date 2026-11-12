@@ -2,6 +2,8 @@ import { USER_NOTIFICATION_ENTITIES } from '../../user-notification/notification
 import { ModelReplacementOperation } from '../../xpert/model-replacement/operation.entity'
 import { CopilotRoleDefault } from '../../copilot/role-defaults/role-default.entity'
 import { ArtifactReference } from '../../artifacts/library/artifact-reference.entity'
+import { ArtifactUseGrant, ArtifactUseGrantAudit } from '../../artifacts/use-grants/artifact-use-grant.entity'
+import { ResourceAnalysisExecution } from '../../artifacts/analysis/resource-analysis-execution.entity'
 import { ContentResourceOperation } from '../../content-resource/catalog/content-operation.entity'
 import { ContentEditorPreference } from '../../content-resource/catalog/editor-preference.entity'
 import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
@@ -342,6 +344,9 @@ export const ALL_AI_ENTITIES = [
     AssistantBindingUserPreference,
     AssistantUserPreference,
     ArtifactReference,
+    ArtifactUseGrant,
+    ArtifactUseGrantAudit,
+    ResourceAnalysisExecution,
     Artifact,
     ArtifactVersion,
     ArtifactDraft,

@@ -1,114 +1,27 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { Inject, Logger } from '@nestjs/common'
+import { AsyncCaller } from '@langchain/core/utils/async_caller'
+import { OnModuleDestroy } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { Cache } from 'cache-manager'
-import { spawn } from 'child_process'
 import { SandboxVMCommand } from '../vm.command'
+import { runJavaScriptCode } from './javascript-runner'
 import { runPythonFunction } from './python'
 
-let isolatedVmModule: typeof import('isolated-vm') | null = null
-
-function getIsolatedVmModule() {
-	if (!isolatedVmModule) {
-		try {
-			isolatedVmModule = require('isolated-vm')
-		} catch (error) {
-			throw new Error('JavaScript sandbox dependency "isolated-vm" is unavailable in current environment')
-		}
-	}
-
-	return isolatedVmModule
-}
-
 @CommandHandler(SandboxVMCommand)
-export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand> {
-	readonly #logger = new Logger(SandboxVMHandler.name)
+export class SandboxVMHandler implements ICommandHandler<SandboxVMCommand>, OnModuleDestroy {
+    private readonly workers = new AsyncCaller({ maxConcurrency: 4, maxRetries: 0 })
+    private readonly shutdown = new AbortController()
 
-	constructor(
-		@Inject(CACHE_MANAGER)
-		private readonly cacheManager: Cache,
-	) {}
+    onModuleDestroy() {
+        this.shutdown.abort(new Error('JavaScript sandbox is shutting down'))
+    }
 
-	public async execute(command: SandboxVMCommand) {
-		const { code, parameters, language } = command
-		if (language === 'javascript') {
-			return await this.runJavaScriptCode(parameters, code)
-		} else if (language === 'python') {
-			return await runPythonFunction(parameters, code)
-		}
-
-		throw new Error(`Unsupported language ${language}`)
-	}
-
-	async runJavaScriptCode(parameters: any, code: string): Promise<any> {
-		const { ExternalCopy, Isolate } = getIsolatedVmModule()
-		const isolate = new Isolate({ memoryLimit: 128 }) // 128MB 内存限制
-		const contextified = await isolate.createContext()
-		const jail = contextified.global
-
-
-		// Bind user variables to sandbox
-		for (const [key, value] of Object.entries(parameters)) {
-			await jail.set(key, new ExternalCopy(value).copyInto())
-		}
-
-		// Execute code (seems to only return strings)
-		const wrappedCode = `JSON.stringify((() => { \n${code}\n })())`
-
-		const script = await isolate.compileScript(wrappedCode)
-		const result = await script.run(contextified)
-
-		return {
-			result: JSON.parse(result),
-		}
-	}
-
-	async runPythonCode(input: any, pythonCode: string): Promise<any> {
-		return new Promise((resolve, reject) => {
-			// Convert the key value pairs of the input object into Python variable definitions
-			const inputVariables = Object.entries(input)
-				.map(([key, value]) => `${key} = ${JSON.stringify(value)}`)
-				.join('\n')
-
-			// Splice the variable definition before the Python code
-			const fullPythonCode = `${inputVariables}\n${pythonCode}`
-
-			// Use the -c parameter to directly execute a Python code string
-			const pythonProcess = spawn('python3', ['-c', fullPythonCode], {
-				stdio: ['pipe', 'pipe', 'pipe'] // Configure stdin, stdout, stderr
-			})
-
-			let output = ''
-			let errorOutput = ''
-
-			// Collect the output of the Python script
-			pythonProcess.stdout.on('data', (data) => {
-				output += data.toString()
-			})
-
-			// Collect error messages
-			pythonProcess.stderr.on('data', (data) => {
-				errorOutput += data.toString()
-			})
-
-			const timeout = setTimeout(() => {
-				pythonProcess.kill()
-				reject(new Error('Python execution timeout'))
-			}, 5000) // 5 seconds timeout
-
-			// Script execution completed
-			pythonProcess.on('close', (code) => {
-				clearTimeout(timeout)
-				if (code === 0) {
-					try {
-						resolve(JSON.parse(output)) // Assume the return is in JSON format
-					} catch (e) {
-						resolve(output) // If not JSON, return original output
-					}
-				} else {
-					reject(new Error(errorOutput))
-				}
-			})
-		})
-	}
+    async execute({ code, parameters, language, signal }: SandboxVMCommand) {
+        if (language === 'javascript') {
+            const stop = signal ? AbortSignal.any([signal, this.shutdown.signal]) : this.shutdown.signal
+            return this.workers.call(runJavaScriptCode, parameters, code, stop)
+        }
+        if (language === 'python') {
+            return runPythonFunction(parameters, code)
+        }
+        throw new Error(`Unsupported language ${language}`)
+    }
 }

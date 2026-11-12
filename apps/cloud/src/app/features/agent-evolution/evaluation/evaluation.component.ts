@@ -1,405 +1,435 @@
-import { ActivatedRoute, Router } from '@angular/router'
-import { EvolutionChangePickerComponent } from '../shared/evolution-change-picker.component'
-import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
-import {
-  changeFilter,
-  evolutionEntries,
-  selectedEvolutionEntry,
-  type EvolutionChangeFilter
-} from '../shared/evolution-change-presentation'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { DOCUMENT } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { FormsModule } from '@angular/forms'
-import { injectTheme } from '@cloud/app/@core/theme'
-import { Store } from '@cloud/app/@core'
-import { EchartsDirective } from '@cloud/app/@shared/charts/echarts.directive'
-import type { GoldenCaseRevision, ReplayCaseResult } from '@xpert-ai/contracts'
-import {
-  ZardAlertDialogService,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardComboboxComponent,
-  ZardInputDirective
-} from '@xpert-ai/headless-ui'
+import { Component, computed, DestroyRef, effect, inject, signal, untracked, ViewContainerRef } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
+import { map } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import type { EChartsOption } from 'echarts'
-import { firstValueFrom } from 'rxjs'
-import { startWith } from 'rxjs/operators'
-import { readAgentEvolutionChartTheme } from '../agent-evolution-chart-theme'
+import { Store, AIPermissionsEnum } from '@cloud/app/@core'
+import { injectActiveScope } from '@cloud/app/@core/state'
+import type { EvaluationRun, EvolutionCandidate, ImprovementProposal } from '@xpert-ai/contracts'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardDialogService,
+  ZardDialogRef,
+  ZardSearchInputComponent
+} from '@xpert-ai/headless-ui'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { evolutionApprovalGatePresentation, percent, shortId } from '../agent-evolution.types'
+import { sameEvolutionScope } from '../agent-evolution.types'
+import { EvolutionChangePanelComponent } from '../changes/change-panel.component'
+import { LearningCandidateFormComponent } from '../learning/learning-candidate-form.component'
+import { targetLabel } from '../targets/target-directory'
+import { ReplayEvidenceDialog, type ReplayEvidence, type ReplaySelection } from './replay-evidence-dialog.component'
+import { ReplayResultComponent } from './replay-result.component'
+import { compactId } from './replay-presentation'
+import { ConfirmReplayComponent, type ReplayConfirmation } from './confirm-replay.component'
+import { EvolutionPageHeaderComponent } from '../shared/evolution-page-header.component'
+import { DatasetEditorComponent } from './dataset-editor.component'
 
 @Component({
-  standalone: true,
   selector: 'xp-agent-evolution-evaluation',
+  standalone: true,
   imports: [
-    EvolutionChangePickerComponent,
-    EvolutionChangePanelComponent,
     CommonModule,
-    FormsModule,
-    EchartsDirective,
+    RouterLink,
     TranslateModule,
-    ZardBadgeComponent,
     ZardButtonComponent,
     ZardComboboxComponent,
-    ZardInputDirective,
-    ...ZardCardImports
+    ZardSearchInputComponent,
+    EvolutionChangePanelComponent,
+    LearningCandidateFormComponent,
+    ReplayResultComponent,
+    DatasetEditorComponent,
+    EvolutionPageHeaderComponent
   ],
   templateUrl: './evaluation.component.html',
-  host: { class: 'block' }
+  host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden' }
 })
 export class AgentEvolutionEvaluationComponent {
   readonly facade = inject(AgentEvolutionFacade)
-  private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
-  readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
-  readonly changeType = computed(() => changeFilter(this.query().get('changeStatus')))
-  readonly entries = computed(() =>
-    evolutionEntries(this.facade.contextLifecycleRecords(), this.facade.visibleTargets(), 'evaluation')
+  private readonly route = inject(ActivatedRoute)
+  private readonly translate = inject(TranslateService)
+  private readonly scope = injectActiveScope()
+  private readonly store = inject(Store)
+  private readonly dialog = inject(ZardDialogService)
+  private readonly container = inject(ViewContainerRef)
+  private readonly destroy = inject(DestroyRef)
+  private readonly evidenceDialogs = inject(Dialog)
+  private evidenceRef?: DialogRef<ReplaySelection, ReplayEvidenceDialog>
+  private confirmRef?: ZardDialogRef<ConfirmReplayComponent, boolean>
+  readonly canManage = toSignal(
+    this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.EVOLUTION_MANAGE))),
+    { initialValue: this.store.hasPermission(AIPermissionsEnum.EVOLUTION_MANAGE) }
   )
-  readonly selection = computed(() =>
-    selectedEvolutionEntry(this.entries(), this.changeType(), this.query().get('changeId'))
+  readonly lang = toSignal(this.translate.onLangChange)
+  readonly q = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
+  readonly prefix = 'XP.AgentEvolution.ReplayWorkbench.'
+  readonly short = compactId
+  readonly term = signal('')
+  readonly status = signal('all')
+  readonly records = this.facade.contextLifecycleRecords
+  readonly proposals = this.facade.contextProposals
+  readonly built = this.facade.contextCandidates
+  readonly runs = computed(() =>
+    this.facade
+      .contextEvaluations()
+      .slice()
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
   )
-  readonly resource = computed(
-    () => this.facade.contextChanges().find((item) => item.changeId === this.selection()?.id) ?? null
+  readonly byTarget = computed(() => new Map(this.facade.visibleTargets().map((t) => [t.targetId, t])))
+  readonly pending = computed(() =>
+    this.proposals().filter(
+      (p) =>
+        p.status === 'ready' &&
+        this.byTarget().get(p.targetId)?.candidateForm &&
+        this.byTarget().get(p.targetId)?.capabilities.candidateBuild &&
+        !this.findBuilt(p)
+    )
   )
-  readonly usesReplay = computed(
-    () => this.selection()?.strategy.definition.evaluations.some((step) => step.kind === 'golden_replay') === true
+  readonly tab = computed(() =>
+    this.run() || this.runningHere() || this.q().get('view') === 'runs' ? 'runs' : 'candidates'
   )
-  selectChange(id: string | null) {
-    this.facade.selectedDatasetSnapshotId.set(null)
-    this.facade.selectedEvaluationRunId.set(null)
-    this.selectedCaseId.set(null)
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { changeId: id },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    })
-  }
-  filterChanges(type: EvolutionChangeFilter) {
-    void this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { changeStatus: type, changeType: null, changeId: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    })
-  }
-
-  readonly #alertDialog = inject(ZardAlertDialogService)
-  readonly #translate = inject(TranslateService)
-  readonly #document = inject(DOCUMENT)
-  readonly #theme = injectTheme()
-  readonly #store = inject(Store)
-
-  readonly percent = percent
-  readonly shortId = shortId
-  readonly selectedCaseId = signal<string | null>(null)
-  readonly showDatasetBuilder = signal(false)
-  readonly datasetId = signal('')
-  readonly datasetName = signal('')
-  readonly evaluatorVersion = signal('')
-  readonly metricDefinitionVersion = signal('')
-  readonly datasetCasesJson = signal('[]')
-  readonly approvalReason = signal(this.#translate.instant('XP.AgentEvolution.DefaultApprovalReason'))
-  readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
-  readonly currentUser = toSignal(this.#store.user$, { initialValue: this.#store.user })
-
-  readonly evaluation = computed(
-    () =>
-      this.facade
-        .contextEvaluations()
-        .filter((item) => item.candidateId === this.candidate()?.candidateId)
-        .find((item) => item.runId === this.facade.selectedEvaluationRunId()) ??
-      this.facade.contextEvaluations().find((item) => item.candidateId === this.candidate()?.candidateId) ??
-      null
-  )
-  readonly candidate = computed(
-    () => this.facade.contextCandidates().find((item) => item.candidateId === this.selection()?.id) ?? null
-  )
-  readonly candidateTarget = computed(
-    () => this.facade.dashboard().targets.find((target) => target.targetId === this.candidate()?.targetId) ?? null
-  )
-  readonly compatibleDatasets = computed(() => {
-    const candidate = this.candidate()
-    if (!candidate) return []
-    return this.facade
-      .contextDatasets()
-      .filter((dataset) => dataset.targetId === candidate.targetId && sameScope(dataset.scope, candidate.targetScope))
+  readonly targetOptions = computed(() => {
+    this.lang()
+    return [
+      { value: 'all', label: this.t('XP.AgentEvolution.Overview.AllTargets') },
+      ...this.facade.visibleTargets().map((t) => ({ value: t.targetId, label: this.name(t.targetId) }))
+    ]
   })
-
-  readonly datasetOptions = computed(() => {
-    this.localeChange()
-    return this.compatibleDatasets().map((item) => ({
-      value: item.snapshotId,
-      label: this.#translate.instant('XP.AgentEvolution.DatasetOptionLabel', {
-        name: item.name,
-        count: item.cases.length
-      })
+  readonly filterOptions = computed(() => {
+    this.lang()
+    return ['all', 'waiting', 'passed', 'blocked', 'running', 'checks'].map((value) => ({
+      value,
+      label: this.t(this.prefix + 'status_' + value)
     }))
   })
-  readonly dataset = computed(
-    () =>
-      this.compatibleDatasets().find((item) => item.snapshotId === this.facade.selectedDatasetSnapshotId()) ??
-      this.compatibleDatasets()[0] ??
-      null
-  )
-  readonly approvals = computed(() => {
-    const candidate = this.candidate()
-    const evaluation = this.evaluation()
-    return this.facade
-      .dashboard()
-      .approvals.filter(
-        (approval) =>
-          approval.candidateId === candidate?.candidateId &&
-          approval.evaluationRunId === evaluation?.runId &&
-          approval.decision === 'approved'
-      )
-  })
-  readonly approvalGate = computed(() =>
-    evolutionApprovalGatePresentation(
-      this.candidateTarget()?.riskLevel,
-      this.approvals(),
-      this.currentUser()?.role?.name
+  readonly run = computed(() =>
+    this.runs().find(
+      (r) =>
+        r.runId === this.q().get('runId') && (!this.q().get('changeId') || r.candidateId === this.q().get('changeId'))
     )
   )
-  readonly requiredApprovals = computed(() => this.approvalGate().requiredApprovals)
-  readonly canPackage = computed(
+  readonly historyBack = computed(() => {
+    const source = this.q().get('from')
+    return source === 'overview' || source === 'history' ? source : null
+  })
+  readonly id = computed(() => this.q().get('changeId') || this.run()?.candidateId)
+  readonly candidate = computed(() => this.built().find((c) => c.candidateId === this.id()))
+  readonly record = computed(() => this.records().find((c) => c.id === this.id()))
+  readonly resource = computed(() => this.facade.contextChanges().find((c) => c.changeId === this.id()))
+  readonly proposal = computed(() => {
+    const id = this.q().get('proposalId')
+    return this.proposals().find((p) =>
+      id
+        ? p.proposalId === id && p.revision === Number(this.q().get('revision'))
+        : this.candidate()
+          ? this.candidate()!.proposalId === p.proposalId && this.candidate()!.proposalRevision === p.revision
+          : this.id() && 'candidateId' in p && p.candidateId === this.id()
+    )
+  })
+  readonly latest = computed(() => this.runs().find((r) => r.candidateId === this.id()))
+  readonly snapshots = computed(() => {
+    const c = this.candidate()
+    return c
+      ? this.facade
+          .contextDatasets()
+          .filter((d) => d.targetId === c.targetId && sameEvolutionScope(d.scope, c.targetScope))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      : []
+  })
+  readonly chosen = computed(() => this.snapshots().find((d) => d.snapshotId === this.q().get('snapshot')))
+  readonly runSnapshot = computed(() => {
+    const run = this.run()
+    return (
+      run &&
+      this.facade
+        .dashboard()
+        .datasets.find(
+          (d) =>
+            d.snapshotId === run.datasetSnapshotId &&
+            (!d.targetId || !run.targetId || d.targetId === run.targetId) &&
+            (!d.scope || !run.scope || sameEvolutionScope(d.scope, run.scope))
+        )
+    )
+  })
+  readonly canRun = computed(
     () =>
-      this.candidate()?.status === 'approved' &&
-      this.evaluation()?.gate.passed === true &&
-      this.candidateTarget()?.capabilities.install === true &&
-      this.approvalGate().passed
+      this.canManage() &&
+      !!this.chosen() &&
+      !!this.candidate() &&
+      ['ready', 'evaluating'].includes(this.candidate()!.status) &&
+      this.record()?.capabilities.evaluate &&
+      !this.facade.mutating()
   )
-  readonly selectedCase = computed<ReplayCaseResult | null>(() => {
-    const cases = this.evaluation()?.caseResults ?? []
-    return cases.find((item) => item.caseId === this.selectedCaseId()) ?? cases[0] ?? null
-  })
-
-  readonly comparisonOptions = computed<EChartsOption>(() => {
-    this.#theme()
-    this.localeChange()
-    const chartTheme = readAgentEvolutionChartTheme(this.#document)
-    const metrics = this.evaluation()?.metrics
-    const baselineAccuracy = (metrics?.baselineAccuracy ?? 0) * 100
-    const candidateAccuracy = (metrics?.candidateAccuracy ?? 0) * 100
-    const baselineFailure = 100 - baselineAccuracy
-    const candidateFailure = 100 - candidateAccuracy
-    return {
-      animationDuration: 350,
-      color: [chartTheme.production, chartTheme.candidate],
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { right: 8, top: 0, textStyle: { color: chartTheme.label, fontSize: 11 } },
-      grid: { left: 104, right: 20, top: 38, bottom: 24 },
-      xAxis: {
-        type: 'value',
-        max: 100,
-        axisLabel: { formatter: '{value}%', color: chartTheme.muted, fontSize: 10 },
-        splitLine: { lineStyle: { color: chartTheme.divider, opacity: 0.18 } }
-      },
-      yAxis: {
-        type: 'category',
-        data: [
-          this.#translate.instant('XP.AgentEvolution.UnmappedRateLowerBetter'),
-          this.#translate.instant('XP.AgentEvolution.FieldAccuracy')
-        ],
-        axisLabel: { color: chartTheme.label, fontSize: 11 },
-        axisTick: { show: false },
-        axisLine: { show: false }
-      },
-      series: [
-        {
-          name: this.#translate.instant('XP.AgentEvolution.Production'),
-          type: 'bar',
-          barWidth: 12,
-          data: [baselineFailure, baselineAccuracy]
-        },
-        {
-          name: this.#translate.instant('XP.AgentEvolution.Candidate'),
-          type: 'bar',
-          barWidth: 12,
-          data: [candidateFailure, candidateAccuracy]
-        }
-      ]
+  readonly running = computed(() => {
+    const active = new Map<string, string>()
+    for (const change of this.facade.contextChanges()) {
+      if (change.evaluation || !change.stages.some((s) => s.key === 'evaluation' && s.status === 'running')) continue
+      const step = change.strategy.definition.evaluations.find((s) => s.kind === 'golden_replay')
+      const snapshot = step && change.datasetSnapshotIds[step.key]
+      if (snapshot && this.built().some((c) => c.candidateId === change.changeId)) active.set(change.changeId, snapshot)
     }
+    const local = this.facade.pendingReplay()
+    if (local && this.built().some((c) => c.candidateId === local.candidateId))
+      active.set(local.candidateId, local.snapshotId)
+    return active
   })
-
-  selectCase(result: ReplayCaseResult) {
-    this.selectedCaseId.set(result.caseId)
+  readonly runningHere = computed(() => this.running().get(this.id() || ''))
+  readonly runningSnapshot = computed(() => this.snapshots().find((d) => d.snapshotId === this.runningHere()))
+  readonly stage = computed(() => {
+    if (this.q().has('runId')) return this.run() ? 'result' : 'missing'
+    if (this.q().has('proposalId')) return this.proposal() ? 'build' : 'missing'
+    if (!this.id()) return 'directory'
+    if (this.runningHere()) return 'running'
+    if (this.q().get('view') === 'checks' && this.resource()) return 'checks'
+    if (!this.candidate() && this.proposal() && this.pending().includes(this.proposal()!)) return 'build'
+    if (this.candidate()?.strategy.definition.evaluations.some((step) => step.kind === 'golden_replay')) {
+      if (this.latest()) return 'latest'
+      return 'prepare'
+    }
+    return this.resource() ? 'checks' : 'missing'
+  })
+  readonly editingCandidate = computed(() =>
+    this.stage() === 'prepare' && this.q().get('view') === 'dataset' && this.canManage() ? this.candidate() : null
+  )
+  editDataset() {
+    if (this.stage() === 'prepare' && this.canManage())
+      void this.go({ changeId: this.id()!, snapshot: this.chosen()?.snapshotId ?? null, view: 'dataset' })
   }
-
-  async rerun() {
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.RerunEvaluationTitle', {
-          Default: 'Rerun Candidate evaluation?'
-        }),
-        description: this.#translate.instant('XP.AgentEvolution.RerunEvaluationDescription', {
-          Default:
-            'Run an isolated replay with the current Ready Candidate and fixed Golden Dataset Snapshot. This does not approve or release it.'
-        }),
-        actionText: this.#translate.instant('XP.AgentEvolution.Rerun', { Default: 'Rerun' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
+  leaveDataset(snapshot = this.chosen()?.snapshotId) {
+    void this.go({ changeId: this.id()!, snapshot: snapshot ?? null }, true)
+  }
+  readonly rows = computed(() =>
+    this.built()
+      .map((c) => {
+        const p = this.proposals().find((v) => v.proposalId === c.proposalId && v.revision === c.proposalRevision)
+        const rec = this.records().find((r) => r.id === c.candidateId)
+        const r = this.runs().find((v) => v.candidateId === c.candidateId)
+        const replay = c.strategy.definition.evaluations.some((s) => s.kind === 'golden_replay')
+        const state = r
+          ? r.status === 'running'
+            ? 'running'
+            : r.gate.passed
+              ? 'passed'
+              : 'blocked'
+          : !replay
+            ? 'checks'
+            : this.running().has(c.candidateId)
+              ? 'running'
+              : 'waiting'
+        return { c, p, rec, r, state, title: p?.title || rec?.presentation?.title || rec?.title || c.targetId }
       })
+      .sort((a, b) => b.c.createdAt.localeCompare(a.c.createdAt))
+  )
+  readonly visible = computed(() => {
+    const term = this.term().trim().toLowerCase()
+    return this.rows().filter(
+      (row) =>
+        (this.status() === 'all' || this.status() === row.state) &&
+        [row.title, row.c.candidateId, row.c.proposalId, this.name(row.c.targetId)]
+          .join(' ')
+          .toLowerCase()
+          .includes(term)
     )
-    if (confirmed) {
-      await this.facade.evaluateCandidate(this.candidate(), this.dataset())
-    }
-  }
-
-  selectDataset(snapshotId: string) {
-    this.facade.selectedDatasetSnapshotId.set(snapshotId || null)
-  }
-
-  async createDataset() {
-    const candidate = this.candidate()
-    if (!candidate) return
-    let cases: GoldenCaseRevision[]
-    try {
-      cases = parseGoldenCases(this.datasetCasesJson(), (key, params) => this.#translate.instant(key, params))
-    } catch (error) {
-      this.facade.error.set(
-        error instanceof Error ? error.message : this.#translate.instant('XP.AgentEvolution.InvalidGoldenDatasetJson')
-      )
-      return
-    }
-    const dataset = await this.facade.createDataset({
-      datasetId: this.datasetId().trim() || `${candidate.targetId}.golden`,
-      targetId: candidate.targetId,
-      scope: candidate.targetScope,
-      name:
-        this.datasetName().trim() ||
-        this.#translate.instant('XP.AgentEvolution.DefaultDatasetName', {
-          target: this.candidateTarget()?.displayName ?? candidate.targetId
-        }),
-      evaluatorVersion: this.evaluatorVersion().trim(),
-      metricDefinitionVersion:
-        this.metricDefinitionVersion().trim() || this.candidateTarget()?.metricSetId || 'default-metrics-v1',
-      cases
+  })
+  readonly other = computed(() =>
+    this.records().filter(
+      (rec) =>
+        !this.built().some((c) => c.candidateId === rec.id) &&
+        !this.pending().some((p) => 'candidateId' in p && p.candidateId === rec.id)
+    )
+  )
+  constructor() {
+    effect(() => {
+      const q = this.q()
+      const target = q.get('target')
+      const deep = q.has('changeId') || q.has('runId') || q.has('proposalId')
+      untracked(() => {
+        if ((target || deep) && this.facade.selectedTargetId() !== (target || 'all'))
+          this.facade.selectTarget(target || 'all')
+        this.confirmRef?.close(false)
+      })
     })
-    if (dataset) this.showDatasetBuilder.set(false)
-  }
-
-  async importDatasetFile(event: Event) {
-    const input = event.target as HTMLInputElement
-    const file = input.files?.[0]
-    if (!file) return
-    this.datasetCasesJson.set(await file.text())
-    input.value = ''
-  }
-
-  async approve() {
-    const candidate = this.candidate()
-    const evaluation = this.evaluation()
-    if (!candidate || !evaluation || !this.approvalReason().trim()) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.SubmitApprovalTitle'),
-        description: this.#translate.instant(
-          this.approvalGate().administratorPath
-            ? 'XP.AgentEvolution.AdministratorSubmitApprovalDescription'
-            : 'XP.AgentEvolution.SubmitApprovalDescription',
-          { count: this.requiredApprovals() }
-        ),
-        actionText: this.#translate.instant('XP.AgentEvolution.ConfirmApproval'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
+    effect(() => {
+      this.scope()
+      untracked(() => {
+        this.confirmRef?.close(false)
+        this.term.set('')
+        this.status.set('all')
       })
-    )
-    if (confirmed) await this.facade.approveCandidate(candidate.candidateId, evaluation.runId, this.approvalReason())
+    })
+    effect(() => {
+      if (this.stage() === 'latest' && this.latest()) untracked(() => this.showRun(this.latest()!, true))
+    })
+    effect(() => {
+      const change = this.resource()
+      if (
+        this.stage() === 'checks' &&
+        change?.candidate?.artifact?.hash &&
+        change.evaluation &&
+        ['pending_approval', 'approved', 'publishing', 'published', 'rejected', 'test_failed', 'stale'].includes(
+          change.status
+        )
+      ) {
+        untracked(
+          () =>
+            void this.router.navigate(['/agent-evolution/evaluation/approval', change.changeId], {
+              queryParams: { target: this.q().get('target') },
+              replaceUrl: true
+            })
+        )
+      }
+    })
+    // A second tab can finish a run while this page is open. Refresh its persisted metrics once per new assessment.
+    let hydrated = ''
+    effect(() => {
+      const assessment = this.record()?.evaluation
+      const step = this.candidate()?.strategy.definition.evaluations.some((s) => s.kind === 'golden_replay')
+      if (!step || !assessment || this.facade.pendingReplay() || this.facade.loading()) return
+      const evidence = assessment.checks.flatMap((check) => check.evidenceRefs)
+      if (
+        evidence.length &&
+        !this.runs().some((run) => run.candidateId === this.id() && evidence.includes(run.runId)) &&
+        hydrated !== assessment.runId
+      ) {
+        hydrated = assessment.runId
+        untracked(() => void this.facade.load({ silent: true }))
+      }
+    })
+    effect((cleanup) => {
+      this.scope()
+      this.run()?.runId
+      cleanup(() => this.evidenceRef?.close())
+    })
+    this.destroy.onDestroy(() => this.confirmRef?.close(false))
   }
-
-  async reject() {
-    const candidate = this.candidate()
-    const evaluation = this.evaluation()
-    if (!candidate || !evaluation || !this.approvalReason().trim()) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.RejectCandidateTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.RejectCandidateDescription'),
-        actionText: this.#translate.instant('XP.AgentEvolution.ConfirmReject'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
-    )
-    if (confirmed) await this.facade.rejectCandidate(candidate.candidateId, evaluation.runId, this.approvalReason())
+  t(key: string) {
+    return this.translate.instant(key)
   }
-
-  async packageRelease() {
-    const candidate = this.candidate()
-    const evaluation = this.evaluation()
-    if (!candidate || !evaluation || !this.canPackage()) return
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        layout: 'standard',
-        title: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageTitle'),
-        description: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageDescription'),
-        actionText: this.#translate.instant('XP.AgentEvolution.CreateReleasePackage'),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' })
-      })
+  name(id: string) {
+    this.lang()
+    const t = this.byTarget().get(id)
+    return t ? targetLabel(t, this.translate.currentLang) : id
+  }
+  title(id: string) {
+    return (
+      this.rows().find((r) => r.c.candidateId === id)?.title || this.records().find((r) => r.id === id)?.title || id
     )
-    if (confirmed) {
-      await this.facade.packageRelease(
-        candidate.candidateId,
-        evaluation.runId,
-        this.approvals().map((item) => item.approvalId)
+  }
+  findBuilt(p: ImprovementProposal) {
+    return this.built().find((c) => c.proposalId === p.proposalId && c.proposalRevision === p.revision)
+  }
+  go(params: Record<string, string | number | null> = {}, replaceUrl = false) {
+    return this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        target: this.facade.selectedTargetId() === 'all' ? null : this.facade.selectedTargetId(),
+        ...params
+      },
+      replaceUrl
+    })
+  }
+  selectTarget(id: string | null) {
+    this.facade.selectTarget(id || 'all')
+    this.term.set('')
+    this.status.set('all')
+    void this.go(this.tab() === 'runs' ? { view: 'runs' } : {})
+  }
+  directory(tab: string) {
+    void this.go(tab === 'runs' ? { view: 'runs' } : {})
+  }
+  showProposal(p: ImprovementProposal) {
+    void this.go({ proposalId: p.proposalId, revision: p.revision })
+  }
+  showCandidate(c: EvolutionCandidate) {
+    void this.go({ changeId: c.candidateId })
+  }
+  showRun(r: EvaluationRun, replace = false) {
+    void this.go({ changeId: r.candidateId, runId: r.runId }, replace)
+  }
+  setCase(selection: { id: string; index: number | null } | null) {
+    const r = this.run()
+    if (r)
+      void this.go({
+        changeId: r.candidateId,
+        runId: r.runId,
+        from: this.historyBack(),
+        historyTarget: this.historyBack() === 'overview' ? this.q().get('historyTarget') : null,
+        caseId: selection?.id ?? null,
+        caseIndex: selection?.index ?? null
+      })
+  }
+  backFromHistory() {
+    if (this.historyBack() !== 'overview') return this.directory('runs')
+    void this.router.navigate(['/agent-evolution/overview'], {
+      queryParams: {
+        history: 'open',
+        target: this.q().get('historyTarget') || 'all',
+        focusRun: this.run()?.runId
+      }
+    })
+  }
+  inspectEvidence(kind: ReplayEvidence['kind']) {
+    const run = this.run()
+    if (!run || this.evidenceRef) return
+    const scope = this.scope()
+    const ref = this.evidenceDialogs.open<ReplaySelection, ReplayEvidence, ReplayEvidenceDialog>(ReplayEvidenceDialog, {
+      viewContainerRef: this.container,
+      width: kind === 'raw' ? '800px' : '48rem',
+      maxWidth: 'calc(100vw - 2rem)',
+      maxHeight: '80dvh',
+      autoFocus: 'first-heading',
+      ariaLabel: this.t('XP.AgentEvolution.ReplayHistory.' + (kind === 'raw' ? 'Raw' : 'Snapshot')),
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      data: { kind, run, snapshot: this.runSnapshot() }
+    })
+    this.evidenceRef = ref
+    ref.closed.subscribe((selection) => {
+      if (this.evidenceRef === ref) this.evidenceRef = undefined
+      if (selection && scope === this.scope() && this.run()?.runId === run.runId) this.setCase(selection)
+    })
+  }
+  choose(snapshot: string) {
+    void this.go({ changeId: this.id()!, snapshot }, true)
+  }
+  confirm() {
+    const c = this.candidate(),
+      d = this.chosen()
+    if (!this.canRun() || !c || !d || this.confirmRef) return
+    const scope = this.scope()
+    const ref = this.dialog.create<ConfirmReplayComponent, ReplayConfirmation>({
+      zContent: ConfirmReplayComponent,
+      zTitle: this.t(this.prefix + 'ConfirmTitle'),
+      zDescription: this.t(this.prefix + 'ConfirmDescription'),
+      zWidth: 'min(490px, calc(100vw - 24px))',
+      zHideFooter: true,
+      zMaskClosable: false,
+      zViewContainerRef: this.container,
+      zData: { title: this.title(c.candidateId), target: this.name(c.targetId), candidate: c, dataset: d }
+    })
+    this.confirmRef = ref
+    ref.closed.pipe(takeUntilDestroyed(this.destroy)).subscribe(async (ok) => {
+      this.confirmRef = undefined
+      if (
+        !ok ||
+        this.scope() !== scope ||
+        !this.canRun() ||
+        this.chosen()?.snapshotId !== d.snapshotId ||
+        this.id() !== c.candidateId
       )
-    }
+        return
+      const run = await this.facade.evaluateCandidate(c, d)
+      if (
+        run &&
+        !this.destroy.destroyed &&
+        this.scope() === scope &&
+        this.id() === c.candidateId &&
+        !this.q().has('runId')
+      )
+        this.showRun(run, true)
+    })
   }
-
-  outputEntries(value: Record<string, string | number | boolean>) {
-    return Object.entries(value)
-  }
-}
-
-function sameScope(
-  left: import('@xpert-ai/contracts').EvolutionScope | undefined,
-  right: import('@xpert-ai/contracts').EvolutionScope
-) {
-  if (!left) return false
-  const dimensions = (value: import('@xpert-ai/contracts').EvolutionScope) =>
-    JSON.stringify(Object.entries(value.dimensions ?? {}).sort(([a], [b]) => a.localeCompare(b)))
-  return left.type === right.type && left.key === right.key && dimensions(left) === dimensions(right)
-}
-
-function parseGoldenCases(
-  value: string,
-  translate: (key: string, params?: Record<string, string | number>) => string
-): GoldenCaseRevision[] {
-  const parsed: unknown = JSON.parse(value)
-  if (!Array.isArray(parsed) || !parsed.length) throw new Error(translate('XP.AgentEvolution.DatasetRequiresCase'))
-  return parsed.map((item, index) => {
-    if (!isRecord(item)) throw new Error(translate('XP.AgentEvolution.CaseMustBeObject', { index: index + 1 }))
-    if (typeof item['caseId'] !== 'string' || typeof item['revision'] !== 'number') {
-      throw new Error(translate('XP.AgentEvolution.CaseMissingIdentity', { index: index + 1 }))
-    }
-    if (!isScalarRecord(item['input']) || !isScalarRecord(item['expected'])) {
-      throw new Error(translate('XP.AgentEvolution.CaseRequiresScalarObjects', { index: index + 1 }))
-    }
-    const risk = item['risk']
-    if (risk !== 'low' && risk !== 'medium' && risk !== 'high') {
-      throw new Error(translate('XP.AgentEvolution.CaseRiskInvalid', { index: index + 1 }))
-    }
-    return {
-      caseId: item['caseId'],
-      revision: item['revision'],
-      input: item['input'],
-      expected: item['expected'],
-      slice: typeof item['slice'] === 'string' ? item['slice'] : 'stable',
-      risk,
-      evidenceRef: typeof item['evidenceRef'] === 'string' ? item['evidenceRef'] : `manual://${item['caseId']}`
-    }
-  })
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isScalarRecord(value: unknown): value is Record<string, string | number | boolean> {
-  return isRecord(value) && Object.values(value).every((item) => ['string', 'number', 'boolean'].includes(typeof item))
 }

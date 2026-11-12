@@ -61,7 +61,9 @@ describe('StorageTargetStrategy', () => {
 	it('writes a plain file name inside the authenticated tenant directory', async () => {
 		await strategy.upload(source, { kind: 'storage', directory: 'files', fileName: 'report.txt' }, context)
 
-		expect(mockPutFile).toHaveBeenCalledWith(source.buffer, 'files/tenant-A/report.txt')
+		expect(mockPutFile).toHaveBeenCalledWith(source.buffer, 'files/tenant-A/report.txt', {
+			contentType: 'text/plain'
+		})
 		expect(storageFileService.createStorageFile).toHaveBeenCalledWith(
 			expect.objectContaining({ key: 'files/tenant-A/report.txt' }),
 			'LOCAL'

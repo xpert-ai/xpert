@@ -24,6 +24,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { Subscriber } from 'rxjs'
 import z from 'zod'
 import { AgentStateAnnotation, createParameters } from '../shared/agent'
+import { ExecutionControlStore } from '../execution-control/execution-control.store'
 import { TAgentSubgraphParams, TAgentSubgraphResult, messageEvent } from '../xpert-agent/agent'
 import { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph.command'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution/commands'
@@ -33,7 +34,8 @@ import { XpertAgentExecutionOneQuery } from '../xpert-agent-execution/queries'
 export class NativeAgentCompiler {
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly executionControls: ExecutionControlStore
     ) {}
 
     async compile(
@@ -184,22 +186,24 @@ export class NativeAgentCompiler {
                               }
                             : {})
                     }
-                    const output = await graph.invoke(subState, {
-                        ...config,
-                        signal,
-                        configurable: {
-                            ...config.configurable,
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id
-                        },
-                        metadata: {
-                            agentKey: agent.key,
-                            xpertName: agentLabel(agent),
-                            executionId: _execution.id,
-                            parentExecutionId: executionId
-                        }
-                    })
+                    const output = await this.executionControls.runAttached(_execution.id, executionId, () =>
+                        graph.invoke(subState, {
+                            ...config,
+                            signal,
+                            configurable: {
+                                ...config.configurable,
+                                agentKey: agent.key,
+                                xpertName: agentLabel(agent),
+                                executionId: _execution.id
+                            },
+                            metadata: {
+                                agentKey: agent.key,
+                                xpertName: agentLabel(agent),
+                                executionId: _execution.id,
+                                parentExecutionId: executionId
+                            }
+                        })
+                    )
 
                     const lastMessage = output.messages[output.messages.length - 1]
 

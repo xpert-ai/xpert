@@ -144,6 +144,101 @@ describe('createExecutionModelUsageRecorder', () => {
 })
 
 describe('assignExecutionUsage', () => {
+    it('accumulates costs and input/output tokens across distinct model requests', () => {
+        const execution: Parameters<typeof assignExecutionUsage>[0] = {}
+        const record = assignExecutionUsage(execution)
+        const usage = {
+            promptTokens: 100,
+            completionTokens: 20,
+            totalTokens: 120,
+            promptUnitPrice: 1,
+            promptPriceUnit: 0.001,
+            promptPrice: 0.1,
+            completionUnitPrice: 2,
+            completionPriceUnit: 0.001,
+            completionPrice: 0.04,
+            totalPrice: 0.14,
+            currency: 'CNY',
+            latency: 20
+        }
+        record(usage)
+        record({ ...usage, promptTokens: 50, completionTokens: 10, totalTokens: 60, totalPrice: 0.07 })
+        expect(execution.tokens).toBe(180)
+        expect(execution.inputTokens).toBe(150)
+        expect(execution.outputTokens).toBe(30)
+        expect(execution.totalPrice).toBeCloseTo(0.21, 10)
+    })
+
+    it('separates currencies through later calls, including a legacy single-price execution', () => {
+        const execution: Parameters<typeof assignExecutionUsage>[0] = {
+            currency: 'CNY',
+            totalPrice: 1,
+            tokens: 9,
+            inputTokens: 7,
+            outputTokens: 2
+        }
+        const record = assignExecutionUsage(execution)
+        const usage = {
+            promptTokens: 8,
+            completionTokens: 2,
+            totalTokens: 10,
+            totalPrice: 1,
+            currency: 'USD',
+            latency: 10,
+            promptUnitPrice: 1,
+            promptPriceUnit: 1,
+            promptPrice: 1,
+            completionUnitPrice: 0,
+            completionPriceUnit: 1,
+            completionPrice: 0
+        }
+        record(usage)
+        record({ ...usage, currency: 'CNY', totalPrice: 0.25 })
+        record({ ...usage, type: 'estimated' })
+        record({ ...usage, currency: 'EUR', pricingStatus: 'unpriced' })
+        expect(execution).toMatchObject({
+            tokens: 49,
+            inputTokens: 31,
+            outputTokens: 8,
+            totalPrice: null,
+            currency: null,
+            usageSummary: {
+                lastInputTokens: 8,
+                costs: [
+                    { currency: 'CNY', amount: 1.25, tokens: 19 },
+                    { currency: 'USD', amount: 1, tokens: 10 }
+                ]
+            }
+        })
+    })
+
+    it('distinguishes a reported free call from missing pricing', () => {
+        const execution: Parameters<typeof assignExecutionUsage>[0] = {}
+        const record = assignExecutionUsage(execution)
+        const usage = {
+            promptTokens: 1,
+            completionTokens: 1,
+            totalTokens: 2,
+            currency: 'USD',
+            totalPrice: 0,
+            latency: 10,
+            promptUnitPrice: 0,
+            promptPriceUnit: 1,
+            promptPrice: 0,
+            completionUnitPrice: 0,
+            completionPriceUnit: 1,
+            completionPrice: 0
+        }
+        record({ ...usage, pricingStatus: 'unpriced' })
+        expect(execution).toMatchObject({ totalPrice: null, currency: null, usageSummary: { costs: [] } })
+        record({ ...usage, promptTokens: 0, completionTokens: 2, pricingStatus: 'free' })
+        expect(execution).toMatchObject({
+            totalPrice: 0,
+            currency: 'USD',
+            usageSummary: { lastInputTokens: 1, costs: [{ currency: 'USD', amount: 0, tokens: 2 }] }
+        })
+    })
+
     it('adds estimated usage to tokens without treating it as authoritative pricing usage', () => {
         const execution = { tokens: 5, totalPrice: 1 }
         const recordUsage = assignExecutionUsage(execution)

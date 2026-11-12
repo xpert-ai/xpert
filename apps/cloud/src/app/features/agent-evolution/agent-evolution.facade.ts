@@ -1,3 +1,4 @@
+import { defaultTargetFilters, type TargetFilters } from './targets/target-directory'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import type {
@@ -17,6 +18,8 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 import { EMPTY_EVOLUTION_DASHBOARD, sameEvolutionScope, type AgentEvolutionDashboard } from './agent-evolution.types'
+import type { ReleaseCommand } from './release/release-presentation'
+import { selectedReplayEvaluation } from './shared/evolution-change-presentation'
 import { loadAllEvolutionPages } from './shared/evolution-pagination'
 
 const EMPTY_PAGE = { items: [], total: 0, page: 1, pageSize: 20 }
@@ -48,8 +51,12 @@ export class AgentEvolutionFacade {
   readonly synchronizing = signal(false)
   readonly mutating = signal(false)
   readonly error = signal<string | null>(null)
+  readonly pendingReplay = signal<{ candidateId: string; snapshotId: string } | null>(null)
   readonly activeJob = signal<EvolutionJob | null>(null)
   readonly loadedAt = signal<Date | null>(null)
+  readonly directoryFilters = signal<TargetFilters>({ ...defaultTargetFilters })
+  directoryScrollTop = 0
+  overviewScrollTop = 0
   readonly selectedTargetId = signal('all')
   readonly showFixtures = signal(false)
   readonly selectedCandidateId = signal<string | null>(null)
@@ -123,6 +130,9 @@ export class AgentEvolutionFacade {
   )
 
   resetScopeContext() {
+    this.directoryFilters.set({ ...defaultTargetFilters })
+    this.directoryScrollTop = 0
+    this.overviewScrollTop = 0
     this.#scopeRevision++
     this.#loadRevision++
     this.dashboard.set(EMPTY_EVOLUTION_DASHBOARD)
@@ -133,25 +143,37 @@ export class AgentEvolutionFacade {
     this.candidatePage.set(EMPTY_PAGE)
     this.releasePage.set(EMPTY_PAGE)
     this.activeJob.set(null)
+    this.pendingReplay.set(null)
     this.selectedTargetId.set('all')
     this.clearResourceSelections()
     this.loadedAt.set(null)
     this.error.set(null)
   }
 
-  async refreshChanges() {
+  async refreshChanges(includeRelease = false) {
     const scopeRevision = this.#scopeRevision
     const loadRevision = this.#loadRevision
     try {
       const activeJob = this.activeJob()
-      const [changes, lifecycle, job] = await Promise.all([
+      const [changes, lifecycle, job, runtime] = await Promise.all([
         firstValueFrom(this.#api.listChanges()),
         firstValueFrom(this.#api.listLifecycleRecords()),
         activeJob && ['pending', 'running', 'queued'].includes(activeJob.status)
           ? firstValueFrom(this.#api.getJob(activeJob.jobId))
+          : Promise.resolve(null),
+        includeRelease
+          ? Promise.all([
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listReleases({ page, pageSize: 100 }))),
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDeployments({ page, pageSize: 100 }))),
+              loadAllEvolutionPages((page) => firstValueFrom(this.#api.listActivePointers({ page, pageSize: 100 })))
+            ])
           : Promise.resolve(null)
       ])
       if (scopeRevision !== this.#scopeRevision || loadRevision !== this.#loadRevision) return
+      if (runtime) {
+        const [releases, deployments, pointers] = runtime
+        this.dashboard.update((d) => ({ ...d, releases, deployments, pointers }))
+      }
       this.changes.set(changes)
       this.lifecycleRecords.set(lifecycle.items)
       if (job && this.activeJob()?.jobId === job.jobId) this.activeJob.set(job)
@@ -195,13 +217,13 @@ export class AgentEvolutionFacade {
         firstValueFrom(this.#api.listLearningEvents({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listDiagnoses({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listClusters({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listProposals({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listExperiences({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listCandidates({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listDatasets({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listEvaluations({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listReleases({ page: 1, pageSize: 50 })),
-        firstValueFrom(this.#api.listDeployments({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listProposals({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listExperiences({ page, pageSize: 100 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listCandidates({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDatasets({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listEvaluations({ page, pageSize: 50 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listReleases({ page, pageSize: 100 }))),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listDeployments({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listChanges())
           .then((value) => ({ value, error: null }))
           .catch((error) => ({ value: [], error: getErrorMessage(error) })),
@@ -212,8 +234,8 @@ export class AgentEvolutionFacade {
       this.changes.set(providerRecords.value)
       this.providerError.set(providerRecords.error)
       this.eventPage.set(events)
-      this.candidatePage.set(candidates)
-      this.releasePage.set(releases)
+      this.candidatePage.set({ items: candidates, total: candidates.length, page: 1, pageSize: candidates.length })
+      this.releasePage.set({ items: releases, total: releases.length, page: 1, pageSize: 100 })
       this.dashboard.set({
         ...EMPTY_EVOLUTION_DASHBOARD,
         ...dashboard,
@@ -224,13 +246,13 @@ export class AgentEvolutionFacade {
         events: events.items,
         diagnoses: diagnoses.items,
         clusters: clusters.items,
-        proposals: proposals.items,
-        experiences: experiences.items,
-        candidates: candidates.items,
-        datasets: datasets.items,
-        evaluations: evaluations.items,
-        releases: releases.items,
-        deployments: deployments.items
+        proposals,
+        experiences,
+        candidates,
+        datasets,
+        evaluations,
+        releases,
+        deployments
       })
       this.normalizeSelections()
       this.loadedAt.set(new Date())
@@ -288,47 +310,9 @@ export class AgentEvolutionFacade {
     })
   }
 
-  async createProposalForEvent(event: LearningEvent) {
-    const evidence = this.dashboard().events.filter(
-      (item) =>
-        item.targetId === event.targetId &&
-        sameEvolutionScope(item.scope, event.scope) &&
-        item.reviewStatus !== 'ignored' &&
-        item.trustLevel !== 'L1'
-    )
-    return this.withMutation(async () => {
-      const analysis = await firstValueFrom(this.#api.diagnose(evidence.map((item) => item.eventId)))
-      const cluster = analysis.clusters.find((item) => item.eventIds.includes(event.eventId))
-      const diagnosis = analysis.diagnoses.find((item) => item.eventIds.includes(event.eventId))
-      const proposal = await firstValueFrom(
-        this.#api.createProposal({
-          strategyId: 'feedback_learning',
-          targetId: event.targetId,
-          scope: event.scope,
-          eventIds: cluster?.eventIds ?? evidence.map((item) => item.eventId),
-          title: this.#translate.instant('XP.AgentEvolution.ImprovementProposalTitle', {
-            targetId: event.targetId
-          }),
-          problemStatement: event.predictionSummary,
-          rootCause: diagnosis?.rootCause ?? (event.reasonCodes.join(', ') || 'unclassified'),
-          changeHypothesis: this.#translate.instant('XP.AgentEvolution.ProposalHypothesis'),
-          riskLevel: this.dashboard().targets.find((item) => item.targetId === event.targetId)?.riskLevel ?? 'R2'
-        })
-      )
-      this.dashboard.update((current) => ({
-        ...current,
-        proposals: [proposal, ...current.proposals],
-        diagnoses: [...analysis.diagnoses, ...current.diagnoses],
-        clusters: [...analysis.clusters, ...current.clusters]
-      }))
-      this.#toastr.success('XP.AgentEvolution.ProposalCreated', {
-        Default: 'Improvement proposal created without changing Production'
-      })
-      return proposal
-    })
-  }
-
   async buildCandidate(proposal: ImprovementProposal, changeSet: Record<string, string | number | boolean | string[]>) {
+    if (this.mutating()) return null
+    const scope = this.#scopeRevision
     return this.withMutation(async () => {
       const candidate = await firstValueFrom(
         this.#api.buildCandidate({
@@ -337,16 +321,27 @@ export class AgentEvolutionFacade {
           changeSet
         })
       )
+      if (scope !== this.#scopeRevision) return null
       await this.load({ silent: true })
+      if (scope !== this.#scopeRevision) return null
       this.selectedCandidateId.set(candidate.candidateId)
       return candidate
     })
   }
 
   async createDataset(request: CreateDatasetSnapshotRequest) {
+    if (this.mutating()) return null
+    const scope = this.#scopeRevision
     return this.withMutation(async () => {
       const dataset = await firstValueFrom(this.#api.createDataset(request))
+      if (scope !== this.#scopeRevision) return null
       await this.load({ silent: true })
+      if (scope !== this.#scopeRevision) return null
+      this.dashboard.update((d) =>
+        d.datasets.some((item) => item.snapshotId === dataset.snapshotId)
+          ? d
+          : { ...d, datasets: [dataset, ...d.datasets] }
+      )
       this.selectedDatasetSnapshotId.set(dataset.snapshotId)
       this.#toastr.success('XP.AgentEvolution.DatasetSnapshotCreated')
       return dataset
@@ -364,45 +359,57 @@ export class AgentEvolutionFacade {
       this.#toastr.warning('XP.AgentEvolution.CandidateDatasetScopeMismatch')
       return null
     }
-    return this.withMutation(async () => {
-      const step = candidate.strategy.definition.evaluations.find((item) => item.kind === 'golden_replay')
-      if (!step) return null
-      const current = this.contextChanges().find((item) => item.changeId === candidate.candidateId)
-      const record = await firstValueFrom(
-        this.#api.evaluateChange(candidate.candidateId, {
-          ...current?.datasetSnapshotIds,
-          [step.key]: dataset.snapshotId
-        })
-      )
-      if (record.job) await this.waitForJob(record.job)
-      await this.load({ silent: true })
-      const evaluation = this.dashboard().evaluations.find((item) => item.candidateId === candidate.candidateId)
-      this.selectedEvaluationRunId.set(evaluation?.runId ?? null)
-      return record
-    })
+    const step = candidate.strategy.definition.evaluations.find((item) => item.kind === 'golden_replay')
+    const current = this.contextChanges().find((item) => item.changeId === candidate.candidateId)
+    if (!step || !current || current.evaluation || this.mutating() || this.pendingReplay()) return null
+    const scope = this.#scopeRevision
+    this.pendingReplay.set({ candidateId: candidate.candidateId, snapshotId: dataset.snapshotId })
+    try {
+      return await this.withMutation(async () => {
+        // The evaluate endpoint returns the committed assessment. Only its evidence identifies this replay.
+        const record = await firstValueFrom(
+          this.#api.evaluateChange(candidate.candidateId, {
+            ...current.datasetSnapshotIds,
+            [step.key]: dataset.snapshotId
+          })
+        )
+        if (scope !== this.#scopeRevision) return null
+        await this.load({ silent: true })
+        if (scope !== this.#scopeRevision) return null
+        const run = selectedReplayEvaluation(
+          this.dashboard().evaluations.filter((item) => item.datasetSnapshotId === dataset.snapshotId),
+          record.evaluation,
+          candidate.candidateId
+        )
+        if (!run) throw new Error(this.#translate.instant('XP.AgentEvolution.ReplayWorkbench.MissingResult'))
+        this.selectedEvaluationRunId.set(run.runId)
+        return run
+      })
+    } finally {
+      if (scope === this.#scopeRevision) this.pendingReplay.set(null)
+    }
   }
 
   async evaluateLatestCandidate() {
     const candidate = this.latestCandidate()
-    const dataset =
-      this.contextDatasets().find((item) => item.snapshotId === this.selectedDatasetSnapshotId()) ??
-      this.contextDatasets()[0] ??
-      null
+    const dataset = this.contextDatasets().find((item) => item.snapshotId === this.selectedDatasetSnapshotId()) ?? null
     return this.evaluateCandidate(candidate, dataset)
   }
 
-  async approveCandidate(candidateId: string, evaluationRunId: string, reason: string) {
-    return this.decideCandidate(candidateId, evaluationRunId, 'approved', reason)
+  approveAndPublishChange(change: EvolutionChange, reason: string) {
+    if (change.strategy.definition.publication.mode !== 'version_write') return null
+    return this.decideChange(change, 'approved', reason)
   }
 
-  async approveAndPublishChange(change: EvolutionChange, reason: string) {
+  async decideChange(change: EvolutionChange, decision: 'approved' | 'rejected', reason: string) {
     const { candidate, evaluation } = change
     if (
       this.mutating() ||
-      change.strategy.definition.publication.mode !== 'version_write' ||
-      change.status !== 'pending_approval' ||
-      !candidate ||
-      !evaluation?.passed ||
+      !(change.status === 'pending_approval' || (decision === 'rejected' && change.status === 'test_failed')) ||
+      !candidate?.artifact?.hash ||
+      !evaluation?.runId ||
+      candidate.artifact.hash !== evaluation.candidateHash ||
+      (decision === 'approved' && !evaluation.passed) ||
       !reason.trim()
     )
       return null
@@ -413,11 +420,11 @@ export class AgentEvolutionFacade {
           this.#api.decideChange(change.changeId, {
             candidateHash: candidate.artifact.hash,
             evaluationRunId: evaluation.runId,
-            decision: 'approved',
+            decision,
             reason: reason.trim()
           })
         )
-        if (scopeRevision !== this.#scopeRevision) return approval
+        if (scopeRevision !== this.#scopeRevision || decision === 'rejected') return approval
         // The server decides whether all required human approvals are present.
         if (approval.status !== 'approved') {
           if (approval.status === 'pending_approval')
@@ -427,7 +434,9 @@ export class AgentEvolutionFacade {
             })
           return approval
         }
-        return await this.publishVersionChange(change.changeId)
+        return change.strategy.definition.publication.mode === 'version_write'
+          ? await this.publishVersionChange(change.changeId)
+          : approval
       } finally {
         if (scopeRevision === this.#scopeRevision) await this.load({ silent: true })
       }
@@ -462,75 +471,82 @@ export class AgentEvolutionFacade {
     }
   }
 
-  async rejectCandidate(candidateId: string, evaluationRunId: string, reason: string) {
-    return this.decideCandidate(candidateId, evaluationRunId, 'rejected', reason)
-  }
-
-  private async decideCandidate(
-    candidateId: string,
-    evaluationRunId: string,
-    decision: 'approved' | 'rejected',
-    reason: string
-  ) {
+  async packageRelease(change: EvolutionChange) {
+    if (
+      this.mutating() ||
+      change.strategy.definition.publication.mode !== 'staged_rollout' ||
+      !['approved', 'publishing'].includes(change.status) ||
+      !change.evaluation?.passed
+    )
+      return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
-      const approval = await firstValueFrom(
-        this.#api.decideChange(candidateId, {
-          candidateHash:
-            this.dashboard().candidates.find((item) => item.candidateId === candidateId)?.artifact.hash ?? '',
-          evaluationRunId:
-            this.lifecycleRecords().find((item) => item.id === candidateId)?.evaluation?.runId ?? evaluationRunId,
-          decision,
-          reason
-        })
-      )
+      const release = await firstValueFrom(this.#api.publishChange(change.changeId))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
-      return approval
-    })
-  }
-
-  async packageRelease(candidateId: string, evaluationRunId: string, approvalIds: string[]) {
-    return this.withMutation(async () => {
-      const release = await firstValueFrom(this.#api.publishChange(candidateId))
-      await this.load({ silent: true })
+      if (revision !== this.#scopeRevision) return null
       this.selectedReleasePackageId.set(release.releasePackageId ?? null)
       return release
     })
   }
 
-  async runReleaseAction(release: ReleasePackage) {
+  async runReleaseAction(release: ReleasePackage, command: ReleaseCommand) {
+    const id = release.releasePackageId
+    if (this.mutating() || this.releaseJobPending(id)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
-      let job: EvolutionJob | null = null
-      if (release.status === 'approved') job = await firstValueFrom(this.#api.installRelease(release.releasePackageId))
-      else if (release.status === 'installed')
-        job = await firstValueFrom(this.#api.startShadow(release.releasePackageId))
-      else if (release.status === 'shadow') {
-        job = await firstValueFrom(this.#api.startCanary(release.releasePackageId, { canaryPercent: 5 }))
-      } else if (release.status === 'canary' && release.canaryPercent < 50) {
-        job = await firstValueFrom(
-          this.#api.startCanary(release.releasePackageId, { canaryPercent: release.canaryPercent === 5 ? 25 : 50 })
-        )
-      } else if (release.status === 'canary') {
-        await firstValueFrom(this.#api.activateRelease(release.releasePackageId))
-      } else if (release.status === 'active') {
-        await firstValueFrom(this.#api.createExperience(release.releasePackageId))
+      let job: EvolutionJob | undefined
+      switch (command) {
+        case 'install':
+          job = await firstValueFrom(this.#api.installRelease(id))
+          break
+        case 'shadow':
+          job = await firstValueFrom(this.#api.startShadow(id))
+          break
+        case 'canary5':
+        case 'canary25':
+        case 'canary50':
+          job = await firstValueFrom(
+            this.#api.startCanary(id, { canaryPercent: command === 'canary5' ? 5 : command === 'canary25' ? 25 : 50 })
+          )
+          break
+        case 'activate':
+          await firstValueFrom(this.#api.activateRelease(id))
+          break
+        case 'experience':
+          await firstValueFrom(this.#api.createExperience(id))
+          break
       }
-      if (job) await this.waitForJob(job)
+      if (revision !== this.#scopeRevision) return null
+      if (job) await this.waitForJob(job, revision)
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
-      return job
+      return true
     })
   }
 
+  releaseJobPending(id: string) {
+    const job = this.activeJob()
+    return job?.resourceId === id && (job.status === 'queued' || job.status === 'running')
+  }
+
   async pauseRelease(releasePackageId: string) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       await firstValueFrom(this.#api.pauseRelease(releasePackageId))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       return true
     })
   }
 
   async createCanaryTestOverride(releasePackageId: string, request: CreateEvolutionCanaryTestOverrideRequest) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       const override = await firstValueFrom(this.#api.createCanaryTestOverride(releasePackageId, request))
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       this.#toastr.success('XP.AgentEvolution.CanaryTestOverrideCreated')
       return override
@@ -538,18 +554,24 @@ export class AgentEvolutionFacade {
   }
 
   async rollbackRelease(releasePackageId: string) {
+    if (this.mutating() || this.releaseJobPending(releasePackageId)) return null
+    const revision = this.#scopeRevision
     return this.withMutation(async () => {
       const job = await firstValueFrom(this.#api.rollbackRelease(releasePackageId))
-      await this.waitForJob(job)
+      if (revision !== this.#scopeRevision) return null
+      await this.waitForJob(job, revision)
+      if (revision !== this.#scopeRevision) return null
       await this.load({ silent: true })
       return true
     })
   }
 
-  private async waitForJob(initial: EvolutionJob) {
+  private async waitForJob(initial: EvolutionJob, revision: number) {
     this.activeJob.set(initial)
     for (let attempt = 0; attempt < 60; attempt++) {
+      if (revision !== this.#scopeRevision) return null
       const job = await firstValueFrom(this.#api.getJob(initial.jobId))
+      if (revision !== this.#scopeRevision) return null
       if (!job) throw new Error('Evolution job disappeared')
       this.activeJob.set(job)
       if (job.status === 'completed') return job
@@ -562,7 +584,15 @@ export class AgentEvolutionFacade {
     return this.activeJob() ?? initial
   }
 
+  setShowFixtures(value: boolean) {
+    const selected = this.dashboard().targets.find((target) => target.targetId === this.selectedTargetId())
+    this.showFixtures.set(value)
+    if (!value && selected?.targetType === 'test_fixture') this.selectTarget('all')
+  }
+
   selectTarget(targetId: string) {
+    this.directoryScrollTop = 0
+    this.overviewScrollTop = 0
     this.selectedTargetId.set(targetId)
     this.clearResourceSelections()
   }

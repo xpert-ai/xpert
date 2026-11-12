@@ -1,8 +1,8 @@
 // Invariants: a share grants published content only; each query rechecks its current policy.
 // Provider calls run as the viewer in the authorized Artifact organization, never as its creator.
-import { ConflictException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
 import type { ArtifactPresentation, ArtifactPresentationQuery, ArtifactPresentationTarget } from '@xpert-ai/contracts'
-import { ArtifactPresentationRegistry, artifactPresentationKey, RequestContext } from '@xpert-ai/plugin-sdk'
+import { ArtifactPresentationRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import type { ArtifactPresentationContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
@@ -10,6 +10,7 @@ import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import type { ArtifactManagementResolvedVersion } from '../artifact-service.types'
 import { serializeArtifact, serializeArtifactVersion } from '../artifact-records'
 import { ArtifactTypesService } from '../types/artifact-types.service'
+import { artifactPresentationProvider } from './artifact-presentation-provider'
 
 @Injectable()
 export class ArtifactPresentationService {
@@ -130,27 +131,7 @@ export class ArtifactPresentationService {
     }
 
     private provider(context: ArtifactPresentationContext) {
-        const binding = context.artifact.typeBinding
-        if (!binding || this.types.provider(context.artifact).definition.presentation.mode !== 'authenticated')
-            throw new ServiceUnavailableException({
-                code: 'ARTIFACT_PRESENTATION_UNAVAILABLE',
-                message: t('server-ai:Error.ArtifactPresentationUnavailable')
-            })
-        const key = artifactPresentationKey(context.artifact)
-        const registration = this.registry
-            .listAllRegistrations()
-            .find((item) => item.type === key && item.source.scopeKey === binding.scopeKey)
-        if (
-            !registration ||
-            registration.source.kind !== 'plugin' ||
-            registration.source.pluginName !== context.artifact.pluginName
-        ) {
-            throw new ServiceUnavailableException({
-                code: 'ARTIFACT_PRESENTATION_UNAVAILABLE',
-                message: t('server-ai:Error.ArtifactPresentationUnavailable')
-            })
-        }
-        return registration.strategy
+        return artifactPresentationProvider(this.registry, this.types, context)
     }
 
     private withViewer<T>(

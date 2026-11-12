@@ -98,3 +98,6 @@ docker/volumes/
 /data/plugins/
 
 /.deploy/webapp/pet-assets/pets/
+
+# Local review notes and screenshots.
+/docs/reviews/

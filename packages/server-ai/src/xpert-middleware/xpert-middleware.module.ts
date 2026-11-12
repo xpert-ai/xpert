@@ -12,6 +12,7 @@ import { StructuredOutputMiddleware } from './structured-output.middleware'
 import { SummarizationMiddleware } from './summarization.middleware'
 import { TodoListMiddleware } from './todo-list.middleware'
 import { ThreadReferenceMiddleware } from './thread-reference.middleware'
+import { RequestUserInputMiddleware } from './request-user-input.middleware'
 
 @Module({
     imports: [ChatConversationModule],
@@ -20,6 +21,7 @@ import { ThreadReferenceMiddleware } from './thread-reference.middleware'
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,
         ClientToolMiddleware,
+        RequestUserInputMiddleware,
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
         LLMToolSelectorNameMiddleware,
@@ -34,6 +36,7 @@ import { ThreadReferenceMiddleware } from './thread-reference.middleware'
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,
         ClientToolMiddleware,
+        RequestUserInputMiddleware,
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
         LLMToolSelectorNameMiddleware,

@@ -22,6 +22,7 @@ export default {
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig]
   },
+  transformIgnorePatterns: ['/node_modules/(?!(lodash-es|@xpert-ai/chatkit-types)/)'],
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
   coverageDirectory: '../../../coverage/packages/plugins/draft'

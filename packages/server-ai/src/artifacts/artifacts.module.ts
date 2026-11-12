@@ -1,4 +1,20 @@
+import { ArtifactGroupContentService } from './group-references/artifact-group-content.service'
+import { DiscoverGroupResourcesHandler } from './group-references/commands/handlers/discover-group-resources.handler'
+import { GroupResourceAnalysisService } from './analysis/group-resource-analysis.service'
+import { GroupResourceNavigationHandler } from './group-references/commands/handlers/group-resource-navigation.handler'
+import { ResourceAnalysisAuthoringHandler } from './analysis/commands/handlers/resource-analysis-authoring.handler'
+import { GroupResourceAnalysisHandler } from './analysis/commands/handlers/group-resource-analysis.handler'
+import { GroupAnalysisStreamingHandler } from './analysis/commands/handlers/group-analysis-streaming.handler'
+import { GroupAnalyticsBindingHandler } from './analysis/commands/handlers/group-analytics-binding.handler'
+import { ResourceAnalysisExecution } from './analysis/resource-analysis-execution.entity'
 import { ArtifactShareQueries } from './artifact-share-queries'
+import { CqrsModule } from '@nestjs/cqrs'
+import { ArtifactUseGrant, ArtifactUseGrantAudit } from './use-grants/artifact-use-grant.entity'
+import { ArtifactUseGrantService } from './use-grants/artifact-use-grant.service'
+import { ArtifactGroupReferenceService } from './group-references/artifact-group-reference.service'
+import { ArtifactGroupViewService } from './group-references/artifact-group-view.service'
+import { ArtifactUseGrantsController } from './group-references/artifact-use-grants.controller'
+import { ArtifactUseGrantsRuntime } from './group-references/artifact-use-grants.runtime'
 import { ArtifactContentRuntimeService } from './artifact-content-runtime.service'
 import { ArtifactReference } from './library/artifact-reference.entity'
 import { ArtifactLibraryAccess } from './library/artifact-library-access'
@@ -14,7 +30,7 @@ import { ArtifactDraftsService } from './drafts/artifact-drafts.service'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { UserModule, UserOrganizationModule } from '@xpert-ai/server-core'
+import { AnalyticsModule, UserModule, UserOrganizationModule } from '@xpert-ai/server-core'
 import { VolumeModule } from '../shared/volume'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { Artifact, ArtifactAccessLog, ArtifactLink, ArtifactVersion } from './entities'
@@ -35,6 +51,8 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
 
 @Module({
     imports: [
+        CqrsModule,
+        AnalyticsModule,
         ArtifactTypesModule,
         DiscoveryModule,
         RuntimeCapabilityModule,
@@ -42,12 +60,15 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         XpertProjectAccessModule,
         WorkspaceFilesRuntimeModule,
         TypeOrmModule.forFeature([
+            ResourceAnalysisExecution,
             Artifact,
             ArtifactDraft,
             ArtifactVersion,
             ArtifactLink,
             ArtifactAccessLog,
-            ArtifactReference
+            ArtifactReference,
+            ArtifactUseGrant,
+            ArtifactUseGrantAudit
         ]),
         UserModule,
         UserOrganizationModule,
@@ -55,6 +76,7 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         VolumeModule
     ],
     controllers: [
+        ArtifactUseGrantsController,
         ArtifactLibraryController,
         ArtifactsPublicController,
         ArtifactsShareSessionController,
@@ -63,6 +85,18 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         ArtifactSnapshotsController
     ],
     providers: [
+        DiscoverGroupResourcesHandler,
+        ArtifactGroupContentService,
+        GroupResourceAnalysisService,
+        ResourceAnalysisAuthoringHandler,
+        GroupResourceAnalysisHandler,
+        GroupAnalysisStreamingHandler,
+        GroupAnalyticsBindingHandler,
+        GroupResourceNavigationHandler,
+        ArtifactUseGrantsRuntime,
+        ArtifactGroupReferenceService,
+        ArtifactGroupViewService,
+        ArtifactUseGrantService,
         ArtifactContentRuntimeService,
         ArtifactLibraryAccess,
         ArtifactLibraryService,
@@ -76,6 +110,13 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         ArtifactPresentationService,
         ArtifactSnapshotsService
     ],
-    exports: [ArtifactsService, ArtifactShareQueries, ArtifactSnapshotsService]
+    exports: [
+        ArtifactsService,
+        ArtifactShareQueries,
+        ArtifactSnapshotsService,
+        ArtifactUseGrantService,
+        ArtifactGroupReferenceService,
+        ArtifactGroupViewService
+    ]
 })
 export class ArtifactsModule {}

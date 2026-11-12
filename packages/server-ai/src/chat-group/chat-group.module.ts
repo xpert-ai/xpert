@@ -1,9 +1,19 @@
+import { ProjectGroupDisplayHandler } from './commands/handlers/project-group-display.handler'
+import { ReadGroupMapHandler } from './commands/handlers/read-group-map.handler'
+import { ResolveConversationResourceScopeHandler } from './commands/handlers/conversation-resource-scope.handler'
+import { ResolveGroupResourceNavigationToolsHandler } from './commands/handlers/resolve-group-resource-navigation-tools.handler'
+import { GroupResourceToolsService } from './group-resource-tools.service'
 import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { ResolveGroupRuntimeAccessHandler } from './group-runtime-access.handler'
+import { ResolveGroupProjectAccessHandler } from './commands/handlers/group-project-access.handler'
+import { ListGroupGrantTargetsHandler } from './commands/handlers/group-grant-targets.handler'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ChatConversationModule } from '../chat-conversation/conversation.module'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
+import { ChatMessage } from '../chat-message/chat-message.entity'
 import { HandoffQueueModule } from '../handoff/message-queue.module'
 import { SseStreamModule } from '../shared/stream'
 import { XpertModule } from '../xpert/xpert.module'
@@ -43,14 +53,20 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         AgentPluginModule,
         XpertProjectModule,
         XpertWorkspaceModule,
-        TypeOrmModule.forFeature(GROUP_ENTITIES),
+        TypeOrmModule.forFeature([...GROUP_ENTITIES, ChatConversation, ChatConversationThread, ChatMessage]),
         forwardRef(() => XpertModule),
         forwardRef(() => ChatConversationModule),
         HandoffQueueModule,
         SseStreamModule
     ],
     providers: [
+        ReadGroupMapHandler,
+        ResolveConversationResourceScopeHandler,
+        ProjectGroupDisplayHandler,
+        ResolveGroupResourceNavigationToolsHandler,
         ResolveGroupRuntimeAccessHandler,
+        ResolveGroupProjectAccessHandler,
+        ListGroupGrantTargetsHandler,
         AuthorizeGroupTaskCallerHandler,
         GroupTaskTargetService,
         ListGroupTaskTargetsHandler,
@@ -74,7 +90,8 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         FinishGroupChatHandler,
         GroupRuntimeViewService,
         GroupStreamService,
-        GroupToolsService
+        GroupToolsService,
+        GroupResourceToolsService
     ],
     exports: [
         GroupProjectService,

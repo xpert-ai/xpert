@@ -83,6 +83,8 @@ export interface ContentResourcesApi {
   readonly identities: ContentIdentitiesApi
   authorize(input: ContentResourceRequest): Promise<ContentResourceDescriptor>
   readonly catalog: import('./catalog').ContentCatalogApi
+  /** Conversation-scoped discovery for Views; group authorization does not expand the Project catalog. */
+  readonly discovery: import('./discovery').ConversationResourcesApi
 }
 export const ContentResourcesRuntimeCapability = createRuntimeCapability<ContentResourcesApi>(
   'platform.content.resources',
@@ -94,3 +96,4 @@ export * from './reference'
 
 export * from './editor'
 export * from './catalog'
+export * from './discovery'

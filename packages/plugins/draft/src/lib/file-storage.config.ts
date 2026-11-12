@@ -51,6 +51,7 @@ function readMinioEnvDefaults(): S3CompatibleProviderConfig {
     bucket: process.env['MINIO_BUCKET'],
     endpoint: process.env['MINIO_ENDPOINT'],
     publicUrl: process.env['MINIO_PUBLIC_URL'],
+    signedUrlEndpoint: process.env['MINIO_SIGNED_URL_ENDPOINT'],
     forcePathStyle: toBoolean(process.env['MINIO_FORCE_PATH_STYLE'], true),
     signedUrlExpires: toNumber(process.env['MINIO_SIGNED_URL_EXPIRES'], 3600)
   }
@@ -65,6 +66,7 @@ function readS3EnvDefaults(): S3CompatibleProviderConfig {
     bucket: process.env['AWS_S3_BUCKET'] || process.env['S3_BUCKET'],
     endpoint: process.env['AWS_S3_ENDPOINT'] || process.env['AWS_ENDPOINT'] || process.env['S3_ENDPOINT'],
     publicUrl: process.env['AWS_PUBLIC_URL'] || process.env['S3_PUBLIC_URL'],
+    signedUrlEndpoint: process.env['AWS_SIGNED_URL_ENDPOINT'] || process.env['S3_SIGNED_URL_ENDPOINT'],
     forcePathStyle: toBoolean(process.env['AWS_FORCE_PATH_STYLE'] || process.env['S3_FORCE_PATH_STYLE'], false),
     signedUrlExpires: toNumber(process.env['AWS_SIGNED_URL_EXPIRES'] || process.env['S3_SIGNED_URL_EXPIRES'], 3600)
   }
@@ -80,6 +82,7 @@ function readRustfsEnvDefaults(): S3CompatibleProviderConfig {
     bucket: process.env['RUSTFS_BUCKET'] || process.env['AWS_S3_BUCKET'],
     endpoint: process.env['RUSTFS_ENDPOINT'] || process.env['AWS_S3_ENDPOINT'] || process.env['AWS_ENDPOINT'],
     publicUrl: process.env['RUSTFS_PUBLIC_URL'],
+    signedUrlEndpoint: process.env['RUSTFS_SIGNED_URL_ENDPOINT'],
     forcePathStyle: toBoolean(process.env['RUSTFS_FORCE_PATH_STYLE'], true),
     signedUrlExpires: toNumber(process.env['RUSTFS_SIGNED_URL_EXPIRES'], 3600)
   }
@@ -95,6 +98,7 @@ function readWasabiEnvDefaults(): S3CompatibleProviderConfig {
     bucket: process.env['WASABI_BUCKET'] || process.env['AWS_S3_BUCKET'],
     endpoint: process.env['WASABI_ENDPOINT'] || process.env['AWS_S3_ENDPOINT'] || process.env['AWS_ENDPOINT'],
     publicUrl: process.env['WASABI_PUBLIC_URL'],
+    signedUrlEndpoint: process.env['WASABI_SIGNED_URL_ENDPOINT'],
     forcePathStyle: toBoolean(process.env['WASABI_FORCE_PATH_STYLE'], false),
     signedUrlExpires: toNumber(process.env['WASABI_SIGNED_URL_EXPIRES'], 3600)
   }

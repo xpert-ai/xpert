@@ -3,7 +3,11 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   FEEDBACK_LEARNING_STRATEGY,
   evidenceDrivenStrategy,
+  type DatasetSnapshot,
+  type EvaluationRun,
+  type EvolutionCandidate,
   type EvolutionChange,
+  type ReleasePackage,
   type EvolutionLifecycleRecord
 } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
@@ -83,6 +87,7 @@ const record = (status: string): EvolutionLifecycleRecord => ({
 
 let facade: AgentEvolutionFacade
 let api: {
+  evaluateChange: jest.Mock
   decideChange: jest.Mock
   publishChange: jest.Mock
   listChanges: jest.Mock
@@ -92,6 +97,7 @@ let api: {
 beforeEach(() => {
   jest.clearAllMocks()
   api = {
+    evaluateChange: jest.fn(),
     decideChange: jest.fn(() => of(record('approved'))),
     publishChange: jest.fn(() => of(record('published'))),
     listChanges: jest.fn(() => of([change])),
@@ -228,4 +234,80 @@ it('discards both refresh responses when the organization changes', async () => 
   await pending
   expect(facade.changes()).toEqual([])
   expect(facade.lifecycleRecords()).toEqual([])
+})
+
+describe('isolated replay submission', () => {
+  const candidate = {
+    candidateId: change.changeId,
+    targetId: change.targetId,
+    targetScope: change.scope,
+    status: 'ready',
+    strategy: { definition: { evaluations: [{ key: 'replay', kind: 'golden_replay' }] } }
+  } as EvolutionCandidate
+  const dataset = { snapshotId: 'chosen', targetId: change.targetId, scope: change.scope } as DatasetSnapshot
+  const run = (runId: string, snapshotId: string) =>
+    ({ runId, datasetSnapshotId: snapshotId, candidateId: candidate.candidateId }) as EvaluationRun
+  beforeEach(() => {
+    facade.changes.set([{ ...change, evaluation: undefined, datasetSnapshotIds: { other: 'preserved' } }])
+    facade.dashboard.update((d) => ({ ...d, evaluations: [run('unrelated', 'chosen'), run('returned', 'chosen')] }))
+    api.evaluateChange.mockReturnValue(
+      of({
+        ...record('pending_approval'),
+        evaluation: {
+          ...change.evaluation,
+          checks: [{ evidenceRefs: ['returned'] }]
+        }
+      })
+    )
+  })
+  it('pins the selected snapshot and opens only the replay cited by this assessment', async () => {
+    expect((await facade.evaluateCandidate(candidate, dataset))?.runId).toBe('returned')
+    expect(api.evaluateChange).toHaveBeenCalledWith(candidate.candidateId, { other: 'preserved', replay: 'chosen' })
+    expect(facade.pendingReplay()).toBeNull()
+  })
+  it('never substitutes another run when the cited run uses a different snapshot', async () => {
+    facade.dashboard.update((d) => ({ ...d, evaluations: [run('unrelated', 'chosen'), run('returned', 'other')] }))
+    expect(await facade.evaluateCandidate(candidate, dataset)).toBeNull()
+    expect(facade.selectedEvaluationRunId()).toBeNull()
+    expect(facade.pendingReplay()).toBeNull()
+  })
+  it('prevents duplicate submission and clears pending state on failure', async () => {
+    const response = new Subject<EvolutionLifecycleRecord>()
+    api.evaluateChange.mockReturnValue(response)
+    const pending = facade.evaluateCandidate(candidate, dataset)
+    expect(facade.pendingReplay()).toEqual({ candidateId: candidate.candidateId, snapshotId: 'chosen' })
+    expect(await facade.evaluateCandidate(candidate, dataset)).toBeNull()
+    expect(api.evaluateChange).toHaveBeenCalledTimes(1)
+    response.error(new Error('replay failed'))
+    expect(await pending).toBeNull()
+    expect(facade.pendingReplay()).toBeNull()
+    expect(facade.error()).toBe('replay failed')
+  })
+})
+
+it('submits one canary expansion to the selected package while its job is outstanding', async () => {
+  const queue = new Subject<{ jobId: string; resourceId: string; status: string }>()
+  const startCanary = jest.fn(() => queue)
+  Object.assign(api, { startCanary })
+  const pack = { releasePackageId: 'selected-release' } as ReleasePackage
+  const pending = facade.runReleaseAction(pack, 'canary25')
+  expect(await facade.runReleaseAction(pack, 'canary50')).toBeNull()
+  expect(startCanary).toHaveBeenCalledTimes(1)
+  expect(startCanary).toHaveBeenCalledWith('selected-release', { canaryPercent: 25 })
+  api.getJob.mockReturnValue(of({ jobId: 'job-25', resourceId: 'selected-release', status: 'completed' }))
+  queue.next({ jobId: 'job-25', resourceId: 'selected-release', status: 'queued' })
+  expect(await pending).toBe(true)
+  expect(facade.activeJob()?.status).toBe('completed')
+  expect(facade.load).toHaveBeenCalledWith({ silent: true })
+})
+
+it('does not surface a release job after the organization changes', async () => {
+  const install = new Subject<{ jobId: string; resourceId: string; status: string }>()
+  Object.assign(api, { installRelease: () => install })
+  const work = facade.runReleaseAction({ releasePackageId: 'old-selection' } as ReleasePackage, 'install')
+  facade.resetScopeContext()
+  install.next({ jobId: 'old-job', resourceId: 'old-selection', status: 'queued' })
+  expect(await work).toBeNull()
+  expect(facade.activeJob()).toBeNull()
+  expect(api.getJob).not.toHaveBeenCalled()
 })

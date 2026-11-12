@@ -236,7 +236,10 @@ function fixture(
         {
             publish: jest.fn().mockResolvedValue(1)
         } as unknown as RedisClientType,
-        { terminate: jest.fn(), shouldAbort: jest.fn(), attach: jest.fn(),
+        {
+            terminate: jest.fn(),
+            shouldAbort: jest.fn(),
+            attach: jest.fn(),
             tasks: { execution: jest.fn().mockResolvedValue(null) }
         } as unknown as ExecutionControlStore
     )
@@ -245,7 +248,13 @@ function fixture(
         queryBus as unknown as QueryBus,
         resourceService as unknown as RuntimeResourceService,
         invocations,
-        new NativeAgentCompiler(commandBus as unknown as CommandBus, queryBus as unknown as QueryBus),
+        new NativeAgentCompiler(
+            commandBus as unknown as CommandBus,
+            queryBus as unknown as QueryBus,
+            {
+                runAttached: (_child: string, _parent: string, run: () => Promise<unknown>) => run()
+            } as unknown as ExecutionControlStore
+        ),
         cancellations
     )
     const middlewareRuntime = {
@@ -769,10 +778,13 @@ describe('Collaborators middleware in the Agent graph', () => {
 
     it('keeps exact published delegation scope across concurrent children and clears it afterward', async () => {
         const observed: Array<ReturnType<typeof publishedAgentDelegation>> = []
-        const f = fixture({ batch: true, onChild: async () => {
-            await Promise.resolve()
-            observed.push(publishedAgentDelegation())
-        } })
+        const f = fixture({
+            batch: true,
+            onChild: async () => {
+                await Promise.resolve()
+                observed.push(publishedAgentDelegation())
+            }
+        })
         const { graph } = await f.handler.execute(f.command)
         await graph.invoke(f.input, f.config)
         expect(observed).toEqual([
@@ -780,7 +792,9 @@ describe('Collaborators middleware in the Agent graph', () => {
             { requesterXpertId: 'parent', xpertId: 'expert-1' }
         ])
         expect(publishedAgentDelegation()).toBeUndefined()
-        expect(f.queryBus.execute).toHaveBeenCalledWith(new GetAccessiblePublishedXpertQuery('expert-1', ['agent'], 'parent'))
+        expect(f.queryBus.execute).toHaveBeenCalledWith(
+            new GetAccessiblePublishedXpertQuery('expert-1', ['agent'], 'parent')
+        )
     })
 
     it('returns one child failure without repeating or cancelling successful sibling work', async () => {

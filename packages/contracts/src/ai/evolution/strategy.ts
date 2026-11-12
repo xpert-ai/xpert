@@ -2,11 +2,16 @@ import type { I18nText } from '../../i18n.model'
 import type { EvolutionEvidenceRef } from './change'
 import type { EvolutionRiskLevel } from './target'
 
+/** Origin of a change request; it does not by itself choose the evaluation or publication path. */
 export type EvolutionInputKind = 'learning_events' | 'business_evidence' | 'manual'
+/** Distinct governance stages, including whether a published change has taken effect. */
 export type EvolutionStageKey = 'learning' | 'candidate' | 'evaluation' | 'approval' | 'publication' | 'effect'
+/** Progress of a stage; not_applicable is distinct from a stage that ran and passed. */
 export type EvolutionStageStatus = 'pending' | 'running' | 'passed' | 'failed' | 'not_applicable'
 
+/** Named assessment of the candidate; required checks specify the evidence needed for coverage. */
 export interface EvolutionEvaluationStep {
+  /** Stable identity within the strategy, including for dataset bindings. */
   key: string
   kind: 'target_checks' | 'golden_replay'
   requiredChecks: Array<{ kind: string; origin?: string; blocking?: boolean }>
@@ -18,6 +23,7 @@ export interface EvolutionStrategy {
   version: string
   label: I18nText
   inputs: EvolutionInputKind[]
+  /** Evidence eligibility requirements, distinct from whether an evaluation is required. */
   learning:
     | { mode: 'none' }
     | {
@@ -31,17 +37,21 @@ export interface EvolutionStrategy {
   candidate: { builder: 'change_set' | 'target_draft' }
   evaluations: EvolutionEvaluationStep[]
   approval: 'human'
+  /** Distinguishes how a version is published from how it takes effect: by activation or by explicit adoption. */
   publication: { mode: 'staged_rollout' | 'version_write'; effect: 'activation' | 'explicit_adoption' }
 }
 
+/** Strategy, provider version and risk level frozen for a particular change. */
 export interface EvolutionStrategySnapshot {
   definition: EvolutionStrategy
   riskLevel: EvolutionRiskLevel
+  /** Fingerprint of the frozen strategy snapshot used to bind evaluations and approvals. */
   hash: string
   providerKey: string
   providerVersion: string
 }
 
+/** Outcome of a strategy stage with references to any runs supporting that outcome. */
 export interface EvolutionStageRecord {
   key: EvolutionStageKey
   status: EvolutionStageStatus

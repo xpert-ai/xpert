@@ -19,7 +19,7 @@ describePostgres('safe connection deletion (PostgreSQL)', () => {
     let service: ConnectionDeletionService
     let started = false
     const docker = (...args: string[]) => execFileSync('docker', args, { encoding: 'utf8' }).trim()
-    const common = 'id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "tenantId" uuid, "organizationId" uuid'
+    const common = `id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "tenantId" uuid, "organizationId" uuid DEFAULT '${organization}'`
     const tables = [
         'copilot_provider_model',
         'copilot_provider',
@@ -352,6 +352,183 @@ describePostgres('safe connection deletion (PostgreSQL)', () => {
             [tenant, organization, { copilotId: connection }]
         )
         await expect(service.delete(connection)).rejects.toBeInstanceOf(ConflictException)
+    })
+
+    const scopedReferences: [ConnectionReferenceKind, string, string, string][] = [
+        ['defaults', 'copilot_role_default', 'mode,binding', `'fixed',jsonb_build_object('copilotId',c::text)`],
+        ['assistants', 'xpert', 'latest,graph', `true,jsonb_build_object('copilotId',c::text)`],
+        ['knowledgebases', 'knowledgebase', '"chatModelId"', 'm'],
+        ['projects', 'xpert_project', '"copilotModelId"', 'm'],
+        ['connections', 'copilot', '"copilotModelId"', 'm'],
+        ['gateways', 'model_gateway_publication', '"copilotId"', 'c'],
+        [
+            'membershipPlans',
+            'membership_plan',
+            '"allowedModels"',
+            `jsonb_build_array(jsonb_build_object('copilotId',c::text))`
+        ],
+        ['accessGrants', 'user_model_grant', '"copilotId",status', `c,'active'`],
+        ['accessRequests', 'model_access_request', '"copilotId",status', `c,'requested'`],
+        [
+            'executions',
+            'model_execution_grant',
+            'models,status,"expiresAt","absoluteExpiresAt"',
+            `jsonb_build_array(jsonb_build_object('copilotId',c::text)),'active',now()+interval '1 hour',now()+interval '2 hours'`
+        ],
+        [
+            'voiceSessions',
+            'realtime_voice_session',
+            '"modelSnapshot",status,"expiresAt"',
+            `jsonb_build_object('copilotId',c::text),'active',now()+interval '1 hour'`
+        ]
+    ]
+
+    it.each(scopedReferences)(
+        'checks only owning-organization %s references for an organization connection',
+        async (kind, table, columns, values) => {
+            const model = await bindModel()
+            const insert = `WITH input(t,o,c,m) AS (VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid))
+                INSERT INTO ${table} ("tenantId","organizationId",${columns}) SELECT t,o,${values} FROM input`
+            for (const otherOrganization of [null, randomUUID()]) {
+                await database.query(insert, [tenant, otherOrganization, connection, model])
+            }
+            const impact = await service.inspect(connection)
+            expect(impact.canDelete).toBe(true)
+            expect(impact.references[kind]).toBe(0)
+            await database.query(insert, [tenant, organization, connection, model])
+            expect((await service.inspect(connection)).references[kind]).toBe(1)
+            await expect(service.delete(connection)).rejects.toBeInstanceOf(ConflictException)
+            await remains()
+        }
+    )
+
+    it.each(scopedReferences)(
+        'retains cross-organization %s protection for a tenant connection',
+        async (kind, table, columns, values) => {
+            await database.query('UPDATE copilot SET "organizationId"=NULL WHERE id=$1', [connection])
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+            const model = await bindModel()
+            await database.query(
+                `WITH input(t,o,c,m) AS (VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid))
+                INSERT INTO ${table} ("tenantId","organizationId",${columns}) SELECT t,o,${values} FROM input`,
+                [tenant, randomUUID(), connection, model]
+            )
+            expect((await service.inspect(connection)).references[kind]).toBe(1)
+            await expect(service.delete(connection)).rejects.toBeInstanceOf(ConflictException)
+            await remains()
+        }
+    )
+
+    it('keeps Agent documents and the recursive model set within the owning organization', async () => {
+        const model = await bindModel(),
+            foreignModel = randomUUID(),
+            foreignReference = randomUUID(),
+            otherOrganization = randomUUID(),
+            assistant = randomUUID(),
+            agent = randomUUID()
+        await database.query(
+            'INSERT INTO copilot_model (id,"tenantId","organizationId","copilotId","referencedId") VALUES ($1,$2,$3,$4,NULL),($5,$2,$3,NULL,$6)',
+            [foreignModel, tenant, otherOrganization, connection, foreignReference, model]
+        )
+        await database.query('INSERT INTO xpert (id,"tenantId",latest,graph) VALUES ($1,$2,true,$3)', [
+            assistant,
+            tenant,
+            { nodes: [{ copilotModelId: foreignModel }, { referencedId: foreignReference }] }
+        ])
+        await database.query(
+            'INSERT INTO xpert_agent (id,"tenantId","organizationId","teamId",options) VALUES ($1,$2,$3,$4,$5)',
+            [agent, tenant, otherOrganization, assistant, { copilotId: connection }]
+        )
+        expect((await service.inspect(connection)).canDelete).toBe(true)
+        await database.query('UPDATE xpert_agent SET "organizationId"=$1 WHERE id=$2', [organization, agent])
+        expect((await service.inspect(connection)).references.assistants).toBe(1)
+    })
+
+    it('retains indirect organization model references in Agents for tenant connections', async () => {
+        await database.query('UPDATE copilot SET "organizationId"=NULL WHERE id=$1', [connection])
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const model = await bindModel(),
+            indirect = randomUUID(),
+            otherOrganization = randomUUID(),
+            assistant = randomUUID()
+        await database.query(
+            'INSERT INTO copilot_model (id,"tenantId","organizationId","referencedId") VALUES ($1,$2,$3,$4)',
+            [indirect, tenant, otherOrganization, model]
+        )
+        await database.query('INSERT INTO xpert (id,"tenantId","organizationId",latest) VALUES ($1,$2,$3,true)', [
+            assistant,
+            tenant,
+            otherOrganization
+        ])
+        await database.query(
+            'INSERT INTO xpert_agent ("tenantId","organizationId","teamId",options) VALUES ($1,$2,$3,$4)',
+            [tenant, otherOrganization, assistant, { nested: [{ copilotModel: { id: indirect } }] }]
+        )
+        expect((await service.inspect(connection)).references.assistants).toBe(1)
+        await expect(service.delete(connection)).rejects.toBeInstanceOf(ConflictException)
+    })
+
+    it('preserves supported JSON reference shapes and ignores unrelated scalar values', async () => {
+        const model = await bindModel(),
+            assistant = randomUUID()
+        await database.query('INSERT INTO xpert (id,"tenantId",latest) VALUES ($1,$2,true)', [assistant, tenant])
+        for (const binding of [
+            { copilotId: connection },
+            { copilot: { id: connection } },
+            { referencedId: model },
+            { copilotModelId: model },
+            { copilotModel: { id: model } },
+            { copilotId: [randomUUID(), connection] },
+            { copilot: [{ id: connection }] },
+            { copilotModelId: [randomUUID(), model] }
+        ]) {
+            await database.query('UPDATE xpert SET graph=$1 WHERE id=$2', [
+                { nodes: [{ nested: [null, 42, binding] }] },
+                assistant
+            ])
+            expect((await service.inspect(connection)).references.assistants).toBe(1)
+        }
+        await database.query('UPDATE xpert SET graph=$1 WHERE id=$2', [
+            {
+                nodes: [
+                    null,
+                    model,
+                    connection,
+                    { id: model, text: connection, copilotId: model, copilotModelId: connection }
+                ]
+            },
+            assistant
+        ])
+        expect((await service.inspect(connection)).canDelete).toBe(true)
+    })
+
+    it('checks 1512 Assistant documents and 13 bindings within the existing deletion timeout', async () => {
+        await database.query('UPDATE copilot SET "organizationId"=NULL WHERE id=$1', [connection])
+        await database.query('UPDATE copilot_provider SET "organizationId"=NULL WHERE id=$1', [provider])
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const models = await Promise.all(Array.from({ length: 13 }, () => bindModel()))
+        const graph = {
+            nodes: Array.from({ length: 64 }, () => ({
+                key: randomUUID(),
+                entity: {
+                    copilotModel: { id: randomUUID(), copilotId: randomUUID(), model: 'synthetic' },
+                    options: { fallback: { referencedId: randomUUID() }, text: 'unrelated configuration' }
+                }
+            }))
+        }
+        await database.query(
+            'INSERT INTO xpert ("tenantId",latest,graph) SELECT $1,true,$2::json FROM generate_series(1,1512)',
+            [tenant, graph]
+        )
+        await database.query(
+            'INSERT INTO xpert_agent ("tenantId","teamId",options) SELECT "tenantId",id,$1::json FROM xpert',
+            [{ nested: { copilotModelId: randomUUID() } }]
+        )
+        // Exercise a no-match full scan under the real five-second deletion statement limit.
+        await expect(service.delete(connection)).resolves.toMatchObject({ affected: 1 })
+        expect(await database.query('SELECT id FROM copilot_model WHERE "copilotId"=$1', [connection])).toHaveLength(
+            models.length
+        )
     })
 
     it('rolls credential removal back if final connection removal fails', async () => {

@@ -446,6 +446,7 @@ class DesktopService {
       accept = 'application/json',
       errorMessages,
       includeServerMessage = false,
+      viewProjectId,
       runtimeRecoveryBudget = { remaining: 2, deadline: Date.now() + 15_000 }
     } = {}
   ) {
@@ -462,6 +463,7 @@ class DesktopService {
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
     if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
+    if (viewProjectId) headers['x-xpert-view-project-id'] = viewProjectId
     const multipart = typeof FormData !== 'undefined' && body instanceof FormData
     if (multipart) delete headers['Content-Type']
     let response
@@ -517,6 +519,7 @@ class DesktopService {
         accept,
         errorMessages,
         includeServerMessage,
+        viewProjectId,
         runtimeRecoveryBudget
       })
     }

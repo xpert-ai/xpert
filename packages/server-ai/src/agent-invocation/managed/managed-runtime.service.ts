@@ -1,6 +1,7 @@
-import { AgentInvocationError } from '../invocation-errors'
 // Invariants: installed strategies supply launch settings; declarations never grant actor access.
 // Disabled presets fence admission across revisions; secrets never enter bindings.
+// Discovery may omit denied Computer candidates; explicit resolution must still fail closed.
+import { AgentInvocationError } from '../invocation-errors'
 import { HttpException, Injectable } from '@nestjs/common'
 import { CommandBus, CommandHandlerNotFoundException, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -180,16 +181,25 @@ export class ManagedRuntimeService {
     async list(scope: AgentInvocationScope) {
         await this.scope(scope)
         const direct = await this.directCandidates(scope)
+        // Edition-owned Computer admission is not a prerequisite for unrelated runtime catalogs.
+        const hasComputerPreset = this.registry
+            .listRegistrations(scope.organizationId)
+            .some(
+                ({ strategy }) =>
+                    strategy.capabilities.background &&
+                    strategy.managedProfiles?.some((profile) => profile.environment === 'computer')
+            )
         let context: ManagedRuntimeTools | null
         try {
-            context = await this.computer(scope)
+            context = hasComputerPreset ? await this.computer(scope) : null
         } catch (error) {
-            // Lack of Computer access must not hide an independently authorized SDK/process/service backend.
+            // Only expected Computer admission failures omit its candidates, even if no direct preset exists.
+            // Scope/actor checks above and unexpected service errors must still fail the request.
             const denied =
                 (error instanceof HttpException && [403, 404].includes(error.getStatus())) ||
                 (error instanceof AgentInvocationError &&
                     ['InvalidScope', 'NotFound', 'ProviderUnavailable'].includes(error.code))
-            if (!direct.length || !denied) throw error
+            if (!denied) throw error
             context = null
         }
         const rows = await this.rows(scope)

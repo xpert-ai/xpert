@@ -18,6 +18,7 @@ on:
       - 'nodemon*.json'
       - 'package.json'
       - 'tools/scripts/schema-migration-legacy-fixture.cjs'
+      - 'tools/scripts/schema-migration-artifact-grants-fixture.cjs'
       - '.github/workflows/database-migrations.yml'
 jobs:
   postgres:

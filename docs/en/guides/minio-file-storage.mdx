@@ -1,191 +1,47 @@
-# MinIO File Storage Plugin
+# MinIO File Storage
 
-## Overview
+MinIO is an organization-scoped provider in `@xpert-ai/plugin-draft`. Deploy the package through the platform plugin lifecycle, verify it is running, then configure the **MinIO** section of **Settings → Plugins → Draft File Storage Providers**. The package also registers S3, RustFS, Wasabi and OSS. Use the version actually built for your host; the draft package is not a promise of a published npm release.
 
-MinIO is no longer configured as a host built-in provider.
+## Storage boundary
 
-It is delivered as part of the draft object-storage plugin package in `packages/plugins/draft`, and registered as an `IFileStorageProvider` under provider name `MINIO`.
+`FILE_PROVIDER=MINIO` selects the default **FileStorage** provider only. Workspace Files, app data, ArtifactContent, Artifact drafts/versions, and Sandbox workspaces still use POSIX Volumes. Their files must remain on durable storage shared with the relevant API/worker/sandbox processes. File Analytics uses Workspace Files; it does not query arbitrary S3 objects. See [storage verification and migration constraints](../../development/minio-storage-foundation.md).
 
-The same plugin package also registers `RUSTFS`, `S3`, `WASABI`, and `OSS`.
+Artifact content uses logical references without storage types. The internal byte layer uses system FileStorage configuration for every operation; changing that configuration requires data migration, with references unchanged. Ordinary workspaces and appData remain POSIX. See [Artifact content storage and limitations](../../development/artifact-content-storage.md).
 
-That means MinIO now follows the same lifecycle as other installable plugins:
+## Configuration
 
-- install the plugin
-- configure it from the Plugins page or plugin API
-- use `provider: "MINIO"` in unified upload targets
+Encrypted `PluginInstance.config.minio` overrides plugin-local environment defaults, followed by provider defaults. Environment parsing stays in `file-storage.config.ts`, registered through Nest Config; business services do not read these variables.
 
-## Where the code lives
+| Setting             | Environment default         | Meaning                                                                                    |
+| ------------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| `endpoint`          | `MINIO_ENDPOINT`            | Server-reachable HTTP(S) endpoint                                                          |
+| `signedUrlEndpoint` | `MINIO_SIGNED_URL_ENDPOINT` | Browser-reachable endpoint used **while signing**, for the same bucket and credentials     |
+| `bucket`            | `MINIO_BUCKET`              | Pre-provisioned bucket; use a private bucket for private files                             |
+| `region`            | `MINIO_REGION`              | Signing region, default `us-east-1`                                                        |
+| `forcePathStyle`    | `MINIO_FORCE_PATH_STYLE`    | Default `true`; virtual-host mode requires bucket DNS/TLS routing                          |
+| `signedUrlExpires`  | `MINIO_SIGNED_URL_EXPIRES`  | Integer seconds, 1–604800, default 3600                                                    |
+| `publicUrl`         | `MINIO_PUBLIC_URL`          | Explicit **unsigned public** URL base; takes precedence over signing                       |
+| `rootPath`          | `MINIO_ROOT_PATH`           | Legacy multipart key/path helper prefix; unified storage targets use their own scoped keys |
 
-- Plugin entry: `packages/plugins/draft/src/index.ts`
-- Nest module: `packages/plugins/draft/src/lib/draft.ts`
-- Provider implementation: `packages/plugins/draft/src/lib/minio.provider.ts`
-- Plugin env defaults: `packages/plugins/draft/src/lib/file-storage.config.ts`
-- Plugin validation and UI schema: `packages/plugins/draft/src/lib/file-storage.types.ts`
+Supply credentials through encrypted plugin configuration or deployment secrets. Supported access-key aliases are `MINIO_ACCESS_KEY_ID`, `MINIO_ACCESS_KEY`, `MINIO_ROOT_USER`; secret aliases are `MINIO_SECRET_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_ROOT_PASSWORD`.
 
-## Configuration model
+For a private bucket behind a proxy, set `endpoint` to the server endpoint, `signedUrlEndpoint` to the external HTTPS endpoint, and **leave `publicUrl` unset**. Do not rewrite the host of a generated signed URL: the host is signed. The proxy must preserve host/path/query and reach the same bucket. TLS certificate verification remains enabled; this change does not add an insecure TLS bypass.
 
-MinIO runtime configuration is resolved from three layers, highest priority first:
+For other compatible providers the equivalent signing variables are `S3_SIGNED_URL_ENDPOINT` (or `AWS_SIGNED_URL_ENDPOINT`), `RUSTFS_SIGNED_URL_ENDPOINT` and `WASABI_SIGNED_URL_ENDPOINT`.
 
-1. encrypted `PluginInstance.config`
-2. plugin env defaults from `registerAs('plugins.file-storage.draft', ...)`
-3. provider internal defaults
+The authenticated tenant setting `fileStorageProvider` can override the deployment default. Saving tenant settings invalidates that tenant’s settings cache after persistence, so subsequent uploads reload the provider. Multi-instance deployments should share their cache; changing the default does not migrate existing objects.
 
-Current internal defaults:
+## Upload
 
-- `region = us-east-1`
-- `forcePathStyle = true`
-- `signedUrlExpires = 3600`
-
-The host persists plugin configuration in `PluginInstance.config` and encrypts the full value at rest before storing it.
-
-## Install the plugin
-
-Use the Plugins page in the application, or call the install API:
+Set `FILE_PROVIDER=MINIO` only after the provider is running in the active organization. The authenticated public upload endpoint accepts exactly one server-managed target:
 
 ```bash
-curl -X POST http://localhost:3000/api/plugin \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "pluginName": "@xpert-ai/plugin-draft",
-    "version": "0.0.1",
-    "source": "npm"
-  }'
-```
-
-After installation, the Installed Plugins page shows a `Configure` action because the plugin exposes a configuration schema.
-
-## Configure from the UI
-
-After the plugin is installed:
-
-1. open `Settings -> Plugins`
-2. find `Draft File Storage Providers` and use its `MinIO` section
-3. click `Configure`
-4. fill the JSON-schema-based dialog form
-5. save
-
-The dialog is rendered automatically by `JSONSchemaFormComponent` from the plugin's `config.formSchema`.
-
-## Configure through the plugin API
-
-Read current configuration:
-
-```bash
-curl -X POST http://localhost:3000/api/plugin/configuration \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "pluginName": "@xpert-ai/plugin-draft"
-  }'
-```
-
-Save configuration:
-
-```bash
-curl -X PUT http://localhost:3000/api/plugin/configuration \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "pluginName": "@xpert-ai/plugin-draft",
-    "config": {
-      "minio": {
-        "endpoint": "http://127.0.0.1:9000",
-        "bucket": "xpert-files",
-        "accessKeyId": "minioadmin",
-        "secretAccessKey": "minioadmin",
-        "publicUrl": "http://localhost:9000"
-      }
-    }
-  }'
-```
-
-## Environment defaults
-
-The plugin still supports environment variables, but only as plugin-local defaults.
-
-Supported variables:
-
-- `MINIO_ROOT_PATH`
-- `MINIO_ACCESS_KEY_ID`
-- `MINIO_ACCESS_KEY`
-- `MINIO_ROOT_USER`
-- `MINIO_SECRET_ACCESS_KEY`
-- `MINIO_SECRET_KEY`
-- `MINIO_ROOT_PASSWORD`
-- `MINIO_REGION`
-- `MINIO_BUCKET`
-- `MINIO_ENDPOINT`
-- `MINIO_PUBLIC_URL`
-- `MINIO_FORCE_PATH_STYLE`
-- `MINIO_SIGNED_URL_EXPIRES`
-
-Example:
-
-```env
-MINIO_ENDPOINT=http://127.0.0.1:9000
-MINIO_BUCKET=xpert-files
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
-MINIO_REGION=us-east-1
-MINIO_PUBLIC_URL=http://localhost:9000
-MINIO_FORCE_PATH_STYLE=true
-MINIO_SIGNED_URL_EXPIRES=3600
-```
-
-These values are read inside the plugin with:
-
-```ts
-ConfigModule.forFeature(draftFileStoragePluginConfig)
-```
-
-They are not part of the host `environment` contract anymore.
-
-## Use MinIO in unified upload
-
-Once the plugin is installed and configured, MinIO can be used in the unified upload endpoint:
-
-```bash
+# Use the application's normal authenticated client/session.
 curl -X POST http://localhost:3000/api/files/upload \
-  -F 'file=@./README.md' \
-  -F 'targets=[{"kind":"storage","provider":"MINIO","directory":"files","prefix":"docs"}]'
+  -F 'file=@./report.csv' \
+  -F 'targets=[{"kind":"storage"}]'
 ```
 
-Example target:
+Provider, directory, filename and multi-target selection are trusted server command options, not public HTTP inputs. The unified upload forwards MIME to object `Content-Type`; direct provider writes may pass `{ contentType }` as the third `putFile` argument and otherwise default to `application/octet-stream`. Upload results preserve exact object keys.
 
-```json
-[
-  {
-    "kind": "storage",
-    "provider": "MINIO",
-    "directory": "files",
-    "prefix": "docs"
-  }
-]
-```
-
-## Use MinIO as the default storage backend
-
-If the host default file provider is set to `MINIO`, `FileStorage` will resolve the provider from the file-storage plugin registry.
-
-Example:
-
-```env
-FILE_PROVIDER=MINIO
-```
-
-This only works when the MinIO plugin is available in the active scope.
-
-## URL behavior
-
-`MinioProvider` returns URLs in this order:
-
-1. `publicUrl`, if configured
-2. otherwise a signed URL generated from the MinIO endpoint
-
-If the server talks to MinIO through an internal address such as `http://minio:9000`, configure `publicUrl` so external clients receive usable URLs.
-
-## Notes
-
-- The plugin is currently packaged as `@xpert-ai/plugin-draft`.
-- MinIO configuration now lives under `config.minio`.
-- The provider is organization-installable and organization-configurable.
-- Configuration is encrypted at rest in `PluginInstance`.
-- `StorageFile.storageProvider` is persisted as a string, so plugin provider names such as `MINIO` do not need to be hardcoded in contracts.
+Signed object URLs are bearer access until expiry or object deletion. Revocable Artifact sharing must use platform Artifact links and authorization, not an object URL. Never persist signed URLs as portable dataset or Artifact identities.

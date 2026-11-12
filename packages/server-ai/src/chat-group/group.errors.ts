@@ -1,6 +1,19 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { t } from 'i18next'
 import { redactCredentials } from '../shared/redact-credentials'
+import type { ChatGroupProjectRequiredError } from '@xpert-ai/contracts'
+
+export function groupProjectRequired(groupId: string, participantIds: string[]) {
+    const response: ChatGroupProjectRequiredError = {
+        statusCode: 400,
+        error: 'Bad Request',
+        code: 'GROUP_PROJECT_REQUIRED',
+        message: t('server-ai:Error.GroupProjectRequired'),
+        groupId,
+        participantIds
+    }
+    return new BadRequestException(response)
+}
 
 /** Display only the bounded error message; never expose credentials or stack frames. */
 export function groupExecutionError(error?: string | null): string | undefined {

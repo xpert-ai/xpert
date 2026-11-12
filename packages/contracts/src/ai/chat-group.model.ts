@@ -1,6 +1,8 @@
-import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import type { ConversationResourceTarget } from '../conversation-resource.model'
+import type { RuntimeCapabilitiesSelection, TMessageContentResourceCard } from '@xpert-ai/chatkit-types'
 import type { RuntimeResourcesSelection } from '../agent-plugin'
-import type { TAvatar } from '../types'
+import type { IconDefinition, TAvatar } from '../types'
+import type { XpertProjectTypeRef } from './xpert-project-type.model'
 
 /**
  * Public group protocol for ChatConversation(purpose='group'). Each Assistant has a separate runtime.
@@ -15,6 +17,13 @@ import type { TAvatar } from '../types'
  * routes back to its sender; `message` publishes information without waking addressed Assistants.
  */
 export type ChatGroupIntent = 'request' | 'reply' | 'message'
+/**
+ * Completion intent for one sender's reply to one group request, independent of delivery/run status.
+ * `progress` publishes a partial answer without completing the request or waking its requester.
+ * `final` completes this sender's answer only after successful publication and may wake the requester.
+ * It does not complete a Project task, accept its result, or complete other recipients' answers.
+ */
+export type ChatGroupReplyStage = 'progress' | 'final'
 /** Per-recipient delivery progress, independent of the overall Assistant run status. */
 export type ChatGroupDeliveryStatus =
   /** Accepted for delivery; dispatch may still be pending. */
@@ -55,6 +64,15 @@ export interface ChatGroupParticipant {
 }
 /** Invite candidate before membership exists; submit kind + subjectId to add the member. */
 export type ChatGroupCandidate = Pick<ChatGroupParticipant, 'kind' | 'subjectId' | 'name' | 'avatar'>
+/** A rejected send has not persisted a message or queued an Assistant execution. */
+export type ChatGroupProjectRequiredError = {
+  statusCode: 400
+  error: 'Bad Request'
+  code: 'GROUP_PROJECT_REQUIRED'
+  message: string
+  groupId: string
+  participantIds: string[]
+}
 /**
  * Per-message selections from the shared Composer, scoped to one addressed Assistant.
  * This does not choose the recipient: the server requires a single matching Assistant recipient
@@ -83,8 +101,46 @@ export interface ChatGroupComposerInput {
   runtimeCapabilities?: RuntimeCapabilitiesSelection
 }
 
+/**
+ * Server-authored clickable resource entry persisted with a group message.
+ * History replay may show the entry but must not auto-open it; opening always reauthorizes the resource in the current group and Project.
+ */
+export interface ChatGroupResourceLink {
+  /** Public type icon captured by the host when publishing. Optional for legacy links; never an access grant. */
+  icon?: IconDefinition
+  /** Canonical locator shared with discovery and Workbench. Contains no access grant. */
+  resource: ConversationResourceTarget
+  /** Receiving group's runtime Project; checked before opening, never a source Project override. */
+  projectId: string
+  /** Display label only; never use it to infer resource identity or type. */
+  title: string
+}
+/** Live, requester-addressed navigation request derived from a resource link; not a durable open-on-load instruction. */
+export interface ChatGroupResourceOpenRequest extends ChatGroupResourceLink {
+  /** Server-generated deduplication ID; consumers must not repeat an already handled navigation request. */
+  requestId: string
+  /** Initiating message's client correlation ID, or its message ID fallback; used to match the current sender. */
+  clientMessageId: string
+}
 /** Server-authored routing and causality metadata; public senders cannot supply or override identity. */
 export interface ChatGroupCommunication {
+  /** Inert resource entries for message rendering, including history; these alone never trigger navigation. */
+  resourceLinks?: ChatGroupResourceLink[]
+  /**
+   * Server-only instruction to derive a fresh resource_open event for one human participant.
+   * Stream adapters check audience, connection freshness and request deduplication; replayed messages remain inert.
+   */
+  resourceNavigation?: {
+    /** Unique navigation request ID, carried into ChatGroupResourceOpenRequest. */
+    requestId: string
+    /** Server emission time in Unix epoch milliseconds; used to reject stale/replayed instructions. */
+    issuedAt: number
+    /** Client correlation ID of the initiating message, with server message ID as fallback. */
+    clientMessageId: string
+    /** Intended viewer's group membership ID, not a User Account or Assistant ID. */
+    participantId: string
+  }
+
   /** Host-only task routing metadata; never accepted by group send APIs or model tools. */
   projectTask?: { invocationId: string; projectId: string; projectTaskId: string; taskExecutionId: string }
   /** Durable Invocation result notification, delivered through the group queue. */
@@ -106,6 +162,13 @@ export interface ChatGroupCommunication {
   recipientIds: string[]
   /** Public group request being answered; a protocol relationship, not a required UI quote. */
   replyToMessageId?: string
+  /**
+   * Valid only for `intent: 'reply'`. New Assistant tool calls must explicitly choose a stage.
+   * Absent on legacy replies means `final`; new publications persist the resolved stage.
+   * A successfully published final tool reply suppresses the automatic final answer for the same
+   * request and sender. Progress replies, ordinary messages and requests do not suppress it.
+   */
+  replyStage?: ChatGroupReplyStage
   /** Public group message that caused this runtime output; independent of explicit reply intent. */
   causedByMessageId?: string
   /** First public message ID in the causal chain, inherited across Assistant handoffs/replies. */
@@ -116,6 +179,41 @@ export interface ChatGroupCommunication {
   hop: number
 }
 
+/** JSON presentation values only; no executable code, runtime sessions or host credentials. */
+export type ChatGroupDisplayValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ChatGroupDisplayValue[]
+  | {
+      [key: string]: ChatGroupDisplayValue
+    }
+/**
+ * First-phase allowlist of inert tool-result snapshots. This is not a plugin publication API.
+ * Widget uses existing flat A2UI messages; ResourceCard uses the existing card contract.
+ * McpApp carries only a result snapshot, never an App instance, token, input or bridge.
+ * These blocks do not complete a request, wake an Assistant, or authorize resource access.
+ * Consumers must ignore unknown/malformed blocks and must not attach the source run's actions.
+ */
+export type ChatGroupDisplay =
+  | TMessageContentResourceCard
+  | {
+      id: string
+      type: 'component'
+      data: { category: 'Dashboard' } & (
+        | { type: 'Widget'; widgets: { name: string; messages: { [key: string]: ChatGroupDisplayValue }[] }[] }
+        | {
+            type: 'McpApp'
+            toolResult: {
+              content: { type: 'text'; text: string }[]
+              structuredContent?: { [key: string]: ChatGroupDisplayValue }
+              isError?: boolean
+            }
+          }
+      )
+    }
+
 /** Public message in the shared group transcript, separate from private runtime ChatMessages. */
 export interface ChatGroupMessage {
   /** Persisted ChatMessage ID in the group conversation. */
@@ -125,6 +223,12 @@ export interface ChatGroupMessage {
   /** Server-assigned order within this conversation; unchanged when this message is updated. */
   sequence: number
   text: string
+  /**
+   * Server-filtered result snapshots, present even when text is empty. Block IDs are stable
+   * within this public message. Live snapshots and paginated history use the same shape.
+   * Only trusted runtime projection may supply these; public send APIs remain text-only.
+   */
+  display?: ChatGroupDisplay[]
   /** ISO 8601 creation timestamp; sequence, not this timestamp, defines transcript order. */
   createdAt: string
   communication: ChatGroupCommunication
@@ -264,6 +368,8 @@ export interface ChatGroupRun {
  * Extend this union together with stream validation and reducers; private runtime events do not belong here.
  */
 export type ChatGroupEvent =
+  /** Live navigation for the addressed requester; clients reauthorize the resource before opening it. */
+  | { type: 'resource_open'; request: ChatGroupResourceOpenRequest }
   /** Refresh public state and reconcile its history page by message ID. */
   | { type: 'snapshot'; snapshot: ChatGroupSnapshot }
   /** Append a text delta to a runtime output; messageId is the runtime output ID, not yet the group message ID. */
@@ -312,7 +418,9 @@ export interface ChatGroupRuntimeView {
 }
 /** Shared Project membership is explicitly selected; group membership alone grants no Project access. */
 export interface ChatGroupProjectInput {
-  project: { mode: 'create'; id: string; name: string } | { mode: 'existing'; projectId: string }
+  project:
+    | { mode: 'create'; id: string; name: string; projectType?: XpertProjectTypeRef }
+    | { mode: 'existing'; projectId: string; reuse?: true }
   /** Include the primary Assistant. Updates add participants and preserve existing bindings. */
   participantIds: string[]
 }

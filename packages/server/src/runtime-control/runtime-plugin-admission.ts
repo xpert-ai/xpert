@@ -5,7 +5,7 @@ import type { InstanceRegistryService } from '../managed-connection/instance-reg
 import { admitPluginStartup, canRestorePluginStartup, isPluginStartupListening } from '../plugin/plugin-startup-state'
 import type { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import type { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
-import { evaluateRuntimeRequirements } from './plugin-runtime-requirements'
+import { canServeWithIsolatedPluginFailures, evaluateRuntimeRequirements } from './plugin-runtime-requirements'
 import { resolveRolloutAdmission } from './plugin-rollout-admission'
 import type { RolloutAdmission } from './runtime-rollout-policy'
 
@@ -113,6 +113,7 @@ export class RuntimePluginAdmission {
 		// New/returning boots are fenced until current, or explicitly restored after a failed candidate.
 		this.admitted =
 			matches ||
+			(!!desired && canServeWithIsolatedPluginFailures(desired.requirements, state)) ||
 			matchesRollout ||
 			(!!desired &&
 				desired.status !== 'completed' &&

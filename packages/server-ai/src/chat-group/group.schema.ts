@@ -1,4 +1,5 @@
 import { groupComposerSchema } from './group-composer.schema'
+import { iconDefinitionSchema } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import type { ChatGroupCommunication, ChatGroupSendInput } from '@xpert-ai/contracts'
 
@@ -49,7 +50,15 @@ export const groupSendSchema = z.discriminatedUnion('intent', [
                 .refine((items) => new Set(items).size === items.length)
         })
         .strict(),
-    z.object({ ...base, intent: z.literal('reply'), replyToMessageId: z.string().uuid() }).strict(),
+    z
+        .object({
+            ...base,
+            intent: z.literal('reply'),
+            replyToMessageId: z.string().uuid(),
+            // Existing human/internal callers retain final-reply semantics; model tools require an explicit stage.
+            replyStage: z.enum(['progress', 'final']).optional()
+        })
+        .strict(),
     z.object({ ...base, intent: z.literal('message'), recipientIds: ids }).strict()
 ])
 export const groupCreateSchema = z
@@ -73,8 +82,50 @@ export const groupPreferencesSchema = z
     .strict()
     .refine((input) => Object.keys(input).length > 0)
 export const groupJobSchema = z.object({ recipientId: z.string().uuid() }).strict()
+const resourceLinkBase = {
+    projectId: z.string().uuid(),
+    title: z.string().max(200),
+    // Invalid decorative metadata must not hide an otherwise valid historical resource link.
+    icon: iconDefinitionSchema.optional().catch(undefined)
+}
+const resourceTargetSchema = z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('group-reference'), id: z.string().uuid() }).strict(),
+    z.object({ kind: z.literal('project-content'), id: z.string().uuid() }).strict()
+])
+/** Normalize persisted legacy links once; business code and new writes use only resource.kind/id. */
+export const groupResourceLinkSchema = z.union([
+    z.object({ ...resourceLinkBase, resource: resourceTargetSchema }).strict(),
+    z
+        .object({ ...resourceLinkBase, kind: z.literal('group-reference').optional(), referenceId: z.string().uuid() })
+        .strict()
+        .transform(({ projectId, title, referenceId, icon }) => ({
+            projectId,
+            title,
+            ...(icon ? { icon } : {}),
+            resource: { kind: 'group-reference' as const, id: referenceId }
+        })),
+    z
+        .object({ ...resourceLinkBase, kind: z.literal('project-content'), contentId: z.string().uuid() })
+        .strict()
+        .transform(({ projectId, title, contentId, icon }) => ({
+            projectId,
+            title,
+            ...(icon ? { icon } : {}),
+            resource: { kind: 'project-content' as const, id: contentId }
+        }))
+])
 export const groupCommunicationSchema = z
     .object({
+        resourceLinks: z.array(groupResourceLinkSchema).max(10).optional(),
+        resourceNavigation: z
+            .object({
+                requestId: z.string().uuid(),
+                issuedAt: z.number().int().positive(),
+                clientMessageId: z.string().uuid(),
+                participantId: z.string().uuid()
+            })
+            .strict()
+            .optional(),
         projectTask: z
             .object({
                 invocationId: z.string().uuid(),
@@ -101,12 +152,17 @@ export const groupCommunicationSchema = z
         senderId: z.string().uuid(),
         recipientIds: ids,
         replyToMessageId: z.string().uuid().optional(),
+        replyStage: z.enum(['progress', 'final']).optional(),
         causedByMessageId: z.string().uuid().optional(),
         rootMessageId: z.string().uuid(),
         rootUserId: z.string().uuid(),
         hop: z.number().int().min(0).max(8)
     })
     .strict()
+    .refine((value) => value.replyStage === undefined || value.intent === 'reply', {
+        path: ['replyStage'],
+        message: 'replyStage is only valid for replies'
+    })
 export type GroupSendInput = z.output<typeof groupSendSchema>
 
 export function parseGroupCommunication(value: unknown): ChatGroupCommunication {

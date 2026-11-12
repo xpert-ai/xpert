@@ -102,7 +102,10 @@ describe('PermissionGuard with real JWT HTTP authentication', () => {
 			expect((await request(jwt)).status).toBe(enabled ? 200 : 403)
 		}
 		expect(getAuthenticatedUser).toHaveBeenCalledTimes(4)
-		expect(getAuthenticatedUser).toHaveBeenLastCalledWith('viewer', undefined)
+		expect(getAuthenticatedUser).toHaveBeenLastCalledWith('viewer', undefined, {
+			token: expect.any(String),
+			purpose: undefined
+		})
 		expect(execute).not.toHaveBeenCalled()
 	})
 

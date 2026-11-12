@@ -411,6 +411,7 @@ function createPromptWorkflowAllowList(options: RuntimePromptWorkflowCommandOpti
     return compactObject<RuntimeCommandAllowList>({
         workspaceId: options.workspaceId ?? sourceAllowList?.workspaceId,
         skillIds: sourceAllowList?.skillIds,
+        pluginSkillIds: sourceAllowList?.pluginSkillIds,
         pluginNodeKeys: sourceAllowList?.pluginNodeKeys,
         subAgentNodeKeys: sourceAllowList?.subAgentNodeKeys
     })
@@ -457,7 +458,13 @@ function filterRuntimeCapabilitiesByAllowList(
     const filterSelection = (selection: TRuntimeCapabilitiesSelectionSet): TRuntimeCapabilitiesSelectionSet => ({
         skills: compactObject<TRuntimeCapabilitiesSelection['skills']>({
             workspaceId,
-            ids: selection.skills.ids.filter((id) => !restrictSkills || skillIds.has(id))
+            ids: Array.from(
+                new Set(
+                    selection.skills.ids
+                        .map((id) => (id.startsWith('plugin:') ? allowList?.pluginSkillIds?.get(id) : id))
+                        .filter((id): id is string => !!id && (!restrictSkills || skillIds.has(id)))
+                )
+            )
         }),
         plugins: {
             nodeKeys: selection.plugins.nodeKeys.filter((nodeKey) => !restrictPlugins || pluginNodeKeys.has(nodeKey))

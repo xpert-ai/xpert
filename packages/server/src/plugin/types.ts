@@ -1,4 +1,5 @@
 import type { ClassProvider, ExistingProvider, FactoryProvider, Provider, ValueProvider } from '@nestjs/common'
+import type { PluginProviderClaims } from './plugin-provider-preflight'
 import type {
 	IPluginInstallInput,
 	IPluginInstallResult,
@@ -13,6 +14,8 @@ import type {
 export const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS'
 
 export interface LoadedPluginRecord {
+	/** Validated declarations retained only for this process; never persisted as installation configuration. */
+	providerClaims?: PluginProviderClaims
 	tenantId?: string | null
 	organizationId: string
 	/** Internal runtime scope key. Organization scopes use organizationId; tenant-global scopes use tenant:<id>:global. */

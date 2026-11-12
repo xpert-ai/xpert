@@ -1,4 +1,5 @@
-// Input collection is independent of Plan Mode. Async delivery must not silently block.
+// Register one stable tool contract. Runtime state selects the allowed protocol;
+// response purpose is derived from the server request, never the client response.
 import { SystemMessage } from '@langchain/core/messages'
 import { t } from 'i18next'
 import {
@@ -8,13 +9,22 @@ import {
     validateUserInputValues,
     type RequestUserInputResult
 } from '@xpert-ai/chatkit-types'
-import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { AgentMiddlewareRegistry, type AgentMiddleware, type IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
+import type { AgentMiddleware, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import type {
+    ClientToolMiddleware,
     ClientToolMessageResolver,
     ClientToolMiddlewareConfig
 } from '../../xpert-middleware/client-tool.middleware'
-import { inheritMiddlewareToolDisplayMetadata } from './middleware'
+import { isPlanModeEnabledFromState, PLAN_MODE_REQUEST_USER_INPUT_SCHEMA } from './plan-mode'
+import { isPlanModeUserInput, resolvePlanModeUserInputMessage } from './user-input-plan'
+
+export const REQUEST_USER_INPUT_MIDDLEWARE_NAME = 'RequestUserInputMiddleware'
+export const REQUEST_USER_INPUT_SCHEMA = {
+    type: 'object',
+    properties: { ...USER_INPUT_FORM_SCHEMA.properties, ...PLAN_MODE_REQUEST_USER_INPUT_SCHEMA.properties },
+    additionalProperties: false,
+    oneOf: [USER_INPUT_FORM_SCHEMA, PLAN_MODE_REQUEST_USER_INPUT_SCHEMA]
+}
 
 function invalidInput() {
     return new Error(
@@ -24,8 +34,9 @@ function invalidInput() {
     )
 }
 
-export const resolveUserInputMessage: ClientToolMessageResolver = (message, call) => {
+export const resolveUserInputMessage: ClientToolMessageResolver = (message, call, executeClientTool) => {
     const form = call.args
+    if (isPlanModeUserInput(form)) return resolvePlanModeUserInputMessage(message, call, executeClientTool)
     if (!isRequestUserInputForm(form) || form.mode !== 'blocking') throw invalidInput()
     let content: unknown = message.content
     if (typeof content === 'string') {
@@ -63,69 +74,56 @@ export const resolveUserInputMessage: ClientToolMessageResolver = (message, call
     return { tool_call_id: call.id, name: REQUEST_USER_INPUT_TOOL_NAME, status: 'success', content: result }
 }
 
-export async function createUserInputMiddlewareEntries(
-    registry: AgentMiddlewareRegistry,
-    context: Omit<IAgentMiddlewareContext, 'node'>
-): Promise<Array<{ key: string; middleware: AgentMiddleware }>> {
-    const strategy = registry.get('ClientToolMiddleware')
+export async function createUserInputMiddleware(
+    clientTools: ClientToolMiddleware,
+    context: IAgentMiddlewareContext
+): Promise<AgentMiddleware> {
     const config: ClientToolMiddlewareConfig = {
         clientTools: [
             {
                 name: REQUEST_USER_INPUT_TOOL_NAME,
                 description:
-                    'Ask the user for missing information in a structured form, then continue the same task. Use only when the answer materially affects the result and cannot be found in available context. Supports multiple clarification rounds. Input collection never approves actions. Only blocking mode is currently supported.',
-                schema: JSON.stringify(USER_INPUT_FORM_SCHEMA)
+                    'Ask the user for information and wait for a response. In ordinary runs, use the schemaVersion 1 blocking fields form for clarification only. In Plan Mode, use questions for plan clarification or the final implement_plan confirmation. These two argument formats are mutually exclusive.',
+                schema: JSON.stringify(REQUEST_USER_INPUT_SCHEMA)
             }
         ],
         resolveClientToolMessage: resolveUserInputMessage
     }
-    const middleware = inheritMiddlewareToolDisplayMetadata(
-        await strategy.createMiddleware(config, {
-            ...context,
-            node: {
-                id: '__xpert_user_input__',
-                key: '__xpert_user_input__',
-                type: WorkflowNodeTypeEnum.MIDDLEWARE,
-                provider: 'ClientToolMiddleware'
-            }
-        }),
-        strategy.meta
-    )
+    const middleware = await clientTools.createMiddleware(config, context)
     const wrapToolCall = middleware.wrapToolCall
-    const guarded: AgentMiddleware = {
+    return {
         ...middleware,
         wrapToolCall: async (request, handler) => {
             if (request.toolCall.name === REQUEST_USER_INPUT_TOOL_NAME) {
-                if (!isRequestUserInputForm(request.toolCall.args)) throw invalidInput()
-                if (request.toolCall.args.mode !== 'blocking')
-                    throw new Error(
-                        t('server-ai:UserInput.UnsupportedMode', {
-                            defaultValue: 'Non-blocking user input is not supported by this runtime.'
-                        })
-                    )
-            }
-            return wrapToolCall ? wrapToolCall(request, handler) : handler(request)
-        }
-    }
-    return [
-        { key: '__xpert_user_input__', middleware: guarded },
-        {
-            key: '__xpert_user_input_prompt__',
-            middleware: {
-                name: 'UserInputPromptMiddleware',
-                wrapModelCall: (request, handler) => {
-                    const previous =
-                        typeof request.systemMessage === 'string'
-                            ? request.systemMessage
-                            : (request.systemMessage?.content ?? '')
-                    return handler({
-                        ...request,
-                        systemMessage: new SystemMessage(
-                            `${previous}\nWhen essential information is missing, use request_user_input with schemaVersion 1, mode blocking and purpose clarification. First inspect available context. Ask only relevant missing fields and batch related questions. Do not collect secrets. A cancelled result means the user did not answer: explain the limitation or proceed only with safe, explicit assumptions; do not immediately repeat the same form. A submitted form supplies information only, never action approval. Ordinary conversations may clarify again when new information warrants it.`
+                const args = request.toolCall.args
+                if (isPlanModeEnabledFromState(request.state)) {
+                    if (!isPlanModeUserInput(args)) throw invalidInput()
+                } else {
+                    if (!isRequestUserInputForm(args)) throw invalidInput()
+                    if (args.mode !== 'blocking')
+                        throw new Error(
+                            t('server-ai:UserInput.UnsupportedMode', {
+                                defaultValue: 'Non-blocking user input is not supported by this runtime.'
+                            })
                         )
-                    })
                 }
             }
+            return wrapToolCall ? wrapToolCall(request, handler) : handler(request)
+        },
+        wrapModelCall: (request, handler) => {
+            if (!request.tools.some((tool) => tool.name === REQUEST_USER_INPUT_TOOL_NAME)) return handler(request)
+            const content = request.systemMessage?.content ?? ''
+            const prompt =
+                'When essential information is missing, use request_user_input with schemaVersion 1, mode blocking and purpose clarification. First inspect available context. Ask only relevant missing fields and batch related questions. Do not collect secrets. A cancelled result means the user did not answer: explain the limitation or proceed only with safe, explicit assumptions; do not immediately repeat the same form. A submitted form supplies information only, never action approval. Ordinary conversations may clarify again when new information warrants it.'
+            return handler({
+                ...request,
+                systemMessage: new SystemMessage({
+                    content:
+                        typeof content === 'string'
+                            ? `${content}\n\n${prompt}`
+                            : [...content, { type: 'text', text: prompt }]
+                })
+            })
         }
-    ]
+    }
 }

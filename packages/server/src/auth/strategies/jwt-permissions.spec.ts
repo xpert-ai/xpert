@@ -38,8 +38,11 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 			} as IUser
 			getAuthenticatedUser.mockResolvedValue(user)
 			const done = jest.fn()
-			await strategy.validate(payload, done)
-			expect(getAuthenticatedUser).toHaveBeenLastCalledWith('user', 'sso-user')
+			await strategy.validate({ headers: {} } as never, payload, done)
+			expect(getAuthenticatedUser).toHaveBeenLastCalledWith('user', 'sso-user', {
+				token: null,
+				purpose: undefined
+			})
 			expect(done).toHaveBeenCalledWith(null, user)
 			expect(user.role.rolePermissions).toEqual([{ permission: 'DATA_SOURCE_VIEW', enabled }])
 		}
@@ -49,6 +52,7 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 		const user = { id: 'user', role: { name: 'FILE_ANALYTICS_VIEWER' } } as IUser
 		getAuthenticatedUser.mockResolvedValue(user)
 		await strategy.validate(
+			{ headers: {} } as never,
 			{ id: 'user', thirdPartyId: '', employeeId: '', username: '', permissions: ['DATA_SOURCE_VIEW'] },
 			jest.fn()
 		)
@@ -68,6 +72,7 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 			} as IUser
 			getAuthenticatedUser.mockResolvedValue(user)
 			await strategy.validate(
+				{ headers: {} } as never,
 				{ id: 'user', thirdPartyId: '', employeeId: '', username: '', permissions },
 				jest.fn()
 			)
@@ -84,6 +89,7 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 			} as IUser
 			getAuthenticatedUser.mockResolvedValue(user)
 			await strategy.validate(
+				{ headers: {} } as never,
 				{ id: 'user', thirdPartyId: '', employeeId: '', username: '', permissions },
 				jest.fn()
 			)
@@ -95,6 +101,7 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 		const user = { id: 'user', role: { rolePermissions: [] } } as IUser
 		getAuthenticatedUser.mockResolvedValue(user)
 		await strategy.validate(
+			{ headers: {} } as never,
 			{ id: 'user', thirdPartyId: '', employeeId: '', username: '', permissions: ['DATA_SOURCE_VIEW'] },
 			jest.fn()
 		)
@@ -109,6 +116,7 @@ describe.each([JwtStrategy, WsJwtStrategy])('%s current permissions', (Strategy)
 		const originalRole = user.role
 		getAuthenticatedUser.mockResolvedValue(user)
 		await strategy.validate(
+			{ headers: {} } as never,
 			{ id: 'user', thirdPartyId: '', employeeId: '', username: '', permissions: [] },
 			jest.fn()
 		)

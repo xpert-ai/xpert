@@ -1,4 +1,6 @@
-const { test } = require('node:test')
+const { test: nodeTest } = require('node:test')
+// Native Windows execution has its own command-language and Job lifecycle suite.
+const test = process.platform === 'win32' ? nodeTest.skip : nodeTest
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')

@@ -1,4 +1,4 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Logger } from '@nestjs/common'
@@ -7,6 +7,8 @@ import { ChatConversation } from '../../conversation.entity'
 import { StatisticsTokenCostQuery } from '../statistics-token-cost.query'
 import { normalizeStatisticsFilters, statisticsConversationUserSql, statisticsModelSql } from '../statistics-filters'
 
+import { postedPointsByExecutionSql } from '../../../membership/posted-model-points'
+
 @QueryHandler(StatisticsTokenCostQuery)
 export class StatisticsTokenCostQueryHandler implements IQueryHandler<StatisticsTokenCostQuery> {
     private readonly logger = new Logger(StatisticsTokenCostQueryHandler.name)
@@ -14,118 +16,75 @@ export class StatisticsTokenCostQueryHandler implements IQueryHandler<Statistics
     @InjectRepository(ChatConversation)
     public repository: Repository<ChatConversation>
 
-	public async execute(command: StatisticsTokenCostQuery) {
-		const { xpertId, start, end, filters } = command
+    public async execute(command: StatisticsTokenCostQuery) {
+        const { xpertId, start, end, filters } = command
         const tenantId = RequestContext.currentTenantId()
-		const organizationId = RequestContext.getOrganizationId()
-		const normalizedFilters = normalizeStatisticsFilters(filters)
+        const organizationId = RequestContext.getOrganizationId()
+        const normalizedFilters = normalizeStatisticsFilters(filters)
 
-		const repository = this.repository
+        const repository = this.repository
 
-		const params: Array<string> = [tenantId, 'debugger', 'ai', start || '0', end || '']
-		let paramIndex = params.length + 1
-		let organizationWhere = ''
-		let xpertWhere = ''
-		let userWhere = ''
-		let executionModelWhere = ''
-		let subexecutionModelWhere = ''
+        const params: Array<string> = [tenantId, 'debugger', 'ai', start || '0', end || '']
+        let paramIndex = params.length + 1
+        let organizationWhere = ''
+        let xpertWhere = ''
+        let userWhere = ''
+        let executionModelWhere = ''
 
-		// For xpert-specific monitor, aggregate all usages by xpertId across organizations.
-		if (!xpertId) {
-			organizationWhere = `AND cc."organizationId" = $${paramIndex}`
-			params.push(organizationId)
-			paramIndex++
-		}
-		if (xpertId) {
-			xpertWhere = `AND cc."xpertId" = $${paramIndex}`
-			params.push(xpertId)
-			paramIndex++
-		}
-		if (normalizedFilters.userId) {
-			userWhere = `AND ${statisticsConversationUserSql('cc')} = $${paramIndex}`
-			params.push(normalizedFilters.userId)
-			paramIndex++
-		}
-		if (normalizedFilters.model) {
-			const modelParam = `$${paramIndex}`
-			executionModelWhere = `AND ${statisticsModelSql('execution')} = ${modelParam}`
-			subexecutionModelWhere = `AND ${statisticsModelSql('subexecution')} = ${modelParam}`
-			params.push(normalizedFilters.model)
-		}
+        // For xpert-specific monitor, aggregate all usages by xpertId across organizations.
+        if (!xpertId) {
+            organizationWhere = `AND cc."organizationId" = $${paramIndex}`
+            params.push(organizationId)
+            paramIndex++
+        }
+        if (xpertId) {
+            xpertWhere = `AND cc."xpertId" = $${paramIndex}`
+            params.push(xpertId)
+            paramIndex++
+        }
+        if (normalizedFilters.userId) {
+            userWhere = `AND ${statisticsConversationUserSql('cc')} = $${paramIndex}`
+            params.push(normalizedFilters.userId)
+            paramIndex++
+        }
+        if (normalizedFilters.model) {
+            const modelParam = `$${paramIndex}`
+            executionModelWhere = `WHERE ${statisticsModelSql('execution')} = ${modelParam}`
+            params.push(normalizedFilters.model)
+        }
 
-        const query = `SELECT 
-    date,
-    model,
-    COALESCE(currency, '') AS currency,
-    SUM(tokens) AS tokens,
-    SUM(price) AS price
-FROM (
-    SELECT 
-        DATE(cc."createdAt") AS date,
-        COALESCE(execution.metadata->>'provider', 'unknown') || '/' || COALESCE(execution.metadata->>'model', 'unknown') AS model,
-        execution.currency AS currency,
-        SUM(execution."tokens") AS tokens,
-        SUM(execution."totalPrice") AS price
-    FROM 
-        "chat_conversation" AS cc
-    INNER JOIN 
-        "chat_message" AS cm 
-        ON cm."conversationId" = cc."id"  
-    INNER JOIN 
-        "xpert_agent_execution" AS execution 
-        ON execution."id" = cm."executionId" 
-    WHERE 
-        cc."tenantId" = $1
-        ${organizationWhere}
-        ${xpertWhere}
-        ${userWhere}
-        ${executionModelWhere}
-        AND cc."from" != $2
-        AND cm."role" = $3
-        AND cc."createdAt" >= $4::timestamptz
-        AND cc."createdAt" <= $5::timestamptz
-    GROUP BY 
-        date, model, execution.currency
-
-    UNION ALL
-
-    SELECT 
-        DATE(cc."createdAt") AS date,
-        COALESCE(subexecution.metadata->>'provider', 'unknown') || '/' || COALESCE(subexecution.metadata->>'model', 'unknown') AS model,
-        subexecution.currency AS currency,
-        SUM(subexecution."tokens") AS tokens,
-        SUM(subexecution."totalPrice") AS price
-    FROM 
-        "chat_conversation" AS cc
-    INNER JOIN 
-        "chat_message" AS cm 
-        ON cm."conversationId" = cc."id"  
-    INNER JOIN 
-        "xpert_agent_execution" AS execution 
-        ON execution."id" = cm."executionId"  
-    INNER JOIN 
-        "xpert_agent_execution" AS subexecution 
-        ON subexecution."parentId" = execution."id" 
-    WHERE 
-        cc."tenantId" = $1
-        ${organizationWhere}
-        ${xpertWhere}
-        ${userWhere}
-        ${subexecutionModelWhere}
-        AND cc."from" != $2
-        AND cm."role" = $3
-        AND cc."createdAt" >= $4::timestamptz
-        AND cc."createdAt" <= $5::timestamptz
-    GROUP BY 
-        date, model, subexecution.currency
-) AS combined_data
-WHERE tokens > 0
-GROUP BY 
-    date, model, currency
-ORDER BY 
-    date ASC;`
+        const query = `
+WITH RECURSIVE roots AS (
+    SELECT DISTINCT DATE(cc."createdAt") AS date, cm."executionId" AS id
+    FROM chat_conversation cc JOIN chat_message cm ON cm."conversationId" = cc.id
+    WHERE cc."tenantId" = $1 AND cc."from" != $2 AND cm.role = $3
+      AND cc."createdAt" BETWEEN $4::timestamptz AND $5::timestamptz
+      ${organizationWhere} ${xpertWhere} ${userWhere}
+), runs AS (
+    SELECT date, id FROM roots
+    UNION
+    SELECT runs.date, child.id FROM runs JOIN xpert_agent_execution child ON child."parentId" = runs.id AND child."tenantId" = $1
+), debits AS (
+    ${postedPointsByExecutionSql('runs')}
+), usage AS (
+    SELECT runs.date, ${statisticsModelSql('execution')} AS model,
+           execution.tokens, debits.points
+    FROM runs JOIN xpert_agent_execution execution ON execution.id = runs.id AND execution."tenantId" = $1
+    LEFT JOIN debits ON debits.id = execution.id
+    ${executionModelWhere}
+)
+SELECT date, model, SUM(tokens) AS tokens, SUM(points) AS "chargedPoints"
+FROM usage WHERE tokens > 0 OR points IS NOT NULL
+GROUP BY date, model
+ORDER BY date ASC`
 
         this.logger.verbose('Executing StatisticsTokenCostQuery with query:', query, 'and params:', params)
-        return await repository.manager.query(query, params)
-	}
+        const rows: { date: string; model: string; tokens: string; chargedPoints: string | null }[] =
+            await repository.manager.query(query, params)
+        return rows.map((row) => ({
+            ...row,
+            tokens: Number(row.tokens),
+            chargedPoints: row.chargedPoints == null ? null : Number(row.chargedPoints)
+        }))
+    }
 }

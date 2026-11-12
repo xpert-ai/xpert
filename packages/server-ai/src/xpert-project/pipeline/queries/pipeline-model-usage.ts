@@ -12,6 +12,8 @@ import type { ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { MembershipPointLedger } from '../../../membership/membership-point-ledger.entity'
 
+import { postedPointsForFacts } from '../../../membership/posted-model-points'
+
 const MAX_FACTS = 10000
 /** Caller has authorized the Project and selected the round's exact task execution references in the same transaction. */
 export async function readPipelineModelUsage(
@@ -58,6 +60,7 @@ export async function readPipelineModelUsage(
                   originExecutionId: In([...parents.keys()])
               },
               select: [
+                  'id',
                   'originExecutionId',
                   'providerScopeId',
                   'requestId',
@@ -78,11 +81,14 @@ export async function readPipelineModelUsage(
         : []
     truncated ||= rows.length > MAX_FACTS
     const facts: PipelineModelUsageFact[] = []
+    const factIds: string[] = []
     let rejectedRecords = 0
     for (const row of rows.slice(0, MAX_FACTS)) {
         const fact = pipelineModelUsageFactSchema.safeParse(row)
-        if (fact.success) facts.push(fact.data)
-        else rejectedRecords++
+        if (fact.success) {
+            facts.push(fact.data)
+            factIds.push(row.id)
+        } else rejectedRecords++
     }
     const roots = new Set(requested),
         covered = new Set<string>()
@@ -95,10 +101,15 @@ export async function readPipelineModelUsage(
             id = parents.get(id) ?? null
         }
     }
-    return pipelineModelUsageStatistics(facts, {
-        requestedExecutions: requested.length,
-        executionsWithRecords: covered.size,
-        truncated,
-        rejectedRecords
-    })
+    const chargedPoints = await postedPointsForFacts(manager, context.actor.tenantId, factIds)
+    return pipelineModelUsageStatistics(
+        facts,
+        {
+            requestedExecutions: requested.length,
+            executionsWithRecords: covered.size,
+            truncated,
+            rejectedRecords
+        },
+        chargedPoints
+    )
 }

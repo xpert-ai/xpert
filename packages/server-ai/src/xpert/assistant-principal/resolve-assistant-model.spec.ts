@@ -1,7 +1,19 @@
-import { AiModelTypeEnum, IWFNClassifier, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { ForbiddenException, NotFoundException } from '@nestjs/common'
+import {
+    AiModelTypeEnum,
+    IWFNClassifier,
+    KnowledgebaseTypeEnum,
+    TXpertTeamNode,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource } from 'typeorm'
 import { Xpert } from '../xpert.entity'
 import { ResolveAssistantModelCommand, ResolveAssistantModelHandler } from './resolve-assistant-model.command'
+import { KnowledgebaseGetOneQuery } from '../../knowledgebase/queries/get-one.query'
+import { Knowledgebase } from '../../knowledgebase/persistence/knowledgebase.entity'
+
+const queries = () => ({ execute: jest.fn() })
 
 it('restricts organization model credentials to the live executor Assistant published configuration', async () => {
     const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'assistant-user' }
@@ -10,8 +22,10 @@ it('restricts organization model credentials to the live executor Assistant publ
     const database = {
         getRepository: () => ({ findOne: async () => ({ active: true, publishAt: new Date(), copilotModel: model }) })
     } as unknown as DataSource
-    const handler = new ResolveAssistantModelHandler(access, database)
+    const queryBus = queries()
+    const handler = new ResolveAssistantModelHandler(access, database, queryBus)
     await expect(handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', model))).resolves.toBe(true)
+    expect(queryBus.execute).not.toHaveBeenCalled()
     await expect(
         handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', { ...model, model: 'unrelated-model' }))
     ).rejects.toThrow()
@@ -50,7 +64,8 @@ describe('published workflow and fallback model bindings', () => {
                 isPrincipal: jest.fn().mockResolvedValue(true),
                 find: jest.fn().mockResolvedValue({})
             },
-            database
+            database,
+            queries()
         )
         return (model = additional) => handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', model))
     }
@@ -105,5 +120,165 @@ describe('published workflow and fallback model bindings', () => {
             }
         })
         await expect(execute()).rejects.toThrow()
+    })
+})
+
+describe('published knowledge retrieval model bindings', () => {
+    const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'assistant-user' }
+    const embedding = { copilotId: 'provider', model: 'embedding', modelType: AiModelTypeEnum.TEXT_EMBEDDING }
+    const rerank = { ...embedding, model: 'rerank', modelType: AiModelTypeEnum.RERANK }
+
+    beforeEach(() => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(actor.tenantId)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(actor.userId)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    function fixture(patch: Partial<Knowledgebase> = {}, assistantPatch: Partial<Xpert> = {}) {
+        const library = Object.assign(new Knowledgebase(), {
+            id: 'bound-library',
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            type: KnowledgebaseTypeEnum.Standard,
+            copilotModel: embedding,
+            rerankModel: rerank,
+            ...patch
+        })
+        const assistant = Object.assign(new Xpert(), {
+            ...actor,
+            id: 'assistant',
+            active: true,
+            publishAt: new Date(),
+            knowledgebases: [library],
+            ...assistantPatch
+        })
+        const findOne = jest.fn().mockResolvedValue(assistant)
+        const database = { getRepository: () => ({ findOne }) } as unknown as DataSource
+        const queryBus = { execute: jest.fn().mockResolvedValue(library) }
+        const handler = new ResolveAssistantModelHandler(
+            { isPrincipal: jest.fn().mockResolvedValue(true), find: jest.fn().mockResolvedValue({}) },
+            database,
+            queryBus
+        )
+        return {
+            assistant,
+            queryBus,
+            run: (model = embedding, scope = actor) =>
+                handler.execute(new ResolveAssistantModelCommand(scope, 'assistant', model))
+        }
+    }
+
+    it.each([KnowledgebaseTypeEnum.Standard, KnowledgebaseTypeEnum.FAQ])(
+        'permits current embedding and rerank dependencies through the existing %s retrieval query',
+        async (type) => {
+            const f = fixture({ type })
+            await expect(f.run()).resolves.toBe(true)
+            await expect(f.run(rerank)).resolves.toBe(true)
+            expect(f.queryBus.execute).toHaveBeenCalledWith(
+                new KnowledgebaseGetOneQuery({
+                    id: 'bound-library',
+                    purpose: 'retrieval',
+                    options: { relations: ['copilotModel', 'rerankModel'] }
+                })
+            )
+        }
+    )
+
+    it.each(['tenantId', 'organizationId', 'userId'] as const)('rejects a mismatched %s context', async (field) => {
+        const f = fixture()
+        await expect(f.run(embedding, { ...actor, [field]: 'other' })).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('rejects unbound and draft-only libraries without reading model configuration', async () => {
+        const f = fixture(
+            {},
+            {
+                knowledgebases: [],
+                draft: {
+                    team: {},
+                    nodes: [
+                        {
+                            type: 'knowledge',
+                            key: 'bound-library',
+                            position: { x: 0, y: 0 },
+                            entity: { id: 'bound-library', name: 'Draft library', type: KnowledgebaseTypeEnum.Standard }
+                        }
+                    ],
+                    connections: [{ key: 'draft-binding', type: 'knowledge', from: 'agent', to: 'bound-library' }]
+                }
+            }
+        )
+        await expect(f.run()).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each([{ active: false }, { publishAt: null }])('rejects an ineligible Assistant: %p', async (patch) => {
+        const f = fixture({}, patch)
+        await expect(f.run()).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.queryBus.execute).not.toHaveBeenCalled()
+    })
+
+    it.each([new ForbiddenException(), new NotFoundException()])(
+        'rechecks revoked or deleted libraries',
+        async (error) => {
+            const f = fixture()
+            await expect(f.run()).resolves.toBe(true)
+            f.queryBus.execute.mockRejectedValue(error)
+            await expect(f.run()).rejects.toBeInstanceOf(ForbiddenException)
+        }
+    )
+
+    it('does not let an inaccessible unrelated binding block a permitted dependency', async () => {
+        const f = fixture()
+        f.assistant.knowledgebases.unshift(
+            Object.assign(new Knowledgebase(), {
+                id: 'revoked',
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId
+            })
+        )
+        f.queryBus.execute.mockRejectedValueOnce(new ForbiddenException())
+        await expect(f.run()).resolves.toBe(true)
+    })
+
+    it('propagates infrastructure failures instead of reporting a permission denial', async () => {
+        const f = fixture()
+        f.queryBus.execute.mockRejectedValue(new Error('database unavailable'))
+        await expect(f.run()).rejects.toThrow('database unavailable')
+    })
+
+    it.each([
+        { tenantId: 'other' },
+        { organizationId: 'other' },
+        { type: KnowledgebaseTypeEnum.External },
+        { copilotModel: null, pendingCopilotModel: embedding },
+        { copilotModel: { ...embedding, copilotId: 'other' } },
+        { copilotModel: { ...embedding, model: 'other' } },
+        { copilotModel: { ...embedding, modelType: AiModelTypeEnum.LLM } }
+    ])('rejects an ineligible model or scope: %p', async (patch) => {
+        await expect(fixture(patch).run()).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('rechecks the scope and current model returned by the retrieval query', async () => {
+        const f = fixture()
+        f.queryBus.execute.mockResolvedValueOnce(Object.assign(new Knowledgebase(), { tenantId: 'other' }))
+        await expect(f.run()).rejects.toBeInstanceOf(ForbiddenException)
+        f.queryBus.execute.mockResolvedValueOnce(
+            Object.assign(new Knowledgebase(), {
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                copilotModel: null
+            })
+        )
+        await expect(f.run()).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('does not grant ingestion, Wiki, or arbitrary chat models from a library', async () => {
+        const chat = { ...embedding, modelType: AiModelTypeEnum.LLM }
+        const f = fixture({ chatModel: chat, wikiModel: chat, visionModel: chat })
+        await expect(f.run(chat)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.queryBus.execute).not.toHaveBeenCalled()
     })
 })

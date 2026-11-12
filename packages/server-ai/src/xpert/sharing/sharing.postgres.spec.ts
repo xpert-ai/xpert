@@ -21,6 +21,7 @@ import {
     PermissionsEnum,
     AIPermissionsEnum,
     UserType,
+    SecretTokenBindingType,
     XpertTypeEnum,
     UserGroupManagedByEnum,
     UserGroupManagedEntityTypeEnum
@@ -174,6 +175,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
                         deletedAt: { type: 'timestamptz', nullable: true, deleteDate: true },
                         latest: { type: 'boolean', default: true },
                         version: { type: 'varchar', nullable: true },
+                        options: { type: 'jsonb', nullable: true },
                         app: { type: 'jsonb', nullable: true }
                     },
                     relations: {
@@ -219,6 +221,7 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         await db.query(
             `CREATE TABLE business_area_access_grant (id uuid PRIMARY KEY, "tenantId" uuid NOT NULL, "organizationId" uuid NOT NULL, "businessAreaId" uuid NOT NULL, "subjectType" varchar NOT NULL, "userId" uuid, "userGroupId" uuid, role varchar NOT NULL)`
         )
+        await db.query('CREATE TABLE business_area (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid)')
         access = new XpertWorkspaceAccessService(db.getRepository(XpertWorkspace))
         sharing = new AssistantSharingService(db.getRepository(Xpert), access)
         runtime = new PublishedXpertAccessService(db.getRepository(Xpert), access)
@@ -449,6 +452,64 @@ postgres('assistant sharing and runtime boundaries on PostgreSQL', () => {
         await sharing.grantUsers(assistant, [member])
         expect(await db.getRepository(UserGroup).countBy({ managedBy: UserGroupManagedByEnum.XPERT_SHARING })).toBe(2)
     })
+    it('requires an assigned organization group on existing managed publications without an audience flag', async () => {
+        const area = randomUUID()
+        await db
+            .getRepository(Xpert)
+            .update(assistant, { businessAreaId: area, options: { dataXpert: { managedBy: 'data-xpert' } } })
+        await db.createQueryBuilder().relation(Xpert, 'userGroups').of(assistant).add(group)
+        await db.query(
+            `INSERT INTO business_area_access_grant (id, "tenantId", "organizationId", "businessAreaId", "subjectType", "userId", role)
+            VALUES ($1,$2,$3,$4,'user',$5,'consumer')`,
+            [randomUUID(), tenant, org, area, editor]
+        )
+        actor(editor)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).rejects.toThrow(ForbiddenException)
+        await db.createQueryBuilder().relation(UserGroup, 'members').of(group).add(editor)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).resolves.toMatchObject({ id: assistant })
+    })
+
+    it('requires both the published DataXpert audience and the area for discovery, direct links and existing user sessions', async () => {
+        const area = randomUUID()
+        await db.getRepository(Xpert).update(assistant, {
+            businessAreaId: area,
+            options: { dataXpert: { managedBy: 'data-xpert', requireUserGroup: true } }
+        })
+        await db.createQueryBuilder().relation(Xpert, 'userGroups').of(assistant).add(group)
+        const grant = (userId: string) =>
+            db.query(
+                `INSERT INTO business_area_access_grant (id, "tenantId", "organizationId", "businessAreaId", "subjectType", "userId", role)
+             VALUES ($1,$2,$3,$4,'user',$5,'consumer')`,
+                [randomUUID(), tenant, org, area, userId]
+            )
+        await grant(editor)
+        await db.query('INSERT INTO business_area VALUES ($1, $2, $3)', [area, tenant, org])
+        actor(editor) // Workspace author with area access, outside the selected group.
+        expect(await count()).toBe(0)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).rejects.toThrow(ForbiddenException)
+        jest.mocked(RequestContext.hasPermission).mockImplementation(
+            (permission) => permission === PermissionsEnum.BUSINESS_AREA_MANAGE
+        )
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).rejects.toThrow(ForbiddenException)
+        actor(member) // Procurement group alone.
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).rejects.toThrow(ForbiddenException)
+        await grant(member)
+        expect(await count()).toBe(1)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).resolves.toMatchObject({ id: assistant })
+        jest.mocked(RequestContext.currentApiPrincipal).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: assistant },
+            grantSource: { kind: 'assistant', xpertId: assistant }
+        } as ReturnType<typeof RequestContext.currentApiPrincipal>)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).resolves.toMatchObject({ id: assistant })
+        await db.createQueryBuilder().relation(UserGroup, 'members').of(group).remove(member)
+        await expect(runtime.getAccessiblePublishedXpert(assistant)).rejects.toThrow(ForbiddenException)
+        // Deleting the group must not turn a published restricted assistant into an open one.
+        await db.getRepository(UserGroup).delete(group)
+        expect(await count()).toBe(0)
+    })
+
     it('grants domain consumers runtime access without workspace read/write and revokes it on leaving the group', async () => {
         const area = randomUUID()
         await db.getRepository(Xpert).update(unrelated, { businessAreaId: area })
