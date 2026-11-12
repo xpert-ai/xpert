@@ -1,3 +1,4 @@
+import { ResolveAssistantPrincipalCommand } from '../xpert/assistant-principal/resolve-assistant-principal.command'
 import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { executionIdentityFixture } from '../shared/testing/execution-identity.fixture'
 import {
@@ -510,6 +511,29 @@ describe('XpertTaskService', () => {
                 }
             }
         })
+    })
+
+    it('pauses a personal conversation monitor when its Assistant capability is removed', async () => {
+        const commandBus = createCommandBusMock()
+        const repository = createRepositoryMock<XpertTask>()
+        const service = createService(commandBus, undefined, undefined, repository)
+        const task = createTaskFixture({
+            xpertId: 'xpert-1',
+            monitor: {
+                source: 'menu',
+                conversationId: 'conversation-1',
+                threadId: 'thread-1',
+                intervalMinutes: 30,
+                notify: 'new-differences'
+            }
+        })
+        jest.spyOn(service, 'findOne').mockResolvedValue(task)
+        await expect(service.executeTask(task.id, {})).rejects.toBeInstanceOf(BadRequestException)
+        expect(repository.update).toHaveBeenCalledWith(
+            task.id,
+            expect.objectContaining({ status: ScheduleTaskStatus.PAUSED })
+        )
+        expect(commandBus.execute.mock.calls.some(([command]) => command instanceof XpertChatCommand)).toBe(false)
     })
 
     it('pauses a Project automation when its current Xpert cannot be resolved', async () => {
@@ -1678,6 +1702,7 @@ function createScheduleStateMiddlewareStrategy() {
 function createCommandBusMock(): CommandBusMock {
     return {
         execute: jest.fn(async (command: unknown) => {
+            if (command instanceof ResolveAssistantPrincipalCommand) return null
             if (command instanceof ResolveExecutionIdentityCommand) return executionIdentityFixture(command.actor)
             if (command instanceof ChatConversationUpsertCommand) {
                 return {

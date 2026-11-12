@@ -1,4 +1,5 @@
 import {
+    type ConversationScheduleMonitor,
     generateCronExpression,
     IChatConversation,
     IXpert,
@@ -16,6 +17,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Expose, Transform } from 'class-transformer'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import cronstrue from 'cronstrue'
+import { t } from 'i18next'
 import 'cronstrue/locales/en'
 import 'cronstrue/locales/zh_CN'
 import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'
@@ -25,6 +27,9 @@ import { XpertProject } from '../xpert-project/entities/project.entity'
 
 @Entity('xpert_task')
 export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTask {
+    @Column({ type: 'jsonb', nullable: true })
+    monitor?: ConversationScheduleMonitor | null
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()
@@ -144,6 +149,11 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
     // Temporary properties
     @Expose()
     get scheduleDescription(): string {
+        if (this.monitor)
+            return t('server-ai:Scheduler.Interval', {
+                count: this.monitor.intervalMinutes,
+                lng: RequestContext.getLanguageCode()
+            })
         try {
             const schedule = this.schedule || generateCronExpression(this.options)
             return cronstrue.toString(schedule, {

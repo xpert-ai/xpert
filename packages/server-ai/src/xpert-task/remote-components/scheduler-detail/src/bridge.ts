@@ -13,7 +13,13 @@ const envelope = z.object({
     result: z.unknown().optional(),
     message: z.string().optional(),
     locale: z.string().optional(),
-    initialQuery: z.object({ selectionId: z.string().optional() }).optional(),
+    manifest: z.object({ key: z.string() }).optional(),
+    initialQuery: z
+        .object({
+            selectionId: z.string().optional(),
+            parameters: z.object({ title: z.string().optional() }).optional()
+        })
+        .optional(),
     theme: z
         .object({
             mode: z.string().optional(),
@@ -32,7 +38,10 @@ function send(type: string, body: object = {}) {
         '*'
     )
 }
-export function connect(init: (selectionId: string | null, locale: string) => void, contextChanged: () => void) {
+export function connect(
+    init: (selectionId: string | null, locale: string, create: boolean, title: string) => void,
+    contextChanged: () => void
+) {
     const receive = (event: MessageEvent<unknown>) => {
         if (event.source !== window.parent) return
         const parsed = envelope.safeParse(event.data)
@@ -51,7 +60,12 @@ export function connect(init: (selectionId: string | null, locale: string) => vo
             document.documentElement.lang = message.locale ?? 'en-US'
             if (message.debug?.enabled)
                 console.debug('[scheduler-detail] initialized', { selectionId: message.initialQuery?.selectionId })
-            init(message.initialQuery?.selectionId ?? null, message.locale ?? 'en-US')
+            init(
+                message.initialQuery?.selectionId ?? null,
+                message.locale ?? 'en-US',
+                message.manifest?.key === 'platform.scheduler__create',
+                message.initialQuery?.parameters?.title ?? ''
+            )
             return
         }
         if (message.instanceId === instanceId && message.type === 'hostEvent') {
@@ -101,13 +115,33 @@ export const scheduleSchema = z.object({
     month: z.number().optional(),
     date: z.string().optional()
 })
+export const destinationSchema = z.discriminatedUnion('type', [
+    z.object({ type: z.literal('new_chat') }),
+    z.object({
+        type: z.literal('conversation'),
+        conversationId: z.string().uuid(),
+        threadId: z.string().uuid(),
+        title: z.string()
+    })
+])
+export type Destination = z.infer<typeof destinationSchema>
+export function destinationInput(value: Destination | undefined) {
+    if (value?.type === 'conversation')
+        return { type: value.type, conversationId: value.conversationId, threadId: value.threadId }
+    return value
+}
+
 export const detailSchema = z.object({
     item: z
         .object({
             id: z.string(),
             name: z.string(),
             prompt: z.string(),
-            options: scheduleSchema,
+            monitor: z.boolean().optional(),
+            destination: destinationSchema.optional(),
+            intervalMinutes: z.number().int().optional(),
+            nextRunAt: z.string().nullish(),
+            options: scheduleSchema.nullish(),
             timeZone: z.string().nullish(),
             status: z.enum(['scheduled', 'paused', 'archived']),
             statusReason: z.string().nullish(),

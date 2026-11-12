@@ -99,6 +99,7 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
                         tenantId: { type: 'uuid' },
                         organizationId: { type: 'uuid', nullable: true },
                         createdById: { type: 'uuid' },
+                        projectId: { type: 'uuid', nullable: true },
                         xpertId: { type: 'uuid' },
                         threadId: { type: 'uuid' },
                         status: { type: 'varchar' }
@@ -114,6 +115,7 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
                         organizationId: { type: 'uuid', nullable: true },
                         projectId: { type: 'uuid', nullable: true },
                         runAsUserId: { type: 'uuid' },
+                        monitor: { type: 'jsonb', nullable: true },
                         xpertId: { type: 'uuid' }
                     }
                 }),
@@ -127,6 +129,9 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
                         taskId: { type: 'uuid' },
                         conversationId: { type: 'uuid', nullable: true },
                         ownerId: { type: 'varchar' },
+                        scheduledAt: { type: 'timestamptz', default: 'now()' },
+                        differenceKeys: { type: 'text', array: true, nullable: true },
+                        lastError: { type: 'text', nullable: true },
                         status: { type: 'varchar' }
                     }
                 })
@@ -137,9 +142,9 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
         // Fixture-only identity/domain tables; notification tables use the production SQL migration.
         await db.query(`CREATE TABLE tenant (id uuid PRIMARY KEY); CREATE TABLE "user" (id uuid PRIMARY KEY, "tenantId" uuid NOT NULL, type varchar NOT NULL, "deletedAt" timestamptz); CREATE TABLE role (id uuid PRIMARY KEY, "tenantId" uuid, name varchar); CREATE TABLE role_permission (id uuid PRIMARY KEY, "createdAt" timestamptz, "updatedAt" timestamptz, "tenantId" uuid, "roleId" uuid, permission varchar, enabled boolean);
             CREATE TABLE user_organization (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "tenantId" uuid, "userId" uuid, "organizationId" uuid, "isActive" boolean);
-            CREATE TABLE chat_conversation (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "xpertId" uuid, "threadId" uuid, status varchar);
-            CREATE TABLE xpert_task (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "projectId" uuid, "runAsUserId" uuid, "xpertId" uuid);
-            CREATE TABLE xpert_task_execution (id uuid PRIMARY KEY, "tenantId" uuid, "taskId" uuid, "conversationId" uuid, "ownerId" varchar, status varchar)`)
+            CREATE TABLE chat_conversation (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "projectId" uuid, "xpertId" uuid, "threadId" uuid, status varchar);
+            CREATE TABLE xpert_task (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "projectId" uuid, "runAsUserId" uuid, "xpertId" uuid, monitor jsonb);
+            CREATE TABLE xpert_task_execution (id uuid PRIMARY KEY, "tenantId" uuid, "taskId" uuid, "conversationId" uuid, "ownerId" varchar, status varchar, "scheduledAt" timestamptz DEFAULT now(), "differenceKeys" text[], "lastError" text)`)
         await db.query('INSERT INTO tenant VALUES ($1),($2)', [tenant, otherTenant])
         await db.query('INSERT INTO "user" (id,"tenantId",type) VALUES ($1,$2,$5),($3,$4,$5)', [
             user,
@@ -401,6 +406,56 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
         }
         return { taskId, executionId, assistantId, conversationId }
     }
+    it('notifies on a newly observed difference and on recurrence after resolution, in the monitored thread', async () => {
+        const { taskId, executionId, conversationId } = await completion(false)
+        const runs = db.getRepository(ScheduledTaskExecution)
+        const outbox = db.getRepository(NotificationOutbox)
+        const store = new TypeOrmScheduledTaskExecutionStore(runs)
+        const conversation = await db.getRepository(ChatConversation).findOneByOrFail({ id: conversationId })
+        await db.getRepository(XpertTask).update(taskId, {
+            monitor: {
+                source: 'menu',
+                threadId: conversation.threadId,
+                conversationId,
+                intervalMinutes: 30,
+                notify: 'new-differences'
+            }
+        })
+        const finish = (id: string) =>
+            store.updateOwned(id, 'owner', ScheduledTaskExecutionStatus.RUNNING, {
+                status: ScheduledTaskExecutionStatus.SUCCEEDED
+            })
+        await finish(executionId)
+        expect((await runs.findOneByOrFail({ id: executionId })).status).toBe(ScheduledTaskExecutionStatus.FAILED)
+        const observations = [
+            { keys: [], total: 0 },
+            { keys: ['A'], total: 1 },
+            { keys: ['A'], total: 1 },
+            { keys: ['B', 'A'], total: 2 },
+            { keys: ['A'], total: 2 },
+            { keys: [], total: 2 },
+            { keys: ['A'], total: 3 }
+        ]
+        for (const [i, observation] of observations.entries()) {
+            const id = randomUUID()
+            await runs.insert({
+                id,
+                taskId,
+                tenantId: tenant,
+                conversationId,
+                status: ScheduledTaskExecutionStatus.RUNNING,
+                ownerId: 'owner',
+                scheduledAt: new Date(Date.UTC(2026, 0, 1, 0, 30 * i)),
+                differenceKeys: observation.keys
+            })
+            await finish(id)
+            expect(await outbox.count()).toBe(observation.total)
+        }
+        await apps[0].get(NotificationWorker).tick()
+        const result = await (await request('user-notifications', 'member')).json()
+        expect(result.items).toHaveLength(3)
+        expect(result.items[0].action).toMatchObject({ conversationId, threadId: conversation.threadId })
+    })
     it('keeps task completion and outbox atomic on insert failure; terminal failures never notify', async () => {
         const { executionId } = await completion(false)
         const store = new TypeOrmScheduledTaskExecutionStore(db.getRepository(ScheduledTaskExecution))

@@ -1,3 +1,9 @@
+import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
+import { MonitorTargets } from '../monitor-targets'
+import { CommandBus } from '@nestjs/cqrs'
+import { CreateXpertTaskCommand } from '../commands'
+import { monitorForm, monitorDestination, monitorInterval, nextMonitorCheck } from '../conversation-monitor'
+import { ScheduledTaskExecution } from '../scheduled-task-execution.entity'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -47,7 +53,9 @@ const edit = identity.extend({
 export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider {
     constructor(
         private readonly tasks: XpertTaskService,
-        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>
+        @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
+        private readonly commands: CommandBus,
+        private readonly targets: MonitorTargets
     ) {}
 
     supports(context: XpertResolvedViewHostContext) {
@@ -56,39 +64,63 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
 
     getViewManifests(context: XpertResolvedViewHostContext, slot: string): XpertExtensionViewManifest[] {
         if (!this.supports(context) || slot !== AGENT_WORKBENCH_SLOT) return []
-        return [
-            {
-                key: 'detail',
-                title: text('Scheduled task', '定时任务'),
-                hostType: 'agent',
-                slot,
-                activation: { requiredFeatures: ['scheduler'] },
-                workbench: { openMode: 'on-demand', menu: { enabled: false } },
-                source: { provider: 'platform.scheduler' },
-                refreshable: true,
-                icon: { type: 'emoji', value: '◷' },
-                view: {
-                    type: 'remote_component',
-                    runtime: 'react',
-                    protocolVersion: 1,
-                    component: { isolation: 'iframe', entry: 'scheduler-detail' },
-                    dataSource: { mode: 'platform' }
-                },
-                dataSource: {
-                    mode: 'platform',
-                    cache: { enabled: false },
-                    querySchema: { supportsSelection: true, supportsPagination: true, defaultPageSize: 10 }
-                },
-                clientCommands: [{ key: 'workbench.navigation.open', label: text('Open execution', '打开执行记录') }],
-                actions: ['save', 'pause', 'resume', 'execution-target'].map((key) => ({
+        const detail: XpertExtensionViewManifest = {
+            key: 'detail',
+            title: text('Scheduled task', '定时任务'),
+            hostType: 'agent',
+            slot,
+            activation: { requiredFeatures: ['scheduler'] },
+            workbench: { openMode: 'on-demand', menu: { enabled: false } },
+            source: { provider: 'platform.scheduler' },
+            refreshable: true,
+            icon: {
+                type: 'svg',
+                value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
+            },
+            view: {
+                type: 'remote_component',
+                runtime: 'react',
+                protocolVersion: 1,
+                component: { isolation: 'iframe', entry: 'scheduler-detail' },
+                dataSource: { mode: 'platform' }
+            },
+            dataSource: {
+                mode: 'platform',
+                cache: { enabled: false },
+                querySchema: {
+                    supportsSelection: true,
+                    supportsPagination: true,
+                    supportsSearch: true,
+                    supportsCursor: true,
+                    supportsParameters: true,
+                    defaultPageSize: 10
+                }
+            },
+            clientCommands: [{ key: 'workbench.navigation.open', label: text('Open execution', '打开执行记录') }],
+            actions: ['save', 'pause', 'resume', 'execution-target'].map((key) => ({
+                key,
+                label: text(
                     key,
-                    label: text(
-                        key,
-                        { save: '保存', pause: '暂停', resume: '恢复', 'execution-target': '打开执行记录' }[key]
-                    ),
-                    actionType: 'invoke' as const,
-                    placement: 'toolbar' as const
-                }))
+                    { save: '保存', pause: '暂停', resume: '恢复', 'execution-target': '打开执行记录' }[key]
+                ),
+                actionType: 'invoke' as const,
+                placement: 'toolbar' as const
+            }))
+        }
+        return [
+            detail,
+            {
+                ...detail,
+                key: 'create',
+                title: text('Add scheduled task', '添加计划任务'),
+                actions: [
+                    {
+                        key: 'create',
+                        label: text('Create scheduled task', '创建计划任务'),
+                        actionType: 'invoke',
+                        placement: 'toolbar'
+                    }
+                ]
             }
         ]
     }
@@ -98,29 +130,70 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
         if (
             context.hostType !== 'agent' ||
             task.xpertId !== context.hostId ||
-            (task.projectId && task.projectId !== context.runtimeScope?.projectId)
+            (task.projectId &&
+                task.projectId !== context.runtimeScope?.projectId &&
+                (!task.monitor || task.runAsUserId !== context.userId))
         )
             throw new NotFoundException(t('server-ai:Error.XpertTaskNotFound'))
         return task
     }
 
     async getViewData(context: XpertResolvedViewHostContext, _viewKey: string, query: XpertViewQuery) {
+        if (_viewKey === 'create' || query.parameters?.listTargets === true) {
+            const result = await this.targets.list(context.hostId, query.search, Number(query.cursor) || 0)
+            return { item: result }
+        }
         if (!query.selectionId) return { item: null }
         const task = await this.task(context, query.selectionId)
         const page = Math.max(1, Math.trunc(query.page || 1)),
             pageSize = Math.min(50, Math.max(1, Math.trunc(query.pageSize || 10)))
-        const [runs, total] = await this.conversations.findAndCount({
-            where: { taskId: task.id, tenantId: context.tenantId, organizationId: context.organizationId ?? IsNull() },
-            select: ['id', 'title', 'status', 'createdAt'],
-            order: { createdAt: 'DESC' },
-            take: pageSize,
-            skip: (page - 1) * pageSize
-        })
+        const [runs, total] = task.monitor
+            ? await this.conversations.manager.getRepository(ScheduledTaskExecution).findAndCount({
+                  where: {
+                      taskId: task.id,
+                      tenantId: context.tenantId,
+                      organizationId: context.organizationId ?? IsNull()
+                  },
+                  select: ['id', 'status', 'createdAt'],
+                  order: { scheduledAt: 'DESC' },
+                  take: pageSize,
+                  skip: (page - 1) * pageSize
+              })
+            : await this.conversations.findAndCount({
+                  where: {
+                      taskId: task.id,
+                      tenantId: context.tenantId,
+                      organizationId: context.organizationId ?? IsNull()
+                  },
+                  select: ['id', 'title', 'status', 'createdAt'],
+                  order: { createdAt: 'DESC' },
+                  take: pageSize,
+                  skip: (page - 1) * pageSize
+              })
+        const target = task.monitor?.conversationId
+            ? await this.targets.findReadable(task.xpertId, task.monitor.conversationId, task.monitor.threadId)
+            : null
         return {
             item: {
+                destination: task.monitor
+                    ? task.monitor.target === 'new_chat'
+                        ? { type: 'new_chat' }
+                        : {
+                              type: 'conversation',
+                              conversationId: task.monitor.conversationId,
+                              threadId: task.monitor.threadId,
+                              title: target?.title || ''
+                          }
+                    : undefined,
+                intervalMinutes: task.monitor?.intervalMinutes,
                 id: task.id,
                 name: task.name,
                 prompt: task.prompt,
+                monitor: Boolean(task.monitor),
+                nextRunAt:
+                    task.monitor && task.status === 'scheduled'
+                        ? nextMonitorCheck(task.monitor, task.schedule, task.timeZone)
+                        : undefined,
                 options: task.options,
                 timeZone: task.timeZone || 'UTC',
                 status: task.status,
@@ -128,7 +201,7 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
                 scheduleDescription: task.scheduleDescription,
                 runs: runs.map((run) => ({
                     id: run.id,
-                    title: run.title,
+                    title: 'title' in run ? run.title : task.name,
                     status: run.status,
                     createdAt: run.createdAt?.toISOString()
                 })),
@@ -145,9 +218,59 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
         actionKey: string,
         request: XpertViewActionRequest
     ) {
+        if (_viewKey === 'create') {
+            if (actionKey !== 'create' || !context.runtimeScope?.conversationId)
+                throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+            const form = monitorForm.parse(request.input)
+            const task = await this.commands.execute(
+                new CreateXpertTaskCommand(
+                    {
+                        name: form.name,
+                        prompt: form.prompt,
+                        timeZone: form.timeZone,
+                        xpertId: context.hostId,
+                        projectId: context.runtimeScope.projectId ?? undefined
+                    },
+                    undefined,
+                    {
+                        source: 'menu',
+                        destination: form.destination,
+                        intervalMinutes: form.intervalMinutes,
+                        conversationId: context.runtimeScope.conversationId,
+                        threadId: form.threadId,
+                        requestKey: form.requestId
+                    }
+                )
+            )
+            return { success: true, data: { taskId: task.id } }
+        }
         const { taskId } = identity.strip().parse(request.input)
         const task = await this.task(context, taskId)
         if (actionKey === 'save') {
+            if (
+                task.monitor &&
+                request.input &&
+                typeof request.input === 'object' &&
+                ('destination' in request.input || 'intervalMinutes' in request.input)
+            ) {
+                const input = edit
+                    .pick({ taskId: true, name: true, prompt: true })
+                    .extend({ destination: monitorDestination, intervalMinutes: monitorInterval })
+                    .strict()
+                    .parse(request.input)
+                await this.tasks.updateHttpMonitor(task.id, {
+                    name: input.name,
+                    prompt: input.prompt,
+                    intervalMinutes: input.intervalMinutes,
+                    destination: input.destination
+                })
+                return { success: true, refresh: true }
+            }
+            if (task.monitor || !task.options) {
+                const input = edit.pick({ taskId: true, name: true, prompt: true }).strict().parse(request.input)
+                await this.tasks.updateHttpTask(task.id, { name: input.name, prompt: input.prompt })
+                return { success: true, refresh: true }
+            }
             const input = edit.parse(request.input)
             const options = { ...input.options, frequency: input.options.frequency, time: input.options.time }
             try {
@@ -169,6 +292,41 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
         } else if (actionKey === 'pause') await this.tasks.pauseHttpTask(task.id)
         else if (actionKey === 'resume') await this.tasks.scheduleHttpTask(task.id)
         else if (actionKey === 'execution-target') {
+            if (task.monitor) {
+                const input = identity.extend({ scheduledExecutionId: z.string().uuid() }).strict().parse(request.input)
+                const run = await this.conversations.manager.getRepository(ScheduledTaskExecution).findOneByOrFail({
+                    id: input.scheduledExecutionId,
+                    taskId: task.id,
+                    tenantId: context.tenantId,
+                    organizationId: context.organizationId ?? IsNull()
+                })
+                const unavailable = () => new NotFoundException(t('server-ai:ResourceCard.Refresh.not_found'))
+                if (!run.executionId || !run.conversationId) throw unavailable()
+                const execution = await this.conversations.manager.getRepository(XpertAgentExecution).findOneBy({
+                    id: run.executionId,
+                    xpertId: task.xpertId,
+                    tenantId: context.tenantId,
+                    organizationId: context.organizationId ?? IsNull()
+                })
+                if (!execution?.threadId) throw unavailable()
+                const conversation = await this.targets.findReadable(
+                    task.xpertId,
+                    run.conversationId,
+                    execution.threadId
+                )
+                if (!conversation) throw unavailable()
+                return {
+                    success: true,
+                    data: {
+                        target: 'assistant.execution',
+                        executionId: run.executionId,
+                        conversationId: conversation.id,
+                        threadId: execution.threadId,
+                        xpertId: task.xpertId,
+                        ...(conversation.projectId ? { projectId: conversation.projectId } : {})
+                    }
+                }
+            }
             const input = identity.extend({ conversationId: z.string().uuid() }).parse(request.input)
             const run = await this.conversations.findOneByOrFail({
                 id: input.conversationId,

@@ -1,9 +1,12 @@
-import { IXpertAgent, RolesEnum, TaskFrequency, TScheduleOptions, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { requireMonitorTarget, resolveMonitorDestination } from '../../conversation-monitor'
+import { IXpertAgent, RolesEnum, ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { calendarOptions } from '../../calendar-options'
 import { RequestContext } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
+import { CronTime } from 'cron'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { GetXpertWorkflowQuery } from '../../../xpert/queries'
@@ -33,6 +36,15 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
             )
         }
         command.task.runAsUserId = currentUserId
+        if (command.monitor?.destination) {
+            await requireMonitorTarget(this.queryBus, command.task, command.monitor)
+            const destination = await resolveMonitorDestination(
+                this.queryBus,
+                command.task.xpertId,
+                command.monitor.destination
+            )
+            if (destination) command.task.projectId = destination.projectId ?? undefined
+        }
         await this.taskService.assertProjectTaskCanBeCreated(command.task)
         const { xpertId, agentKey } = command.task
 
@@ -54,17 +66,36 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
             }
         }
 
-        if (!command.task.options && command.task.schedule) {
-            command.task.options = parseCronExpression(command.task.schedule)
+        if (command.task.monitor) throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+        if (command.monitor) {
+            const task = await this.taskService.createConversationMonitor(command.task, command.monitor)
+            if (task.status === ScheduleTaskStatus.SCHEDULED) {
+                await this.scheduler.add(
+                    { taskId: task.id, registerOnly: true },
+                    { jobId: task.id, removeOnComplete: true, removeOnFail: true }
+                )
+            }
+            return task
         }
         const request = RequestContext.currentRequest()
         const timeZone = resolveTaskTimeZone(command.task.timeZone, request?.headers?.['time-zone'])
+        const schedule = command.task.schedule?.trim()
+        let options = command.task.options
+        if (!options && schedule) {
+            try {
+                new CronTime(schedule, timeZone || 'UTC')
+            } catch {
+                throw new BadRequestException(t('server-ai:ResourceCard.InvalidSchedule'))
+            }
+            options = calendarOptions(schedule)
+        }
         const task = await this.taskService.create({
             ...command.task,
             pendingRunAsUserId: null,
             pendingRunAsRequestedById: null,
             pendingRunAsRequestedAt: null,
-            schedule: null, // Clear schedule to avoid confusion
+            options,
+            schedule: options ? null : schedule,
             timeZone,
             status: ScheduleTaskStatus.SCHEDULED
         })
@@ -74,55 +105,6 @@ export class CreateXpertTaskHandler implements ICommandHandler<CreateXpertTaskCo
 
         return task
     }
-}
-
-function parseCronExpression(cron: string): TScheduleOptions {
-    const [minuteStr, hourStr, dayStr, monthStr, weekStr] = cron.trim().split(' ')
-
-    const minute = parseInt(minuteStr, 10)
-    const hour = parseInt(hourStr, 10)
-    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-
-    const day = dayStr === '*' ? undefined : parseInt(dayStr, 10)
-    const month = monthStr === '*' ? undefined : parseInt(monthStr, 10)
-    const dayOfWeek = weekStr === '*' ? undefined : parseInt(weekStr, 10)
-
-    // Determine frequency
-    let frequency: TScheduleOptions['frequency']
-
-    if (dayOfWeek !== undefined) {
-        frequency = TaskFrequency.Weekly
-    } else if (day !== undefined && month !== undefined) {
-        frequency = TaskFrequency.Yearly
-    } else if (day !== undefined && month === undefined) {
-        frequency = TaskFrequency.Monthly
-    } else if (day === undefined && month === undefined && dayOfWeek === undefined) {
-        frequency = TaskFrequency.Daily
-    } else {
-        // fallback case, may be Once (you can confirm whether it is Once through additional fields)
-        frequency = TaskFrequency.Once
-    }
-
-    const result: TScheduleOptions = {
-        frequency,
-        time
-    }
-
-    if (frequency === 'Weekly') {
-        result.dayOfWeek = dayOfWeek
-    } else if (frequency === 'Monthly') {
-        result.dayOfMonth = day
-    } else if (frequency === 'Yearly') {
-        result.dayOfMonth = day
-        result.month = month
-    } else if (frequency === 'Once') {
-        // You may need an additional field date to store the actual time of Once. In this example, the specific date cannot be derived from cron.
-        result.dayOfMonth = day
-        result.month = month
-        // result.date = '2025-07-10'; // You need to save it separately
-    }
-
-    return result
 }
 
 function resolveTaskTimeZone(taskTimeZone?: string | null, headerTimeZone?: string | string[]): string | undefined {

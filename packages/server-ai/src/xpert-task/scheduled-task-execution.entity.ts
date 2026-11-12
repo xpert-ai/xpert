@@ -33,6 +33,9 @@ export class ScheduledTaskExecution extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar', length: 16, default: ScheduledTaskExecutionStatus.PENDING })
     status: ScheduledTaskExecutionStatus
 
+    @Column({ type: 'text', array: true, nullable: true })
+    differenceKeys?: string[] | null
+
     @ApiPropertyOptional({ type: () => String })
     @IsOptional()
     @IsString()

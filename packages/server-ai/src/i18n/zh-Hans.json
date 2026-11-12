@@ -58,6 +58,10 @@
     "File": {
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
+    "Scheduler": {
+        "Interval": "每 {{count}} 分钟",
+        "ReportInstruction": "这是一个定时检查。请核对来源数据并调用 report_schedule_differences，提供稳定的对象标识和准确的前后值。无变化时提交空数组，数据无法取得时说明失败。"
+    },
     "ReviewReportDiagnostic": {
         "UnexpectedField": "存在多余字段；请从交付报告中移除。",
         "ExpectedType": "应为 {{expected}}，实际类型为 {{received}}。",
@@ -80,6 +84,12 @@
         "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
     },
     "Error": {
+        "ScheduleReportMissing": "检查未提交有效的差异报告。",
+        "ScheduleRunInProgress": "任务正在运行，检查完成后可更改运行位置。",
+        "AmbiguousTaskName": "有多个同名任务，请指定任务 ID。",
+        "ScheduleReportUnavailable": "本次运行无法提交定时检查结果。",
+        "SchedulerDisabled": "此助手的计划任务能力已关闭。",
+        "ScheduleConversationUnavailable": "当前会话无法建立此计划任务。",
         "PluginDeploymentTestNotReady": "创建测试访问前，已批准的插件必须已安装、已加载，并声明 MCP 验收组件。",
         "PluginDeploymentApproval": "部署必须具有平台记录的人工发布批准。",
         "PluginDeploymentPublisherDenied": "发布批准人当前没有平台插件管理权限。",
