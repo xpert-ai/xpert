@@ -1,5 +1,16 @@
 # @xpert-ai/desktop
 
+## 0.4.1
+
+### Patch Changes
+
+- c238eb6: Update the coordinated ChatKit packages for shared resource navigation, provider icons, editable prompt drafts, and Remote View OAuth popups. Align the workspace, API, Web and Desktop dependency locks with the published release.
+- 7c65f33: Size the scheduled-task completion notice to its content and align the close button at the trailing edge.
+- 90b9f29: Observe background LangGraph checkpoint rejections immediately while preserving the original failure for graph execution to report. Carry the pinned patch and matching locks through API, Web and Desktop dependency preparation.
+
+  Backport only the rejection-observation fix from [langgraphjs#2969](https://github.com/langchain-ai/langgraphjs/pull/2969) to LangGraph 0.4.7. Track the deferred official-version migration and patch removal criteria in `patches/README.md`.
+  - @xpert-ai/desktop-protocol@0.5.1
+
 ## 0.4.0
 
 ### Minor Changes
