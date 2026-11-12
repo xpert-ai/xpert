@@ -17,6 +17,7 @@ test('Desktop planning pins main from the fetched repository history', () => {
 })
 
 test('release tooling repairs run checks while installer builds and publication retain their gates', () => {
+  assert.deepEqual(workflow.on.pull_request['branches-ignore'], ['develop'])
   assert.ok(workflow.on.pull_request.paths.includes('libs/template-installation/**'))
   assert.ok(workflow.on.pull_request.paths.includes('packages/plugin-sdk/src/lib/agent/runtime/process-supervisor.ts'))
   assert.deepEqual(workflow.on.push.branches, ['develop', 'main'])
