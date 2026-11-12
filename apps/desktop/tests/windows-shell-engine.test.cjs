@@ -183,8 +183,8 @@ test('Windows native command failures and PowerShell errors cannot report succes
   for (const [command, code] of [
     ['cmd.exe /d /c exit 9', 9],
     ["Write-Error 'expected error'", 1],
-    // Isolate exit-status handling from expensive discovery of unrelated modules on the host.
-    ["$PSModuleAutoLoadingPreference = 'None'; not-a-bosi-command", 1]
+    // An absolute missing executable tests command-not-found without searching the host's module/PATH inventory.
+    [`& ${quote(path.join(f.root, 'not-a-bosi-command.exe'))}`, 1]
   ]) {
     const result = await f.run(command)
     assert.equal(result.state, 'failed', `${command}: ${f.diagnostics()}`)
