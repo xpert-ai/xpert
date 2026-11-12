@@ -28,6 +28,7 @@ test('worker shutdown waits for completion on the separate Windows receipt chann
   const execution = {
     child,
     receipt,
+    start() {},
     stop() {
       setImmediate(() => {
         child.emit('exit', 0)

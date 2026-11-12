@@ -220,6 +220,7 @@ class ShellEngine {
       if (!active.ready && active.receipt.startsWith('{"ready":true}\n')) {
         active.ready = true
         if (active.stopRequested) this.signal(active, 'SIGTERM')
+        else execution?.start()
       }
     })
     child.once('exit', () => {
@@ -314,7 +315,9 @@ class ShellEngine {
     if (!active.child.pid || active.exited) return
     if (signal === 'SIGTERM' && !active.ready) {
       active.stopRequested = true
-      return
+      // Windows queues control input before ready and requires an explicit start.
+      // POSIX signals still wait until its supervisor owns the process group.
+      if (!active.execution) return
     }
     try {
       if (active.execution) active.execution.stop(signal === 'SIGKILL')

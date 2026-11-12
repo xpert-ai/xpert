@@ -8,14 +8,15 @@ const { fork, spawn } = require('node:child_process')
 const appRoot = process.env.BOSI_SHELL_TEST_APP_ROOT || path.join(__dirname, '../electron')
 const { ShellEngine, digest } = require(path.join(appRoot, 'shell/engine.cjs'))
 const { defaultSettings } = require(path.join(appRoot, 'shell/platform.cjs'))
+const { spawnWindowsExecution } = require(path.join(appRoot, 'shell/windows-execution.cjs'))
 const { isFinal, LIMITS } = require('@xpert-ai/desktop-protocol')
 const test = process.platform === 'win32' ? nodeTest : nodeTest.skip
 const quote = (value) => "'" + value.replaceAll("'", "''") + "'"
 
-async function until(check, timeout = 20000) {
+async function until(check, timeout = 20000, diagnostics = () => '') {
   const deadline = Date.now() + timeout
   while (!check()) {
-    if (Date.now() > deadline) throw new Error('Windows shell test deadline')
+    if (Date.now() > deadline) throw new Error(`Windows shell test deadline ${diagnostics()}`)
     await new Promise((resolve) => setTimeout(resolve, 25))
   }
 }
@@ -66,6 +67,41 @@ const output = (record, stream = 'stdout') =>
     .filter((part) => part.stream === stream)
     .map((part) => part.data)
     .join('')
+
+for (const mode of ['start', 'cancel', 'disconnect']) {
+  test(`Windows supervisor ${mode} respects the explicit launch handshake`, async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bosi-win-start-中文 space-'))
+    const command = { command: "[IO.File]::WriteAllText('marker', 'x')", cwd: root }
+    const execution = spawnWindowsExecution(defaultSettings(), command, root)
+    let receipt = ''
+    execution.receipt.on('data', (data) => { receipt += data.toString('utf8') })
+    // Drain output as the engine would; include bootstrap errors if the executable cannot start.
+    let stderr = ''
+    execution.child.stdout.resume()
+    execution.child.stderr.on('data', (data) => { stderr += data.toString('utf8') })
+    const closed = new Promise((resolve, reject) => {
+      execution.child.once('error', reject)
+      execution.child.once('close', (code) => execution.finish().then(() => resolve(code), reject))
+    })
+    t.after(async () => {
+      if (execution.child.exitCode === null) execution.stop(true)
+      await closed
+      fs.rmSync(root, { recursive: true, force: true })
+    })
+    if (mode === 'start') {
+      await until(() => receipt.startsWith('{"ready":true}\n'), 10000, () => stderr)
+      assert.equal(fs.existsSync(path.join(root, 'marker')), false)
+      execution.start()
+    } else if (mode === 'cancel') {
+      execution.stop()
+      execution.start() // A late ready callback must not undo queued cancellation.
+    } else execution.child.stdin.end()
+    await until(() => execution.child.exitCode !== null, 20000, () => stderr)
+    assert.equal(await closed, 0, stderr)
+    assert.equal(JSON.parse(receipt.split('\n').at(-1)).state, mode === 'start' ? 'exited' : 'not_started', stderr)
+    assert.equal(fs.existsSync(path.join(root, 'marker')), mode === 'start')
+  })
+}
 
 test('Windows PowerShell executes Unicode source in a space/Unicode cwd and reports stderr and exit status', async (t) => {
   const f = fixture(t)

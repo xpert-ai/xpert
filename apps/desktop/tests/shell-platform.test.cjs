@@ -1,7 +1,8 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { defaultSettings, shellEnvironment, windowsPowerShell } = require('../electron/shell/platform.cjs')
-const { commandScript, bootstrap } = require('../electron/shell/windows-execution.cjs')
+const path = require('node:path')
+const { commandScript, supervisorPath } = require('../electron/shell/windows-execution.cjs')
 
 test('Windows uses built-in PowerShell and preserves the installed Windows PATH', () => {
   const settings = defaultSettings('win32', { Path: 'C:\\Tools;C:\\Windows' })
@@ -32,5 +33,15 @@ test('PowerShell launcher quotes script paths as data and keeps command contents
   const script = commandScript("C:\\user's folder\\command.ps1")
   assert.ok(script.includes("& 'C:\\user''s folder\\command.ps1'"))
   assert.ok(script.includes('$LASTEXITCODE'))
-  assert.ok((Buffer.byteLength(bootstrap, 'utf16le') * 4) / 3 < 8000)
+})
+
+test('Windows supervisor resolves the shipped executable in source and unpacked ASAR layouts', () => {
+  const root = path.resolve('Bosi 中文 space')
+  assert.equal(supervisorPath(path.join(root, 'electron/shell')), path.join(root, 'resources/shell/windows-supervisor.exe'))
+  assert.equal(
+    supervisorPath(path.join(root, 'resources/app.asar/electron/shell')),
+    path.join(root, 'resources/app.asar.unpacked/resources/shell/windows-supervisor.exe')
+  )
+  const source = path.join(root, 'app.asar/project')
+  assert.equal(supervisorPath(path.join(source, 'electron/shell')), path.join(source, 'resources/shell/windows-supervisor.exe'))
 })
