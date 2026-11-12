@@ -1,0 +1,70 @@
+---
+title: 'Coding Project delivery'
+description: 'Develop and independently review a candidate, approve its release, verify it on an authorized target, and deliver the same source commit.'
+---
+
+The built-in `@xpert-ai/plugin-coding-project` plugin coordinates software delivery through Project Tasks and a native Project Pipeline. The plugin owns the Coding Project type, Assistant template, skills and delivery policy. The host owns authorization, task execution, independent review, Artifact storage, human decisions and durable scheduling.
+
+The project type is `applicationKey: @xpert-ai/plugin-coding-project:coding` with `projectTypeKey: coding`. No legacy type alias or automatic migration is registered. See [Project type configuration](./project-application-types.mdx#type-configuration) for settings and [Project Tasks](./project-tasks.mdx) for execution and review semantics.
+
+## Prepare a project and its destinations
+
+1. Load the plugin and select or create the Coding Project. Install its Assistant template and required skills, connect it to that Project, and publish the configured Assistant. Loading a plugin alone does not update or publish an installed Assistant.
+2. Configure the plugin's `targets` and `repositories`. Each destination has an explicit `projectIds` allowlist; empty lists authorize nothing. A newly created Project does not inherit another Project's destination access.
+3. Select available, authorized execution and independent-review Runtimes. The plugin does not provide a computer or make an unsupported Runtime capable of executing reviews. In Pro, a Computer Coding Runtime can use a complete development instance inside the cloud computer.
+4. Configure authentication through the selected environment's credential helper or a host-authorized Connector. Credential references and repository URLs do not establish readiness. Keep secrets out of requirements, Project configuration values and exported evidence.
+
+Targets currently declare `environment: development` or `acceptance`. Their URLs are credential-free HTTP(S) origins; replacement and restart permissions default to disabled. Plugin configuration is an allowlist, not an administrative permission grant.
+
+| Target mode | Preparation |
+| --- | --- |
+| `deployment: cli` | Configure the target login or CLI credential helper; use the `coding_project.delivery@1.0.0` Pipeline configuration |
+| `deployment: current-instance` | Use `coding_project.delivery@1.1.0`, which includes the native host installation node; configure `computerBaseUrl` when the testing computer needs a different reachable origin |
+
+For `delivery: github`, configure `connectorBindingId`, authorize the connection for the Project and repository, and explicitly select it in the Assistant's Connector node before publication. Repository and PR write permissions remain subject to the Connector's authorization.
+
+## Follow the delivery stages
+
+| Stage | Responsibility and completion evidence |
+| --- | --- |
+| Development and independent acceptance | The Assistant delegates implementation and testing, obtains a separate execution review and records a formal task decision. Source, package and reports are exported as immutable Artifacts |
+| Human release confirmation | A human reviews the exact candidate, destinations, package identity and replacement/restart scope. The Agent has no approval tool |
+| Target installation and independent acceptance | Install the approved package on the authorized target, verify its loaded identity and actual behavior, and obtain independent execution-review evidence |
+| Commit or PR delivery | Deliver the approved source commit to the allowed branch or create a PR for that commit. Creating a PR does not merge it |
+
+The Assistant can start from one functional requirement. Development, deployment, testing and ordinary recovery belong to its assigned tasks; the user does not need to prompt each stage. The explicit human release gate remains part of this workflow.
+
+To release an already accepted result, pass `acceptedTaskId` to `coding_delivery_start`. The host pins the existing decision, revision and independent review. The preparation task fills missing release metadata and exports while preserving the original package bytes; it must not redevelop or repack the candidate merely to exercise the Pipeline. Revoking or changing the source acceptance invalidates that pinned reference.
+
+The native [Pipeline view](./project-pipelines/overview.mdx) presents nodes, evidence and decisions. Successful CLI execution, a completed review task and formal acceptance of the implementation are separate facts.
+
+## Verify the approved candidate
+
+For current-instance delivery, the host installation node reads the human decision and immutable package itself. It validates identity and authorized replacement/restart scope before installation. Publisher credentials remain on the host; the delivery plugin does not receive an unrestricted installation API.
+
+The coordinator uses `coding_delivery_test_access` to inspect the receipt or request bounded MCP test access for a loaded candidate. Access is supplied as a credential file scoped to the Project and publication; reports contain the path and expiry rather than the secret. Keep that file out of source control and Artifact exports. Preserve the MCP endpoint path when using the configured computer-reachable origin.
+
+MCP access is one supported testing channel. It does not grant general management API access or prove other plugin capabilities work. Other APIs or interfaces need their own authorized test path and evidence matching the requested feature.
+
+For fixed GitHub delivery, the immutable source uses `sourceFormat: git-bundle` and must recover the approved commit against the configured repository history. The host-side Git operation imports it into a temporary bare repository without checking out or executing candidate code. It creates only the approved branch, does not force-push or merge, and checks existing remote state before retrying uncertain outcomes.
+
+Git writes use `coding-delivery/<delivery-id>/v<requirement-revision>`; the configured base branch is the PR destination. The GitHub credential remains in the fixed operation, not in the cloud computer. Actual remote delivery still requires a configured connection and a real verification run.
+
+## Handle feedback and recovery
+
+- Technical recovery retains the current candidate and round where valid. Inspect uncertain install, push or PR effects before retrying; a missing response is not proof that nothing happened.
+- Business changes create a new requirement version and Round, with fresh candidate evidence and human approval. Changes to source, Artifacts or destinations cannot silently reuse an old approval.
+- Rejection starts coordination using the recorded feedback. The generic human gate has no text-comment field; if no reason is available, the coordinator asks for it instead of inventing one.
+- Independent reviewers inspect the submitted candidate and report findings. The Assistant decides acceptance, supplementary checks or rework; reviewers do not repair candidate code to manufacture a passing result.
+
+Long-running development services need an appropriate environment owner; a finite coding process is not a service manager. Recovery must preserve authorization, environment identity and other tasks' work. Skills describe environment-specific procedures without moving their implementation into the delivery plugin.
+
+## Budgets and completion limits
+
+Coding Project configuration defaults to a 7,200-second task duration, subject to the tenant ceiling. Changes apply to new attempts and do not extend a running attempt. This duration is distinct from Pipeline token accounting.
+
+Native Pipeline model budgets default to 2,000,000 tokens. A signed-in Project owner or manager can use the audited management API described in the [plugin reference](../../../packages/plugins/coding-project/README.md) to increase an existing ceiling. An increase preserves prior usage and approval and does not restart work. There is currently no budget editor in the Pipeline view.
+
+The `instance_native_llm` ledger covers host model calls linked through persisted execution ancestry to a native Pipeline operation. CLI proxy usage and coordinator continuations without that ancestry are outside it; this is not a Project-wide total token or cost cap.
+
+Installed, loaded, business-tested, formally accepted and delivered to Git are distinct outcomes. A development-instance acceptance does not establish production readiness, successful remote Git delivery or autonomous completion of an unrelated project. This page documents the implemented workflow, not a particular run's acceptance result.

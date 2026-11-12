@@ -2,6 +2,9 @@
 
 Built-in system plugin: `@xpert-ai/plugin-coding-project`.
 
+User workflow: [Coding Project delivery](../../../docs/en/guides/coding-project-delivery.mdx) /
+[编码项目交付](../../../docs/zh-Hans/guides/coding-project-delivery.mdx).
+
 Owns the Coding Project type (two-hour task default), delivery Assistant, skills,
 four-stage Project Pipeline and its versioned release evidence. It consumes public
 SDK capabilities; it does not import host server internals or run a second scheduler.
