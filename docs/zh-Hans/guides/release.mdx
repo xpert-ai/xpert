@@ -13,17 +13,7 @@ title: '发布 npm 包与 Docker 镜像'
 
 ### Push `develop`
 
-向 `develop` push 时，会为 `api` 和 `webapp` 发布 candidate 镜像：
-
-```bash
-git checkout develop
-git push origin develop
-```
-
-发布的 tag：
-
-- `develop-candidate`
-- `sha-<full_commit_sha>`
+推送到 `develop` 后，CI 会在 runner 上构建受影响的应用镜像并运行健康检查。只有推送到 `main` 才会按发布规则推送镜像。
 
 ### Push `main`
 
@@ -60,7 +50,7 @@ git push origin v3.6.0
 按需要部署的分支或版本拉取对应 tag：
 
 ```bash
-docker pull ghcr.io/xpert-ai/xpert-api:develop-candidate
+docker pull ghcr.io/xpert-ai/xpert-api:main-candidate
 docker pull ghcr.io/xpert-ai/xpert-webapp:main
 docker pull ghcr.io/xpert-ai/xpert-webapp:latest
 docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0

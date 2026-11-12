@@ -1,5 +1,5 @@
 # Invariants: validate the exact source SHA and publish the health-checked image.
-# PRs build without registry credentials; retries reuse the verified artifact.
+# PRs and develop build without registry credentials; main retries reuse the verified artifact.
 name: Publish Application Docker images
 
 on:
@@ -69,7 +69,7 @@ jobs:
   build:
     needs: [prepare, validate-api, validate-web]
     if: >-
-      ${{ github.event_name == 'push' && always() && !cancelled() && needs.prepare.result == 'success' &&
+      ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && always() && !cancelled() && needs.prepare.result == 'success' &&
           needs.prepare.outputs.validate == 'true' &&
           (needs.validate-api.result == 'success' || needs.validate-api.result == 'skipped') &&
           (needs.validate-web.result == 'success' || needs.validate-web.result == 'skipped') }}
@@ -82,10 +82,11 @@ jobs:
       matrix: ${{ needs.prepare.outputs.validation_matrix }}
       write-cache: true
 
-  build-pr:
+  build-check:
     needs: [prepare, validate-api, validate-web]
     if: >-
-      ${{ github.event_name == 'pull_request' && always() && !cancelled() && needs.prepare.result == 'success' &&
+      ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')) &&
+          always() && !cancelled() && needs.prepare.result == 'success' &&
           needs.prepare.outputs.validate == 'true' &&
           (needs.validate-api.result == 'success' || needs.validate-api.result == 'skipped') &&
           (needs.validate-web.result == 'success' || needs.validate-web.result == 'skipped') }}
@@ -103,7 +104,7 @@ jobs:
     # Optional dependency validators may be skipped for API-only/Web-only pushes.
     # Require the completed build explicitly, without inheriting their skipped status.
     if: >-
-      always() && !cancelled() && github.event_name == 'push' &&
+      always() && !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
       needs.prepare.result == 'success' && needs.build.result == 'success' &&
       needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-latest

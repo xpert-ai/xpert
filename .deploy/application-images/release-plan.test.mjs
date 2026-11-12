@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import { affectsImage, requiresImageRelease, services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
@@ -123,6 +125,36 @@ test('upstream main baselines require explicit downstream candidate retention', 
       }),
     /Upstream main baselines require candidate retention/
   )
+})
+
+test('upstream CI builds the same candidate on both branches and exports it for publication only on main', (t) => {
+  const f = fixture(t)
+  f.note('api')
+  const after = f.commit()
+  for (const branch of ['develop', 'main']) {
+    const output = execFileSync(process.execPath, [fileURLToPath(new URL('./release-plan.mjs', import.meta.url))], {
+      cwd: f.cwd,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        IMAGE_RELEASE_BEFORE: f.initial,
+        IMAGE_RELEASE_AFTER: after,
+        IMAGE_RELEASE_MAIN: f.initial,
+        IMAGE_RELEASE_EVENT: 'push',
+        IMAGE_RELEASE_REF: `refs/heads/${branch}`,
+        GITHUB_OUTPUT: ''
+      }
+    })
+    const plan = JSON.parse(output)
+    assert.equal(plan.validate, true)
+    assert.equal(plan.publish, branch === 'main')
+    assert.deepEqual(
+      plan.validationMatrix.include.map((image) => image.image_name),
+      ['xpert-api']
+    )
+    assert.equal(plan.validationMatrix.include[0].target, 'candidate')
+    assert.equal(plan.validationMatrix.include[0].publish, branch === 'main')
+  }
 })
 
 test('an API Changeset selects only API and publishes candidate/version/SHA tags', (t) => {
