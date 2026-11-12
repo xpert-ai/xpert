@@ -1,7 +1,10 @@
+import type { MonitorTargets } from '../monitor-targets'
+import type { CommandBus } from '@nestjs/cqrs'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { ChatMessageEventTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { ToolParameterValidationError } from '../../shared/tools/errors'
 import { CreateXpertTaskCommand, DeleteXpertTaskCommand, QueryXpertTaskCommand } from '../commands'
+import { ScheduleDifferenceReports } from '../schedule-difference-reports'
 import { SchedulerAgentMiddleware } from './scheduler.middleware'
 import { SchedulerToolEnum } from './types'
 
@@ -12,12 +15,17 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
 describe('SchedulerAgentMiddleware', () => {
     let commandBus: { execute: jest.Mock }
     let strategy: SchedulerAgentMiddleware
+    const reports = { bind: jest.fn() }
 
     beforeEach(() => {
         commandBus = {
             execute: jest.fn()
         }
-        strategy = new SchedulerAgentMiddleware(commandBus as any)
+        strategy = new SchedulerAgentMiddleware(
+            commandBus as unknown as CommandBus,
+            reports as unknown as ScheduleDifferenceReports,
+            {} as MonitorTargets
+        )
         jest.clearAllMocks()
     })
 
@@ -28,7 +36,8 @@ describe('SchedulerAgentMiddleware', () => {
         expect(middleware.tools.map((tool) => tool.name)).toEqual([
             SchedulerToolEnum.CREATE_SCHEDULER,
             SchedulerToolEnum.LIST_SCHEDULER,
-            SchedulerToolEnum.DELETE_SCHEDULER
+            SchedulerToolEnum.DELETE_SCHEDULER,
+            'list_schedule_targets'
         ])
         expect(strategy.meta.name).toBe('scheduler')
         expect(strategy.meta.label.en_US).toBe('Scheduler')
@@ -81,6 +90,51 @@ describe('SchedulerAgentMiddleware', () => {
             }),
             expect.objectContaining({ metadata: { tool_call_id: 'tool-call-1' } })
         )
+    })
+
+    it('binds an autonomous monitor to the invoking Assistant, agent and conversation branch', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'task-1', name: 'Follow up', timeZone: 'UTC' })
+        const context = { ...createContext(), conversationId: 'record', threadId: 'branch' }
+        const middleware = await strategy.createMiddleware({}, context)
+        const create = middleware.tools.find((item) => item.name === SchedulerToolEnum.CREATE_SCHEDULER)!
+        const result = await create.invoke(
+            {
+                mode: 'current_conversation',
+                name: 'Follow up',
+                prompt: 'Check BOM',
+                xpertId: 'elsewhere',
+                agentKey: 'elsewhere'
+            },
+            { metadata: { tool_call_id: 'call' } }
+        )
+        expect(JSON.parse(String(result))).toMatchObject({ taskId: 'task-1', notify: 'new-differences' })
+        expect(commandBus.execute.mock.calls[0][0]).toMatchObject({
+            task: { xpertId: 'context-xpert', agentKey: 'agent-1' },
+            monitor: { source: 'agent', conversationId: 'record', threadId: 'branch', requestKey: 'call' }
+        })
+    })
+
+    it('creates a new conversation per run with the requested interval', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'new', name: 'Watch' })
+        const middleware = await strategy.createMiddleware(
+            {},
+            { ...createContext(), conversationId: 'origin', threadId: 'thread' }
+        )
+        await middleware.tools[0].invoke({ mode: 'new_chat', name: 'Watch', prompt: 'Check', intervalMinutes: 7 })
+        expect(commandBus.execute.mock.calls[0][0]).toMatchObject({
+            monitor: {
+                source: 'agent',
+                conversationId: 'origin',
+                threadId: 'thread',
+                destination: { type: 'new_chat' },
+                intervalMinutes: 7
+            }
+        })
+    })
+    it('exposes reporting without recursive scheduling during a bound monitor run', async () => {
+        reports.bind.mockResolvedValueOnce(async () => 'Recorded')
+        const middleware = await strategy.createMiddleware({}, createContext())
+        expect(middleware.tools.map((tool) => tool.name)).toEqual(['report_schedule_differences'])
     })
 
     it('rejects invalid cron expressions when creating a task', async () => {

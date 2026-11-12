@@ -1,3 +1,5 @@
+import { MonitorTargets } from './monitor-targets'
+import { ScheduleDifferenceReports } from './schedule-difference-reports'
 import { TemplateRoutinesHandler } from './template-routines/template-routines.handler'
 import { TemplateActivityHandler } from './template-routines/template-activity.handler'
 import { ActorTokenModule, RedisModule, TenantModule, User } from '@xpert-ai/server-core'
@@ -55,6 +57,8 @@ import { ConnectorModule } from '../connector/connector.module'
         TemplateRoutinesHandler,
         TemplateActivityHandler,
         SchedulerDetailViewProvider,
+        ScheduleDifferenceReports,
+        MonitorTargets,
         XpertTaskService,
         TaskSchedulerProcessor,
         ...CommandHandlers,

@@ -1,35 +1,31 @@
-import { RequestContext } from '@xpert-ai/server-core'
-import { Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { SchedulerRegistry } from '@nestjs/schedule'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { BadRequestException } from '@nestjs/common'
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { IsNull } from 'typeorm'
+import { t } from 'i18next'
 import { XpertTaskService } from '../../xpert-task.service'
 import { DeleteXpertTaskCommand } from '../delete.command'
 
 @CommandHandler(DeleteXpertTaskCommand)
 export class DeleteXpertTaskHandler implements ICommandHandler<DeleteXpertTaskCommand> {
-	readonly #logger = new Logger(DeleteXpertTaskHandler.name)
+    constructor(private readonly tasks: XpertTaskService) {}
 
-	constructor(
-		private readonly taskService: XpertTaskService,
-		private readonly schedulerRegistry: SchedulerRegistry,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
-
-	public async execute(command: DeleteXpertTaskCommand) {
-		const exists = await this.taskService.findAll({
-			where: {
-				createdById: RequestContext.currentUserId(),
-				name: command.name
-			}
-		})
-
-
-		if (exists.items.length) {
-			await this.taskService.removeTasks(exists.items)
-			return `Task '${command.name}' deleted`
-		}
-
-		return `No tasks found for '${command.name}'`
-	}
+    async execute(command: DeleteXpertTaskCommand) {
+        if (!command.name?.trim() || !command.xpertId)
+            throw new BadRequestException(t('server-ai:Error.XpertTaskNotFound'))
+        const { items } = await this.tasks.findAll({
+            where: {
+                createdById: RequestContext.currentUserId(),
+                xpertId: command.xpertId,
+                projectId: command.projectId ?? IsNull(),
+                name: command.name,
+                ...(command.taskId ? { id: command.taskId } : {})
+            },
+            take: 2
+        })
+        if (!items.length) return `No tasks found for '${command.name}'`
+        if (items.length > 1) throw new BadRequestException(t('server-ai:Error.AmbiguousTaskName'))
+        await this.tasks.deleteHttpTask(items[0].id)
+        return `Task '${command.name}' deleted`
+    }
 }

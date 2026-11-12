@@ -95,6 +95,7 @@
     "core/database/platform-baseline/migrations/checks/20261020000500-validate-adoption.sql"
   ],
   "checks": [
+    "ai/xpert-task/migrations/checks/20261112000100-conversation-monitor-differences.sql",
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",
     "ai/rag-vstore/migrations/checks/20261020120000-vector-store-tables.sql",

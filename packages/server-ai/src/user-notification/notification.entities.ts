@@ -47,7 +47,7 @@ export class UserNotificationEntity extends NotificationTenantEntity {
     @Column({ type: 'uuid' }) userId: string
     @Column({ type: 'varchar', length: 200 }) eventKey: string
     @Column({ type: 'varchar', length: 32 }) kind: 'agent.completed'
-    @Column({ type: 'jsonb' }) source: UserNotification['source']
+    @Column({ type: 'jsonb' }) source: UserNotification['source'] & { threadId?: string }
     @Column({ type: 'timestamptz', nullable: true }) readAt: Date | null
 }
 

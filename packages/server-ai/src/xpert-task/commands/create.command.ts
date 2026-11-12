@@ -1,16 +1,17 @@
+import type { MonitorCreation } from '../conversation-monitor'
 import { IXpertTask } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { CronCallback } from 'cron'
-
 
 /**
  * Create task
  */
 export class CreateXpertTaskCommand implements ICommand {
-	static readonly type = '[Xpert Task] Create'
+    static readonly type = '[Xpert Task] Create'
 
-	constructor(
-		public readonly task: IXpertTask,
-		public readonly cronCommand?: CronCallback<null, boolean>
-	) {}
+    constructor(
+        public readonly task: IXpertTask,
+        public readonly cronCommand?: CronCallback<null, boolean>,
+        public readonly monitor?: MonitorCreation
+    ) {}
 }

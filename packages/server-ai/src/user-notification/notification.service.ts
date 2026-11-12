@@ -8,7 +8,7 @@ import {
     NotificationClient,
     NotificationSnapshot,
     UserNotification,
-    notificationSourceSchema,
+    scheduledNotificationOriginSchema,
     parseUserNotification
 } from '@xpert-ai/contracts'
 import { AnnouncementService } from '../announcement/announcement.service'
@@ -80,14 +80,14 @@ export class UserNotificationService {
     }
 
     private async view(row: UserNotificationEntity): Promise<UserNotification | null> {
-        const source = notificationSourceSchema.parse(row.source)
+        const { threadId, ...source } = scheduledNotificationOriginSchema.parse(row.source)
         const scope = notificationScope()
         try {
             const conversation: ChatConversation = await this.queries.execute(
                 new AssertChatConversationAccessQuery({
                     id: source.conversationId,
                     tenantId: scope.tenantId,
-                    createdById: scope.userId
+                    ...(threadId ? { threadId, xpertId: source.assistantId } : { createdById: scope.userId })
                 })
             )
             if (
@@ -110,7 +110,7 @@ export class UserNotificationService {
                     type: 'open_conversation',
                     assistantId: source.assistantId,
                     conversationId: source.conversationId,
-                    threadId: conversation.threadId ?? null
+                    threadId: threadId ?? conversation.threadId ?? null
                 }
             })
         } catch (error) {

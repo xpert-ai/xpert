@@ -13,11 +13,15 @@ import {
     SelectItem
 } from '@xpert-ai/shadcn-ui'
 import { connect, request, detailSchema, actionSchema, scheduleSchema, type Detail } from './bridge'
+import { MonitorSettings } from './MonitorSettings'
+import { destinationInput } from './bridge'
+import { CreateMonitor } from './CreateMonitor'
 import { texts, statusText } from './i18n'
 
 export function App() {
     const [locale, setLocale] = useState('en-US'),
         [selection, setSelection] = useState<string | null>(null)
+    const [creation, setCreation] = useState<{ threadId: string; title: string } | null>(null)
     const [detail, setDetail] = useState<Detail | null>(null),
         [draft, setDraft] = useState<Detail | null>(null)
     const [page, setPage] = useState(1),
@@ -33,7 +37,8 @@ export function App() {
     const t = texts(locale)
     useEffect(
         () =>
-            connect((id, language) => {
+            connect((id, language, create, title) => {
+                setCreation(create && id ? { threadId: id, title } : null)
                 setLocale(language)
                 if (id === latest.current.selection) return
                 if (latest.current.dirty && latest.current.draft)
@@ -41,7 +46,7 @@ export function App() {
                 // Keep host selection and browser history aligned; retain edits per task while this View is open.
                 setDirty(false)
                 generation.current++
-                setSelection(id)
+                setSelection(create ? null : id)
                 setPage(1)
                 setDetail(null)
                 setDraft(null)
@@ -93,8 +98,18 @@ export function App() {
                           taskId: draft.id,
                           name: draft.name,
                           prompt: draft.prompt,
-                          timeZone: draft.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-                          options: draft.options
+                          ...(draft.monitor
+                              ? {
+                                    destination: destinationInput(draft.destination),
+                                    intervalMinutes: draft.intervalMinutes
+                                }
+                              : {}),
+                          ...(!draft.options
+                              ? {}
+                              : {
+                                    timeZone: draft.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                                    options: draft.options
+                                })
                       }
                     : { taskId: draft.id }
             const result = actionSchema.parse(await request('executeAction', { actionKey: key, input }))
@@ -110,7 +125,7 @@ export function App() {
             setBusy(false)
         }
     }
-    const openRun = async (conversationId: string) => {
+    const openRun = async (id: string) => {
         if (!detail || busy) return
         const actionSelection = selection
         setBusy(true)
@@ -119,7 +134,10 @@ export function App() {
             const result = actionSchema.parse(
                 await request('executeAction', {
                     actionKey: 'execution-target',
-                    input: { taskId: detail.id, conversationId }
+                    input: {
+                        taskId: detail.id,
+                        ...(detail.monitor ? { scheduledExecutionId: id } : { conversationId: id })
+                    }
                 })
             )
             if (!result.success) throw Error(result.message || t.actionFailed)
@@ -140,6 +158,15 @@ export function App() {
         setDirty(true)
         setNotice(null)
     }
+    if (creation)
+        return (
+            <CreateMonitor
+                key={creation.threadId}
+                threadId={creation.threadId}
+                title={creation.title}
+                locale={locale}
+            />
+        )
     return (
         <main className="h-full overflow-auto bg-background text-foreground">
             <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
@@ -214,106 +241,137 @@ export function App() {
                                         onChange={(e) => change({ prompt: e.target.value })}
                                     />
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="frequency">{t.frequency}</Label>
-                                        <Select
-                                            value={draft.options.frequency}
-                                            disabled={busy || loading || detail.status === 'archived'}
-                                            onValueChange={(value) =>
-                                                change({
-                                                    options: {
-                                                        frequency: scheduleSchema.shape.frequency.parse(value),
-                                                        time: draft.options.time
-                                                    }
-                                                })
-                                            }
-                                        >
-                                            <SelectTrigger id="frequency" className="w-full">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {scheduleSchema.shape.frequency.options.map((key) => (
-                                                    <SelectItem key={key} value={key}>
-                                                        {t[key]}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="time">{t.time}</Label>
-                                        <Input
-                                            id="time"
-                                            type="time"
-                                            required
-                                            value={draft.options.time}
-                                            onChange={(e) =>
-                                                change({ options: { ...draft.options, time: e.target.value } })
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                                {draft.options.frequency === 'Weekly' && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="weekday">{t.dayOfWeek}</Label>
-                                        <Input
-                                            id="weekday"
-                                            type="number"
-                                            required
-                                            min={0}
-                                            max={6}
-                                            value={draft.options.dayOfWeek ?? ''}
-                                            onChange={(e) =>
-                                                change({
-                                                    options: { ...draft.options, dayOfWeek: Number(e.target.value) }
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                )}
-                                {draft.options.frequency === 'Monthly' && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="monthday">{t.dayOfMonth}</Label>
-                                        <Input
-                                            id="monthday"
-                                            type="number"
-                                            required
-                                            min={1}
-                                            max={31}
-                                            value={draft.options.dayOfMonth ?? ''}
-                                            onChange={(e) =>
-                                                change({
-                                                    options: { ...draft.options, dayOfMonth: Number(e.target.value) }
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                )}
-                                {['Once', 'Yearly'].includes(draft.options.frequency) && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="date">{t.date}</Label>
-                                        <Input
-                                            id="date"
-                                            type="date"
-                                            required
-                                            value={draft.options.date ?? ''}
-                                            onChange={(e) =>
-                                                change({ options: { ...draft.options, date: e.target.value } })
-                                            }
-                                        />
-                                    </div>
-                                )}
-                                <div className="space-y-2">
-                                    <Label htmlFor="timezone">{t.timeZone}</Label>
-                                    <Input
-                                        id="timezone"
-                                        required
-                                        value={draft.timeZone || ''}
-                                        placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
-                                        onChange={(e) => change({ timeZone: e.target.value })}
+                                {draft.monitor && (
+                                    <MonitorSettings
+                                        key={draft.id}
+                                        locale={locale}
+                                        destination={draft.destination}
+                                        intervalMinutes={draft.intervalMinutes ?? 30}
+                                        disabled={busy || loading || detail.status === 'archived'}
+                                        onInterval={(intervalMinutes) => change({ intervalMinutes })}
+                                        onTarget={(destination) => change({ destination })}
                                     />
-                                </div>
+                                )}
+                                {!draft.monitor && !draft.options && (
+                                    <p>
+                                        {draft.scheduleDescription} · {draft.timeZone}
+                                    </p>
+                                )}
+                                {detail.nextRunAt && (
+                                    <p>
+                                        {t.nextRun} · {new Date(detail.nextRunAt).toLocaleString(locale)}
+                                    </p>
+                                )}
+                                {draft.options && (
+                                    <>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="frequency">{t.frequency}</Label>
+                                                <Select
+                                                    value={draft.options.frequency}
+                                                    disabled={busy || loading || detail.status === 'archived'}
+                                                    onValueChange={(value) =>
+                                                        change({
+                                                            options: {
+                                                                frequency: scheduleSchema.shape.frequency.parse(value),
+                                                                time: draft.options?.time ?? '09:00'
+                                                            }
+                                                        })
+                                                    }
+                                                >
+                                                    <SelectTrigger id="frequency" className="w-full">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {scheduleSchema.shape.frequency.options.map((key) => (
+                                                            <SelectItem key={key} value={key}>
+                                                                {t[key]}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="time">{t.time}</Label>
+                                                <Input
+                                                    id="time"
+                                                    type="time"
+                                                    required
+                                                    value={draft.options.time}
+                                                    onChange={(e) =>
+                                                        change({ options: { ...draft.options!, time: e.target.value } })
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        {draft.options.frequency === 'Weekly' && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="weekday">{t.dayOfWeek}</Label>
+                                                <Input
+                                                    id="weekday"
+                                                    type="number"
+                                                    required
+                                                    min={0}
+                                                    max={6}
+                                                    value={draft.options.dayOfWeek ?? ''}
+                                                    onChange={(e) =>
+                                                        change({
+                                                            options: {
+                                                                ...draft.options!,
+                                                                dayOfWeek: Number(e.target.value)
+                                                            }
+                                                        })
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                        {draft.options.frequency === 'Monthly' && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="monthday">{t.dayOfMonth}</Label>
+                                                <Input
+                                                    id="monthday"
+                                                    type="number"
+                                                    required
+                                                    min={1}
+                                                    max={31}
+                                                    value={draft.options.dayOfMonth ?? ''}
+                                                    onChange={(e) =>
+                                                        change({
+                                                            options: {
+                                                                ...draft.options!,
+                                                                dayOfMonth: Number(e.target.value)
+                                                            }
+                                                        })
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                        {['Once', 'Yearly'].includes(draft.options.frequency) && (
+                                            <div className="space-y-2">
+                                                <Label htmlFor="date">{t.date}</Label>
+                                                <Input
+                                                    id="date"
+                                                    type="date"
+                                                    required
+                                                    value={draft.options.date ?? ''}
+                                                    onChange={(e) =>
+                                                        change({ options: { ...draft.options!, date: e.target.value } })
+                                                    }
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            <Label htmlFor="timezone">{t.timeZone}</Label>
+                                            <Input
+                                                id="timezone"
+                                                required
+                                                value={draft.timeZone || ''}
+                                                placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
+                                                onChange={(e) => change({ timeZone: e.target.value })}
+                                            />
+                                        </div>
+                                    </>
+                                )}
                                 {dirty && (
                                     <p className="text-sm text-muted-foreground" role="status">
                                         {t.unsaved}

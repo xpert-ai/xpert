@@ -61,6 +61,9 @@ export const notificationSourceSchema = z
     conversationId: z.string().uuid()
   })
   .strict()
+export const scheduledNotificationOriginSchema = notificationSourceSchema.extend({
+  threadId: z.string().uuid().optional()
+})
 export const userNotificationSchema = z
   .object({
     id: z.string().uuid(),
@@ -114,7 +117,7 @@ export const notificationOutboxPayloadSchema = z.discriminatedUnion('type', [
       phase: z.enum(['start', 'expiry'])
     })
     .strict(),
-  z.object({ type: z.literal('agent.completed'), source: notificationSourceSchema }).strict()
+  z.object({ type: z.literal('agent.completed'), source: scheduledNotificationOriginSchema }).strict()
 ])
 export type NotificationOutboxPayload = z.output<typeof notificationOutboxPayloadSchema>
 

@@ -57,7 +57,17 @@
     "File": {
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
+    "Scheduler": {
+        "Interval": "Every {{count}} minutes",
+        "ReportInstruction": "This is a scheduled check. Inspect the source and call report_schedule_differences with stable subject identifiers and exact before/after values. Report an empty array if unchanged. If the source is unavailable, explain the failure instead."
+    },
     "Error": {
+        "ScheduleReportMissing": "The check did not submit a difference report.",
+        "ScheduleRunInProgress": "This task is running. Change its destination when the check finishes.",
+        "AmbiguousTaskName": "Multiple tasks match this name. Provide the task ID.",
+        "ScheduleReportUnavailable": "This run cannot report scheduled differences.",
+        "SchedulerDisabled": "Scheduled tasks are disabled for this assistant.",
+        "ScheduleConversationUnavailable": "The scheduled task cannot run in this conversation.",
         "PasswordResetInvalid": "Password reset link is invalid or expired.",
         "PluginProviderPreflightFailed": "Plugin '{{pluginName}}' failed provider preflight: {{cause}}",
         "PluginProviderMetadataInvalid": "Invalid plugin provider declaration metadata",

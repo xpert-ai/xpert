@@ -910,6 +910,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...connectorScope
         })
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> & RuntimeResourceMiddlewareContext = {
+            executionId: execution.id,
             [RUNTIME_RESOURCE_SKILLS]:
                 options.executionDefinition?.skills[agent.key] ?? dynamicResources?.skillSources ?? [],
             tenantId: runtimeXpert.tenantId,
