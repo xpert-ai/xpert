@@ -1,5 +1,27 @@
 # @xpert-ai/contracts
 
+## 3.35.0
+
+### Minor Changes
+
+- 6b9b857: Add a host-owned Project Pipeline node for approved plugin archive installation. Capture exact human-gate input evidence, reauthorize the publisher on recovery, and keep bounded MCP test access separate from deployment.
+- 5bfc27b: Allow signed-in Project managers to raise an existing Pipeline native-model token ceiling through an audited, revision-checked and idempotent management API. Preserve historical usage, unknown reservations, call limits and decisions, and apply the effective ceiling to admission and status reads. This budget covers host-native LLM requests with persisted Pipeline ancestry; it does not cover Computer CLI usage or unrelated coordinator continuations.
+- 1e59570: Separate ordinary execution duration from the tenant ceiling while preserving explicit legacy policies. Pin grants to a bounded requested duration, keep lease periods within that duration, and expose the remaining authorization lifetime for trusted launchers.
+- 608ce5f: Track host-verified archive provenance separately from client source configuration. Serialize duplicate/replacement decisions under the plugin store lease, reuse matching immutable installations without reloading, and repair missing package directories from the same approved archive. Keep configuration edits separate and return installation targets without claiming runtime convergence.
+- eb44fd1: Share Project configuration between Cloud and Assistant Workbench through a portable view with scoped member, skill, connector and automation editors. Keep project access, configuration revisions and task run-as consent in the owning services, and launch OAuth using short-lived single-use browser tickets.
+
+  Expose configuration operations through a View-independent ProjectConfigurationApi with trusted actor/project scope and concrete business methods. Keep View action parsing inside the independently registered configuration plugin module.
+
+- 8a639bb: Define execution review, pinned review subjects, structured findings and rework references for Project tasks. Reuse ProjectTasksApi for scoped, read-only acceptance receipts; keep the passing execution-review requirement in the Coding Project plugin. Validate safe relative candidate and evidence paths without imposing Computer snapshot directory exclusions on generic task reports.
+- 674b534: Add schema-defined, non-secret Project type configuration with scoped access, revision-checked updates, and a managed database migration. Expose the effective task duration within tenant execution limits and preserve configuration defaults separately from saved overrides.
+- bd53631: Add a host-only command for verified plugin archive installation and inspection, and enforce restart authorization inside the serialized installation decision.
+
+### Patch Changes
+
+- c238eb6: Update the coordinated ChatKit packages for shared resource navigation, provider icons, editable prompt drafts, and Remote View OAuth popups. Align the workspace, API, Web and Desktop dependency locks with the published release.
+- 7c65f33: Add the optional Scheduler Assistant capability. Users and agents can schedule a recurring difference check in the current branch, a selected accessible conversation, or a new chat on each run. The monitor retains its interval and difference history across runs.
+- b0ef7bf: Preserve required plugin deployment request and receipt fields in published TypeScript declarations so the Coding Project plugin compiles in the API image.
+
 ## 3.34.0
 
 ### Minor Changes

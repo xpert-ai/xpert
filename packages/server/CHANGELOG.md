@@ -1,5 +1,35 @@
 # @xpert-ai/server-core
 
+## 3.35.0
+
+### Minor Changes
+
+- bd53631: Add a host-only command for verified plugin archive installation and inspection, and enforce restart authorization inside the serialized installation decision.
+
+### Patch Changes
+
+- f835d49: Preserve an optional bounded resource idle window when a live activity owner completes. Use an atomic Redis transition so repeated cleanup cannot extend retention or restore expired activity. Preserve other owners and reserve the internal idle marker.
+- 608ce5f: Track host-verified archive provenance separately from client source configuration. Serialize duplicate/replacement decisions under the plugin store lease, reuse matching immutable installations without reloading, and repair missing package directories from the same approved archive. Keep configuration edits separate and return installation targets without claiming runtime convergence.
+- 2c0a3b7: Preserve the loaded artifact source on the first plugin configuration save. Save configuration in a short database transaction without overwriting installation identity, staged versions, restart flags or pending publication metadata, including concurrent first saves and installations.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+    - @xpert-ai/plugin-sdk@3.35.0
+    - @xpert-ai/contracts@3.35.0
+    - @xpert-ai/server-common@3.35.0
+    - @xpert-ai/server-config@3.35.0
+
 ## 3.34.0
 
 ### Minor Changes

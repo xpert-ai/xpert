@@ -1,5 +1,11 @@
 # @xpert-ai/shadcn-ui
 
+## 0.2.4
+
+### Patch Changes
+
+- 1825b0f: Distinguish implementation, review and rework attempts in Project task views, showing validated review verdicts separately from runtime success. Preserve shared toast styling when notifications customize their close-button accessibility text.
+
 ## 0.2.3
 
 ### Patch Changes

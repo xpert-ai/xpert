@@ -1,5 +1,27 @@
 # @xpert-ai/plugin-draft
 
+## 12.1.2
+
+### Patch Changes
+
+- c238eb6: Update the coordinated ChatKit packages for shared resource navigation, provider icons, editable prompt drafts, and Remote View OAuth popups. Align the workspace, API, Web and Desktop dependency locks with the published release.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+  - @xpert-ai/plugin-sdk@3.35.0
+  - @xpert-ai/contracts@3.35.0
+
 ## 12.1.1
 
 ### Patch Changes

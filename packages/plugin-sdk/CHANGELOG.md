@@ -1,5 +1,35 @@
 # @xpert-ai/plugin-sdk
 
+## 3.35.0
+
+### Minor Changes
+
+- 6b9b857: Add a host-owned Project Pipeline node for approved plugin archive installation. Capture exact human-gate input evidence, reauthorize the publisher on recovery, and keep bounded MCP test access separate from deployment.
+- eb44fd1: Share Project configuration between Cloud and Assistant Workbench through a portable view with scoped member, skill, connector and automation editors. Keep project access, configuration revisions and task run-as consent in the owning services, and launch OAuth using short-lived single-use browser tickets.
+
+  Expose configuration operations through a View-independent ProjectConfigurationApi with trusted actor/project scope and concrete business methods. Keep View action parsing inside the independently registered configuration plugin module.
+
+- 4e56d50: Expose the existing validated Project task snapshot in Runtime context without reply routing, new permissions or environment-specific task dispatch. Runtime adapters can combine task purpose with the host runner receipt to provide workspace instructions. Clarify coordinator and Coding Runtime responsibilities in the cloud-coding skill to avoid nested CLI execution and untracked Shell fallback during delegated delivery.
+- 8a639bb: Define execution review, pinned review subjects, structured findings and rework references for Project tasks. Reuse ProjectTasksApi for scoped, read-only acceptance receipts; keep the passing execution-review requirement in the Coding Project plugin. Validate safe relative candidate and evidence paths without imposing Computer snapshot directory exclusions on generic task reports.
+- 674b534: Add schema-defined, non-secret Project type configuration with scoped access, revision-checked updates, and a managed database migration. Expose the effective task duration within tenant execution limits and preserve configuration defaults separately from saved overrides.
+
+### Patch Changes
+
+- db88c62: Renew invocation startup leases for up to ten minutes while the launch owner remains active. Pin each startup owner, preserve revision checks, and stop renewal after cancellation, ownership changes, expiry or persistence failure. Clear the startup fence when launch completes. Renew short leases before expiry while preserving the default heartbeat frequency.
+- f5b727d: Define explicit, versioned task-result file references and an optional operation on the existing execution runner. Reuse relative-path validation and the existing result envelope; hosts verify bounded file bytes and SHA-256 without changing task acceptance or artifact-export authorization.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [bd53631]
+  - @xpert-ai/contracts@3.35.0
+
 ## 3.34.0
 
 ### Minor Changes
