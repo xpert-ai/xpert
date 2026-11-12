@@ -48,9 +48,16 @@ function fixture(t) {
     return value
   }
   const done = async (value) => {
-    await until(() => isFinal(engine.records.get(value.operationId)?.state), 30000)
+    await until(() => isFinal(engine.records.get(value.operationId)?.state), 30000, diagnostics)
     return engine.records.get(value.operationId)
   }
+  const diagnostics = () => JSON.stringify({
+    ready: engine.current?.ready,
+    records: [...engine.records.values()].map((record) => ({
+      state: record.state, exitCode: record.exitCode, errorCode: record.errorCode,
+      stdout: output(record).slice(-2000), stderr: output(record, 'stderr').slice(-2000)
+    }))
+  })
   const run = async (text, overrides) => {
     const value = command(text, overrides)
     engine.accept(value)
@@ -60,13 +67,19 @@ function fixture(t) {
     await engine.close()
     fs.rmSync(root, { recursive: true, force: true })
   })
-  return { root, directory, settings, reports, engine, command, done, run, epoch }
+  return { root, directory, settings, reports, engine, command, done, run, epoch, diagnostics }
 }
 const output = (record, stream = 'stdout') =>
   record.chunks
     .filter((part) => part.stream === stream)
     .map((part) => part.data)
     .join('')
+
+function assertWorkingDirectory(result, f) {
+  // PowerShell expands Windows 8.3 aliases (for example RUNNER~1) in Get-Location output.
+  const actual = output(result).split(/\r?\n/, 1)[0]
+  assert.equal(fs.realpathSync.native(actual), fs.realpathSync.native(f.root), f.diagnostics())
+}
 
 for (const mode of ['start', 'cancel', 'disconnect']) {
   test(`Windows supervisor ${mode} respects the explicit launch handshake`, async (t) => {
@@ -103,15 +116,42 @@ for (const mode of ['start', 'cancel', 'disconnect']) {
   })
 }
 
+test('Windows standard cmdlets execute with a cold module analysis cache', async (t) => {
+  const f = fixture(t)
+  const previous = process.env.PSModuleAnalysisCachePath
+  process.env.PSModuleAnalysisCachePath = path.join(f.root, 'cold-module-cache')
+  t.after(() => {
+    if (previous === undefined) delete process.env.PSModuleAnalysisCachePath
+    else process.env.PSModuleAnalysisCachePath = previous
+  })
+  const result = await f.run("Write-Output (Get-Location).Path; Write-Output 'standard-cmdlets-ready'")
+  assert.equal(result.state, 'succeeded', f.diagnostics())
+  assertWorkingDirectory(result, f)
+  assert.ok(output(result).includes('standard-cmdlets-ready'))
+})
+
+test('Windows commands retain module auto-loading after OS modules are prepared', async (t) => {
+  const f = fixture(t)
+  const modules = path.join(f.root, 'modules')
+  const module = path.join(modules, 'BosiShellProbe')
+  fs.mkdirSync(module, { recursive: true })
+  fs.writeFileSync(path.join(module, 'BosiShellProbe.psm1'), "function Get-BosiShellProbe { 'custom-module-ready' }")
+  fs.writeFileSync(path.join(module, 'BosiShellProbe.psd1'),
+    "@{ RootModule = 'BosiShellProbe.psm1'; ModuleVersion = '1.0'; FunctionsToExport = @('Get-BosiShellProbe'); CmdletsToExport = @(); AliasesToExport = @() }")
+  const result = await f.run(`$env:PSModulePath = ${quote(modules)}; Get-BosiShellProbe`)
+  assert.equal(result.state, 'succeeded', f.diagnostics())
+  assert.ok(output(result).includes('custom-module-ready'))
+})
+
 test('Windows PowerShell executes Unicode source in a space/Unicode cwd and reports stderr and exit status', async (t) => {
   const f = fixture(t)
   const result = await f.run(
     "[Console]::WriteLine((Get-Location).Path); [Console]::WriteLine('中文 🚀'); [Console]::Error.WriteLine('错误'); exit 7"
   )
-  assert.equal(result.state, 'failed')
+  assert.equal(result.state, 'failed', f.diagnostics())
   assert.equal(result.exitCode, 7)
   assert.equal(result.completion?.state, 'exited')
-  assert.ok(output(result).includes(f.root))
+  assertWorkingDirectory(result, f)
   assert.ok(output(result).includes('中文 🚀'))
   assert.ok(output(result, 'stderr').includes('错误'))
   assert.doesNotMatch(output(result, 'stderr'), /CLIXML/)
@@ -143,10 +183,11 @@ test('Windows native command failures and PowerShell errors cannot report succes
   for (const [command, code] of [
     ['cmd.exe /d /c exit 9', 9],
     ["Write-Error 'expected error'", 1],
-    ['not-a-bosi-command', 1]
+    // An absolute missing executable tests command-not-found without searching the host's module/PATH inventory.
+    [`& ${quote(path.join(f.root, 'not-a-bosi-command.exe'))}`, 1]
   ]) {
     const result = await f.run(command)
-    assert.equal(result.state, 'failed', command)
+    assert.equal(result.state, 'failed', `${command}: ${f.diagnostics()}`)
     assert.equal(result.exitCode, code, command)
     assert.equal(result.completion?.coverage, 'descendants')
   }
@@ -258,12 +299,20 @@ function descendantAlive(f) {
     throw error
   }
 }
+async function waitForDescendant(f) {
+  await until(() => {
+    if (fs.existsSync(path.join(f.root, 'descendant.pid'))) return true
+    if ([...f.engine.records.values()].some((record) => isFinal(record.state)))
+      throw new Error(`Command ended before creating its descendant: ${f.diagnostics()}`)
+    return false
+  }, 20000, f.diagnostics)
+}
 for (const mode of ['natural', 'cancel', 'timeout', 'revoke', 'lease']) {
   test(`Windows ${mode} ends the whole Job before releasing the next command`, async (t) => {
     const f = fixture(t)
     const command = f.command(background(f) + (mode === 'natural' ? '' : '; Start-Sleep 60'))
     f.engine.accept(command)
-    await until(() => fs.existsSync(path.join(f.root, 'descendant.pid')))
+    await waitForDescendant(f)
     if (mode === 'cancel') f.engine.cancel(command.operationId)
     if (mode === 'timeout') f.engine.cancel(command.operationId, 'timed_out')
     if (mode === 'revoke') f.engine.setGrants([])
@@ -301,7 +350,7 @@ test('Windows supervisor crash kills descendants and leaves an unconfirmed resul
   const f = fixture(t)
   const command = f.command(background(f) + '; Start-Sleep 60')
   f.engine.accept(command)
-  await until(() => fs.existsSync(path.join(f.root, 'descendant.pid')))
+  await waitForDescendant(f)
   f.engine.current.child.kill()
   const result = await f.done(command)
   assert.equal(result.state, 'unknown')

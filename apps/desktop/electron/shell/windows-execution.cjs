@@ -21,6 +21,9 @@ $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 $global:LASTEXITCODE = 0
 try {
+  # Resolve standard cmdlets before auto-discovery scans unrelated installed modules on a cold cache.
+  # Import only OS modules by absolute path; keep normal auto-loading available to the user command.
+  Import-Module -Name "$PSHOME/Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1", "$PSHOME/Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1" -ErrorAction Stop
   & '${commandPath.replaceAll("'", "''")}'
   $ok = $?
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -20,6 +20,7 @@ test('Windows worker environment retains required OS fields but excludes credent
     USERPROFILE: 'C:\\Users\\Test',
     Path: 'ignored',
     USERNAME: 'Test',
+    PSModuleAnalysisCachePath: 'C:\\Cache\\ModuleAnalysisCache',
     NODE_OPTIONS: '--require secret',
     TOKEN: 'secret',
     ELECTRON_RUN_AS_NODE: '1'
@@ -27,6 +28,7 @@ test('Windows worker environment retains required OS fields but excludes credent
   assert.equal(env.SystemRoot, 'C:\\Windows')
   assert.equal(env.PATH, 'C:\\Tools')
   assert.equal(env.USERPROFILE, 'C:\\Users\\Test')
+  assert.equal(env.PSModuleAnalysisCachePath, 'C:\\Cache\\ModuleAnalysisCache')
   for (const name of ['Path', 'TOKEN', 'NODE_OPTIONS', 'ELECTRON_RUN_AS_NODE']) assert.equal(env[name], undefined)
 })
 test('PowerShell launcher quotes script paths as data and keeps command contents out of its command line', () => {
