@@ -1,5 +1,11 @@
 # @xpert-ai/shadcn-ui
 
+## 0.2.3
+
+### Patch Changes
+
+- 6f25697: Show Project task errors as dismissible bottom-right notifications with a refresh action. Repeated identical errors stay dismissed and no longer shift the task view layout.
+
 ## 0.2.2
 
 ### Patch Changes

@@ -1,5 +1,26 @@
 # @xpert-ai/desktop
 
+## 0.4.0
+
+### Minor Changes
+
+- 3c37f0f: Support native Windows PowerShell commands in Bosi with platform discovery, Windows working directories, per-command approval, and Job Object supervision for cancellation and descendant completion.
+
+### Patch Changes
+
+- 7fa90aa: Bridge source Artifact grant management from embedded authoring Views through the authenticated Cloud and Bosi hosts. Validate the current Assistant, canonical source Project, declared View commands/actions and account continuity before forwarding requests. Keep login credentials inside the host and return only domain responses; group hosts do not expose source-management authority.
+- fc9bd43: Export Desktop's voice control and unread Assistant summary types from the public contracts entry point. Use package imports throughout Desktop instead of reaching into contracts source files, including notification parsers and Assistant ordering.
+- e1df3f7: Show Assistant avatars in the new group dialog using the shared avatar renderer and public group candidate types.
+- b710ee8: Build and ship the Windows Shell supervisor ahead of execution instead of compiling it for every command. Require an explicit launch handshake so cancellation or worker loss during startup cannot run the command, while retaining Job Object completion checks.
+- 31fa495: Add explicit group analysis consent, exact published binding delegation, scoped resource query tools, execution audits and post-query/publication authorization checks. Keep existing read grants view-only and preserve upstream viewer data permissions.
+
+  Resolve analytics from the existing Artifact Type registration and execute through Analytics Runtime independently of presentation providers. Share fixed-version content checks between viewing and analysis, retain domain parameter constraints, and keep group execution APIs internal to the host.
+
+- 219faae: Upgrade ChatKit UI to 0.22.0 and shared types to 0.20.3 for governed shared resources and Workbench navigation. Align the workspace, API, Web and Desktop dependency locks with the published releases.
+- 2e4aee4: Load built-in PowerShell modules directly so Windows Shell commands do not time out while scanning unrelated modules with a cold analysis cache.
+- Updated dependencies [3c37f0f]
+  - @xpert-ai/desktop-protocol@0.5.0
+
 ## 0.3.22
 
 ### Patch Changes
