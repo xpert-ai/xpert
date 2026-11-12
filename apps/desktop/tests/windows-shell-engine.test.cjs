@@ -7,7 +7,7 @@ const { randomUUID } = require('node:crypto')
 const { fork, spawn } = require('node:child_process')
 const appRoot = process.env.BOSI_SHELL_TEST_APP_ROOT || path.join(__dirname, '../electron')
 const { ShellEngine, digest } = require(path.join(appRoot, 'shell/engine.cjs'))
-const { defaultSettings } = require(path.join(appRoot, 'shell/platform.cjs'))
+const { defaultSettings, shellEnvironment, windowsPowerShell } = require(path.join(appRoot, 'shell/platform.cjs'))
 const { spawnWindowsExecution } = require(path.join(appRoot, 'shell/windows-execution.cjs'))
 const { isFinal, LIMITS } = require('@xpert-ai/desktop-protocol')
 const test = process.platform === 'win32' ? nodeTest : nodeTest.skip
@@ -48,9 +48,16 @@ function fixture(t) {
     return value
   }
   const done = async (value) => {
-    await until(() => isFinal(engine.records.get(value.operationId)?.state), 30000)
+    await until(() => isFinal(engine.records.get(value.operationId)?.state), 30000, diagnostics)
     return engine.records.get(value.operationId)
   }
+  const diagnostics = () => JSON.stringify({
+    ready: engine.current?.ready,
+    records: [...engine.records.values()].map((record) => ({
+      state: record.state, exitCode: record.exitCode, errorCode: record.errorCode,
+      stdout: output(record).slice(-2000), stderr: output(record, 'stderr').slice(-2000)
+    }))
+  })
   const run = async (text, overrides) => {
     const value = command(text, overrides)
     engine.accept(value)
@@ -60,7 +67,7 @@ function fixture(t) {
     await engine.close()
     fs.rmSync(root, { recursive: true, force: true })
   })
-  return { root, directory, settings, reports, engine, command, done, run, epoch }
+  return { root, directory, settings, reports, engine, command, done, run, epoch, diagnostics }
 }
 const output = (record, stream = 'stdout') =>
   record.chunks
@@ -108,7 +115,21 @@ test('Windows PowerShell executes Unicode source in a space/Unicode cwd and repo
   const result = await f.run(
     "[Console]::WriteLine((Get-Location).Path); [Console]::WriteLine('中文 🚀'); [Console]::Error.WriteLine('错误'); exit 7"
   )
-  assert.equal(result.state, 'failed')
+  if (result.state === 'timed_out') {
+    // Compare the same OS shell without the supervisor to localize native handle failures in CI.
+    const probe = spawn(windowsPowerShell(), ['-NoProfile', '-NonInteractive', '-EncodedCommand',
+      Buffer.from("[Console]::WriteLine('OUT'); [Console]::Error.WriteLine('ERR'); exit 7", 'utf16le').toString('base64')], {
+      cwd: f.root, env: shellEnvironment(f.settings), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true
+    })
+    let stdout = '', stderr = ''
+    probe.stdout.on('data', (data) => { stdout += data.toString() })
+    probe.stderr.on('data', (data) => { stderr += data.toString() })
+    const timer = setTimeout(() => probe.kill(), 5000)
+    const code = await new Promise((resolve) => probe.once('close', resolve))
+    clearTimeout(timer)
+    t.diagnostic(`Direct PowerShell stdio: ${JSON.stringify({ code, stdout, stderr })}`)
+  }
+  assert.equal(result.state, 'failed', f.diagnostics())
   assert.equal(result.exitCode, 7)
   assert.equal(result.completion?.state, 'exited')
   assert.ok(output(result).includes(f.root))
@@ -146,7 +167,7 @@ test('Windows native command failures and PowerShell errors cannot report succes
     ['not-a-bosi-command', 1]
   ]) {
     const result = await f.run(command)
-    assert.equal(result.state, 'failed', command)
+    assert.equal(result.state, 'failed', `${command}: ${f.diagnostics()}`)
     assert.equal(result.exitCode, code, command)
     assert.equal(result.completion?.coverage, 'descendants')
   }
@@ -258,12 +279,20 @@ function descendantAlive(f) {
     throw error
   }
 }
+async function waitForDescendant(f) {
+  await until(() => {
+    if (fs.existsSync(path.join(f.root, 'descendant.pid'))) return true
+    if ([...f.engine.records.values()].some((record) => isFinal(record.state)))
+      throw new Error(`Command ended before creating its descendant: ${f.diagnostics()}`)
+    return false
+  }, 20000, f.diagnostics)
+}
 for (const mode of ['natural', 'cancel', 'timeout', 'revoke', 'lease']) {
   test(`Windows ${mode} ends the whole Job before releasing the next command`, async (t) => {
     const f = fixture(t)
     const command = f.command(background(f) + (mode === 'natural' ? '' : '; Start-Sleep 60'))
     f.engine.accept(command)
-    await until(() => fs.existsSync(path.join(f.root, 'descendant.pid')))
+    await waitForDescendant(f)
     if (mode === 'cancel') f.engine.cancel(command.operationId)
     if (mode === 'timeout') f.engine.cancel(command.operationId, 'timed_out')
     if (mode === 'revoke') f.engine.setGrants([])
@@ -301,7 +330,7 @@ test('Windows supervisor crash kills descendants and leaves an unconfirmed resul
   const f = fixture(t)
   const command = f.command(background(f) + '; Start-Sleep 60')
   f.engine.accept(command)
-  await until(() => fs.existsSync(path.join(f.root, 'descendant.pid')))
+  await waitForDescendant(f)
   f.engine.current.child.kill()
   const result = await f.done(command)
   assert.equal(result.state, 'unknown')
