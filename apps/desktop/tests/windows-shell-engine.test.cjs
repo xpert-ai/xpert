@@ -75,6 +75,12 @@ const output = (record, stream = 'stdout') =>
     .map((part) => part.data)
     .join('')
 
+function assertWorkingDirectory(result, f) {
+  // PowerShell expands Windows 8.3 aliases (for example RUNNER~1) in Get-Location output.
+  const actual = output(result).split(/\r?\n/, 1)[0]
+  assert.equal(fs.realpathSync.native(actual), fs.realpathSync.native(f.root), f.diagnostics())
+}
+
 for (const mode of ['start', 'cancel', 'disconnect']) {
   test(`Windows supervisor ${mode} respects the explicit launch handshake`, async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bosi-win-start-中文 space-'))
@@ -120,7 +126,7 @@ test('Windows standard cmdlets execute with a cold module analysis cache', async
   })
   const result = await f.run("Write-Output (Get-Location).Path; Write-Output 'standard-cmdlets-ready'")
   assert.equal(result.state, 'succeeded', f.diagnostics())
-  assert.ok(output(result).includes(f.root))
+  assertWorkingDirectory(result, f)
   assert.ok(output(result).includes('standard-cmdlets-ready'))
 })
 
@@ -145,7 +151,7 @@ test('Windows PowerShell executes Unicode source in a space/Unicode cwd and repo
   assert.equal(result.state, 'failed', f.diagnostics())
   assert.equal(result.exitCode, 7)
   assert.equal(result.completion?.state, 'exited')
-  assert.ok(output(result).includes(f.root))
+  assertWorkingDirectory(result, f)
   assert.ok(output(result).includes('中文 🚀'))
   assert.ok(output(result, 'stderr').includes('错误'))
   assert.doesNotMatch(output(result, 'stderr'), /CLIXML/)
