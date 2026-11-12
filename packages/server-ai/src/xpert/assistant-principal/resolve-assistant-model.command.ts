@@ -1,10 +1,11 @@
-import { Command, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { Command, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AiModelTypeEnum, IWFNClassifier, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { Xpert } from '../xpert.entity'
 import { assistantModelCandidates } from '../assistant-model-selection.util'
 import { AssistantPrincipalAccessService, assistantPrincipalDenied } from './assistant-principal-access.service'
+import { ResolveAssistantKnowledgeModelQuery } from '../../knowledgebase/queries/resolve-assistant-knowledge-model.query'
 
 /** Confirms a published model binding for the Assistant principal; provider policy remains with model access. */
 export class ResolveAssistantModelCommand extends Command<boolean> {
@@ -22,7 +23,8 @@ export class ResolveAssistantModelHandler implements ICommandHandler<ResolveAssi
     constructor(
         @Inject(AssistantPrincipalAccessService)
         private readonly access: Pick<AssistantPrincipalAccessService, 'isPrincipal' | 'find'>,
-        private readonly database: DataSource
+        private readonly database: DataSource,
+        @Inject(QueryBus) private readonly queries: Pick<QueryBus, 'execute'>
     ) {}
 
     async execute({ actor, assistantId, model }: ResolveAssistantModelCommand) {
@@ -58,7 +60,8 @@ export class ResolveAssistantModelHandler implements ICommandHandler<ResolveAssi
                     candidate.copilotId === model.copilotId &&
                     candidate.model === model.model &&
                     (candidate.modelType ?? AiModelTypeEnum.LLM) === model.modelType
-            )
+            ) &&
+            !(await this.queries.execute(new ResolveAssistantKnowledgeModelQuery(actor, assistantId, model)))
         )
             throw assistantPrincipalDenied()
         return true

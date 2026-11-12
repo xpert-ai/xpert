@@ -2,6 +2,9 @@ import { AiModelTypeEnum, IWFNClassifier, TXpertTeamNode, WorkflowNodeTypeEnum }
 import { DataSource } from 'typeorm'
 import { Xpert } from '../xpert.entity'
 import { ResolveAssistantModelCommand, ResolveAssistantModelHandler } from './resolve-assistant-model.command'
+import { ResolveAssistantKnowledgeModelQuery } from '../../knowledgebase/queries/resolve-assistant-knowledge-model.query'
+
+const queries = () => ({ execute: jest.fn().mockResolvedValue(false) })
 
 it('restricts organization model credentials to the live executor Assistant published configuration', async () => {
     const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'assistant-user' }
@@ -10,11 +13,19 @@ it('restricts organization model credentials to the live executor Assistant publ
     const database = {
         getRepository: () => ({ findOne: async () => ({ active: true, publishAt: new Date(), copilotModel: model }) })
     } as unknown as DataSource
-    const handler = new ResolveAssistantModelHandler(access, database)
+    const queryBus = queries()
+    const handler = new ResolveAssistantModelHandler(access, database, queryBus)
     await expect(handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', model))).resolves.toBe(true)
+    expect(queryBus.execute).not.toHaveBeenCalled()
     await expect(
         handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', { ...model, model: 'unrelated-model' }))
     ).rejects.toThrow()
+    const embedding = { ...model, model: 'embedding', modelType: AiModelTypeEnum.TEXT_EMBEDDING }
+    queryBus.execute.mockResolvedValueOnce(true)
+    await expect(handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', embedding))).resolves.toBe(true)
+    expect(queryBus.execute).toHaveBeenLastCalledWith(
+        new ResolveAssistantKnowledgeModelQuery(actor, 'assistant', embedding)
+    )
     access.find.mockResolvedValueOnce(null)
     await expect(handler.execute(new ResolveAssistantModelCommand(actor, 'other-assistant', model))).rejects.toThrow()
     access.isPrincipal.mockResolvedValueOnce(false)
@@ -50,7 +61,8 @@ describe('published workflow and fallback model bindings', () => {
                 isPrincipal: jest.fn().mockResolvedValue(true),
                 find: jest.fn().mockResolvedValue({})
             },
-            database
+            database,
+            queries()
         )
         return (model = additional) => handler.execute(new ResolveAssistantModelCommand(actor, 'assistant', model))
     }

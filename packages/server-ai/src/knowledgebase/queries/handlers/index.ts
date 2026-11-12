@@ -7,8 +7,10 @@ import { ListWorkspaceKnowledgebasesHandler } from './list-workspace-knowledgeba
 import { StatisticsKnowledgebasesHandler } from './statistics-knowledgebases.handler'
 import { KnowledgeStrategyHandler } from './strategy.handler'
 import { KnowledgeTaskServiceHandler } from './task-service.handler'
+import { ResolveAssistantKnowledgeModelHandler } from './resolve-assistant-knowledge-model.handler'
 
 export const QueryHandlers = [
+    ResolveAssistantKnowledgeModelHandler,
     KnowledgeSearchQueryHandler,
     KnowledgeFolderOptionsHandler,
     KnowledgeFilterValueOptionsHandler,
