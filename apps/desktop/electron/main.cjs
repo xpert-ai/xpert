@@ -310,7 +310,12 @@ else {
       updater: updatesEnabled ? require('electron-updater').autoUpdater : null,
       enabled: updatesEnabled,
       currentVersion: app.getVersion(),
-      resolveFeed: () => findRelease({ platform: process.platform, arch: process.arch }),
+      resolveFeed: () =>
+        findRelease({
+          platform: process.platform,
+          arch: process.arch,
+          mirrorDomain: require('../package.json').bosiMirrorDomain
+        }),
       beforeInstall: async () => {
         // Drain local tools before the updater takes ownership of quitting/restarting.
         await service.audioCapture.shutdown('quit')
