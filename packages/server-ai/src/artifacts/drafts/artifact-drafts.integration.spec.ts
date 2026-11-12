@@ -47,6 +47,127 @@ integration('Artifact working drafts / PostgreSQL', () => {
     const countVersions = (artifactId: string) =>
         fixture.database.getRepository(ArtifactVersion).countBy({ artifactId })
 
+    it('discards only empty containers and permits retry through the same source identity', async () => {
+        const artifact = await fixture.seed()
+        expect(await fixture.api.discardEmpty({ artifactId: artifact.id! })).toBe(true)
+        expect(await fixture.database.getRepository(Artifact).findOneByOrFail({ id: artifact.id })).toMatchObject({
+            status: 'deleted'
+        })
+        const source = {
+            pluginName: artifact.pluginName,
+            resourceType: artifact.resourceType,
+            resourceId: artifact.resourceId
+        }
+        const artifacts = fixture.artifacts.createScopedApi(fixture.owner)
+        expect(await artifacts.findArtifactBySource(source)).toBeNull()
+        const retried = await artifacts.createArtifact({ source, kind: 'html', title: 'Retry' })
+        expect(retried).toMatchObject({ id: artifact.id, status: 'active' })
+        await fixture.api.save({
+            artifactId: artifact.id!,
+            expectedRevision: 0,
+            expectedCurrentVersionId: null,
+            ...(await fixture.content())
+        })
+        expect(await fixture.api.discardEmpty({ artifactId: artifact.id! })).toBe(false)
+        await expect(
+            fixture.api.setRecycled({ artifactId: artifact.id!, expectedRevision: 0, recycled: true })
+        ).rejects.toThrow(ConflictException)
+    })
+
+    it('recycles legacy empty records without creating a draft and rejects historical version content', async () => {
+        const empty = await fixture.seed()
+        expect(await fixture.api.setRecycled({ artifactId: empty.id!, expectedRevision: 0, recycled: true })).toBeNull()
+        expect(await fixture.database.getRepository(Artifact).findOneByOrFail({ id: empty.id })).toMatchObject({
+            status: 'archived'
+        })
+        expect(await fixture.database.getRepository(ArtifactDraft).countBy({ artifactId: empty.id })).toBe(0)
+        const historical = await fixture.seed()
+        await fixture.artifacts.createScopedApi(fixture.owner).createArtifactVersion({
+            artifactId: historical.id!,
+            ...(await fixture.content()),
+            setCurrent: false
+        })
+        expect(await fixture.api.discardEmpty({ artifactId: historical.id! })).toBe(false)
+        await expect(
+            fixture.api.setRecycled({ artifactId: historical.id!, expectedRevision: 0, recycled: true })
+        ).rejects.toThrow(ConflictException)
+    })
+
+    for (const operation of ['discard', 'recycle'] as const) {
+        for (const winner of ['save', 'removal'] as const) {
+            it(`serializes ${operation} with first save when ${winner} acquires the lock first`, async () => {
+                const artifact = await fixture.seed(),
+                    content = await fixture.content()
+                let release!: () => void,
+                    signalEntered!: () => void,
+                    calls = 0
+                const gate = new Promise<void>((resolve) => {
+                    release = resolve
+                })
+                const entered = new Promise<void>((resolve) => {
+                    signalEntered = resolve
+                })
+                const permission = winner === 'save' || operation === 'discard' ? 'write' : 'manage'
+                const authorize = fixture.contentAccess.assert
+                const accessSpy = jest.spyOn(fixture.contentAccess, 'assert').mockImplementation(async (...args) => {
+                    await authorize(...args)
+                    const requested = args[2]
+                    if (requested === permission && ++calls === (winner === 'save' ? 3 : 2)) {
+                        signalEntered()
+                        await gate
+                    }
+                })
+                const save = () =>
+                    fixture.api.save({
+                        artifactId: artifact.id!,
+                        expectedRevision: 0,
+                        expectedCurrentVersionId: null,
+                        ...content
+                    })
+                const remove = () =>
+                    operation === 'discard'
+                        ? fixture.api.discardEmpty({ artifactId: artifact.id! })
+                        : fixture.api.setRecycled({ artifactId: artifact.id!, expectedRevision: 0, recycled: true })
+                const first = winner === 'save' ? save() : remove()
+                await Promise.race([
+                    entered,
+                    first.then(() => {
+                        throw new Error('Operation completed before acquiring its lock')
+                    })
+                ])
+                const second = winner === 'save' ? remove() : save()
+                const completed = Promise.allSettled([first, second])
+                try {
+                    const deadline = Date.now() + 5000
+                    let waiting = false
+                    while (!waiting && Date.now() < deadline) {
+                        const rows: Array<{ waiting: boolean }> = await fixture.database.query(
+                            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock') AS waiting"
+                        )
+                        waiting = rows[0].waiting
+                        if (!waiting) await delay(20)
+                    }
+                    expect(waiting).toBe(true)
+                } finally {
+                    release()
+                }
+                const results = await completed
+                accessSpy.mockRestore()
+                expect(results[0].status).toBe('fulfilled')
+                expect(results[1].status).toBe(winner === 'save' && operation === 'discard' ? 'fulfilled' : 'rejected')
+                if (winner === 'save' && operation === 'discard') expect(results[1]).toMatchObject({ value: false })
+                expect(await fixture.database.getRepository(ArtifactDraft).countBy({ artifactId: artifact.id })).toBe(
+                    winner === 'save' ? 1 : 0
+                )
+                expect(
+                    await fixture.database.getRepository(Artifact).findOneByOrFail({ id: artifact.id })
+                ).toMatchObject({
+                    status: winner === 'save' ? 'active' : operation === 'discard' ? 'deleted' : 'archived'
+                })
+            }, 15000)
+        }
+    }
+
     it('resolves the draft service through Nest and registers its runtime capability', async () => {
         const module = await Test.createTestingModule({
             imports: [RuntimeCapabilityModule],

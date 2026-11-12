@@ -209,6 +209,7 @@ export async function createDraftFixture(url: string) {
             return database.getRepository(Artifact).save(
                 database.getRepository(Artifact).create({
                     ...owner,
+                    createdById: owner.userId,
                     pluginName: 'test.drafts',
                     resourceType: 'document',
                     resourceId: randomUUID(),

@@ -25,8 +25,14 @@ export interface ArtifactDraftsApi {
   list(artifactIds: string[]): Promise<ArtifactDraftRecord[]>
   /** Catalog/recycle-bin reads only; ordinary editors must leave includeArchived unset. */
   get(artifactId: string, options?: { includeArchived?: boolean }): Promise<ArtifactDraftRecord | null>
-  /** Manager-only CAS lifecycle; recycling revokes all links, restoring never reactivates them. */
-  setRecycled(input: { artifactId: string; expectedRevision: number; recycled: boolean }): Promise<ArtifactDraftRecord>
+  /** Manager-only CAS lifecycle. Revision 0 recycles an empty container and returns null; it cannot restore it. */
+  setRecycled(input: {
+    artifactId: string
+    expectedRevision: number
+    recycled: boolean
+  }): Promise<ArtifactDraftRecord | null>
+  /** Failed first-save compensation by its creator. Returns false if a draft or any version has since been saved. */
+  discardEmpty(input: { artifactId: string }): Promise<boolean>
   save(input: SaveArtifactDraftInput): Promise<ArtifactDraftRecord>
   /** Trusted application action only; never expose this operation as an Agent tool. */
   publish(input: PublishArtifactDraftInput): Promise<ArtifactVersionRecord>

@@ -39,6 +39,7 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
             list: (ids) => this.readMany(ids, scope),
             get: (id, options) => this.read(id, scope, options?.includeArchived),
             setRecycled: (input) => this.recycle(input, scope),
+            discardEmpty: (input) => this.discardEmptyForScope(input.artifactId, scope),
             save: (input) => this.write(input, scope),
             publish: (input) => this.commit(input, scope)
         }
@@ -51,6 +52,9 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
     }
     setRecycled(input: Parameters<ArtifactDraftsApi['setRecycled']>[0]) {
         return this.recycle(input, {})
+    }
+    discardEmpty(input: { artifactId: string }) {
+        return this.discardEmptyForScope(input.artifactId, {})
     }
     save(input: SaveArtifactDraftInput) {
         return this.write(input, {})
@@ -140,6 +144,20 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
             await this.authorized(input.artifactId, scope, 'manage', true)
             const drafts = manager.getRepository(ArtifactDraft),
                 draft = await drafts.findOneBy({ artifactId: input.artifactId })
+            if (
+                !draft &&
+                input.expectedRevision === 0 &&
+                input.recycled &&
+                !artifact.currentVersionId &&
+                !(await manager.getRepository(ArtifactVersion).existsBy({ artifactId: artifact.id }))
+            ) {
+                await manager
+                    .getRepository(ArtifactLink)
+                    .update({ artifactId: artifact.id, status: 'active' }, { status: 'revoked', revokedAt: new Date() })
+                artifact.status = 'archived'
+                await manager.getRepository(Artifact).save(artifact)
+                return null
+            }
             if (!draft || draft.revision !== input.expectedRevision)
                 throw new ConflictException(t('server-ai:Error.ArtifactDraftConflict'))
             const status = input.recycled ? 'archived' : 'active'
@@ -153,6 +171,26 @@ export class ArtifactDraftsService implements ArtifactDraftsApi {
             await manager.getRepository(Artifact).save(artifact)
             draft.revision += 1
             return record(await drafts.save(draft))
+        })
+    }
+    private async discardEmptyForScope(artifactId: string, scope: ArtifactsRuntimeScope) {
+        return this.locked(artifactId, scope, async (manager, artifact) => {
+            // Compensation must never delete another creator's container or a concurrent successful save.
+            if (artifact.createdById !== (scope.userId ?? RequestContext.currentUserId()))
+                throw new ForbiddenException(t('server-ai:Error.ArtifactDraftAccessDenied'))
+            if (
+                artifact.currentVersionId ||
+                (await manager.getRepository(ArtifactDraft).existsBy({ artifactId })) ||
+                (await manager.getRepository(ArtifactVersion).existsBy({ artifactId }))
+            )
+                return false
+            await manager
+                .getRepository(ArtifactLink)
+                .update({ artifactId, status: 'active' }, { status: 'revoked', revokedAt: new Date() })
+            // Deleted containers are excluded from source lookup; a deliberate retry can reinitialize one.
+            artifact.status = 'deleted'
+            await manager.getRepository(Artifact).save(artifact)
+            return true
         })
     }
     private async verified(content: ArtifactVersionInput, scope: ArtifactsRuntimeScope, projectId?: string | null) {
