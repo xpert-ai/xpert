@@ -37,7 +37,12 @@ Commands run with the signed-in operating-system user's permissions. The cwd is 
 starting directory, not a filesystem sandbox. stdout/stderr are returned to Xpert.
 No PTY, interactive stdin, persistent shell session, file synchronization or local
 Agent runtime is provided. Each command gets a fresh non-interactive shell and a
-small environment allowlist; platform account/device tokens are not inherited.
+small environment allowlist; platform account/device tokens are not inherited. Windows preserves
+`PSModuleAnalysisCachePath` when configured. Before executing command source, the launcher
+imports the OS Management and Utility modules from their absolute paths under `$PSHOME`.
+This keeps standard cmdlets usable with a cold analysis cache without scanning all
+installed modules first. Third-party module auto-loading remains enabled and counts
+toward the command timeout; a first lookup can be slow on machines with many modules.
 
 Windows requires Windows 10 or newer with Windows PowerShell and .NET available.
 It does not require WSL, Python, a separate Node installation, SSH, or administrator

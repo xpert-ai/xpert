@@ -32,7 +32,8 @@ function shellEnvironment(settings, platform = process.platform, environment = p
       'ProgramData',
       'ProgramFiles',
       'ProgramFiles(x86)',
-      'CommonProgramFiles'
+      'CommonProgramFiles',
+      'PSModuleAnalysisCachePath'
     ]) {
       const actual = Object.keys(environment).find((name) => name.toLowerCase() === key.toLowerCase())
       if (actual && environment[actual]) result[key] = environment[actual]

@@ -7,7 +7,7 @@ const { randomUUID } = require('node:crypto')
 const { fork, spawn } = require('node:child_process')
 const appRoot = process.env.BOSI_SHELL_TEST_APP_ROOT || path.join(__dirname, '../electron')
 const { ShellEngine, digest } = require(path.join(appRoot, 'shell/engine.cjs'))
-const { defaultSettings, shellEnvironment, windowsPowerShell } = require(path.join(appRoot, 'shell/platform.cjs'))
+const { defaultSettings } = require(path.join(appRoot, 'shell/platform.cjs'))
 const { spawnWindowsExecution } = require(path.join(appRoot, 'shell/windows-execution.cjs'))
 const { isFinal, LIMITS } = require('@xpert-ai/desktop-protocol')
 const test = process.platform === 'win32' ? nodeTest : nodeTest.skip
@@ -110,29 +110,38 @@ for (const mode of ['start', 'cancel', 'disconnect']) {
   })
 }
 
+test('Windows standard cmdlets execute with a cold module analysis cache', async (t) => {
+  const f = fixture(t)
+  const previous = process.env.PSModuleAnalysisCachePath
+  process.env.PSModuleAnalysisCachePath = path.join(f.root, 'cold-module-cache')
+  t.after(() => {
+    if (previous === undefined) delete process.env.PSModuleAnalysisCachePath
+    else process.env.PSModuleAnalysisCachePath = previous
+  })
+  const result = await f.run("Write-Output (Get-Location).Path; Write-Output 'standard-cmdlets-ready'")
+  assert.equal(result.state, 'succeeded', f.diagnostics())
+  assert.ok(output(result).includes(f.root))
+  assert.ok(output(result).includes('standard-cmdlets-ready'))
+})
+
+test('Windows commands retain module auto-loading after OS modules are prepared', async (t) => {
+  const f = fixture(t)
+  const modules = path.join(f.root, 'modules')
+  const module = path.join(modules, 'BosiShellProbe')
+  fs.mkdirSync(module, { recursive: true })
+  fs.writeFileSync(path.join(module, 'BosiShellProbe.psm1'), "function Get-BosiShellProbe { 'custom-module-ready' }")
+  fs.writeFileSync(path.join(module, 'BosiShellProbe.psd1'),
+    "@{ RootModule = 'BosiShellProbe.psm1'; ModuleVersion = '1.0'; FunctionsToExport = @('Get-BosiShellProbe'); CmdletsToExport = @(); AliasesToExport = @() }")
+  const result = await f.run(`$env:PSModulePath = ${quote(modules)}; Get-BosiShellProbe`)
+  assert.equal(result.state, 'succeeded', f.diagnostics())
+  assert.ok(output(result).includes('custom-module-ready'))
+})
+
 test('Windows PowerShell executes Unicode source in a space/Unicode cwd and reports stderr and exit status', async (t) => {
   const f = fixture(t)
   const result = await f.run(
-    "[Console]::WriteLine('before-stderr'); [Console]::Error.WriteLine('错误'); [Console]::WriteLine('after-stderr'); [Console]::WriteLine((Get-Location).Path); [Console]::WriteLine('中文 🚀'); exit 7"
+    "[Console]::WriteLine((Get-Location).Path); [Console]::WriteLine('中文 🚀'); [Console]::Error.WriteLine('错误'); exit 7"
   )
-  if (result.state === 'timed_out') {
-    // Compare the same OS shell without the supervisor to localize native handle failures in CI.
-    for (const modules of [false, true]) {
-    const env = shellEnvironment(f.settings)
-    if (modules) env.PSModulePath = path.join(path.dirname(windowsPowerShell()), 'Modules')
-    const probe = spawn(windowsPowerShell(), ['-NoProfile', '-NonInteractive', '-EncodedCommand',
-      Buffer.from("[Console]::WriteLine('OUT'); [Console]::Error.WriteLine('ERR'); [Console]::WriteLine((Get-Location).Path); exit 7", 'utf16le').toString('base64')], {
-      cwd: f.root, env, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true
-    })
-    let stdout = '', stderr = ''
-    probe.stdout.on('data', (data) => { stdout += data.toString() })
-    probe.stderr.on('data', (data) => { stderr += data.toString() })
-    const timer = setTimeout(() => probe.kill(), 5000)
-    const code = await new Promise((resolve) => probe.once('close', resolve))
-    clearTimeout(timer)
-    t.diagnostic(`Direct PowerShell cmdlet: ${JSON.stringify({ modules, code, stdout, stderr })}`)
-    }
-  }
   assert.equal(result.state, 'failed', f.diagnostics())
   assert.equal(result.exitCode, 7)
   assert.equal(result.completion?.state, 'exited')
@@ -168,7 +177,8 @@ test('Windows native command failures and PowerShell errors cannot report succes
   for (const [command, code] of [
     ['cmd.exe /d /c exit 9', 9],
     ["Write-Error 'expected error'", 1],
-    ['not-a-bosi-command', 1]
+    // Isolate exit-status handling from expensive discovery of unrelated modules on the host.
+    ["$PSModuleAutoLoadingPreference = 'None'; not-a-bosi-command", 1]
   ]) {
     const result = await f.run(command)
     assert.equal(result.state, 'failed', `${command}: ${f.diagnostics()}`)

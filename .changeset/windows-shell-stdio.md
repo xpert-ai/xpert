@@ -2,4 +2,4 @@
 '@xpert-ai/desktop': patch
 ---
 
-Improve Windows Shell failure diagnostics for standard error and descendant process execution.
+Load built-in PowerShell modules directly so Windows Shell commands do not time out while scanning unrelated modules with a cold analysis cache.

@@ -90,9 +90,6 @@ jobs:
         with:
           version: 10.24.0
           run_install: false
-      - name: Diagnose native Windows command environment
-        if: runner.os == 'Windows'
-        run: node apps/desktop/scripts/diagnose-windows-shell.cjs
       - name: Install Linux runtime libraries
         if: runner.os == 'Linux'
         run: |
