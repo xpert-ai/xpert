@@ -39,11 +39,17 @@ test('PowerShell launcher quotes script paths as data and keeps command contents
 
 test('Windows supervisor resolves the shipped executable in source and unpacked ASAR layouts', () => {
   const root = path.resolve('Bosi 中文 space')
-  assert.equal(supervisorPath(path.join(root, 'electron/shell')), path.join(root, 'resources/shell/windows-supervisor.exe'))
+  assert.equal(
+    supervisorPath(path.join(root, 'electron/shell')),
+    path.join(root, 'resources/shell/windows-supervisor.exe')
+  )
   assert.equal(
     supervisorPath(path.join(root, 'resources/app.asar/electron/shell')),
     path.join(root, 'resources/app.asar.unpacked/resources/shell/windows-supervisor.exe')
   )
   const source = path.join(root, 'app.asar/project')
-  assert.equal(supervisorPath(path.join(source, 'electron/shell')), path.join(source, 'resources/shell/windows-supervisor.exe'))
+  assert.equal(
+    supervisorPath(path.join(source, 'electron/shell')),
+    path.join(source, 'resources/shell/windows-supervisor.exe')
+  )
 })

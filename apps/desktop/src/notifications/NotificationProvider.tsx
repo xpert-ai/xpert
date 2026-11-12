@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { CircleCheck, X } from 'lucide-react'
 import {
   parseAnnouncement,
   parseNotificationSnapshot,
@@ -217,13 +218,24 @@ export function NotificationProvider({
       {hint && !center && !announcement && !suspended && (
         <div
           role="status"
-          className="fixed right-4 top-16 z-40 flex w-96 max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl border bg-popover p-3 text-popover-foreground shadow-lg"
+          className="fixed right-4 top-16 z-40 flex w-fit max-w-[min(24rem,calc(100vw-2rem))] items-center gap-1 rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-md"
         >
-          <Button variant="ghost" onClick={() => void openResult(hint)}>
-            {t('Your scheduled task has completed')}
+          <Button
+            variant="ghost"
+            className="h-auto min-h-8 min-w-0 flex-1 justify-start gap-2 px-2 py-1 text-start whitespace-normal"
+            onClick={() => void openResult(hint)}
+          >
+            <CircleCheck className="size-4 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0 break-words">{t('Your scheduled task has completed')}</span>
           </Button>
-          <Button variant="ghost" size="icon" aria-label={t('Close')} onClick={() => setHint(null)}>
-            ×
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label={t('Close')}
+            onClick={() => setHint(null)}
+          >
+            <X className="size-4" aria-hidden="true" />
           </Button>
         </div>
       )}

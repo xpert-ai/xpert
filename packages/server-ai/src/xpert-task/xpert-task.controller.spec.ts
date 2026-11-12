@@ -6,6 +6,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     ParseJsonPipe: class ParseJsonPipe {},
     RequestContext: { currentUserId: jest.fn().mockReturnValue('user-1') },
     TimeZone: () => () => undefined,
+    Permissions: () => () => undefined,
     TransformInterceptor: class TransformInterceptor {},
     transformWhere: jest.fn((where: unknown) => where)
 }))

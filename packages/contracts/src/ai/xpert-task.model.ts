@@ -30,7 +30,19 @@ export type TXpertTaskScheduleRuntimeState = {
  */
 export interface IXpertTask extends IBasePerTenantAndOrganizationEntityModel, XpertTaskType {}
 
+export type ConversationScheduleMonitor = {
+  source: 'menu' | 'agent'
+  intervalMinutes: number
+  anchorAt?: string
+  observationRevision?: string
+  notify: 'new-differences'
+} & (
+  | { target?: 'conversation'; conversationId: string; threadId: string }
+  | { target: 'new_chat'; conversationId?: never; threadId?: never }
+)
+
 export type XpertTaskType = {
+  monitor?: ConversationScheduleMonitor | null
   name?: string
   schedule?: string
   options?: TScheduleOptions

@@ -41,7 +41,8 @@ Release tooling and workflow edits also run the release checks on pushes. To ret
 installer builds after a repair, add a new Desktop Changeset; checking the pipeline
 alone does not authorize another candidate build.
 
-- PRs with a new Desktop note build candidate artifacts with no signing secrets
+- PRs targeting `develop` skip the Desktop workflow. For other target branches,
+  PRs with a new Desktop note build candidate artifacts with no signing secrets
   and no release-writing permission. Subsequent PR commits verify the complete diff
   from the merge base, so source updates still rerun those candidate builds.
 - New Desktop notes pushed to `develop` or `main` build candidate artifacts such as

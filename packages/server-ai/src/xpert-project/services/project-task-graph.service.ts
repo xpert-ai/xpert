@@ -1,4 +1,5 @@
-import { latestImplementationExecutor } from '../runtime/project-task-executor'
+import { latestTaskExecutor } from '../runtime/project-task-executor'
+import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Task graph reads never acquire projection locks or invoke plugin callbacks.
 // Runtime success does not override a provider's business acceptance status.
@@ -24,11 +25,8 @@ import {
     projectPipelineInvocationScopeSchema,
     ProjectTaskProviderRegistry,
     ProjectPipelineProjectionProviderRegistry,
-    ProjectTasksRuntimeCapability,
-    type ProjectTaskContext,
-    type ProjectTasksApi
+    type ProjectTaskContext
 } from '@xpert-ai/plugin-sdk'
-import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
@@ -50,8 +48,7 @@ import { ProjectTaskProjectionService } from './task-projection/project-task-pro
 export { projectTaskIdentity } from './project-task-identity'
 
 @Injectable()
-@RuntimeCapabilityProvider(ProjectTasksRuntimeCapability)
-export class ProjectTaskGraphService implements ProjectTasksApi {
+export class ProjectTaskGraphService {
     constructor(
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: ProjectAccessRuntimeService,
@@ -194,13 +191,18 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                 // Invalid/unavailable registrations cannot erase persisted business identity.
             }
         }
+        // Read the host-owned binding from persisted rows; do not expand the public graph node contract.
+        const reviewTaskIds = new Set(rows.filter((row) => row.reviewSubject).map((row) => row.id))
         const displayNodes = nodes.map((node) => {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
                 pipelineDisposition: dispositions.get(node.id) ?? node.pipelineDisposition,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
-                executor: latestImplementationExecutor(observed.filter((attempt) => attempt.taskId === node.id)),
+                executor: latestTaskExecutor(
+                    observed.filter((attempt) => attempt.taskId === node.id),
+                    reviewTaskIds.has(node.id) ? 'review' : 'implementation'
+                ),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }
@@ -255,6 +257,18 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             })
             if (row.revision !== input.expectedRevision)
                 throw new ConflictException(t('server-ai:Error.ProjectTaskRevisionConflict'))
+            // The plan form also submits unchanged relations. Compare the locked row so schedule
+            // edits still work without exposing the host-owned binding through the public graph.
+            if (row.reviewSubject) {
+                const parentChanged = input.parentTaskId !== undefined && input.parentTaskId !== (row.parentTaskId ?? null)
+                const predecessors = row.predecessorIds ?? []
+                const requested = input.predecessorIds
+                const dependenciesChanged = requested !== undefined &&
+                    (requested.length !== predecessors.length ||
+                        requested.some((id) => !predecessors.includes(id)) ||
+                        predecessors.some((id) => !requested.includes(id)))
+                if (parentChanged || dependenciesChanged) throw projectTaskRuntimeError('Owned')
+            }
             const rows = await manager.find(XpertProjectTask, { where: this.where(context) })
             validateProjectTaskGraph(
                 rows.map((item) =>

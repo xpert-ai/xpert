@@ -11,17 +11,7 @@ The repository publishes Docker images to:
 
 ### Push `develop`
 
-Push to `develop` to publish candidate images for `api` and `webapp`:
-
-```bash
-git checkout develop
-git push origin develop
-```
-
-Published tags:
-
-- `develop-candidate`
-- `sha-<full_commit_sha>`
+Pushes to `develop` build affected application images and run their health checks locally on the runner. Registry publication is limited to `main`.
 
 ### Push `main`
 
@@ -58,7 +48,7 @@ The dedicated `olap` workflow compares the current tag to the previous tag. It o
 Pull the image tag that matches the branch or release you want to deploy:
 
 ```bash
-docker pull ghcr.io/xpert-ai/xpert-api:develop-candidate
+docker pull ghcr.io/xpert-ai/xpert-api:main-candidate
 docker pull ghcr.io/xpert-ai/xpert-webapp:main
 docker pull ghcr.io/xpert-ai/xpert-webapp:latest
 docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0

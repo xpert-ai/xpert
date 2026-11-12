@@ -153,6 +153,13 @@
           "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
+        },
+        "development-light": {
+          "optimization": false,
+          "extractLicenses": false,
+          "namedChunks": true,
+          "sourceMap": false,
+          "aot": false
         }
       },
       "defaultConfiguration": "production",
@@ -195,6 +202,10 @@
         "development": {
           "buildTarget": "cloud:build:development",
           "proxyConfig": "apps/cloud/proxy.conf.cjs"
+        },
+        "development-light": {
+          "buildTarget": "cloud:build:development-light",
+          "prebundle": false
         }
       },
       "defaultConfiguration": "development"

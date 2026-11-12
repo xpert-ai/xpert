@@ -4,6 +4,8 @@ import { AgentInvocation, projectPipelineInvocationScopeSchema } from '@xpert-ai
 import { EntityManager, In } from 'typeorm'
 import { ProjectPipelineTaskLinkEntity } from '../pipeline/persistence/pipeline.entity'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
+import { sameInvocationData } from '../../agent-invocation/invocation-runtime'
+import { reviewReport } from './project-task-evidence'
 
 /** Read projection only. The legacy attempt status never replaces the full Invocation status. */
 export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
@@ -11,7 +13,7 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
     invocation?: AgentInvocation,
     pipelineLink?: Pick<ProjectPipelineTaskLinkEntity, 'projectId' | 'taskId' | 'nodeInstanceId'>
 ): T {
-    if (!attempt.invocationId) return attempt
+    if (!attempt.invocationId) return { ...attempt, reviewVerdict: null }
     const reference = invocation?.request.dispatch?.projectTask
     const pipeline =
         invocation?.scope.callerType === 'project_pipeline'
@@ -30,17 +32,25 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
         reference.projectTaskId === attempt.taskId &&
         reference.projectId === attempt.projectId
     if (!invocation || invocation.id !== attempt.invocationId || !(pipeline ? pipelineMatches : dispatchMatches))
-        return { ...attempt, invocationStatus: attempt.dispatchState === 'pending' ? 'queued' : 'unknown' }
-    const status = invocationCanRelease(invocation) ? invocation.status : invocation.handle ? 'running' : 'queued'
+        return { ...attempt, reviewVerdict: null, invocationStatus: attempt.dispatchState === 'pending' ? 'queued' : 'unknown' }
+    const released = invocationCanRelease(invocation)
+    const status = released ? invocation.status : invocation.handle ? 'running' : 'queued'
+    // Runtime success is not approval. Only a settled review of this exact pinned candidate has a verdict.
+    const report =
+        attempt.purpose?.type === 'review' && status === 'succeeded' && dispatchMatches &&
+        invocation.scope.projectId === attempt.projectId && sameInvocationData(reference.purpose, attempt.purpose)
+            ? reviewReport(attempt.purpose, invocation.result?.text)
+            : null
     return {
         ...attempt,
+        reviewVerdict: report?.verdict ?? null,
         status,
         invocationStatus:
-            invocation.status === 'cancelled' && !invocationCanRelease(invocation) ? 'cancelling' : invocation.status,
+            invocation.status === 'cancelled' && !released ? 'cancelling' : invocation.status,
         runtimeProvider: invocation.request.target.provider,
         runtimeToolId: invocation.handle?.runner?.tool.id,
         runtimeStartedAt: invocation.progress?.startedAt ?? null,
-        runtimeCompletedAt: invocationCanRelease(invocation) ? invocation.updatedAt : null
+        runtimeCompletedAt: released ? invocation.updatedAt : null
     }
 }
 
@@ -50,7 +60,7 @@ export async function observeProjectTaskInvocations<T extends IXpertProjectTaskE
     attempts: T[]
 ): Promise<T[]> {
     const ids = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
-    if (!ids.length) return attempts
+    if (!ids.length) return attempts.map((attempt) => projectTaskInvocationView(attempt))
     if (!scope.tenantId || !scope.organizationId) return attempts.map((attempt) => projectTaskInvocationView(attempt))
     const records = await manager.getRepository(AgentInvocationEntity).find({
         where: {

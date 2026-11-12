@@ -3,12 +3,10 @@ import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { createProjectResourceNavigationTools } from './project'
 
 function fixture() {
-    const list = jest
-        .fn()
-        .mockResolvedValue({
-            items: [{ resource: { kind: 'project-content', id: 'content-id' }, title: 'Inventory' }],
-            nextCursor: null
-        })
+    const list = jest.fn().mockResolvedValue({
+        items: [{ resource: { kind: 'project-content', id: 'content-id' }, title: 'Inventory' }],
+        nextCursor: null
+    })
     const resolve = jest.fn().mockResolvedValue({
         viewKey: 'test__document',
         selectionId: 'artifact-id',

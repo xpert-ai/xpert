@@ -46,9 +46,11 @@ function fixture() {
     let draft: { id: string; workspaceId: string; publishAt?: Date } | null = null
     let execution: { id: string; status: XpertAgentExecutionStatusEnum } | null = null
     const messages = { findOne: jest.fn(async () => ({ id: 'welcome-ai' })) }
-    const checkpoint = jest.fn(async (_query: CopilotCheckpointGetTupleQuery): Promise<{ checkpoint: { id: string } } | undefined> => ({
-        checkpoint: { id: 'welcome-checkpoint' }
-    }))
+    const checkpoint = jest.fn(
+        async (_query: CopilotCheckpointGetTupleQuery): Promise<{ checkpoint: { id: string } } | undefined> => ({
+            checkpoint: { id: 'welcome-checkpoint' }
+        })
+    )
     let locked = false
     const stream = new Subject<MessageEvent>()
     const repo = {
@@ -140,7 +142,11 @@ function fixture() {
         workspaces as never,
         published as never,
         { execute } as never,
-        { execute: jest.fn(async (query) => query instanceof CopilotCheckpointGetTupleQuery ? checkpoint(query) : null) } as never,
+        {
+            execute: jest.fn(async (query) =>
+                query instanceof CopilotCheckpointGetTupleQuery ? checkpoint(query) : null
+            )
+        } as never,
         { get: () => ({ workspace: workspaces.workspace }) } as never
     )
     return {
@@ -368,10 +374,12 @@ describe('Bosi bootstrap recovery and ownership', () => {
                 input: { input: 'server-ai:BosiStartConversation' }
             }
         })
-        expect(f.checkpoint).toHaveBeenCalledWith(new CopilotCheckpointGetTupleQuery({
-            thread_id: initial.progress.threadId,
-            checkpoint_ns: ''
-        }))
+        expect(f.checkpoint).toHaveBeenCalledWith(
+            new CopilotCheckpointGetTupleQuery({
+                thread_id: initial.progress.threadId,
+                checkpoint_ns: ''
+            })
+        )
     })
     it('recovers a preflight failure with no AI message using the same welcome thread and client message', async () => {
         const f = fixture()

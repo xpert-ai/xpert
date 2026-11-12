@@ -1,3 +1,5 @@
+import { MonitorTargets } from '../monitor-targets'
+import { CommandBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ScheduleTaskStatus, TaskFrequency, type XpertResolvedViewHostContext } from '@xpert-ai/contracts'
@@ -33,6 +35,7 @@ async function fixture() {
         scheduleHttpTask: jest.fn()
     }
     const conversations = {
+        manager: { getRepository: jest.fn() },
         findAndCount: jest
             .fn()
             .mockResolvedValue([
@@ -41,14 +44,18 @@ async function fixture() {
             ]),
         findOneByOrFail: jest.fn().mockResolvedValue({ id: runId, threadId: 'thread' })
     }
+    const targets = { list: jest.fn(), findReadable: jest.fn() }
+    const commands = { execute: jest.fn() }
     const module = await Test.createTestingModule({
         providers: [
             SchedulerDetailViewProvider,
+            { provide: MonitorTargets, useValue: targets },
+            { provide: CommandBus, useValue: commands },
             { provide: XpertTaskService, useValue: tasks },
             { provide: getRepositoryToken(ChatConversation), useValue: conversations }
         ]
     }).compile()
-    return { provider: module.get(SchedulerDetailViewProvider), tasks, conversations, task }
+    return { provider: module.get(SchedulerDetailViewProvider), tasks, conversations, task, targets, commands }
 }
 describe('Scheduler Workbench detail', () => {
     it('is on demand, feature gated, and accepts task selection', async () => {
@@ -58,7 +65,22 @@ describe('Scheduler Workbench detail', () => {
             workbench: { openMode: 'on-demand' },
             dataSource: { querySchema: { supportsSelection: true } }
         })
+        const [detail, create] = provider.getViewManifests(context, 'agent.workbench')
+        expect(detail.icon).toMatchObject({ type: 'svg', value: expect.stringContaining('stroke="currentColor"') })
+        expect(create.icon).toEqual(detail.icon)
         expect(provider.getViewManifests(context, 'other')).toEqual([])
+    })
+    it('uses the same authorized chat search in the creation and edit forms', async () => {
+        const { provider, targets } = await fixture()
+        targets.list.mockResolvedValue({ items: [], nextOffset: null })
+        for (const view of ['create', 'detail']) {
+            await provider.getViewData(context, view, {
+                search: 'assembly',
+                cursor: '20',
+                parameters: { listTargets: true }
+            })
+            expect(targets.list).toHaveBeenLastCalledWith(context.hostId, 'assembly', 20)
+        }
     })
     it('loads compact details and paginated execution history after task authorization', async () => {
         const { provider, tasks, conversations } = await fixture()
@@ -76,7 +98,9 @@ describe('Scheduler Workbench detail', () => {
     it('shows the scheduler runtime default timezone when no timezone was saved', async () => {
         const { provider, tasks, task } = await fixture()
         tasks.findHttpAccessibleById.mockResolvedValue({ ...task, timeZone: undefined })
-        expect((await provider.getViewData(context, 'detail', { selectionId: id })).item.timeZone).toBe('UTC')
+        expect((await provider.getViewData(context, 'detail', { selectionId: id })).item).toMatchObject({
+            timeZone: 'UTC'
+        })
     })
 
     it('reuses authorized update, pause and resume operations', async () => {
@@ -152,6 +176,35 @@ describe('Scheduler Workbench detail', () => {
         ).rejects.toThrow()
         expect(tasks.updateHttpTask).not.toHaveBeenCalled()
     })
+    it('keeps historical runs in their original chat after retargeting and rechecks chat access', async () => {
+        const { provider, tasks, conversations, targets, task } = await fixture()
+        tasks.findHttpAccessibleById.mockResolvedValue({ ...task, monitor: { target: 'new_chat' } })
+        const run = { executionId: 'execution', conversationId: 'original-chat' }
+        const occurrence = { findOneByOrFail: jest.fn().mockResolvedValue(run) }
+        const execution = { findOneBy: jest.fn().mockResolvedValue({ threadId: 'original-thread' }) }
+        const open = () => {
+            conversations.manager.getRepository.mockReturnValueOnce(occurrence).mockReturnValueOnce(execution)
+            return provider.executeViewAction(context, 'detail', 'execution-target', {
+                input: { taskId: id, scheduledExecutionId: runId }
+            })
+        }
+        targets.findReadable.mockResolvedValueOnce({ id: 'original-chat', projectId: 'original-project' })
+        await expect(open()).resolves.toMatchObject({
+            data: {
+                executionId: 'execution',
+                conversationId: 'original-chat',
+                threadId: 'original-thread',
+                projectId: 'original-project'
+            }
+        })
+        expect(targets.findReadable).toHaveBeenCalledWith(task.xpertId, 'original-chat', 'original-thread')
+        targets.findReadable.mockResolvedValueOnce(null)
+        await expect(open()).rejects.toThrow()
+        occurrence.findOneByOrFail.mockResolvedValueOnce({ ...run, executionId: null })
+        await expect(open()).rejects.toThrow()
+        expect(execution.findOneBy).toHaveBeenCalledTimes(2)
+    })
+
     it('opens only execution conversations belonging to the selected task', async () => {
         const { provider, conversations } = await fixture()
         expect(

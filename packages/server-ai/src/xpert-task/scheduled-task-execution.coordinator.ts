@@ -1,5 +1,7 @@
 import { enqueueScheduledTaskCompletion } from './scheduled-task-notification'
-import { IXpertTask } from '@xpert-ai/contracts'
+import { IXpertTask, ScheduleTaskStatus, type ConversationScheduleMonitor } from '@xpert-ai/contracts'
+import { isEqual } from 'lodash'
+import { XpertTask } from './xpert-task.entity'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { randomUUID } from 'node:crypto'
 import { DeepPartial, Repository } from 'typeorm'
@@ -10,7 +12,10 @@ export const SCHEDULED_TASK_LEASE_MS = 5 * 60 * 1000
 export interface ScheduledTaskExecutionStore {
     find(taskId: string, occurrenceKey: string): Promise<ScheduledTaskExecution | null>
     findExpired(now: Date, limit: number): Promise<ScheduledTaskExecution[]>
-    insertIfAbsent(execution: DeepPartial<ScheduledTaskExecution>): Promise<void>
+    insertIfAbsent(
+        execution: DeepPartial<ScheduledTaskExecution>,
+        monitor?: ConversationScheduleMonitor | null
+    ): Promise<boolean>
     claimExpired(id: string, ownerId: string, now: Date, leaseExpiresAt: Date, attempt: number): Promise<boolean>
     updateOwned(
         id: string,
@@ -39,14 +44,33 @@ export class TypeOrmScheduledTaskExecutionStore implements ScheduledTaskExecutio
             .getMany()
     }
 
-    async insertIfAbsent(execution: DeepPartial<ScheduledTaskExecution>): Promise<void> {
-        await this.repository
-            .createQueryBuilder()
-            .insert()
-            .into(ScheduledTaskExecution)
-            .values(execution)
-            .orIgnore()
-            .execute()
+    async insertIfAbsent(
+        execution: DeepPartial<ScheduledTaskExecution>,
+        monitor?: ConversationScheduleMonitor | null
+    ): Promise<boolean> {
+        const insert = async (repository: Repository<ScheduledTaskExecution>) => {
+            const result = await repository
+                .createQueryBuilder()
+                .insert()
+                .into(ScheduledTaskExecution)
+                .values(execution)
+                .orIgnore()
+                .returning('id')
+                .updateEntity(false)
+                .execute()
+            return result.raw.length === 1
+        }
+        if (!monitor) return insert(this.repository)
+        // A destination edit and the admission of an occurrence must agree on the same target.
+        return this.repository.manager.transaction(async (manager) => {
+            const task = await manager.getRepository(XpertTask).findOne({
+                where: { id: execution.taskId, tenantId: execution.tenantId },
+                select: ['id', 'status', 'monitor'],
+                lock: { mode: 'pessimistic_read' }
+            })
+            if (task?.status !== ScheduleTaskStatus.SCHEDULED || !isEqual(task.monitor, monitor)) return false
+            return insert(manager.getRepository(ScheduledTaskExecution))
+        })
     }
 
     async claimExpired(id: string, ownerId: string, now: Date, leaseExpiresAt: Date, attempt: number) {
@@ -58,6 +82,7 @@ export class TypeOrmScheduledTaskExecutionStore implements ScheduledTaskExecutio
                 leaseExpiresAt,
                 attempt,
                 status: ScheduledTaskExecutionStatus.PENDING,
+                differenceKeys: null,
                 lastError: null
             })
             .where('id = :id', { id })
@@ -102,26 +127,28 @@ export class ScheduledTaskExecutionCoordinator {
         let existing = await this.store.find(task.id, occurrenceKey)
 
         if (!existing) {
-            await this.store.insertIfAbsent({
-                taskId: task.id,
-                occurrenceKey,
-                scheduledAt,
-                tenantId: task.tenantId,
-                organizationId: task.organizationId,
-                ownerId: this.#ownerId,
-                leaseExpiresAt,
-                attempt: 1,
-                status: ScheduledTaskExecutionStatus.PENDING,
-                conversationId: randomUUID(),
-                executionId: randomUUID()
-            })
+            const inserted = await this.store.insertIfAbsent(
+                {
+                    taskId: task.id,
+                    occurrenceKey,
+                    scheduledAt,
+                    tenantId: task.tenantId,
+                    organizationId: task.organizationId,
+                    ownerId: this.#ownerId,
+                    leaseExpiresAt,
+                    attempt: 1,
+                    status: ScheduledTaskExecutionStatus.PENDING,
+                    conversationId: task.monitor?.conversationId ?? randomUUID(),
+                    executionId: randomUUID()
+                },
+                task.monitor
+            )
+            if (!inserted) return null
             existing = await this.store.find(task.id, occurrenceKey)
             if (!existing) {
                 throw new Error(`Unable to create scheduled execution for ${task.id}:${occurrenceKey}`)
             }
-            if (existing.ownerId === this.#ownerId && existing.attempt === 1) {
-                return existing
-            }
+            return existing
         }
 
         if (
@@ -146,6 +173,12 @@ export class ScheduledTaskExecutionCoordinator {
 
     findExpired(now = new Date(), limit = 20): Promise<ScheduledTaskExecution[]> {
         return this.store.findExpired(now, limit)
+    }
+
+    async defer(execution: ScheduledTaskExecution) {
+        return this.store.updateOwned(execution.id, this.#ownerId, ScheduledTaskExecutionStatus.PENDING, {
+            leaseExpiresAt: new Date(Date.now() + 60_000)
+        })
     }
 
     async markRunning(execution: ScheduledTaskExecution): Promise<void> {

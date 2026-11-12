@@ -1,5 +1,6 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import type { ProjectTaskExecutionContext } from '@xpert-ai/contracts'
 import type { RuntimeCapabilityRegistry } from '../../core/runtime-capability'
 import { BaseStrategyRegistry, type StrategySource } from '../../strategy'
 import { STRATEGY_META_KEY } from '../../types'
@@ -26,6 +27,8 @@ export interface AgentRuntimeContext {
   /** Durable host invocation ID used to correlate provider receipts. */
   invocationId: string
   scope: Readonly<AgentInvocationScope>
+  /** Validated host task snapshot, separate from reply routing; does not grant workspace access. */
+  projectTask?: Readonly<ProjectTaskExecutionContext>
   /** Cooperative cancellation; abort alone does not confirm remote termination. */
   signal?: AbortSignal
   capabilities: RuntimeCapabilityRegistry

@@ -41,23 +41,45 @@ test('image builds wait for dependency checks of the exact planned source SHA', 
   }
 })
 
-test('PR builds cannot write registry caches or receive publication credentials', () => {
-  for (const name of ['build', 'build-pr']) {
+test('PR and develop builds use the read-only caller and only main can write registry caches', () => {
+  for (const name of ['build', 'build-check']) {
     const caller = jobs[name]
     assert.equal(caller.uses, './.github/workflows/build-application-images.yml')
     assert.equal(caller.with.sha, '${{ needs.prepare.outputs.sha }}')
     assert.equal(caller.with.matrix, '${{ needs.prepare.outputs.validation_matrix }}')
     assert.equal(caller.secrets, undefined)
   }
-  assert.match(jobs.build.if, /github.event_name == 'push'/)
+  const runs = (job, event, ref) =>
+    runInNewContext(
+      job.if
+        .trim()
+        .slice(3, -2)
+        .replaceAll(/needs\.validate-(api|web)/g, "needs['validate-$1']"),
+      {
+        github: { event_name: event, ref },
+        always: () => true,
+        cancelled: () => false,
+        needs: {
+          prepare: { result: 'success', outputs: { validate: 'true' } },
+          'validate-api': { result: 'success' },
+          'validate-web': { result: 'skipped' }
+        }
+      }
+    )
+  for (const [event, ref, writes] of [
+    ['pull_request', 'refs/pull/1/merge', false],
+    ['push', 'refs/heads/develop', false],
+    ['push', 'refs/heads/main', true]
+  ]) {
+    assert.equal(runs(jobs.build, event, ref), writes)
+    assert.equal(runs(jobs['build-check'], event, ref), !writes)
+  }
   assert.equal(jobs.build.permissions.packages, 'write')
   assert.equal(jobs.build.with['write-cache'], true)
-  assert.match(jobs['build-pr'].if, /github.event_name == 'pull_request'/)
-  assert.deepEqual(jobs['build-pr'].permissions, { contents: 'read' })
-  assert.equal(jobs['build-pr'].with['write-cache'], false)
+  assert.deepEqual(jobs['build-check'].permissions, { contents: 'read' })
+  assert.equal(jobs['build-check'].with['write-cache'], false)
   const login = imageBuild.steps.find((step) => step.uses === 'docker/login-action@v3')
   assert.match(login.if, /inputs.write-cache && github.event_name == 'push'/)
-  assert.match(login.if, /github.ref == 'refs\/heads\/develop'/)
   assert.match(login.if, /github.ref == 'refs\/heads\/main'/)
   assert.equal(login.with.registry, 'ghcr.io')
   assert.equal(login.with.password, '${{ secrets.GITHUB_TOKEN }}')
@@ -74,7 +96,7 @@ test('registry caches are isolated by repository, image, architecture and truste
   }
   assert.match(build.with['cache-from'], /linux-amd64-develop/)
   assert.match(build.with['cache-from'], /linux-amd64-main/)
-  assert.match(build.with['cache-to'], /github.event_name == 'push'/)
+  assert.match(build.with['cache-to'], /github.ref == 'refs\/heads\/main'/)
   assert.match(build.with['cache-to'], /github.ref_name/)
   assert.match(build.with['cache-to'], /mode=max/)
 })
@@ -141,6 +163,7 @@ test('API failure diagnostics export only sanitized files and cannot authorize p
 test('publication tolerates skipped optional validators but rejects failed or cancelled builds', () => {
   const evaluate = ({
     event = 'push',
+    ref = 'refs/heads/main',
     prepare = 'success',
     build = 'success',
     publish = 'true',
@@ -149,7 +172,7 @@ test('publication tolerates skipped optional validators but rejects failed or ca
     runInNewContext(jobs.publish.if, {
       always: () => true,
       cancelled: () => cancelled,
-      github: { event_name: event },
+      github: { event_name: event, ref },
       needs: { prepare: { result: prepare, outputs: { publish } }, build: { result: build } }
     })
   // An explicit status function prevents GitHub's implicit success() from
@@ -158,6 +181,7 @@ test('publication tolerates skipped optional validators but rejects failed or ca
   for (const build of ['failure', 'cancelled', 'skipped']) assert.equal(evaluate({ build }), false)
   assert.equal(evaluate({ prepare: 'failure' }), false)
   assert.equal(evaluate({ event: 'pull_request' }), false)
+  assert.equal(evaluate({ ref: 'refs/heads/develop' }), false)
   assert.equal(evaluate({ publish: 'false' }), false)
   assert.equal(evaluate({ cancelled: true }), false)
 })

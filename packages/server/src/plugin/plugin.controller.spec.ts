@@ -111,7 +111,7 @@ describe('PluginController', () => {
 		findVisibleInOrganization: jest.fn(),
 		getDefaultTenantId: jest.fn(),
 		getConfig: jest.fn(),
-		upsert: jest.fn()
+		saveConfiguration: jest.fn()
 	} as unknown as PluginInstanceService
 
 	const pluginManagementService = {
@@ -593,7 +593,8 @@ describe('PluginController', () => {
 			organizationId: 'org-1',
 			name: '@xpert-ai/plugin-config-demo',
 			packageName: '@xpert-ai/plugin-config-demo',
-			source: 'env',
+			source: 'code',
+			sourceConfig: { workspacePath: '/prepared/builtin' },
 			level: PLUGIN_LEVEL.ORGANIZATION,
 			instance: {
 				meta: {
@@ -639,9 +640,11 @@ describe('PluginController', () => {
 			plugin.instance.config
 		)
 		expect(inspectConfig).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+		expect(pluginInstanceService.saveConfiguration).toHaveBeenCalledWith(
 			expect.objectContaining({
 				pluginName: plugin.name,
+				source: plugin.source,
+				sourceConfig: plugin.sourceConfig,
 				config: {
 					enabled: false
 				},
@@ -665,7 +668,7 @@ describe('PluginController', () => {
 			status: 400,
 			message: 'Invalid plugin configuration'
 		})
-		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
+		expect(pluginInstanceService.saveConfiguration).not.toHaveBeenCalled()
 	})
 
 	it('rejects system plugin configuration from non-default tenants', async () => {
@@ -704,7 +707,7 @@ describe('PluginController', () => {
 			`Plugin "${plugin.name}" cannot be configured from the current scope`
 		)
 		expect((pluginInstanceService as any).findOneByPluginName).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
+		expect(pluginInstanceService.saveConfiguration).not.toHaveBeenCalled()
 	})
 
 	it('includes configuration warning state in plugin descriptors', async () => {

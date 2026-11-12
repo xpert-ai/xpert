@@ -26,6 +26,9 @@ function prepare(destination, sources = false, sourceRoot = root) {
   copy(path.join(sourceRoot, '.deploy/desktop/package.json'), path.join(destination, 'package.json'))
   for (const file of ['pnpm-workspace.yaml', '.npmrc', 'tsconfig.base.json'])
     copy(path.join(sourceRoot, file), path.join(destination, file))
+  fs.cpSync(path.join(sourceRoot, 'patches'), path.join(destination, 'patches'), { recursive: true })
+  // Desktop deliberately excludes backend packages covered by the shared patch catalog.
+  fs.appendFileSync(path.join(destination, 'pnpm-workspace.yaml'), '\nallowUnusedPatches: true\n')
   for (const dir of sources ? [...packages, 'libs/template-installation'] : packages) {
     if (sources) {
       fs.cpSync(path.join(sourceRoot, dir), path.join(destination, dir), {

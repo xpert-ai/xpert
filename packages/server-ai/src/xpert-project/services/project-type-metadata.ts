@@ -1,3 +1,4 @@
+import { parseProjectConfigurationDefinition } from '../configuration/project-configuration.schema'
 import type { I18nObject, IconDefinition, XpertProjectTypeDefinition } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 
@@ -94,9 +95,10 @@ export function projectApplicationDefinitions(value: unknown): ProjectApplicatio
                 throw new Error('Invalid Project type definition')
             }
             const icon = projectTypeIcon('icon' in type ? type.icon : undefined)
+            const configuration = parseProjectConfigurationDefinition('configuration' in type ? type.configuration : undefined)
             const taskConcurrency = projectTaskConcurrency('taskConcurrency' in type ? type.taskConcurrency : undefined)
             if (type.binding.kind === 'project')
-                types.push({ key: type.key, title: type.title, icon, taskConcurrency, binding: { kind: 'project' } })
+                types.push({ key: type.key, title: type.title, icon, taskConcurrency, configuration, binding: { kind: 'project' } })
             else if (
                 type.binding.kind === 'entity' &&
                 'providerKey' in type.binding &&
@@ -108,6 +110,7 @@ export function projectApplicationDefinitions(value: unknown): ProjectApplicatio
                     title: type.title,
                     icon,
                     taskConcurrency,
+                    configuration,
                     binding: { kind: 'entity', providerKey: type.binding.providerKey }
                 })
             } else throw new Error('Invalid Project type binding')

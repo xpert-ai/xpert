@@ -61,6 +61,7 @@
     "user_notification",
     "xpert_agent_execution",
     "xpert_project",
+    "xpert_project_configuration",
     "xpert_project_pipeline_attention",
     "xpert_project_pipeline_binding",
     "xpert_project_pipeline_decision",
@@ -95,6 +96,7 @@
     "core/database/platform-baseline/migrations/checks/20261020000500-validate-adoption.sql"
   ],
   "checks": [
+    "ai/xpert-task/migrations/checks/20261112000100-conversation-monitor-differences.sql",
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",
     "ai/rag-vstore/migrations/checks/20261020120000-vector-store-tables.sql",
@@ -110,10 +112,12 @@
     "ai/plugin-resource/app-platform/storage/migrations/checks/20261031120000-approximate-storage.sql",
     "ai/compute-resources/migrations/checks/20261027000100-compute-resource-operations.sql",
     "ai/user-notification/migrations/checks/20261031010000-user-notifications.sql",
+    "ai/xpert-project/migrations/checks/20261107000000-project-configuration.sql",
     "ai/artifacts/use-grants/migrations/checks/20261107000100-artifact-use-grants.sql",
     "ai/artifacts/use-grants/migrations/checks/20261107000200-artifact-group-references.sql",
     "ai/artifacts/use-grants/migrations/checks/20261108000100-resource-analysis.sql",
     "ai/artifacts/use-grants/migrations/checks/20261108000200-artifact-grant-uuid-extension.sql",
+    "ai/xpert-project/migrations/checks/20261110000000-task-review-subtasks.sql",
     "core/password-reset/migrations/checks/20261110000200-bound-reset-tickets.sql",
     "ai/xpert-project/migrations/checks/20261110000300-project-purge-receipts.sql"
   ]

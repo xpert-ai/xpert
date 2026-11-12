@@ -1,0 +1,24 @@
+{
+  "name": "coding-project",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/coding-project/src", "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup", "dependsOn": ["^build"],
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/coding-project", "main": "packages/plugins/coding-project/src/index.ts",
+        "tsConfig": "packages/plugins/coding-project/tsconfig.lib.json",
+        "project": "packages/plugins/coding-project/package.json", "compiler": "swc", "format": ["cjs", "esm"],
+        "assets": [
+          { "glob": "README.md", "input": "packages/plugins/coding-project", "output": "." },
+          { "glob": "**/*", "input": "packages/plugins/coding-project/skills", "output": "skills" },
+          { "glob": "**/*", "input": "packages/plugins/coding-project/docs", "output": "docs" },
+          { "glob": "plugin.json", "input": "packages/plugins/coding-project/.xpertai-plugin", "output": ".xpertai-plugin" }
+        ],
+        "external": ["@nestjs/common", "@nestjs/core", "@nestjs/typeorm", "typeorm", "@xpert-ai/contracts", "@xpert-ai/plugin-sdk", "@langchain/core/tools", "zod/v3", "i18next", "zod-to-json-schema"]
+      }
+    },
+    "test": { "executor": "@nx/jest:jest", "options": { "jestConfig": "packages/plugins/coding-project/jest.config.cjs" } }
+  }
+}

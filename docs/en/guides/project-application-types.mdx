@@ -66,3 +66,50 @@ For local development, first run `corepack pnpm exec nx build plugin-sdk` in the
 ## Verification
 
 Coverage includes classification immutability, cross-application and scope conflicts, provider provenance, member and Assistant access, rejection before cleanup, Case creation retries, complete business routes, server-side filtering, and ChatKit's entity creation entry. SQL tests use temporary schemas and rollback to verify idempotent backfill, atomic conflict handling, and preservation of original data. Factory's plugin lifecycle is checked with `plugin-dev-harness`; its infrastructure mocks do not replace deployment acceptance checks.
+
+## Type configuration
+
+Each Project Type can declare its own non-secret JSON Schema in `configuration.schema`. The host validates values and applies schema defaults. Custom fields are interpreted by the owning application; declaring a field does not execute a command or provision an environment. Credentials belong in managed connections, not Project configuration.
+
+For example, add this configuration to a Project Type declaration:
+
+```json
+{
+  "configuration": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskExecutionMaxDurationSeconds": {
+          "type": "integer", "minimum": 60, "maximum": 86400, "default": 7200
+        },
+        "testCommand": { "type": "string", "default": "npm test" }
+      }
+    }
+  }
+}
+```
+
+Open **Project → Configuration → Type configuration** in Cloud. The same configuration View is available in Assistant Workbench, including Bosi Desktop and standalone ChatKit hosts that implement the remote-component protocol. The Assistant entry requires a current Project and `project.tasks`. Type fields use one shared editor; arrays, free-form objects and composed schemas can use JSON editing. All saves still pass server-side validation and permission checks.
+
+`GET /api/xpert-project/:id/type-configuration` returns the schema, saved overrides (`values`), values with defaults applied (`effectiveValues`), configuration revision, edit permission and effective execution duration. Project owners/managers save with `PUT` and `{ "revision": 3, "values": { "taskExecutionMaxDurationSeconds": 5400 } }`. A stale revision returns 409; invalid values return 400. `values` replaces the saved overrides, so API callers must retain overrides they want to keep. Sending `{}` restores schema defaults when those defaults satisfy the schema; required fields without defaults must still be supplied. Ordinary Project saves cannot overwrite this separate configuration record.
+
+## Per-attempt duration
+
+`taskExecutionMaxDurationSeconds` is the host-reserved duration setting and accepts integers from 60 to 86400. The built-in Coding Projects plugin (`@xpert-ai/plugin-coding-project`) declares `applicationKey=@xpert-ai/plugin-coding-project:coding`, `projectTypeKey=coding`, and a default of 7200 seconds. It does not register `platform/coding` as a compatibility alias. The owning plugin must be loaded to resolve its type and schema; existing Projects are not reclassified from names or Assistant connections.
+
+The actual duration is the smaller of the Project's effective value and the tenant ceiling. Without a Project value, the tenant default applies. New tenant policies default to `defaultDurationSeconds=3600` and `limits.maxDurationSeconds=7200`. Existing policies with an explicit ceiling and no separate default retain that ceiling as their default; upgrading does not raise an existing one-hour ceiling.
+
+For a Coding Project whose schema defaults to two hours:
+
+| Saved Project override | Tenant ceiling | Effective duration |
+| --- | --- | --- |
+| None | 7200 seconds | 7200 seconds |
+| 5400 seconds | 7200 seconds | 5400 seconds |
+| None | 3600 seconds | 3600 seconds |
+
+The configuration overview shows the effective duration and tenant ceiling. The limit applies to one execution attempt, not the sum of a task's retries, a Pipeline's token budget, or an idle-retention lease. Runtime integrations must explicitly consume the configuration; declaring a Project Type does not make every external executor enforce it.
+
+The Pro Computer runner consumes the shared configuration when starting a Project task attempt, and pins the duration, absolute deadline, Project Type and configuration revision in its grant/receipt. Startup consumes the same deadline. Later configuration changes do not extend a running attempt. Computer provisioning, CLI process control and execution-review availability remain responsibilities of the installed runtime integration.
+
+Apply the managed `packages/server-ai/src/xpert-project/migrations/20261107000000-project-configuration.sql` migration with the matching host before using configuration persistence. Release the shared configuration View and compatible hosts together. Schema/API tests and Preview Host browser checks cover configuration behavior; they do not establish deployed CLI or plugin-delivery acceptance. See the [configuration plugin implementation and validation guide](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/xpert-project/plugins/project-configuration/README.md).

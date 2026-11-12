@@ -1,6 +1,7 @@
 import {
     IXpertProjectTask,
     ProjectTaskDecision,
+    ProjectTaskReviewSubject,
     IXpertProjectTaskStep,
     TXpertProjectTaskPriority,
     TXpertProjectTaskStatus
@@ -16,6 +17,8 @@ import { XpertProjectBaseEntity } from './project.base'
 @Entity('xpert_project_task')
 @Index(['projectId', 'providerKey', 'sourceKey'], { unique: true })
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
+    /** Host-owned candidate identity; a review retry cannot switch the implementation. */
+    @Column({ type: 'jsonb', nullable: true }) reviewSubject?: ProjectTaskReviewSubject | null
     @Column({ type: 'varchar', default: 'ordinary' }) controlKind: 'ordinary' | 'provider' | 'pipeline'
     @Column({ type: 'uuid', nullable: true }) pipelineInstanceId: string | null
     @Column({ type: 'varchar', nullable: true }) pipelineDisposition:

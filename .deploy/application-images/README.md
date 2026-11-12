@@ -1,29 +1,25 @@
 # Application Docker image releases
 
 `.github/workflows/docker-publish.yml` validates affected images on pull requests
-and pushes to `develop` / `main`. Changesets authorize publication, while relevant
+and pushes to `develop` / `main`. On pushes to `main`, Changesets authorize publication. Relevant
 source changes trigger validation even without a release note. Arbitrary Git/npm
 tags do not run this workflow.
 
 The workflow checks dependencies, builds each selected image once, checks API/Web
-startup and health, and saves the verified image. Only an authorized push can load
-that artifact and publish it, after every selected build succeeds. API and Web
+startup and health, and saves verified images selected for publication on `main`.
+Publication loads those artifacts after every selected build succeeds. API and Web
 dependency workflows are reusable prerequisites, rather than parallel independent
 image builds. Existing NsJail source/sandbox validation remains separate; its image
 is built here without claiming to exercise privileged sandbox execution.
 
-The shared `build-application-images.yml` workflow keeps the same build and health
-checks for both event types. Trusted `develop` / `main` pushes can read and write
-GHCR BuildKit caches under `ghcr.io/<owner>/<repository>-buildcache`, with separate
-tags for each image, architecture and branch. Both branch caches are imported;
-only the current branch's tag is exported with `mode=max` to retain intermediate
-stages. Cache tags are separate from application release tags. The first run
-populates the cache and incurs an additional export cost.
+Pull requests and pushes to `develop` run the shared image build with read-only
+permissions. The runner loads each image locally for its health check and skips
+registry login, cache export and publication artifact upload.
 
-PR callers have only `contents: read`, disable registry caches and do not log in.
-They cannot write caches, including for same-repository PRs. Only the trusted
-push caller grants `packages: write`; application publication credentials and
-the production environment remain confined to the publication job.
+On pushes to `main`, BuildKit reads and writes the per-image intermediate-layer
+cache at `ghcr.io/<owner>/<repository>-buildcache:<image>-linux-amd64-main`.
+It also imports any existing `develop` cache.
+The publication job uses the production environment for registry credentials.
 
 ## Select images explicitly
 
@@ -73,9 +69,9 @@ before it is saved for publication.
 
 ## Candidate and stable versions
 
-- A new application note, or a relevant fix with a pending note, on `develop` produces
-  `<next-version>-candidate.develop.<sha12>`, `sha-<full-commit>` and
-  `develop-candidate`. The highest pending bump determines the next version.
+- A new application note, or a relevant fix with a pending note, on `develop` builds
+  `<next-version>-candidate.develop.<sha12>` locally for validation. The highest
+  pending bump determines the next version. Registry tags are written only on `main`.
 - New notes and pending-note repairs on `main` produce `candidate.main` versions and the
   `main-candidate` alias. They do not change `main` or `latest`.
 - Land the notes on `main` first. Then merge the Changesets version PR, or use
@@ -160,7 +156,7 @@ scopes both version validation and shared-package coverage before constructing t
 matrix; unrelated image release failures do not block that wrapper. The default
 checks API, Web and NsJail.
 
-Each selected image retains the existing `linux/amd64` platform and publishes to
+Selected images build for `linux/amd64`. Approved `main` releases publish to
 GHCR, Docker Hub (`metadc`) and Aliyun ACR (`metad`). API/Web use the `candidate` or
 `production` Docker stage; NsJail uses its default final stage. The registry names,
 credentials and runtime image behavior are unchanged.

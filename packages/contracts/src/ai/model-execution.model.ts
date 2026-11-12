@@ -109,6 +109,8 @@ export type ModelExecutionPolicy = {
   /** Explicit, limited Chat Completions translations; never advertised as native support. */
   chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
   limits: ModelExecutionLimits
+  /** Default for new executions without a host override; limits.maxDurationSeconds remains the ceiling. */
+  defaultDurationSeconds?: number
   /** Background Coding and Computer Codex launches; evidence-only reviews remain restricted. */
   cliPermissions?: { defaultMode: CliPermissionMode; overrides: Record<string, CliPermissionMode> }
   /** Only installed, registered profiles qualify; IDs alone never authorize execution. */

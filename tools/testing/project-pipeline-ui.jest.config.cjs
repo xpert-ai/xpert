@@ -10,6 +10,7 @@ module.exports = {
     '**/pipeline/*.spec.ts',
     '**/pipeline/*.spec.tsx',
     '**/execution-summary.spec.ts',
+    '**/error-notice.spec.tsx',
     '**/assignee.spec.tsx',
     '**/gantt.spec.tsx',
     '**/view-state.spec.ts'

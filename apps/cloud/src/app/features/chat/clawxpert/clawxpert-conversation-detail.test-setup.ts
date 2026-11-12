@@ -1,4 +1,4 @@
-import { signal } from '@angular/core'
+import { signal, type Provider } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -237,7 +237,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   return { ZardIconComponent }
 })
 
-export function configureConversationDetailTests() {
+export function configureConversationDetailTests(providers: Provider[] = []) {
   let facade: {
     definition: { titleKey: string; defaultTitle: string }
     identity: ReturnType<typeof signal<string | null>>
@@ -494,7 +494,8 @@ export function configureConversationDetailTests() {
         {
           provide: ClawXpertWorkbenchViewUrlState,
           useValue: workbenchViewUrlState
-        }
+        },
+        ...providers
       ]
     }).compileComponents()
 

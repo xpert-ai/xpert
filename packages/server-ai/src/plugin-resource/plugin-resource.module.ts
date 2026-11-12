@@ -11,7 +11,7 @@ import { PlatformMaintenanceActorService } from './app-platform/platform-mainten
 import { PlatformModelsService } from './app-platform/platform-models.service'
 import { PlatformProvisionerService } from './app-platform/platform-provisioner.service'
 import { ApplicationAccessService } from './application/application-access.service'
-import { PrepareTemplateExecutionHandler } from './template-installation/prepare-template-execution.command'
+import { PrepareTemplateExecutionHandler } from './commands/handlers/prepare-template-execution.handler'
 import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
 import { ReconcileTemplateSkillReferencesHandler } from './template-installation/reconcile-template-skills.handler'
 import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
@@ -74,6 +74,7 @@ import { McpPublicationModule } from '../mcp-publication'
 import { McpPublication } from '../mcp-publication/entities/mcp-publication.entity'
 import { McpPublicationAccess } from '../mcp-publication/entities/mcp-publication-access.entity'
 import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
+import { PreparePluginTestAccessHandler } from './commands/handlers/prepare-plugin-test-access.handler'
 
 @Module({
     imports: [
@@ -147,6 +148,7 @@ import { PluginMcpServerService } from './mcp/plugin-mcp-server.service'
         PluginApplicationSuiteService,
         PluginResourceInstallerService,
         PluginMcpServerService,
+        PreparePluginTestAccessHandler,
         PluginApplicationService,
         PluginHooksMiddleware,
         PluginTemplateInstallHandler,

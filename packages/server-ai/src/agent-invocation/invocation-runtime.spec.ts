@@ -1,5 +1,7 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { DataSource } from 'typeorm'
+import { ExecutionTaskControl, TaskControlStore } from '@xpert-ai/server-core'
 import {
     AgentInvocationRequest,
     AgentInvocationScope,
@@ -50,6 +52,88 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    function controlledFixture() {
+        const f = fixture()
+        const parent = Object.assign(new ExecutionTaskControl(), { id: 'task', tenantId: f.scope.tenantId,
+            organizationId: f.scope.organizationId, attempts: [f.scope.parentExecutionId],
+            currentExecutionId: f.scope.parentExecutionId })
+        // No database is opened: persistence is stubbed while the Runtime resolves and enforces identity.
+        const tasks = new TaskControlStore(new DataSource({ type: 'postgres' }))
+        jest.spyOn(tasks, 'execution').mockResolvedValue(parent)
+        jest.spyOn(tasks, 'register').mockResolvedValue(Object.assign(new ExecutionTaskControl(), { id: 'child' }))
+        jest.spyOn(tasks, 'claim').mockResolvedValue('claim')
+        jest.spyOn(tasks, 'receipt').mockResolvedValue(undefined)
+        const runtime = new AgentInvocationRuntime(f.store, f.registry, undefined, tasks)
+        return { ...f, parent, tasks, runtime }
+    }
+
+    it('reuses calls across attempts but admits new calls only from the current execution', async () => {
+        const f = controlledFixture()
+        const first = await f.runtime.scoped(f.access).start(f.request)
+        f.parent.attempts.push('resumed')
+        f.parent.currentExecutionId = 'resumed'
+        const current = { ...f.scope, parentExecutionId: 'resumed' }
+        const resumed = f.runtime.scoped({ ...f.access, scope: current })
+        expect((await resumed.start(f.request)).id).toBe(first.id)
+        expect(f.start).toHaveBeenCalledTimes(1)
+        expect((await resumed.start({ ...f.request, callId: 'next-call' })).scope).toEqual(f.scope)
+        expect(current.parentExecutionId).toBe('resumed')
+        await expect(f.runtime.scoped(f.access).start({ ...f.request, callId: 'stale-new-call' })).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(2)
+    })
+
+    it.each(['tenant', 'organization', 'missing-attempt'] as const)(
+        'rejects an invalid task identity before reserving or launching a call (%s)', async (invalid) => {
+            const f = controlledFixture()
+            if (invalid === 'tenant') f.parent.tenantId = 'other'
+            if (invalid === 'organization') f.parent.organizationId = 'other'
+            if (invalid === 'missing-attempt') f.parent.attempts = []
+            await expect(f.runtime.scoped(f.access).start(f.request)).rejects.toThrow()
+            expect(f.store.rows.size).toBe(0)
+            expect(f.tasks.register).not.toHaveBeenCalled()
+            expect(f.start).not.toHaveBeenCalled()
+        }
+    )
+
+    it('keeps an owned slow startup live across inspections, then clears its fence', async () => {
+        jest.useFakeTimers()
+        try {
+            const f = fixture()
+            f.start.mockImplementation(async (_request, context) => {
+                await jest.advanceTimersByTimeAsync(270_000)
+                const other = new AgentInvocationRuntime(f.store, f.registry).scoped(f.access)
+                expect((await other.inspect(context.invocationId)).status).toBe('running')
+                expect(f.strategy.inspect).not.toHaveBeenCalled()
+                return { status: 'running', handle: { sessionId: 'ready', runId: 'run' } }
+            })
+            const started = await f.api.start(f.request)
+            expect(started.startPendingUntil).toBeUndefined()
+            expect(started.startPendingId).toBeUndefined()
+            expect(jest.getTimerCount()).toBe(0)
+            await f.api.inspect(started.id)
+            expect(f.strategy.inspect).toHaveBeenCalledTimes(1)
+        } finally { jest.useRealTimers() }
+    })
+
+    it.each(['owner', 'cancel', 'expired'] as const)('never revives a startup after %s changes', async (change) => {
+        jest.useFakeTimers()
+        try {
+            const f = fixture()
+            f.start.mockImplementation(async (_request, context) => {
+                const row = f.store.rows.get(context.invocationId)
+                if (change === 'owner') row.invocation.startPendingId = 'new-owner'
+                if (change === 'cancel') row.invocation.control = { intent: 'terminated', requestedAt: new Date().toISOString() }
+                if (change === 'expired') row.invocation.startPendingUntil = new Date(0).toISOString()
+                const until = row.invocation.startPendingUntil
+                await jest.advanceTimersByTimeAsync(180_000)
+                expect(f.store.rows.get(context.invocationId).invocation.startPendingUntil).toBe(until)
+                return { status: 'running' }
+            })
+            await f.api.start(f.request)
+            expect(jest.getTimerCount()).toBe(0)
+        } finally { jest.useRealTimers() }
+    })
+
     it('fences intermediate launch receipts across runtime instances and inspects immediately after start returns', async () => {
         const f = fixture()
         f.start.mockImplementation(async (_request, context) => {
@@ -150,6 +234,36 @@ describe('AgentInvocationRuntime', () => {
         await expect(f.api.start({ ...f.request, dispatch: { ...dispatch, requestId: 'invalid' } })).rejects.toThrow()
         expect(f.store.rows.size).toBe(0)
         expect(f.start).not.toHaveBeenCalled()
+    })
+
+    it.each(['implementation', 'review'] as const)('passes detached host task context to %s adapters without reply routing', async (type) => {
+        const f = fixture()
+        const id = '00000000-0000-4000-8000-000000000004'
+        const digest = 'sha256:' + 'a'.repeat(64)
+        const projectTask = {
+            projectId: id,
+            projectTaskId: id,
+            taskExecutionId: id,
+            specification: { digest, specification: { version: 1 as const, title: 'Check totals', requirements: ['Totals match'], steps: [] } },
+            purpose: type === 'implementation'
+                ? { type: 'implementation' as const }
+                : { type: 'review' as const, implementationExecutionId: dispatch.requestId, implementationInvocationId: id,
+                    specificationDigest: digest, evidence: [{ type: 'invocation_result' as const, invocationId: id, revision: 1 }] }
+        }
+        f.start.mockImplementation(async (request, context) => {
+            expect(context.projectTask).toEqual(projectTask)
+            expect(request).not.toHaveProperty('dispatch')
+            expect(context).not.toHaveProperty('dispatch')
+            expect(context).not.toHaveProperty('replyTo')
+            // A plugin can mutate its detached copy without rewriting the persisted task snapshot.
+            context.projectTask.specification.specification.title = 'Plugin-local change'
+            return { status: 'running', handle: { sessionId: 'session', runId: 'run' } }
+        })
+        const started = await f.api.start({ ...f.request, dispatch: { ...dispatch, projectTask } })
+        expect(started.request.dispatch.projectTask).toEqual(projectTask)
+        expect(f.store.rows.get(started.id).invocation.request.dispatch.projectTask).toEqual(projectTask)
+        await f.api.inspect(started.id)
+        expect(f.strategy.inspect).toHaveBeenCalledWith(started.handle, expect.objectContaining({ projectTask }))
     })
 
     it('persists reported progress without converting it to a successful result or business completion', async () => {

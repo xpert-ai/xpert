@@ -28,11 +28,12 @@ class MemoryScheduledTaskExecutionStore implements ScheduledTaskExecutionStore {
 
     async insertIfAbsent(execution: DeepPartial<ScheduledTaskExecution>) {
         const key = `${execution.taskId}:${execution.occurrenceKey}`
-        if (this.records.has(key)) return
+        if (this.records.has(key)) return false
         this.records.set(key, {
             ...execution,
             id: `execution-${this.records.size + 1}`
         } as ScheduledTaskExecution)
+        return true
     }
 
     async claimExpired(id: string, ownerId: string, _now: Date, leaseExpiresAt: Date, attempt: number) {
@@ -80,6 +81,18 @@ describe('ScheduledTaskExecutionCoordinator', () => {
         })
         expect(await coordinator.claim(task, 'offline', scheduledAt)).toBeNull()
     })
+    it('admits an overlapping occurrence once even on the same API instance', async () => {
+        const coordinator = new ScheduledTaskExecutionCoordinator(
+            new MemoryScheduledTaskExecutionStore(),
+            'shared-owner'
+        )
+        const results = await Promise.all([
+            coordinator.claim(task, 'same', scheduledAt),
+            coordinator.claim(task, 'same', scheduledAt)
+        ])
+        expect(results.filter(Boolean)).toHaveLength(1)
+    })
+
     it('allows one owner and rejects a concurrent second claim', async () => {
         const store = new MemoryScheduledTaskExecutionStore()
         const first = new ScheduledTaskExecutionCoordinator(store, 'api-1')

@@ -112,6 +112,8 @@ test('manifest preparation does not leak API, Desktop, plugin or source files', 
   prepareManifestWorkspace(temporary)
   assert.equal(fs.readFileSync(path.join(temporary, 'package.json'), 'utf8'), read('.deploy/webapp/package.json'))
   assert.equal(fs.readFileSync(path.join(temporary, 'pnpm-lock.yaml'), 'utf8'), read('.deploy/webapp/pnpm-lock.yaml'))
+  for (const patch of fs.readdirSync(path.join(root, 'patches')))
+    assert.equal(fs.readFileSync(path.join(temporary, 'patches', patch), 'utf8'), read(`patches/${patch}`))
   for (const dir of packages) assert.deepEqual(fs.readdirSync(path.join(temporary, dir)), ['package.json'])
   for (const dir of ['apps/api', 'apps/desktop', 'packages/server-ai', 'packages/plugin-sdk', 'packages/plugins']) {
     assert.equal(fs.existsSync(path.join(temporary, dir)), false, dir)

@@ -13,14 +13,15 @@ import { XpertTypeEnum } from '@xpert-ai/contracts'
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { RuntimeResourceService } from '../runtime-resource.service'
 import { loadRuntimeTemplate } from './runtime-template'
-import { PrepareTemplateExecutionCommand } from '../../plugin-resource/template-installation/prepare-template-execution.command'
+import { PrepareTemplateExecutionCommand } from '../../plugin-resource/commands/prepare-template-execution.command'
+import type { PreparedTemplateExecution } from '../../plugin-resource/template-installation/template-execution.types'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../../xpert/queries/get-xpert-workflow.query'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 
 export class ResolveTemplateExecutionCommand extends Command<{
     owner: IXpert
-    prepared: import('../../plugin-resource/template-installation/prepare-template-execution.command').PreparedTemplateExecution
+    prepared: PreparedTemplateExecution
 }> {
     constructor(
         readonly assistantId: string,

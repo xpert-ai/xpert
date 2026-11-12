@@ -20,6 +20,7 @@
     "src/ai/project-pipeline/contribution.schema.ts",
     "src/ai/project-pipeline/catalog.validation.ts",
     "src/ai/project-pipeline/operation.schema.ts",
+    "src/ai/project-pipeline/plugin-deployment.schema.ts",
     "src/ai/project-pipeline/commands.schema.ts",
     "src/ai/project-task-runtime.model.ts",
     "src/ai/project-pipeline/statistics.ts",

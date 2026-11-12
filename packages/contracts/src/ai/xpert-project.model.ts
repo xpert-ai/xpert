@@ -1,6 +1,7 @@
 import type { AgentInvocationStatus } from './agent-runtime.model'
 import type {
   ProjectTaskDecision,
+  ProjectTaskReviewSubject,
   ProjectTaskExecutionPurpose,
   ProjectTaskSpecificationSnapshot
 } from './project-task-runtime.model'
@@ -240,6 +241,7 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  reviewSubject?: ProjectTaskReviewSubject | null
   controlKind?: 'ordinary' | 'provider' | 'pipeline'
   pipelineInstanceId?: string | null
   pipelineDisposition?: 'active' | 'removed' | 'excluded' | 'superseded' | null
@@ -293,6 +295,7 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  reviewVerdict?: 'pass' | 'changes_required' | 'indeterminate' | null
   /** Runtime-owned attempt. Distinct from a native Agent execution ID. */
   invocationId?: string | null
   invocationStatus?: AgentInvocationStatus | null

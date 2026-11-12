@@ -2,7 +2,7 @@ import { restoreTaskView, type TaskViewState } from './view-state'
 import { setViewVisible } from './view-visibility'
 import { viewContextEventSchema } from '../../../../view-extension/remote-context'
 import { z } from 'zod'
-import { PROJECT_TASK_ICON_NAMES } from '@xpert-ai/contracts'
+import { PROJECT_TASK_ICON_NAMES, projectTaskExecutionPurposeSchema } from '@xpert-ai/contracts'
 import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 
 const envelope = z
@@ -189,6 +189,8 @@ export const graphSchema = z.object({
             taskId: z.string(),
             executorName: z.string().nullish(),
             attempt: z.number(),
+            purpose: projectTaskExecutionPurposeSchema.nullish(),
+            reviewVerdict: z.enum(['pass', 'changes_required', 'indeterminate']).nullish(),
             status: z.string(),
             invocationId: z.string().nullish(),
             invocationStatus: z

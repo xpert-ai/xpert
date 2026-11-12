@@ -2,6 +2,7 @@ name: Build Bosi Desktop apps
 
 on:
   pull_request:
+    branches-ignore: [develop]
     paths:
       - '.changeset/**'
       - '.deploy/desktop/**'

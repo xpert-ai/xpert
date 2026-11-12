@@ -14,26 +14,50 @@ import {
     AgentMiddlewareStrategy,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
-    PromiseOrValue,
     emitResourceCard
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
+import { nextMonitorCheck } from '../conversation-monitor'
+import { MonitorTargets } from '../monitor-targets'
+import { CronTime } from 'cron'
 import { z } from 'zod/v3'
 import { ToolParameterValidationError } from '../../shared/tools/errors'
 import { QueryXpertTaskCommand, CreateXpertTaskCommand, DeleteXpertTaskCommand } from '../commands'
+import { differenceReport, ScheduleDifferenceReports } from '../schedule-difference-reports'
 import { ScheduleTaskIcon, SchedulerToolEnum } from './types'
 
 const SCHEDULER_MIDDLEWARE_PROVIDER = 'scheduler'
 
-const cronRegex =
-    /(@(annually|yearly|monthly|weekly|daily|hourly|reboot))|(@every (\d+(ns|us|µs|ms|s|m|h))+)|((((\d+,)+\d+|(\d+(\/|-)\d+)|\d+|\*) ?){5,7})/
-
 const createSchedulerSchema = z.object({
-    name: z.string().describe('scheduler name'),
-    schedule: z.string().describe('cron expression'),
+    name: z.string().trim().min(1).max(100).describe('scheduler name'),
+    schedule: z.string().optional().describe('Cron for an independent scheduled run'),
+    mode: z
+        .enum(['independent', 'current_conversation', 'existing_conversation', 'new_chat'])
+        .optional()
+        .describe(
+            'Monitor this thread, a selected existing conversation, or a new chat per run. Difference checks default to every 30 minutes.'
+        ),
+    intervalMinutes: z
+        .number()
+        .int()
+        .min(1)
+        .max(525600)
+        .optional()
+        .describe('Elapsed minutes between difference checks; default 30'),
+    conversationId: z
+        .string()
+        .uuid()
+        .optional()
+        .describe('Selected conversation from list_schedule_targets for existing_conversation'),
+    threadId: z
+        .string()
+        .uuid()
+        .optional()
+        .describe('Selected thread from list_schedule_targets for existing_conversation'),
+    timeZone: z.string().optional().describe('IANA time zone'),
     xpertId: z.string().optional().describe('xpert id used when runtime context does not provide one'),
     agentKey: z.string().optional().describe('agent key'),
-    prompt: z.string().describe('scheduler prompt')
+    prompt: z.string().trim().min(1).max(16000).describe('scheduler prompt')
 })
 
 const listSchedulerSchema = z.object({
@@ -41,7 +65,8 @@ const listSchedulerSchema = z.object({
 })
 
 const deleteSchedulerSchema = z.object({
-    name: z.string().optional().describe('scheduler name')
+    name: z.string().trim().min(1).describe('Exact scheduler name'),
+    taskId: z.string().uuid().optional().describe('Task ID when names coincide')
 })
 
 type ScheduleMiddlewareConfig = Record<string, never>
@@ -71,15 +96,50 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         }
     }
 
-    constructor(private readonly commandBus: CommandBus) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        private readonly reports: ScheduleDifferenceReports,
+        private readonly targets: MonitorTargets
+    ) {}
 
-    createMiddleware(
+    async createMiddleware(
         _options: ScheduleMiddlewareConfig,
         context: IAgentMiddlewareContext
-    ): PromiseOrValue<AgentMiddleware> {
+    ): Promise<AgentMiddleware> {
+        const report = await this.reports.bind(context)
+        if (report) {
+            return {
+                name: SCHEDULER_MIDDLEWARE_PROVIDER,
+                tools: [
+                    tool(report, {
+                        name: 'report_schedule_differences',
+                        description:
+                            'Report the full set of differences observed in this check. Use stable source and field identifiers and exact values. Report an empty array when unchanged.',
+                        schema: differenceReport
+                    })
+                ]
+            }
+        }
         return {
             name: SCHEDULER_MIDDLEWARE_PROVIDER,
-            tools: [this.createSchedulerTool(context), this.listSchedulerTool(context), this.deleteSchedulerTool()]
+            tools: [
+                this.createSchedulerTool(context),
+                this.listSchedulerTool(context),
+                this.deleteSchedulerTool(context),
+                tool(
+                    async ({ search, offset }) =>
+                        JSON.stringify(await this.targets.list(context.xpertId, search, offset)),
+                    {
+                        name: 'list_schedule_targets',
+                        description:
+                            'Search accessible chats in this Assistant to select an existing conversation for a scheduled check.',
+                        schema: z.object({
+                            search: z.string().max(200).optional(),
+                            offset: z.number().int().nonnegative().optional()
+                        })
+                    }
+                )
+            ]
         }
     }
 
@@ -90,16 +150,60 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
                     throw new ToolParameterValidationError('name is empty')
                 }
 
-                if (!cronRegex.test(parameters.schedule)) {
-                    throw new ToolParameterValidationError('Invalid schedule (cron expression) format')
+                const monitor = !!parameters.mode && parameters.mode !== 'independent'
+                if (parameters.mode === 'existing_conversation' && (!parameters.conversationId || !parameters.threadId))
+                    throw new ToolParameterValidationError(t('server-ai:Error.ScheduleConversationUnavailable'))
+                const destination =
+                    parameters.mode === 'new_chat'
+                        ? { type: 'new_chat' as const }
+                        : parameters.mode === 'existing_conversation'
+                          ? {
+                                type: 'conversation' as const,
+                                conversationId: parameters.conversationId,
+                                threadId: parameters.threadId
+                            }
+                          : undefined
+                if (
+                    monitor &&
+                    (!context.conversationId ||
+                        !context.threadId ||
+                        !context.xpertId ||
+                        (parameters.schedule &&
+                            (parameters.schedule !== '*/30 * * * *' || (parameters.intervalMinutes ?? 30) !== 30)))
+                ) {
+                    throw new ToolParameterValidationError(t('server-ai:Error.ScheduleConversationUnavailable'))
+                }
+                if (!monitor) {
+                    try {
+                        new CronTime(parameters.schedule || '', parameters.timeZone || 'UTC')
+                    } catch {
+                        throw new ToolParameterValidationError('Invalid schedule (cron expression) format')
+                    }
                 }
 
                 const task = await this.commandBus.execute(
-                    new CreateXpertTaskCommand({
-                        ...parameters,
-                        xpertId: context.xpertId ?? parameters.xpertId,
-                        projectId: context.projectId
-                    })
+                    new CreateXpertTaskCommand(
+                        {
+                            name: parameters.name,
+                            prompt: parameters.prompt,
+                            schedule: monitor ? undefined : parameters.schedule,
+                            timeZone: parameters.timeZone,
+                            agentKey: monitor ? context.agentKey : parameters.agentKey,
+                            xpertId: context.xpertId ?? parameters.xpertId,
+                            projectId: context.projectId
+                        },
+                        undefined,
+                        monitor
+                            ? {
+                                  source: 'agent',
+                                  destination,
+                                  intervalMinutes: parameters.intervalMinutes,
+                                  conversationId: context.conversationId,
+                                  threadId: context.threadId,
+                                  requestKey: getToolCallIdFromConfig(config) || parameters.prompt.trim()
+                              }
+                            : undefined
+                    )
                 )
 
                 await emitResourceCard(
@@ -123,11 +227,25 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
                     )
                 })
 
-                return 'Scheduler creation completed!'
+                return monitor
+                    ? JSON.stringify({
+                          taskId: task.id,
+                          schedule: task.scheduleDescription,
+                          timeZone: task.timeZone,
+                          nextRunAt:
+                              task.schedule && task.monitor
+                                  ? nextMonitorCheck(task.monitor, task.schedule, task.timeZone)
+                                  : undefined,
+                          target: parameters.mode,
+                          intervalMinutes: parameters.intervalMinutes ?? 30,
+                          notify: 'new-differences'
+                      })
+                    : 'Scheduler creation completed!'
             },
             {
                 name: SchedulerToolEnum.CREATE_SCHEDULER,
-                description: 'A tool for creating a scheduler',
+                description:
+                    'Arrange a future check when work needs follow-up. For new-difference notifications, use current_conversation, existing_conversation or new_chat according to where each check should run. Use independent for a standalone cron task.',
                 schema: createSchedulerSchema
             }
         )
@@ -137,7 +255,7 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         return tool(
             async (parameters, config) => {
                 const tasks = await this.commandBus.execute(
-                    new QueryXpertTaskCommand(context.xpertId ?? parameters.xpertId)
+                    new QueryXpertTaskCommand(context.xpertId ?? parameters.xpertId, context.projectId ?? null)
                 )
 
                 await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
@@ -165,10 +283,12 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         )
     }
 
-    private deleteSchedulerTool() {
+    private deleteSchedulerTool(context: IAgentMiddlewareContext) {
         return tool(
             async (parameters) => {
-                return this.commandBus.execute(new DeleteXpertTaskCommand(parameters.name))
+                return this.commandBus.execute(
+                    new DeleteXpertTaskCommand(parameters.name, context.xpertId, context.projectId, parameters.taskId)
+                )
             },
             {
                 name: SchedulerToolEnum.DELETE_SCHEDULER,

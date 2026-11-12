@@ -16,7 +16,8 @@ import type {
     ProjectPipelineProviderActionView,
     PipelineHumanWaitSnapshot,
     ProjectPipelineResourceReservation,
-    ProjectPipelineNativeModelBudget
+    ProjectPipelineNativeModelBudget,
+    ProjectPipelineModelBudgetIncreaseRecord
 } from '@xpert-ai/contracts'
 import type { ProjectPipelineOperationContext } from '@xpert-ai/plugin-sdk'
 import type { PipelineAssistantIntent } from '../runtime/pipeline-assistant-intent.schema'
@@ -115,6 +116,7 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         | 'run.retry_requested'
         | 'run.cancelled'
         | 'model.admission_denied'
+        | 'model.budget_increased'
     @Column({ type: 'jsonb' }) payload: {
         sourceEpoch?: string
         sourceSequence?: number
@@ -124,6 +126,8 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         runId?: string
         digest?: string
         humanWaitSnapshot?: PipelineHumanWaitSnapshot
+        budgetIncrease?: ProjectPipelineModelBudgetIncreaseRecord
+        pluginDeployment?: import('@xpert-ai/contracts').ProjectPluginDeploymentReceipt
     }
 }
 

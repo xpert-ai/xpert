@@ -12,6 +12,7 @@ import { ProjectTaskRuntimeContextService } from './project-task-runtime-context
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import { createProjectTaskSpecificationSnapshot } from './project-task-specification'
 import { reviewReport } from './project-task-evidence'
+import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestRuntimeResultCheckCommand } from '../../handoff/runtime-messaging/runtime-result-check.handler'
@@ -95,7 +96,13 @@ export class ProjectTaskRuntimeReadService {
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
                 runtimeToolId: invocation.handle?.runner?.tool.id,
+                executionBudget: invocation.handle?.runner?.executionBudget && {
+                    maxDurationSeconds: invocation.handle.runner.executionBudget.maxDurationSeconds,
+                    deadline: invocation.handle.runner.executionBudget.deadline
+                },
                 reviewReport: reviewReport(execution.purpose, invocation.result?.text),
+                reviewReportDiagnostic: invocation.status === 'succeeded' && execution.purpose?.type === 'review'
+                    ? diagnoseReviewReport(execution.purpose, invocation.result?.text) : null,
                 delivery,
                 consumption,
                 evidence: [
@@ -123,8 +130,33 @@ export class ProjectTaskRuntimeReadService {
                 runtimeStartedAt: invocation.progress?.startedAt ?? null
             })
         }
+        // Hierarchy navigation does not inspect child invocations or establish acceptance.
+        const children = await this.tasks.find({
+            where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.id },
+            select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+            order: { createdAt: 'ASC', id: 'ASC' },
+            loadEagerRelations: false
+        })
+        // A coordinated implementation's reviews are siblings; standalone reviews are its children.
+        const related = (task.kind ?? 'task') === 'task' && !task.reviewSubject
+            ? task.parentTaskId ? await this.tasks.find({
+                where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.parentTaskId },
+                select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+                order: { createdAt: 'ASC', id: 'ASC' }, loadEagerRelations: false
+            }) : children : []
         return {
             ...task,
+            childTasks: children.map((child) => ({
+                id: child.id,
+                title: child.title || child.name,
+                kind: child.kind,
+                status: child.status,
+                revision: child.revision
+            })),
+            reviewTasks: related.filter((child) => child.reviewSubject?.implementationTaskId === task.id).map((child) => ({
+                id: child.id, title: child.title || child.name, kind: child.kind,
+                status: child.status, revision: child.revision, reviewSubject: child.reviewSubject
+            })),
             specificationSnapshot: specification.success
                 ? createProjectTaskSpecificationSnapshot(specification.data)
                 : null,

@@ -130,6 +130,45 @@ describe('McpApiKeyService', () => {
         expect(stored).toHaveLength(2)
     })
 
+    it('does not reuse an unbounded credential for a bounded test grant', async () => {
+        const target = publication()
+        const permanent = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', scopes: ['tools:list', 'tools:call']
+        })
+        const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000)
+        const bounded = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', scopes: ['tools:list', 'tools:call'], expiresAt
+        })
+        expect(bounded.apiKey.id).not.toBe(permanent.apiKey.id)
+        expect(bounded.apiKey.expiresAt).toEqual(expiresAt)
+    })
+
+    it('does not reuse a credential whose expiry exceeds the requested deadline', async () => {
+        const target = publication(), now = Date.now()
+        const long = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', expiresAt: new Date(now + 4 * 60 * 60 * 1000)
+        })
+        const deadline = new Date(now + 2 * 60 * 60 * 1000)
+        const bounded = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', expiresAt: deadline
+        })
+        expect(bounded.apiKey.id).not.toBe(long.apiKey.id)
+        expect(bounded.apiKey.expiresAt).toEqual(deadline)
+    })
+
+    it('reuses a bounded credential without extending its expiry', async () => {
+        const target = publication(), now = Date.now(), deadline = new Date(now + 60 * 60 * 1000)
+        const first = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', expiresAt: deadline
+        })
+        const retry = await service.getOrCreateRevealableCredential(target, 'organization-1', {
+            name: 'delivery-test', expiresAt: new Date(now + 2 * 60 * 60 * 1000)
+        })
+        expect(retry.secret).toBe(first.secret)
+        expect(retry.apiKey.expiresAt).toEqual(deadline)
+        expect(stored).toHaveLength(1)
+    })
+
     it('authenticates a valid bearer key only for its publication and updates last use', async () => {
         const created = await service.create('publication-1', { name: 'Codex', scopes: ['tools:list'] })
         selectedKey = stored[0]

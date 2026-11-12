@@ -139,9 +139,11 @@ export class ChatExecutionAdmissionService {
         // Reject duplicate decisions before entering the cleanup path for an admitted run.
         if (request.action === 'resume' && !options.execution?.id)
             await this.control.start(threadId, executionId, options.context, true)
+        // Automatic replies pre-reserved the writer. Establish ownership outside cleanup:
+        // a rejected duplicate must not finalize another process's admitted execution.
+        if (options.automatic) await this.control.start(threadId, executionId, options.context)
         try {
             // Preassigned execution IDs bypass the handler's direct-run start.
-            // Establish the lease before graph execution and display capture.
             if (claimed) await this.control.start(threadId, executionId, options.context)
             const stream = await execute(executionId, admittedRequest)
             return new Observable<T>((subscriber) => {

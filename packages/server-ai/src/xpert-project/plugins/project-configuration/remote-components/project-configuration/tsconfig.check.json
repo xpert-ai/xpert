@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "paths": {
+            "@xpert-ai/shadcn-ui/brand-icons": ["packages/shadcn-ui/src/brand-icons/index.cts"],
+            "@xpert-ai/contracts": ["packages/contracts/dist/src/index.d.ts"],
+            "lucide-react": ["packages/shadcn-ui/node_modules/lucide-react"],
+            "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
+            "@/*": ["packages/shadcn-ui/src/*"]
+        },
+        "noEmit": true
+    }
+}

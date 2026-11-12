@@ -14,6 +14,7 @@ import { Raw, Repository } from 'typeorm'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { AssistantExecutionPolicyService, ExecutionActor } from './assistant-execution-policy.service'
 import { executionBudget, tightenExecutionLimits } from './execution-policy.defaults'
+import { resolveExecutionDuration } from './execution-duration'
 import { executionError } from './execution-errors'
 import { ModelExecutionSourceService } from './execution-source.service'
 import { ModelExecutionPolicyService } from './execution-policy'
@@ -40,6 +41,8 @@ export class ModelExecutionGrantService {
             /** Only the trusted launcher may prepare credentials before a one-shot dispatch. */
             prepare?: boolean
             deadline?: Date
+            /** Host-resolved execution duration, bounded by the current tenant ceiling. */
+            maxDurationSeconds?: number
             /** May only tighten the tenant policy; resolved from the owning process snapshot. */
             tokenBudget?: number
         }
@@ -94,8 +97,9 @@ export class ModelExecutionGrantService {
             }
             await this.capabilities.require(ModelExecutionEnvironmentCapability).assertCurrent(context)
             const secret = `xpert-exec-${randomBytes(32).toString('base64url')}`
+            const maxDurationSeconds = resolveExecutionDuration(policy, input.maxDurationSeconds)
             const deadline = Math.min(
-                Date.now() + policy.limits.maxDurationSeconds * 1000,
+                Date.now() + maxDurationSeconds * 1000,
                 input.deadline?.getTime() ?? Infinity
             )
             if (!Number.isFinite(deadline) || deadline <= Date.now()) throw executionError('Denied')
@@ -111,6 +115,8 @@ export class ModelExecutionGrantService {
                     defaultModelId: selection.defaultModelId,
                     limits: {
                         ...policy.limits,
+                        maxDurationSeconds,
+                        leaseSeconds: Math.min(policy.limits.leaseSeconds, maxDurationSeconds),
                         tokenBudget: executionBudget(policy.limits.tokenBudget, input.tokenBudget)
                     },
                     expiresAt: new Date(Math.min(deadline, Date.now() + policy.limits.leaseSeconds * 1000)),

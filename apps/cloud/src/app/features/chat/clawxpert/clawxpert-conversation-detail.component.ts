@@ -221,6 +221,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     projectId: () => this.chatkitProjectId(),
     routeKey: () => this.#hostChatRouteKey(),
     defaultViewKey: () => this.facade.defaultViewKey(),
+    initialLayout: () => this.facade.initialLayout(),
     isChatkitView: this.#isChatkitView,
     views: this.#viewExtensionApi,
     url: this.#workbenchViewUrlState,

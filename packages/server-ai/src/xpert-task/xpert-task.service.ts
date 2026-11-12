@@ -1,4 +1,15 @@
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { taskCronExpression, cronMinuteOccurrence } from './template-routines/template-schedule'
+import {
+    persistConversationMonitor,
+    requireMonitorTarget,
+    monitorIsDue,
+    monitorCadence,
+    monitorBinding,
+    resolveMonitorDestination,
+    type MonitorDestination,
+    type MonitorCreation
+} from './conversation-monitor'
 import { assertBackgroundRuntime } from './template-routines/background-runtime'
 import {
     generateCronExpression,
@@ -434,6 +445,85 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
     }
 
+    createConversationMonitor(task: IXpertTask, target: MonitorCreation) {
+        return persistConversationMonitor(this.repository, this.queryBus, task, target)
+    }
+
+    async updateHttpMonitor(
+        id: string,
+        input: { name: string; prompt: string; intervalMinutes: number; destination: MonitorDestination }
+    ) {
+        const task = await this.assertHttpMutationAccess(id)
+        if (!task.monitor) throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+        const selected = await resolveMonitorDestination(this.queryBus, task.xpertId, input.destination)
+        const projectId = selected ? (selected.projectId ?? null) : task.projectId
+        if (selected && task.runAsUserId !== RequestContext.currentUserId()) {
+            const actor = await this.repository.manager
+                .getRepository(User)
+                .findOneByOrFail({ id: task.runAsUserId, tenantId: task.tenantId })
+            await this.runWithTaskRequestContext(task, actor, () =>
+                resolveMonitorDestination(this.queryBus, task.xpertId, input.destination)
+            )
+        }
+        await this.assertProjectTaskCanBeCreated({ xpertId: task.xpertId, projectId })
+        await this.repository.manager.transaction(async (manager) => {
+            const tasks = manager.getRepository(XpertTask)
+            const current = await tasks.findOneOrFail({
+                where: { id, tenantId: task.tenantId },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!current.monitor || current.runAsUserId !== task.runAsUserId || current.projectId !== task.projectId)
+                throw new ForbiddenException()
+            const binding = monitorBinding(input.destination)
+            const retargeted =
+                (current.monitor.target ?? 'conversation') !== binding.target ||
+                (binding.target === 'conversation' &&
+                    (current.monitor.threadId !== binding.threadId ||
+                        current.monitor.conversationId !== binding.conversationId))
+            if (
+                retargeted &&
+                (await manager.getRepository(ScheduledTaskExecution).existsBy({
+                    taskId: id,
+                    status: In([ScheduledTaskExecutionStatus.RUNNING, ScheduledTaskExecutionStatus.PENDING])
+                }))
+            )
+                throw new BadRequestException(t('server-ai:Error.ScheduleRunInProgress'))
+            const cadence =
+                current.monitor.intervalMinutes === input.intervalMinutes ? null : monitorCadence(input.intervalMinutes)
+            await tasks.update(id, {
+                name: input.name,
+                prompt: input.prompt,
+                projectId,
+                ...(current.projectId !== projectId && current.pendingRunAsUserId
+                    ? {
+                          pendingRunAsUserId: null,
+                          pendingRunAsRequestedById: null,
+                          pendingRunAsRequestedAt: null,
+                          pendingRunAsConfigurationHash: null
+                      }
+                    : {}),
+                schedule: cadence?.schedule ?? current.schedule,
+                monitor: {
+                    ...binding,
+                    source: current.monitor.source,
+                    notify: 'new-differences',
+                    intervalMinutes: input.intervalMinutes,
+                    anchorAt: cadence?.anchorAt ?? current.monitor.anchorAt,
+                    observationRevision:
+                        retargeted || current.prompt !== input.prompt
+                            ? randomUUID()
+                            : current.monitor.observationRevision
+                }
+            })
+        })
+        await this.registerScheduledTask(id)
+    }
+
+    async registerScheduledTask(id: string) {
+        const task = await this.findOne(id, { relations: ['runAsUser', 'createdBy'] })
+        if (task.status === ScheduleTaskStatus.SCHEDULED) this.rescheduleTask(task, task.runAsUser ?? task.createdBy)
+    }
+
     async executeTask(
         id: string,
         options: TChatOptions,
@@ -442,7 +532,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     ) {
         try {
             const task = await this.findOne(id, {
-                relations: ['xpert', 'createdBy', 'runAsUser']
+                relations: ['xpert', 'xpert.agent', 'createdBy', 'runAsUser']
             })
             const actor = task.runAsUser ?? task.createdBy
             if (!actor) {
@@ -450,7 +540,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     t('server-ai:Error.ProjectTaskRunAsUserMissing', {
                         defaultValue: PROJECT_TASK_RUN_AS_USER_MISSING
                     }) || PROJECT_TASK_RUN_AS_USER_MISSING
-                await this.pauseInvalidProjectTask(task, reason)
+                await this.pauseInvalidTask(task, reason)
                 throw new BadRequestException(reason)
             }
             return await this.runWithTaskRequestContext(task, actor, (currentActor) =>
@@ -475,17 +565,64 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         scheduledAt?: Date,
         scheduledExecution?: ScheduledTaskExecution
     ) {
+        if (
+            scheduledExecution &&
+            task.monitor &&
+            task.monitor.target !== 'new_chat' &&
+            scheduledExecution.conversationId !== task.monitor.conversationId
+        )
+            throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+        if (scheduledExecution && task.monitor && task.status !== ScheduleTaskStatus.SCHEDULED) {
+            throw new BadRequestException(t('server-ai:Error.SchedulerDisabled'))
+        }
         await this.assertProjectTaskCanRun(task).catch(async (error) => {
-            await this.pauseInvalidProjectTask(task, getErrorMessage(error))
+            await this.pauseInvalidTask(task, getErrorMessage(error))
             throw error
         })
         if (task.xpert) assertBackgroundRuntime(task.xpert)
         const chatOptions = applyScheduledTaskOidcContext(task, actor, options, this.outboundActorTokenProvider)
-        if (scheduledExecution) {
-            await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)
+        let target: ChatConversation | undefined
+        if (task.monitor) {
+            const agentKey = task.agentKey || task.xpert?.agent?.key
+            const enabled =
+                agentKey &&
+                task.xpert?.graph &&
+                getAgentMiddlewareNodes(task.xpert.graph, agentKey).some(
+                    (node) => isMiddlewareEntity(node.entity) && node.entity.provider === 'scheduler'
+                )
+            if (!enabled) {
+                const reason = t('server-ai:Error.SchedulerDisabled')
+                await this.pauseInvalidTask(task, reason)
+                throw new BadRequestException(reason)
+            }
+            if (task.monitor.target !== 'new_chat') {
+                target = await requireMonitorTarget(this.queryBus, task, task.monitor).catch(async (error) => {
+                    if (error instanceof ForbiddenException || error instanceof NotFoundException)
+                        await this.pauseInvalidTask(task, t('server-ai:Error.ScheduleConversationUnavailable'))
+                    throw error
+                })
+                if (scheduledExecution) {
+                    const thread = await this.chatConversationRepository.manager
+                        .getRepository(ChatConversationThread)
+                        .findOneBy({
+                            conversationId: target.id,
+                            threadId: task.monitor.threadId
+                        })
+                    if (thread?.runControl || (thread && ['busy', 'pausing', 'paused'].includes(thread.status))) {
+                        await this.requireScheduledTaskExecutionCoordinator().defer(scheduledExecution)
+                        return {
+                            conversationId: target.id,
+                            threadId: task.monitor.threadId,
+                            runId: null,
+                            deferred: true
+                        }
+                    }
+                }
+            }
         }
+        if (scheduledExecution) await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)
         const runtimeState = await this.resolveTaskRuntimeState(task, scheduledAt)
-        const conversationId = scheduledExecution?.conversationId ?? randomUUID()
+        const conversationId = target?.id ?? scheduledExecution?.conversationId ?? randomUUID()
         const executionId = scheduledExecution?.executionId ?? randomUUID()
         await this.assertProjectTaskConnectorsCanRun(task, actor, runtimeState, conversationId, executionId).catch(
             async (error) => {
@@ -495,12 +632,15 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                         reason: detail,
                         defaultValue: `Project automation was paused because a selected Connector is unavailable: ${detail}`
                     }) || `Project automation was paused because a selected Connector is unavailable: ${detail}`
-                await this.pauseInvalidProjectTask(task, reason)
+                await this.pauseInvalidTask(task, reason)
                 throw new BadRequestException(reason)
             }
         )
         const { observable, conversation, execution } = await this.createPersistedTaskChatRun({
-            prompt: task.prompt,
+            prompt: task.monitor ? [task.prompt, t('server-ai:Scheduler.ReportInstruction')].join('\n\n') : task.prompt,
+            existingConversation: target,
+            threadId: task.monitor?.threadId,
+            agentKey: task.agentKey,
             xpertId: task.xpertId,
             projectId: task.projectId,
             taskId: task.id,
@@ -550,12 +690,15 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
         return {
             conversationId: conversation.id,
-            threadId: conversation.threadId,
+            threadId: task.monitor?.threadId ?? conversation.threadId,
             runId: execution.id
         }
     }
 
     private async createPersistedTaskChatRun(params: {
+        existingConversation?: ChatConversation
+        threadId?: string
+        agentKey?: string
         prompt?: string | null
         xpertId?: string | null
         projectId?: string | null
@@ -567,29 +710,32 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         runtimeState?: TXpertChatState | null
         chatOptions?: TChatOptions
     }) {
-        const conversation = await this.commandBus.execute<ChatConversationUpsertCommand, ChatConversation>(
-            new ChatConversationUpsertCommand({
-                id: params.conversationId ?? undefined,
-                // Admission owns the transition to busy together with the writer claim.
-                // A pre-marked busy thread would reject its own first scheduled run.
-                status: 'idle',
-                taskId: params.conversationTaskId ?? undefined,
-                xpertId: params.xpertId ?? undefined,
-                projectId: params.projectId ?? undefined,
-                options: {
-                    parameters: {
-                        input: params.prompt
-                    }
-                },
-                from: 'job'
-            })
-        )
+        const conversation =
+            params.existingConversation ??
+            (await this.commandBus.execute<ChatConversationUpsertCommand, ChatConversation>(
+                new ChatConversationUpsertCommand({
+                    id: params.conversationId ?? undefined,
+                    // Admission owns the transition to busy together with the writer claim.
+                    // A pre-marked busy thread would reject its own first scheduled run.
+                    status: 'idle',
+                    taskId: params.conversationTaskId ?? undefined,
+                    xpertId: params.xpertId ?? undefined,
+                    projectId: params.projectId ?? undefined,
+                    options: {
+                        parameters: {
+                            input: params.prompt
+                        }
+                    },
+                    from: 'job'
+                })
+            ))
+        const threadId = params.threadId ?? conversation.threadId
         const execution = await this.commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
                 id: params.executionId ?? undefined,
                 xpertId: params.xpertId ?? undefined,
                 status: XpertAgentExecutionStatusEnum.RUNNING,
-                threadId: conversation.threadId
+                threadId
             })
         )
         const observable = await this.commandBus.execute(
@@ -609,12 +755,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     xpertId: params.xpertId ?? undefined,
                     projectId: params.projectId ?? undefined,
                     timeZone: params.timeZone ?? params.chatOptions?.timeZone,
+                    agentKey: params.agentKey,
+                    threadId,
                     from: 'job',
                     taskId: params.taskId ?? undefined,
                     execution: { id: execution.id },
                     streamPersistence: {
                         transport: 'redis-stream',
-                        threadId: conversation.threadId,
+                        threadId,
                         runId: execution.id
                     }
                 }
@@ -636,19 +784,39 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const scheduleJob = () => {
             const job = CronJob.from({
                 cronTime: cronTime,
-                timeZone: task.timeZone || 'UTC',
+                timeZone: task.monitor?.anchorAt ? 'UTC' : task.timeZone || 'UTC',
 
                 onTick: () => {
-                    const scheduledAt = resolveScheduledOccurrence(task)
-                    void this.runWithTaskRequestContext(task, user, () => {
+                    const scheduledAt = task.monitor?.anchorAt
+                        ? new Date(Math.floor(Date.now() / 60000) * 60000)
+                        : resolveScheduledOccurrence(task)
+                    if (task.monitor && !monitorIsDue(task.monitor, scheduledAt)) return
+                    void this.runWithTaskRequestContext(task, user, async () => {
                         if (!task.xpertId) {
                             return
                         }
                         if (RequestContext.hasRole(RolesEnum.TRIAL) && runs >= MaximumRuns) {
                             return this.pause(task.id).then(() => undefined)
                         }
+                        // Another API instance may have edited the monitor after this timer was registered.
+                        const currentTask = task.monitor ? await this.findOne(task.id) : task
+                        if (
+                            currentTask.monitor &&
+                            (currentTask.status !== ScheduleTaskStatus.SCHEDULED ||
+                                !monitorIsDue(currentTask.monitor, scheduledAt))
+                        )
+                            return
+                        // A busy thread already has a deferred occurrence; recovery retries it when the writer leaves.
+                        if (
+                            task.monitor &&
+                            (await this.scheduledTaskExecutionRepository?.existsBy({
+                                taskId: task.id,
+                                status: ScheduledTaskExecutionStatus.PENDING
+                            }))
+                        )
+                            return
                         return this.requireScheduledTaskExecutionCoordinator()
-                            .claim(task, buildScheduleOccurrenceKey(task, scheduledAt), scheduledAt)
+                            .claim(currentTask, buildScheduleOccurrenceKey(currentTask, scheduledAt), scheduledAt)
                             .then((scheduledExecution) => {
                                 if (!scheduledExecution) {
                                     return
@@ -713,7 +881,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                               defaultValue: PROJECT_TASK_XPERT_REQUIRED
                           }) || PROJECT_TASK_XPERT_REQUIRED
                     const error = new BadRequestException(reason)
-                    await this.pauseInvalidProjectTask(task, reason)
+                    await this.pauseInvalidTask(task, reason)
                     await this.requireScheduledTaskExecutionCoordinator().finish(
                         expiredExecution,
                         ScheduledTaskExecutionStatus.FAILED,
@@ -919,8 +1087,8 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         return currentXpert.id
     }
 
-    private async pauseInvalidProjectTask(task: Pick<XpertTask, 'id' | 'projectId'>, statusReason: string) {
-        if (!task.projectId) return
+    private async pauseInvalidTask(task: Pick<XpertTask, 'id' | 'projectId' | 'monitor'>, statusReason: string) {
+        if (!task.projectId && !task.monitor) return
         this.deleteJob(task.id)
         await this.repository.update(task.id, {
             status: ScheduleTaskStatus.PAUSED,
@@ -1210,6 +1378,12 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     async updateTask(id: string, entity: Partial<IXpertTask>) {
         const existingTask = await this.findOne(id)
         const updateEntity = sanitizeTaskMutationInput(entity)
+        if (
+            existingTask.monitor &&
+            Object.keys(updateEntity).some((key) => !['name', 'prompt', 'status'].includes(key))
+        ) {
+            throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+        }
         await this.assertProjectTaskMutationAccess(existingTask, updateEntity)
         if (existingTask.projectId) {
             let xpertId = updateEntity.xpertId ?? existingTask.xpertId
@@ -1309,6 +1483,16 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     async test(id: string, options: TChatOptions) {
         const task = await this.findOne(id)
         await this.assertProjectTaskCanBeManaged(task)
+        if (task.monitor) {
+            const now = new Date()
+            const occurrence = await this.requireScheduledTaskExecutionCoordinator().claim(
+                task,
+                'test:' + randomUUID(),
+                now
+            )
+            if (!occurrence) throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
+            return this.executeTask(id, options, now, occurrence)
+        }
         return await this.executeTask(id, options)
     }
 

@@ -22,6 +22,7 @@ import { XpertProjectXpertBindingService } from '../../xpert-project/services/pr
 export class ProjectViewHostDefinition implements ViewHostDefinitionContract {
     readonly hostType = 'project'
     readonly slots: XpertViewSlot[] = [
+        { key: 'project.configuration', mode: 'sections', order: 2, manifestPolicy: { requireFeatureActivation: false } },
         { key: 'task.management', mode: 'sections', order: 1, manifestPolicy: { requireFeatureActivation: false } },
         {
             key: 'detail.sections',

@@ -37,7 +37,7 @@ async function runCodex(binary: string, url: string, directory: string) {
             '-c',
             'model_providers.fixture.stream_max_retries=0',
             '-c',
-            'model_providers.fixture.stream_idle_timeout_ms=180000',
+            'model_providers.fixture.stream_idle_timeout_ms=35000',
             '-m',
             'fixture',
             'exec',
@@ -116,7 +116,7 @@ it('the proxy fixture interrupts an otherwise successful response at its read-id
 })
 
 longTest(
-    'survives 125 seconds of provider silence through a 120-second proxy and the pinned Codex parser',
+    'survives 125 seconds of provider silence through a 120-second proxy and the pinned Codex parser with a 35-second decoded-event idle limit',
     async () => {
         const binary = process.env.XPERT_CODEX_TEST_BINARY
         if (binary) expect((await runFile(binary, ['--version'])).stdout.trim()).toBe('codex-cli 0.159.2')
@@ -174,7 +174,7 @@ longTest(
                 const response = await fetch(`${url}/responses`, { method: 'POST' })
                 expect(response.headers.get('x-accel-buffering')).toBe('no')
                 const text = await response.text()
-                expect(text.match(/: keep-alive/g)).toHaveLength(4)
+                expect(text.match(/event: response.in_progress/g)).toHaveLength(5)
                 expect(text).toContain('event: response.completed')
                 expect(text).toContain('STREAM_FIXTURE_OK')
             })()

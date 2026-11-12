@@ -38,6 +38,24 @@ titles or source keys. Missing dates are shown as unscheduled. Separate attempts
 retain separate runtime intervals and business outcomes. The Outputs tab lists
 committed artifacts and delivery diagnostics, with downloads in the execution viewer.
 
+Execution history distinguishes evidence-only reviews from execution reviews. Evidence-only
+reports contain textual findings; execution reports show a summary, performed checks,
+commands, expected/actual results, evidence paths, and findings with their blocking flag
+and reproduction steps. Paths and commands are displayed as text, not executed or opened.
+The host requires the report version to match the requested review mode and retains the
+pinned implementation, specification and evidence checks. Runtime success remains separate
+from the acceptance verdict and the parent's completion decision.
+
+The execution limit and deadline come from the authorized invocation's existing runner
+receipt. Historical receipts without a budget show no invented default. Reviewer mode and
+rework finding IDs describe the recorded execution purpose; they do not assert that a
+review task has already been scheduled. No additional task graph fields or Computer API
+dependency is introduced for this detail view.
+
+`node --test tools/testing/project-task-review.e2e.mjs` covers both report modes, negative
+verdicts with a successful runtime, receipt limits, localized details and a narrow viewport
+using local fixtures. It does not establish live Agent or installed-plugin acceptance.
+
 Board cards reuse the table/Gantt Assistant avatar, name and chronological execution
 dots. Each dot opens its exact authorized execution; the card title opens task details.
 These are separate buttons so opening an execution does not also select the card.
@@ -45,6 +63,19 @@ These are separate buttons so opening an execution does not also select the card
 The view polls every five seconds while visible. Cursor comparison avoids replacing
 unchanged data. Large tables and Gantt rows are virtualized. The shared Dialog
 preserves the plan draft across viewport changes.
+
+Execution summaries identify implementation, independent review and feedback rework
+from the execution's declared purpose. A validated review verdict is shown separately
+from successful runtime completion; a completed negative review keeps the runtime's
+success color and shows "Changes required" or "Indeterminate". Failed or unfinished
+executions never display a stale review verdict. Older records without a purpose retain
+their existing labels. Task status and task-node fields are unchanged.
+
+Read and action errors appear as bottom-right notifications with localized close and
+refresh actions, without shifting the task view. Notifications close after six seconds
+or manual dismissal; the same continuing error does not reopen on every poll. A new
+error, or recurrence after a successful refresh, can notify again. Each mounted view has
+its own notification scope; recovery and unmount dismiss only that view's notification.
 
 Tasks may supply a nullable `progress` percentage (0–100). List, tree, Gantt, board
 and detail views display a circular indicator with the task status. Unknown progress

@@ -17,7 +17,7 @@ import {
     ResolveTemplateExecutionCommand,
     AuthorizeTemplateExecutionCommand
 } from './resolve-template-execution.command'
-import { PrepareTemplateExecutionCommand } from '../../plugin-resource/template-installation/prepare-template-execution.command'
+import { PrepareTemplateExecutionCommand } from '../../plugin-resource/commands/prepare-template-execution.command'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 

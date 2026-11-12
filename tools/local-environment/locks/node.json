@@ -1,0 +1,14 @@
+{
+  "linux-64": {
+    "version": "v22.23.4",
+    "directory": "node-v22.23.4-linux-x64",
+    "url": "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz",
+    "sha256": "1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce"
+  },
+  "linux-aarch64": {
+    "version": "v22.23.4",
+    "directory": "node-v22.23.4-linux-arm64",
+    "url": "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-arm64.tar.xz",
+    "sha256": "6287aa46b6c375d816e63ae66d024fbbfd70404825aabdfdf898a970871d2f4b"
+  }
+}

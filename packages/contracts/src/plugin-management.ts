@@ -63,6 +63,20 @@ export interface IPluginUpdateResult extends IPluginInstallResult {
   previousVersion?: string
 }
 
+/** Installed archive identity and the current process's loaded state; not fleet or business acceptance. */
+export interface IPluginArchiveDeploymentStatus {
+  packageName: string
+  expectedVersion: string
+  expectedSha256: string
+  installed: boolean
+  loaded: boolean
+  installedVersion?: string
+  loadedVersion?: string
+  scopeKey?: string
+  runtimeRevision?: string
+  restartRequired: boolean
+}
+
 export interface IPluginUninstallResult {
   success: boolean
   /**

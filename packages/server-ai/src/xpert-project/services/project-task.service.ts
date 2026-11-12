@@ -15,7 +15,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { EntityManager, In, IsNull, Not, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, JsonContains, Not, Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskConversation } from '../entities/project-task-conversation.entity'
@@ -71,7 +71,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     async saveAll(...entities: IXpertProjectTask[]) {
         const items: XpertProjectTask[] = []
         for (const entity of entities) {
-            assertOrdinaryTaskInput(entity)
+            const { parentTaskId, ...fields } = entity
+            assertOrdinaryTaskInput(fields)
             const existing = entity.id ? await this.repository.findOneBy({ id: entity.id, ...this.taskScope() }) : null
             const projectId = existing?.projectId ?? entity.projectId
             if (!projectId || (existing && entity.projectId && entity.projectId !== existing.projectId))
@@ -82,8 +83,22 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     const repository = manager.getRepository(XpertProjectTask)
                     if (entity.id) {
                         const current = await repository.findOneBy({ id: entity.id, projectId, ...this.taskScope() })
-                        if (current) assertOrdinaryTask(current)
+                        if (current) {
+                            // Existing relationships must go through the revision-checked graph API.
+                            // Recheck under the project lock: another writer may have created this ID.
+                            assertOrdinaryTaskInput(entity)
+                            assertOrdinaryTask(current)
+                        }
                         await this.assertBusinessStatus(manager, entity.id, entity.status)
+                    }
+                    if (parentTaskId != null) {
+                        if (typeof parentTaskId !== 'string' || !parentTaskId)
+                            throw projectTaskRuntimeError('State')
+                        // Validate the parent in the same transaction as creation and task completion.
+                        const parent = await repository.findOneBy({ id: parentTaskId, projectId, ...this.taskScope() })
+                        if (!parent || parent.kind !== 'summary' || ['done', 'completed', 'cancelled'].includes(parent.status))
+                            throw projectTaskRuntimeError('State')
+                        assertOrdinaryTask(parent)
                     }
                     const task = await repository.save({
                         ...entity,
@@ -122,6 +137,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 relations: ['steps', 'executions'],
                 order: { createdAt: OrderTypeEnum.ASC }
             })
+            const updated = new Map<string, XpertProjectTask>()
             for (const entity of entities) {
                 const task = tasks.find(
                     (item) =>
@@ -161,13 +177,17 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     task.status = 'done'
                 await this.assertBusinessStatus(manager, task.id, task.status)
                 await repository.save(task)
+                updated.set(task.id, task)
             }
-            return tasks
+            // The caller updates execution bookkeeping for these results; unrelated Pipeline projections have a different owner.
+            // Return each touched task once even when several inputs update its steps.
+            return [...updated.values()]
         })
     }
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
-        assertOrdinaryTaskInput(input)
+        const { parentTaskId, ...fields } = input
+        assertOrdinaryTaskInput(fields)
         await this.validateTaskMode(projectId, input.status)
         const project = await this.projectRepository.findOne({
             where: { id: projectId, ...this.taskScope() },
@@ -176,7 +196,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (!project) throw new NotFoundException('Xpert project not found')
         const assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
         const [task] = await this.saveAll({
-            ...input,
+            ...fields,
+            ...(parentTaskId !== undefined ? { parentTaskId } : {}),
             projectId,
             assigneeXpertId,
             name: input.name?.trim() || input.title?.trim() || 'Untitled task',
@@ -213,6 +234,19 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
 
     private async assertBusinessStatus(manager: EntityManager, taskId: string, status?: IXpertProjectTask['status']) {
         if (!status || !['done', 'completed'].includes(status)) return
+        const current = await manager.getRepository(XpertProjectTask).findOneBy({ id: taskId, ...this.taskScope() })
+        // A review result and a coordinated delivery complete through their owning workflows.
+        // The caller holds the project lock, including when completed steps imply task completion.
+        if (
+            current?.reviewSubject ||
+            (current?.kind === 'summary' &&
+                await manager.getRepository(XpertProjectTaskExecution).existsBy({
+                    ...this.taskScope(),
+                    projectId: current.projectId,
+                    purpose: JsonContains({ type: 'implementation', coordination: { taskId } })
+                }))
+        )
+            throw projectTaskRuntimeError('DecisionRequired')
         if (
             await manager
                 .getRepository(XpertProjectTaskExecution)

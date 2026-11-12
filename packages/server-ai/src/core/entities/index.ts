@@ -1,3 +1,4 @@
+import { XpertProjectConfiguration } from '../../xpert-project/configuration/project-configuration.entity'
 import { USER_NOTIFICATION_ENTITIES } from '../../user-notification/notification.entities'
 import { ModelReplacementOperation } from '../../xpert/model-replacement/operation.entity'
 import { CopilotRoleDefault } from '../../copilot/role-defaults/role-default.entity'
@@ -323,6 +324,7 @@ export const ALL_AI_ENTITIES = [
     XpertProjectAutomationRun,
     XpertProjectTaskConversation,
     XpertProjectTaskExecution,
+    XpertProjectConfiguration,
     XpertProjectSprint,
     XpertProjectSwimlane,
     XpertTable,

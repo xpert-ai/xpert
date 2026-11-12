@@ -27,6 +27,7 @@ export function releasePlan({
   ref,
   mainSha,
   upstreamMainSha,
+  buildOnly = false,
   cwd = process.cwd(),
   retainedChangesetPolicy = 'reject',
   applicationNames = services.map((service) => service.name)
@@ -235,6 +236,7 @@ export function releasePlan({
     }
   }
   assert.equal(missing.size, 0, `Missing application image release declarations:\n${[...missing].join('\n')}`)
+  const canPublish = event === 'push' && !buildOnly
   const validation = selectedServices.flatMap((service) => {
     const release = include.find((image) => image.name === service.name)
     if (!release && !affectsImage(service, changedFiles)) return []
@@ -249,13 +251,13 @@ export function releasePlan({
           target: service.image_name === 'xpert-nsjail-runner' ? '' : 'production',
           version: read(after, service.manifest).version
         }),
-        publish: event === 'push' && Boolean(release)
+        publish: canPublish && Boolean(release)
       }
     ]
   })
   return {
     build: include.length > 0,
-    publish: event === 'push' && include.length > 0,
+    publish: canPublish && include.length > 0,
     validate: validation.length > 0,
     sha: after,
     matrix: { include },
@@ -304,6 +306,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     after: process.env.IMAGE_RELEASE_AFTER,
     event: process.env.IMAGE_RELEASE_EVENT,
     ref: process.env.IMAGE_RELEASE_REF,
+    buildOnly: process.env.IMAGE_RELEASE_REF !== 'refs/heads/main',
     mainSha: process.env.IMAGE_RELEASE_MAIN
   })
   console.log(JSON.stringify(plan, null, 2))

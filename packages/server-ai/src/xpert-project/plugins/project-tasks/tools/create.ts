@@ -53,7 +53,9 @@ export const createCreateTasksTool = ({
                     title: task.title || task.name,
                     status: task.status,
                     assigneeXpertId: task.assigneeXpertId,
-                    requirements: task.requirements ?? []
+                    requirements: task.requirements ?? [],
+                    kind: task.kind,
+                    parentTaskId: task.parentTaskId
                 }))
             }
         },
@@ -74,6 +76,15 @@ export const createCreateTasksTool = ({
                                         .optional()
                                         .describe(`Short task description`),
                                     type: z.string().trim().min(1).max(200).optional().describe(`Business task type`),
+                                    kind: z
+                                        .enum(['task', 'summary'])
+                                        .optional()
+                                        .describe('A summary groups child tasks and cannot be dispatched to a Runtime.'),
+                                    parentTaskId: z
+                                        .string()
+                                        .uuid()
+                                        .optional()
+                                        .describe('Existing ordinary summary task in this project that is not completed or cancelled.'),
                                     priority: z.enum(['urgent', 'high', 'medium', 'low']).optional(),
                                     assigneeXpertId: z
                                         .string()

@@ -223,7 +223,7 @@ function renderHostHtml(config) {
     </style>
   </head>
   <body>
-    <iframe id="remote-view" title="${escapeHtmlAttribute(config.frameTitle)}"${config.isolatedOrigin ? ' sandbox="allow-scripts allow-forms allow-downloads allow-popups"' : ''}></iframe>
+    <iframe id="remote-view" title="${escapeHtmlAttribute(config.frameTitle)}"${config.isolatedOrigin ? ' sandbox="allow-scripts allow-forms allow-downloads allow-popups allow-popups-to-escape-sandbox"' : ''}></iframe>
     <script>
       const channel = ${serializeForInlineScript(CHANNEL)}
       const protocolVersion = ${PROTOCOL_VERSION}

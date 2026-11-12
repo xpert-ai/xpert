@@ -32,9 +32,11 @@ export class ChatBridgeWriter implements GatewayChatWriter {
         if (this.protocol === 'openai_responses') this.response.setHeader('x-accel-buffering', 'no')
         this.response.flushHeaders()
         if (this.protocol === 'openai_responses') {
-            this.stopKeepalive = startExecutionSseKeepalive(this.response, this.signal)
             await this.event('response.created', { response: this.responsesEnvelope([], 'in_progress', null) })
             await this.event('response.in_progress', { response: this.responsesEnvelope([], 'in_progress', null) })
+            this.stopKeepalive = startExecutionSseKeepalive(this.response, this.signal, () =>
+                this.eventFrame('response.in_progress', { response: this.responsesEnvelope([], 'in_progress', null) })
+            )
         } else
             await this.event('message_start', {
                 message: this.messagesEnvelope([], null, { input_tokens: 0, output_tokens: 0 })
@@ -263,15 +265,18 @@ export class ChatBridgeWriter implements GatewayChatWriter {
     private async event(type: string, fields: object) {
         this.signal.throwIfAborted()
         if (this.response.destroyed || this.response.writableEnded) throw executionError('Unavailable')
+        // A heartbeat may have filled the response buffer while the provider was silent.
+        if (this.protocol === 'openai_responses' && this.response.writableNeedDrain)
+            await once(this.response, 'drain', { signal: this.signal })
+        if (!this.response.write(this.eventFrame(type, fields)))
+            await once(this.response, 'drain', { signal: this.signal })
+    }
+    private eventFrame(type: string, fields: object) {
         const payload = {
             type,
             ...(this.protocol === 'openai_responses' ? { sequence_number: this.sequence++ } : {}),
             ...fields
         }
-        // A heartbeat may have filled the response buffer while the provider was silent.
-        if (this.protocol === 'openai_responses' && this.response.writableNeedDrain)
-            await once(this.response, 'drain', { signal: this.signal })
-        if (!this.response.write(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`))
-            await once(this.response, 'drain', { signal: this.signal })
+        return `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`
     }
 }

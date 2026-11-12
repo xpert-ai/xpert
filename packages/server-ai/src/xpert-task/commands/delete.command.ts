@@ -1,13 +1,12 @@
 import { ICommand } from '@nestjs/cqrs'
 
-
-/**
- * Delete a task
- */
 export class DeleteXpertTaskCommand implements ICommand {
-	static readonly type = '[Xpert Task] Delete'
+    static readonly type = '[Xpert Task] Delete'
 
-	constructor(
-		public readonly name?: string,
-	) {}
+    constructor(
+        public readonly name: string,
+        public readonly xpertId: string,
+        public readonly projectId?: string,
+        public readonly taskId?: string
+    ) {}
 }

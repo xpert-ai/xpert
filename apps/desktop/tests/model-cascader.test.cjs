@@ -23,7 +23,9 @@ const code = viteRequire('esbuild').buildSync({
 }).outputFiles[0].text
 const compiled = { exports: {} }
 // This fixture asserts English copy; Node's navigator otherwise follows the host OS language.
-new Function('require', 'module', 'exports', 'navigator', code)(require, compiled, compiled.exports, { languages: ['en'] })
+new Function('require', 'module', 'exports', 'navigator', code)(require, compiled, compiled.exports, {
+  languages: ['en']
+})
 const { ModelCascader } = compiled.exports
 
 test('shared model selector renders custom accessible labels, metadata and defaults while retaining Bosi title', () => {

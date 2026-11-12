@@ -1,0 +1,289 @@
+{
+  "platform": "linux-aarch64",
+  "versions": {
+    "postgresql": "17.11",
+    "pgvector": "0.8.1",
+    "redis-server": "7.4.7"
+  },
+  "packages": [
+    {
+      "name": "libzlib",
+      "version": "1.3.2",
+      "build": "hdc9db2a_3",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libzlib-1.3.2-hdc9db2a_3.conda",
+      "sha256": "76efa6cc9d7e6f5ee3bbca0939f64054af2bdfb3c3632531f8e633cf6c2ea41e",
+      "md5": "bd534c2fbe56d8c2ea3b2d8f5e12bca8",
+      "license": "Zlib"
+    },
+    {
+      "name": "libgomp",
+      "version": "16.2.0",
+      "build": "h8acb6b2_7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libgomp-16.2.0-h8acb6b2_7.conda",
+      "sha256": "4406fd67c5beeb99b9372f9bf07aa3e40ca141e337eceebac3ff64aa72799494",
+      "md5": "259ded79ac497cfbcf5434540e8b81b6",
+      "license": "GPL-3.0-only WITH GCC-exception-3.1"
+    },
+    {
+      "name": "zstd",
+      "version": "1.5.7",
+      "build": "h9d15635_7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/zstd-1.5.7-h9d15635_7.conda",
+      "sha256": "427fd14bcb3b8659796fecc682716617409350fb5a98e5b7b47558a10d1a2fc7",
+      "md5": "d942e34ac3920ba83f8b2d0169570187",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "_openmp_mutex",
+      "version": "4.5",
+      "build": "20_gnu",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/_openmp_mutex-4.5-20_gnu.conda",
+      "sha256": "a2527b1d81792a0ccd2c05850960df119c2b6d8f5fdec97f2db7d25dc23b1068",
+      "md5": "468fd3bb9e1f671d36c2cbc677e56f1d",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "libgcc",
+      "version": "16.2.0",
+      "build": "h205dda4_7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libgcc-16.2.0-h205dda4_7.conda",
+      "sha256": "eae7a3449d5a3b5351c5427137c076cc3fc826645c7bfc42dc10772b783826f1",
+      "md5": "489d5c9dc62265b3f6a57f9a106f1caf",
+      "license": "GPL-3.0-only WITH GCC-exception-3.1"
+    },
+    {
+      "name": "libgcc-ng",
+      "version": "16.2.0",
+      "build": "he9431aa_7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libgcc-ng-16.2.0-he9431aa_7.conda",
+      "sha256": "d7502682cfce6f51aabd40bba63cd6b46db3d3e4b67abdb00f54ae72332523db",
+      "md5": "2fb8fda15618277477f6dfd0e3c0d4a9",
+      "license": "GPL-3.0-only WITH GCC-exception-3.1"
+    },
+    {
+      "name": "liblzma",
+      "version": "5.8.3",
+      "build": "he30d5cf_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/liblzma-5.8.3-he30d5cf_1.conda",
+      "sha256": "f760669fd1cea27f689f411c0d5488e26ce50e382c9b63e4ad348f959850124a",
+      "md5": "e0e6411a60d00186eec7c73f4118ab67",
+      "license": "0BSD"
+    },
+    {
+      "name": "libiconv",
+      "version": "1.18",
+      "build": "h1ea5142_3",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libiconv-1.18-h1ea5142_3.conda",
+      "sha256": "d22c666eb887afd2119aac2110e23a0e817e9391bda99293421f7c46dab1564c",
+      "md5": "951b54a36388613a99820b33b997f690",
+      "license": "LGPL-2.1-only"
+    },
+    {
+      "name": "ncurses",
+      "version": "6.6",
+      "build": "h2b6f883_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/ncurses-6.6-h2b6f883_1.conda",
+      "sha256": "d69a04914139627f0a6bfd19412d6c7f1e37edc896af84a6011e07e8bc1e69fa",
+      "md5": "c3b4349171ca987ff33a1de61f7b3f96",
+      "license": "X11 AND BSD-3-Clause"
+    },
+    {
+      "name": "libxcrypt",
+      "version": "4.4.38",
+      "build": "h80f16a2_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libxcrypt-4.4.38-h80f16a2_0.conda",
+      "sha256": "d3514900e2121972e435f7803763c1843dad6709e48aa02a2b47c4d481f83be7",
+      "md5": "b1a5cb7ff2d8f5911ba1fb6897176098",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "name": "keyutils",
+      "version": "1.6.3",
+      "build": "h5bc82ec_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/keyutils-1.6.3-h5bc82ec_1.conda",
+      "sha256": "3999b1472f1e549a0b766428e2823abf20626aac5314b474c9b76bf6eb679def",
+      "md5": "6d9be306ecb8dfc9ff46f02cb367d5c2",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "name": "tzcode",
+      "version": "2026f",
+      "build": "h29ee22c_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/tzcode-2026f-h29ee22c_0.conda",
+      "sha256": "315c9e21a3de02b67635a890a2b42850394f3f610072436b9b7c294eb7b8c6c3",
+      "md5": "46d2842214db47c380e8ad13e523e4fa",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "libstdcxx",
+      "version": "16.2.0",
+      "build": "hef695bb_7",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libstdcxx-16.2.0-hef695bb_7.conda",
+      "sha256": "b241a3acfa9cdb1359112864a1241225533c92642de3000d52ae65ef5d3a9786",
+      "md5": "6c823668e78160957d1b061ceec15c2c",
+      "license": "GPL-3.0-only WITH GCC-exception-3.1"
+    },
+    {
+      "name": "libntlm",
+      "version": "1.4",
+      "build": "hf897c2e_1002",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libntlm-1.4-hf897c2e_1002.tar.bz2",
+      "sha256": "0e303d7a8845391bd1634efb65dc9d9b82b5608ebeb32fb77a56d1ed696d2eee",
+      "md5": "835c7c4137821de5c309f4266a51ba89",
+      "license": "LGPL-2.1-or-later"
+    },
+    {
+      "name": "libedit",
+      "version": "3.1.20260512",
+      "build": "pl5321hc48eb74_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libedit-3.1.20260512-pl5321hc48eb74_0.conda",
+      "sha256": "58fd637d0219016bb69edf2973b089975de283e8a38149d69ef586b8fc4ad90b",
+      "md5": "3ffb447961508502fc81e063ca2071cb",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "readline",
+      "version": "8.3",
+      "build": "ha7194a6_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/readline-8.3-ha7194a6_1.conda",
+      "sha256": "80167dcf73a96b6d0c1bb2298d7b8b9bc21b27cc5bf56979f9c548b49a4d1722",
+      "md5": "5b399a7afa10098f2a6b02263181426e",
+      "license": "GPL-3.0-only"
+    },
+    {
+      "name": "icu",
+      "version": "78.3",
+      "build": "py311h3512406_2",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/icu-78.3-py311h3512406_2.conda",
+      "sha256": "54d921defd947adb58a90e10203d3bfe6c1f209f5f1a1ad2c6a9f7617f2fb59e",
+      "md5": "b35bbb1b957440ed742f35fb96eb7f1c",
+      "license": "MIT"
+    },
+    {
+      "name": "lz4-c",
+      "version": "1.10.0",
+      "build": "hfb11796_2",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/lz4-c-1.10.0-hfb11796_2.conda",
+      "sha256": "e8392843a18954fef038f2721fde65c4dbe7693fcd07677e5e74fca85b1a690c",
+      "md5": "36a6fab65bc51cf71761eb5339d8ea04",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "libxml2-16",
+      "version": "2.15.4",
+      "build": "h2e5089f_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-16-2.15.4-h2e5089f_1.conda",
+      "sha256": "96bce6a0c8eae2e1d22e09473b9e54bb13a736b4997ddd7a111eeaef16734708",
+      "md5": "50740a3de17dba0b97199ec90dc925d0",
+      "license": "MIT"
+    },
+    {
+      "name": "libxml2",
+      "version": "2.15.4",
+      "build": "h92b9305_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libxml2-2.15.4-h92b9305_1.conda",
+      "sha256": "f714cfffb6009f1bd028a06d237e6f4550ff4ffb3f4209a9bfaeb2b36f7c6a56",
+      "md5": "d4dbfadb069b3667818403fa8fb4770e",
+      "license": "MIT"
+    },
+    {
+      "name": "libxslt",
+      "version": "1.1.45",
+      "build": "h22b76d0_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libxslt-1.1.45-h22b76d0_1.conda",
+      "sha256": "3f18581631da141a82a3066d99db8bf88e46785fa973ddfc66543e890f202fb0",
+      "md5": "71f0ad0e9e4dcceace6c42cd48e564ad",
+      "license": "MIT"
+    },
+    {
+      "name": "tzdata",
+      "version": "2026e",
+      "build": "h5d301ff_0",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/tzdata-2026e-h5d301ff_0.conda",
+      "sha256": "2b7ca858879f183ce2dcc65b300f48a0133d5430550f35b23d80d405a0788dbf",
+      "md5": "abccc3810d2b97e570dee487f2b46e38",
+      "license": "LicenseRef-Public-Domain"
+    },
+    {
+      "name": "ca-certificates",
+      "version": "2026.10.23",
+      "build": "hbd8a1cb_0",
+      "url": "https://conda.anaconda.org/conda-forge/noarch/ca-certificates-2026.10.23-hbd8a1cb_0.conda",
+      "sha256": "95619b9c1184be7175392eeb0ee7eeb5ccf25d280951f4225f2d62e725790be3",
+      "md5": "3fd02989038a1e1cee627c14c2d73f29",
+      "license": "ISC"
+    },
+    {
+      "name": "openssl",
+      "version": "3.6.5",
+      "build": "he6ad1d5_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/openssl-3.6.5-he6ad1d5_0.conda",
+      "sha256": "238136f1df197ecd89bafd728a34d0642176f3170423d13d8276746d675a9485",
+      "md5": "92aec5ec417d2ce9ae109e6c5ad377ff",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "krb5",
+      "version": "1.22.2",
+      "build": "h095d8e5_2",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/krb5-1.22.2-h095d8e5_2.conda",
+      "sha256": "601d79af94d9562ba70e2d4947034ba159aae293a3c860855335a7c76c14400e",
+      "md5": "a4d0da122ba952abf76981e76d0d283c",
+      "license": "MIT"
+    },
+    {
+      "name": "redis-server",
+      "version": "7.4.7",
+      "build": "h546c87b_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/redis-server-7.4.7-h546c87b_0.conda",
+      "sha256": "ed53b59a1439f406a18a0023f7651ca1994c5e467b93d9f651a3f045c2bfc691",
+      "md5": "6099821280f238ff8004704bb1be59bf",
+      "license": "SSPL-1.0 OR LicenseRef-RSALv2"
+    },
+    {
+      "name": "cyrus-sasl",
+      "version": "2.1.28",
+      "build": "h6598af7_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/cyrus-sasl-2.1.28-h6598af7_1.conda",
+      "sha256": "0606296a3b0cc757229dd97db8c6dc0f77e54f975f89ae63c36fb01e2a2abe61",
+      "md5": "f4fbf4001970e3e58984281a12c99969",
+      "license": "BSD-3-Clause-Attribution"
+    },
+    {
+      "name": "openldap",
+      "version": "2.6.13",
+      "build": "h2fb54aa_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/openldap-2.6.13-h2fb54aa_0.conda",
+      "sha256": "08fab1d144a9790763f30bd44ac4a2f288703ad668d8c31d339ddea23e981147",
+      "md5": "67eea19865a3463f75ca0d3a1d096350",
+      "license": "OLDAP-2.8"
+    },
+    {
+      "name": "libpq",
+      "version": "17.11",
+      "build": "hd2a0605_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/libpq-17.11-hd2a0605_1.conda",
+      "sha256": "1fdbd775f7adf4cf80d0b95f31bacb79915ade041de9936198346280fa7b0e26",
+      "md5": "80b984b4db8587ecb743976fd911d8a9",
+      "license": "PostgreSQL"
+    },
+    {
+      "name": "postgresql",
+      "version": "17.11",
+      "build": "h95cadad_1",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/postgresql-17.11-h95cadad_1.conda",
+      "sha256": "2a831ba1fff9d8495410d2abb7fb392c0d743a5fe17ae769bff4483adbcc60c9",
+      "md5": "8cd65a5a306b4651143948f718a90583",
+      "license": "PostgreSQL"
+    },
+    {
+      "name": "pgvector",
+      "version": "0.8.1",
+      "build": "h4702fc2_0",
+      "url": "https://conda.anaconda.org/conda-forge/linux-aarch64/pgvector-0.8.1-h4702fc2_0.conda",
+      "sha256": "79d12aff4d79e70fd7918e06bd397840620e17b9192dd938e3a87fff49ef6aba",
+      "md5": "65f24528b20083ca5a8cfb92bcc67fcc",
+      "license": "PostgreSQL"
+    }
+  ]
+}

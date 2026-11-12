@@ -5,24 +5,26 @@ import { Job } from 'bull'
 import { XpertTaskService } from './xpert-task.service'
 
 export type TSchedulerType = {
-	taskId: string
+    taskId: string
+    registerOnly?: boolean
 }
 
 @Processor({
-	name: 'xpert-task-scheduler'
+    name: 'xpert-task-scheduler'
 })
 export class TaskSchedulerProcessor {
-	readonly #logger = new Logger(TaskSchedulerProcessor.name)
+    readonly #logger = new Logger(TaskSchedulerProcessor.name)
 
-	constructor(
-		@Inject(JOB_REF) jobRef: Job<TSchedulerType>,
-		private readonly service: XpertTaskService,
-		private readonly commandBus: CommandBus
-	) {}
+    constructor(
+        @Inject(JOB_REF) jobRef: Job<TSchedulerType>,
+        private readonly service: XpertTaskService,
+        private readonly commandBus: CommandBus
+    ) {}
 
-	@Process({ concurrency: 5 })
-	async process(job: Job<TSchedulerType>) {
-		const { taskId } = job.data
-		await this.service.schedule(taskId)
-	}
+    @Process({ concurrency: 5 })
+    async process(job: Job<TSchedulerType>) {
+        const { taskId } = job.data
+        if (job.data.registerOnly) await this.service.registerScheduledTask(taskId)
+        else await this.service.schedule(taskId)
+    }
 }
