@@ -2,6 +2,7 @@ import type {
   ProjectPipelineConfiguration,
   ProjectPipelineBinding,
   ProjectPipelineGraph,
+  ProjectPluginDeploymentReceipt,
   ProjectTaskAssistantExecutionTarget
 } from '@xpert-ai/contracts'
 import type { ProjectPipelineContribution } from '@xpert-ai/plugin-sdk'
@@ -16,11 +17,13 @@ type ContributionIsTyped = Assert<IsAny<ProjectPipelineContribution> extends fal
 declare const configuration: ProjectPipelineConfiguration
 declare const contribution: ProjectPipelineContribution
 declare const graph: ProjectPipelineGraph
+declare const receipt: ProjectPluginDeploymentReceipt
 const version: 1 = configuration.schemaVersion
 const ref: string = configuration.binding.templateRef
 const key: string = contribution.key
 const configurations: ProjectPipelineConfiguration[] = contribution.configurations
 const title: string = graph.instance.title
+const artifactDigest: string = receipt.request.sha256
 
 // @ts-expect-error Required configuration fields must survive declaration emission.
 const missingConfiguration: ProjectPipelineConfiguration = {}
