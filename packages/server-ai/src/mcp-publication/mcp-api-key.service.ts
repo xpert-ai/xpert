@@ -121,6 +121,7 @@ export class McpApiKeyService {
             (key) =>
                 !!key.encryptedSecret &&
                 (!key.expiresAt || new Date(key.expiresAt).getTime() > Date.now()) &&
+                (!input.expiresAt || (key.expiresAt && new Date(key.expiresAt).getTime() <= new Date(input.expiresAt).getTime())) &&
                 hasRequestedScopes(key.scopes, input.scopes)
         )
         if (reusable?.encryptedSecret) {

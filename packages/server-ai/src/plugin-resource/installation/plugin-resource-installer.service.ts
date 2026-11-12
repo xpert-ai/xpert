@@ -13,12 +13,7 @@ import {
     XpertToolsetCategoryEnum
 } from '@xpert-ai/contracts'
 import { RequestContext, XpertToolProviderRegistry } from '@xpert-ai/plugin-sdk'
-import {
-    LOADED_PLUGINS,
-    LoadedPluginRecord,
-    normalizePluginName,
-    readPluginBundleManifest
-} from '@xpert-ai/server-core'
+import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, realpath } from 'node:fs/promises'
@@ -37,8 +32,9 @@ import {
     isPluginResourceInstallableForTarget,
     listRuntimeToolProviderComponents,
     PluginResourceInstallTarget,
-    readPluginResourceComponents,
-    resolveLoadedPluginResourceRoot
+    readLoadedPluginResourceCatalog,
+    requirePluginResourceRoot,
+    resolveScopedLoadedPlugin
 } from '../catalog/plugin-resource-components'
 import { PLUGIN_HOOKS_MIDDLEWARE_NAME } from '../hooks/plugin-hooks.middleware'
 import {
@@ -175,12 +171,12 @@ export class PluginResourceInstallerService {
             )
         }
 
-        const rootDir = resolveLoadedPluginResourceRoot(pluginName, this.loadedPlugins)
+        resolveScopedLoadedPlugin(pluginName, this.loadedPlugins)
         const runtimeComponent: RuntimeComponent = {
             pluginName,
             pluginVersion: registration.pluginVersion,
             component: registration.component,
-            rootDir
+            rootDir: null
         }
         const previousInstallation = await this.findInstallation(
             null,
@@ -328,18 +324,14 @@ export class PluginResourceInstallerService {
         target?: PluginResourceInstallTarget
     ): Promise<RuntimeComponent[]> {
         const normalizedPluginName = normalizePluginName(pluginName)
-        const rootDir = resolveLoadedPluginResourceRoot(normalizedPluginName, this.loadedPlugins)
-        const pluginVersion = readPluginBundleManifest(rootDir)?.manifest.version
-        const manifestComponents = readPluginResourceComponents(normalizedPluginName, rootDir)
-        const runtimeComponents = listRuntimeToolProviderComponents(
+        const { rootDir, pluginVersion, components, runtimeRegistrations } = readLoadedPluginResourceCatalog(
             normalizedPluginName,
+            this.loadedPlugins,
             this.toolProviderRegistry
-        ).map(({ component }) => component)
-        const runtimeKeys = new Set(runtimeComponents.map((component) => componentIdentity(component)))
-        const components = [
-            ...manifestComponents.filter((component) => !runtimeKeys.has(componentIdentity(component))),
-            ...runtimeComponents
-        ]
+        )
+        const runtimeVersions = new Map(
+            runtimeRegistrations.map(({ component, pluginVersion }) => [componentIdentity(component), pluginVersion])
+        )
         const selected = selectors?.length
             ? selectPluginResourceComponents(components, selectors, normalizedPluginName)
             : components
@@ -360,7 +352,7 @@ export class PluginResourceInstallerService {
         if (!selectors?.length) {
             return installable.map((component) => ({
                 pluginName: normalizedPluginName,
-                pluginVersion,
+                pluginVersion: runtimeVersions.get(componentIdentity(component)) ?? pluginVersion,
                 component,
                 rootDir
             }))
@@ -371,7 +363,12 @@ export class PluginResourceInstallerService {
         // expand them back through every selector here instead of keeping only
         // the first targetAgentKey. Each expanded entry creates an Agent-scoped
         // installation and updates that Agent's middleware independently.
-        return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir, pluginVersion)
+        return expandPluginRuntimeComponents(installable, selectors, normalizedPluginName, rootDir, pluginVersion).map(
+            (runtime) => ({
+                ...runtime,
+                pluginVersion: runtimeVersions.get(componentIdentity(runtime.component)) ?? runtime.pluginVersion
+            })
+        )
     }
 
     /** Internal service entry for validated, administrator-installed portable components. */
@@ -589,11 +586,9 @@ export class PluginResourceInstallerService {
         if (!parsed.capabilitySource) {
             return parsed.capabilities
         }
-        const capabilityFile = this.resolvePluginPath(runtimeComponent.rootDir, parsed.capabilitySource)
-        const [pluginRoot, resolvedFile] = await Promise.all([
-            realpath(runtimeComponent.rootDir),
-            realpath(capabilityFile)
-        ])
+        const rootDir = requirePluginResourceRoot(runtimeComponent.rootDir)
+        const capabilityFile = this.resolvePluginPath(rootDir, parsed.capabilitySource)
+        const [pluginRoot, resolvedFile] = await Promise.all([realpath(rootDir), realpath(capabilityFile)])
         const relativePath = relative(pluginRoot, resolvedFile)
         if (isAbsolute(relativePath) || relativePath.startsWith('..')) {
             throw new BadRequestException(
@@ -644,7 +639,7 @@ export class PluginResourceInstallerService {
                 `Skill component '${runtimeComponent.component.componentKey}' is missing sourcePath`
             )
         }
-        const skillFile = this.resolvePluginPath(runtimeComponent.rootDir, sourcePath)
+        const skillFile = this.resolvePluginPath(requirePluginResourceRoot(runtimeComponent.rootDir), sourcePath)
         return dirname(skillFile)
     }
 

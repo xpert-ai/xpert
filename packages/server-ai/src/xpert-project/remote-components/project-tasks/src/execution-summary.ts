@@ -5,8 +5,12 @@ export function executionSummary(attempt: Attempt, t: Texts) {
     const state = attempt.invocationStatus ?? attempt.runtimeStatus ?? attempt.status
     const succeeded = state === 'success' || state === 'succeeded'
     const failed = ['failed', 'error', 'timeout'].includes(state)
+    const verdict = succeeded && attempt.purpose?.type === 'review' ? attempt.reviewVerdict : null
+    const reviewResult = verdict === 'pass' ? t.reviewPass
+        : verdict === 'changes_required' ? t.reviewChanges
+          : verdict === 'indeterminate' ? t.reviewIndeterminate : null
     const businessResult =
-        attempt.outputSummary === 'rejected' ? t.rejected : attempt.status === 'failed' && succeeded ? t.failed : null
+        reviewResult ?? (attempt.outputSummary === 'rejected' ? t.rejected : attempt.status === 'failed' && succeeded ? t.failed : null)
     const color = failed
         ? 'bg-destructive'
         : succeeded
@@ -14,7 +18,9 @@ export function executionSummary(attempt: Attempt, t: Texts) {
           : state === 'running'
             ? 'bg-primary'
             : 'bg-muted-foreground'
-    return { state, succeeded, failed, businessResult, color, label: runtimeLabel(state, t) }
+    const purposeLabel = attempt.purpose?.type === 'review' ? t.executionReview
+        : attempt.purpose?.type === 'implementation' ? (attempt.purpose.rework ? t.reworkAttempt : t.implementationAttempt) : ''
+    return { state, succeeded, failed, businessResult, color, label: [purposeLabel, runtimeLabel(state, t)].filter(Boolean).join(' · ') }
 }
 export function executionDuration(attempt: Attempt, now: number): number | null {
     const { start, end } = attemptTimes(attempt)

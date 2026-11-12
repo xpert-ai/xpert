@@ -11,6 +11,8 @@ export const projectTaskDispatchIntentSchema = z
     .object({
         version: z.literal(1),
         input: projectTaskDispatchInputSchema,
+        // Host-derived stable identity; scope.parentExecutionId retains the execution that admitted this work.
+        invocationParentExecutionId: z.string().min(1).optional(),
         scope: z
             .object({
                 tenantId: z.string().uuid(),
@@ -75,6 +77,11 @@ export const projectTaskDispatchIntentSchema = z
     })
     .strict()
 export type ProjectTaskDispatchIntent = z.output<typeof projectTaskDispatchIntentSchema>
+
+/** Stored invocation identity; intent.scope retains the admitting execution attempt. */
+export function projectTaskInvocationScope(intent: ProjectTaskDispatchIntent) {
+    return { ...intent.scope, parentExecutionId: intent.invocationParentExecutionId ?? intent.scope.parentExecutionId }
+}
 
 export const projectTaskCallerSchema = z
     .object({

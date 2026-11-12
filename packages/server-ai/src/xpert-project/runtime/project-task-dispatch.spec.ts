@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
@@ -121,11 +122,12 @@ async function fixture() {
     }
     const start = jest.fn(async (request: AgentInvocationRequest): Promise<AgentInvocation> => {
         expect(committed).toBe(true)
-        expect(rows).toHaveLength(1)
+        const reserved = rows.filter((row) => row.dispatchRequestId === input.requestId)
+        expect(reserved).toHaveLength(1)
         const invocation: AgentInvocation = {
-            id: agentInvocationId(scope, request.callId),
+            id: agentInvocationId(reserved[0].dispatchIntent.scope, request.callId),
             revision: 2,
-            scope,
+            scope: structuredClone(reserved[0].dispatchIntent.scope),
             request,
             status: 'running',
             createdAt: new Date().toISOString(),
@@ -135,10 +137,12 @@ async function fixture() {
         return invocation
     })
     const factory = {
+        resolveInvocationIdentityScope: jest.fn(async (value: AgentInvocationScope) => ({ ...value })),
         resolveBackgroundTarget: jest.fn(async () => target),
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
+    const reviews = { assertSupported: jest.fn(), executionInstructions: jest.fn() }
     const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
     const bindings = { resolveCurrentById: jest.fn(async (id: string) => ({ id })) }
     const module = await Test.createTestingModule({
@@ -150,11 +154,13 @@ async function fixture() {
             { provide: getRepositoryToken(XpertProjectTaskExecution), useValue: { ...executionRepo, manager } },
             { provide: ProjectTaskRuntimeContextService, useValue: context },
             { provide: AgentInvocationFactoryService, useValue: factory },
+            { provide: ProjectReviewEnvironment, useValue: reviews },
             { provide: XpertProjectXpertBindingService, useValue: bindings }
         ]
     }).compile()
     return {
         service: module.get(ProjectTaskDispatchService),
+        reviews,
         scope,
         caller,
         input,
@@ -174,6 +180,70 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('preflights an assigned reviewer through the Runtime before implementation reservation', async () => {
+        const f = await fixture()
+        const reviewer = { bindingId: randomUUID(), mode: 'evidence_only' as const }
+        f.reviews.assertSupported.mockImplementation(() => { throw new Error('Reviewer not available') })
+        await expect(f.service.dispatch(f.scope.projectId, { ...f.input,
+            purpose: { type: 'implementation', reviewer } }, f.caller)).rejects.toThrow('Reviewer not available')
+        expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId)
+        expect(f.reviews.assertSupported).toHaveBeenCalledWith(f.target, reviewer.mode)
+        expect(f.executionRepo.save).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+    })
+    it('reserves canonical invocation identity while retaining the admitting execution in its intent', async () => {
+        const f = await fixture()
+        const canonical = { ...f.scope, parentExecutionId: randomUUID() }
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
+        f.start.mockImplementation(async (request) => ({
+            id: agentInvocationId(canonical, request.callId), scope: canonical, request,
+            revision: 1, status: 'running', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+        }))
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.invocationId).toBe(agentInvocationId(canonical, `project-task:${f.input.requestId}`))
+        expect(f.rows[0].invocationId).toBe(result.invocationId)
+        const intent = f.service.intent(f.rows[0])
+        expect(intent.scope.parentExecutionId).toBe(f.scope.parentExecutionId)
+        expect(intent.invocationParentExecutionId).toBe(canonical.parentExecutionId)
+        expect(f.rows[0].dispatchState).toBe('submitted')
+    })
+    it.each(['id', 'scope', 'request'] as const)('refuses a returned %s mismatch instead of submitting an untraceable attempt', async (field) => {
+        const f = await fixture()
+        const original = f.start.getMockImplementation()
+        f.start.mockImplementation(async (request) => {
+            const result = await original(request)
+            if (field === 'id') return { ...result, id: randomUUID() }
+            if (field === 'scope') return { ...result, scope: { ...result.scope, parentExecutionId: randomUUID() } }
+            return { ...result, request: { ...result.request, input: { prompt: 'Different work' } } }
+        })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.rows[0].dispatchState).toBe('pending')
+    })
+    it('keeps a canonical unknown receipt after a resumed launch throws', async () => {
+        const f = await fixture()
+        const canonical = { ...f.scope, parentExecutionId: randomUUID() }
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
+        f.start.mockImplementation(async (request) => {
+            const invocation: AgentInvocation = {
+                id: agentInvocationId(canonical, request.callId), scope: canonical, request, revision: 1,
+                status: 'unknown', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+            }
+            f.invocations[0] = Object.assign(new AgentInvocationEntity(), { id: invocation.id, invocation })
+            throw new Error('Ambiguous external result')
+        })
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.status).toBe('unknown')
+        expect(result.invocationId).toBe(f.rows[0].invocationId)
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+    it('does not reinterpret a legacy intent whose current canonical identity no longer matches', async () => {
+        const f = await fixture()
+        await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        delete f.rows[0].dispatchIntent.invocationParentExecutionId
+        f.factory.resolveInvocationIdentityScope.mockResolvedValue({ ...f.scope, parentExecutionId: randomUUID() })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
     it('keeps an existing responsible Assistant when the caller delegates to an external Runtime', async () => {
         const f = await fixture()
         const owner = f.task.assigneeXpertId
@@ -502,6 +572,8 @@ describe('explicit Project task delegation', () => {
                 Object.assign(new XpertProjectTaskExecution(), {
                     id: randomUUID(),
                     taskId: randomUUID(),
+                    agentExecutionId: f.caller.executionId,
+                    task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' }),
                     invocationId: randomUUID()
                 })
             )
@@ -516,6 +588,33 @@ describe('explicit Project task delegation', () => {
             expect(f.start).not.toHaveBeenCalled()
         }
     )
+    it.each(['queued', 'running'] as const)('lets a %s native Pipeline coordinator dispatch work without allowing a second runtime', async (status) => {
+        const f = await fixture()
+        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
+            id: randomUUID(), taskId: randomUUID(), status, agentExecutionId: f.caller.executionId,
+            task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' })
+        }))
+        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(result.status).toBe('running')
+        expect(f.executionRepo.find).toHaveBeenCalledWith(expect.objectContaining({ relations: ['task'] }))
+        expect(f.start).toHaveBeenCalledTimes(1)
+        await expect(f.service.dispatch(f.scope.projectId, { ...f.input, requestId: randomUUID() }, f.caller)).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+    it.each([
+        { controlKind: 'ordinary', agentExecutionId: randomUUID() },
+        { controlKind: 'provider', agentExecutionId: randomUUID() },
+        { controlKind: 'pipeline', agentExecutionId: null },
+        { controlKind: undefined, agentExecutionId: randomUUID() }
+    ] as const)('retains reservations without a confirmed native Pipeline coordinator (%j)', async (state) => {
+        const f = await fixture()
+        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
+            id: randomUUID(), taskId: randomUUID(), status: 'running', agentExecutionId: state.agentExecutionId,
+            task: state.controlKind ? Object.assign(new XpertProjectTask(), { controlKind: state.controlKind }) : undefined
+        }))
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.start).not.toHaveBeenCalled()
+    })
     it('rejects revoked binding authorization even when an attempt already exists', async () => {
         const f = await fixture()
         await f.service.dispatch(f.scope.projectId, f.input, f.caller)

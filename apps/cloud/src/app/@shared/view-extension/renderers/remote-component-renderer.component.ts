@@ -104,7 +104,7 @@ type RemoteComponentMessage = {
             [attr.title]="manifest().title.en_US"
             [src]="entryUrl() | safe: 'resourceUrl'"
             allow="autoplay"
-            sandbox="allow-downloads allow-forms allow-popups allow-scripts"
+            sandbox="allow-downloads allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts"
             (load)="handleFrameLoad()"
           ></iframe>
         } @else {
@@ -118,7 +118,7 @@ type RemoteComponentMessage = {
             [attr.title]="manifest().title.en_US"
             [src]="entryUrl() | safe: 'resourceUrl'"
             allow="autoplay"
-            sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+            sandbox="allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
             (load)="handleFrameLoad()"
           ></iframe>
         }

@@ -153,7 +153,7 @@ export class XpertProjectContentService {
         }
     }
 
-    async uploadSkills(projectId: string, file: Express.Multer.File) {
+    async uploadSkills(projectId: string, file: { buffer: Buffer; originalname?: string; mimetype?: string; size?: number }) {
         const { project } = await this.accessService.assertCanEdit(projectId)
         if (!file?.buffer?.length) {
             throw new BadRequestException(

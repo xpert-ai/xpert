@@ -58,13 +58,14 @@ import {
     PLUGIN_RESOURCE_RUNTIME_TYPE,
     RequestScopeLevel
 } from '@xpert-ai/contracts'
-import { collectPluginBundleComponents } from '@xpert-ai/server-core'
+import { collectPluginBundleComponents, resolveLoadedPluginBundleRoot } from '@xpert-ai/server-core'
 import { RequestContext, runtimeToolProviderComponent } from '@xpert-ai/plugin-sdk'
 import { ListPluginResourceComponentStatesHandler } from './list-component-states.handler'
 import { ListPluginResourceComponentStatesQuery } from '../list-component-states.query'
 
 describe('ListPluginResourceComponentStatesHandler', () => {
     beforeEach(() => {
+        jest.mocked(resolveLoadedPluginBundleRoot).mockReturnValue('/tmp/plugin-documents')
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-1')
         jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-1')
         jest.mocked(RequestContext.getScope).mockImplementation(() => ({
@@ -237,6 +238,24 @@ describe('ListPluginResourceComponentStatesHandler', () => {
                 installation: null
             })
         ])
+    })
+
+    it('lists a loaded native provider without a portable manifest', async () => {
+        jest.mocked(resolveLoadedPluginBundleRoot).mockReturnValue(null)
+        const { handler } = createHandler({
+            runtimeRegistrations: [
+                {
+                    strategy: {
+                        descriptor: { options: { provider: 'cut', componentKey: 'cut', name: 'Cut' }, tools: [] }
+                    },
+                    source: { kind: 'plugin', pluginName: '@xpert-ai/plugin-cut', scopeKey: 'org-1' }
+                }
+            ]
+        })
+        const states = await handler.execute(
+            new ListPluginResourceComponentStatesQuery('@xpert-ai/plugin-cut', { target: 'organization' })
+        )
+        expect(states).toEqual([expect.objectContaining({ componentKey: 'cut', installed: false })])
     })
 
     it('marks an installed provider stale when only its resource definition changes', async () => {

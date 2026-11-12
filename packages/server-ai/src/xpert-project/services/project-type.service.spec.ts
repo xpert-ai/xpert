@@ -1,7 +1,7 @@
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { RequestContext, ProjectTypeProviderRegistry, type IProjectTypeProvider } from '@xpert-ai/plugin-sdk'
 import { type LoadedPluginRecord } from '@xpert-ai/server-core'
-import { RolesEnum, type IXpert, type IUser } from '@xpert-ai/contracts'
+import { projectTaskConfigurationSchema, RolesEnum, type IXpert, type IUser } from '@xpert-ai/contracts'
 import type { Repository } from 'typeorm'
 import { PluginApplicationInstallation } from '../../plugin-resource/plugin-application-installation.entity'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
@@ -60,6 +60,41 @@ function fixture() {
 }
 
 describe('application Project types', () => {
+    it('exposes built-in configuration without changing the ordinary duration default', () => {
+        const { service } = fixture()
+        for (const projectTypeKey of ['general', 'space']) {
+            expect(service.resolve({ applicationKey: 'platform', projectTypeKey }).configuration).toEqual({
+                schema: projectTaskConfigurationSchema()
+            })
+        }
+    })
+    it('retains and validates custom configuration declarations at plugin registration', () => {
+        const configuration = { schema: projectTaskConfigurationSchema(7200) }
+        const declaration = { ...definition, projectTypes: [{ ...definition.projectTypes[0], configuration }] }
+        expect(
+            projectApplicationDefinitions({ xpert: { marketplace: { contents: [declaration] } } })[0].projectTypes[0]
+                .configuration
+        ).toEqual(configuration)
+        expect(() =>
+            projectApplicationDefinitions({
+                xpert: {
+                    marketplace: {
+                        contents: [
+                            {
+                                ...declaration,
+                                projectTypes: [
+                                    {
+                                        ...declaration.projectTypes[0],
+                                        configuration: { schema: { type: 'array' } }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            })
+        ).toThrow()
+    })
     it('publishes business capacity in the type catalog without configuring an Agent', () => {
         expect(
             fixture()

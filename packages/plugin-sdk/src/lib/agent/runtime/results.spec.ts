@@ -1,6 +1,14 @@
-import { agentOutputDeliverySchema, agentResultPathSchema, agentTaskResultSchema } from './results'
+import { agentOutputDeliverySchema, agentResultPathSchema, agentTaskResultSchema, agentTaskResultFileSchema } from './results'
 
 describe('portable task results', () => {
+  it('requires a versioned exact file reference and lowercase SHA-256 without granting export', () => {
+    const reference = { version: 1, path: 'output/结果.json', sha256: 'a'.repeat(64) }
+    expect(agentTaskResultFileSchema.parse(reference)).toEqual(reference)
+    for (const value of [{ ...reference, version: 2 }, { ...reference, sha256: 'A'.repeat(64) },
+      { ...reference, sha256: 'a'.repeat(63) }, { ...reference, path: '../private' },
+      { ...reference, artifacts: [{ id: 'invented' }] }])
+      expect(agentTaskResultFileSchema.safeParse(value).success).toBe(false)
+  })
   it.each(['../secret', '/etc/passwd', 'nested/../secret', 'a\\b', 'a//b', './a', 'a\u0000b', 'C:/secret'])(
     'rejects a non-relative file selection: %s',
     (path) => {

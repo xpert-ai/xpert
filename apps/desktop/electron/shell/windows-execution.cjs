@@ -98,16 +98,12 @@ function spawnWindowsExecution(settings, command, directory) {
   })
   server.listen(`\\\\.\\pipe\\${pipe}`)
   try {
-    child = spawn(
-      supervisor,
-      [],
-      {
-        cwd: command.cwd,
-        windowsHide: true,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: shellEnvironment(settings, 'win32')
-      }
-    )
+    child = spawn(supervisor, [], {
+      cwd: command.cwd,
+      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: shellEnvironment(settings, 'win32')
+    })
     child.stdin.on('error', () => undefined)
     child.stdin.write(JSON.stringify({ executable, cwd: command.cwd, script, pipe, token }) + '\n')
   } catch (error) {

@@ -12,6 +12,7 @@ import {
     AgentExecutionRunnerCapability,
     AgentExecutionRunnerFactoryCapability,
     AgentInvocationScope,
+    AgentTarget,
     AgentRunnerReceipt,
     AgentRuntimeRegistry,
     BUILTIN_GLOBAL_SCOPE,
@@ -33,7 +34,7 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
 const bindingId = '00000000-0000-4000-8000-000000000010'
 
 function fixture() {
-    const binding = {
+    const binding: { enabled: boolean; workspaceIds: string[]; target: AgentTarget } = {
         enabled: true,
         workspaceIds: ['workspace'],
         target: {
@@ -123,7 +124,76 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
     } satisfies AgentExecutionRunner
 }
 
+describe('Runtime background target admission', () => {
+    let f: ReturnType<typeof fixture>
+    const scope: AgentInvocationScope = {
+        tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace',
+        callerXpertId: 'assistant', callerAgentKey: 'leader', parentExecutionId: 'parent'
+    }
+    beforeEach(() => {
+        f = fixture()
+        f.binding.target.provider = 'opencode'
+        f.binding.target.configuration = { executionEnvironment: { type: 'computer' } }
+        f.registry.register('opencode', f.provider, { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
+    })
+    it('authorizes the binding and checks background support without launching work', async () => {
+        const target = await f.factory.resolveBackgroundTarget(scope, bindingId)
+        expect(target).toEqual(f.binding.target)
+        expect(target).not.toBe(f.binding.target)
+        expect(f.managed.assertEnabled).toHaveBeenCalledWith(scope, f.binding)
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('rejects disabled bindings and unauthorized workspaces', async () => {
+        f.binding.enabled = false
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'NotFound' })
+        f.binding.enabled = true
+        f.binding.workspaceIds = ['other-workspace']
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'NotFound' })
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('propagates environment authorization failures', async () => {
+        f.managed.assertEnabled.mockRejectedValue(new Error('Environment permission revoked'))
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toThrow('Environment permission revoked')
+        expect(f.provider.start).not.toHaveBeenCalled()
+    })
+    it('requires an installed background provider', async () => {
+        f.binding.target.provider = 'missing'
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'ProviderUnavailable' })
+        f.binding.target.provider = 'opencode'
+        f.provider.capabilities.background = false
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'Unsupported' })
+    })
+
+})
+
 describe('Agent invocation factory and controller boundaries', () => {
+    it('binds the runner to the persisted call identity after its admitting execution resumes', async () => {
+        const f = fixture()
+        jest.spyOn(f.runtime, 'resolveIdentityScope').mockImplementation(async (scope) => ({
+            ...scope, parentExecutionId: 'original-attempt'
+        }))
+        const scopes: Readonly<AgentInvocationScope>[] = []
+        f.capabilities.register(AgentExecutionRunnerFactoryCapability, {
+            createScopedRunner(scope) {
+                scopes.push(scope)
+                return runnerFixture(scope)
+            }
+        })
+        jest.mocked(f.provider.start).mockImplementation(async (_request, context) => {
+            expect(scopes.at(-1)).toEqual(context.scope)
+            expect(context.scope.parentExecutionId).toBe('original-attempt')
+            const receipt = await context.capabilities.require(AgentExecutionRunnerCapability)
+                .start(context.invocationId, async () => undefined)
+            return { status: 'running', handle: { sessionId: 'session', runId: context.invocationId, runner: receipt } }
+        })
+        const request = { target: await f.api.resolve(bindingId), callId: 'resumed-call', input: { prompt: 'task' } }
+        const first = await f.api.start(request)
+        const resumed = f.factory.createScopedApi({ ...f.identity, executionId: 'resumed-attempt' })
+        expect((await resumed.start(request)).id).toBe(first.id)
+        expect(f.provider.start).toHaveBeenCalledTimes(1)
+        expect(scopes.every((scope) => scope.parentExecutionId === 'original-attempt')).toBe(true)
+        expect(f.identity.executionId).toBe('parent')
+    })
     it('discovers managed presets before listing bindings in a new Project workspace', async () => {
         const f = fixture()
         const scope: AgentInvocationScope = {

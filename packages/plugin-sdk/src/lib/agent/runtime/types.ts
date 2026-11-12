@@ -174,6 +174,8 @@ export interface AgentInvocation extends AgentRuntimeObservation {
   activity?: ExecutionActivityCapabilities
   /** Host startup fence; intermediate receipts are not inspected until start returns or this deadline expires. */
   startPendingUntil?: string
+  /** Host-only startup owner; a stale heartbeat cannot renew another launch. */
+  startPendingId?: string
   /** Host invocation ID used by inspect, cancel and respond. */
   id: string
   /** Host-managed concurrency revision, distinct from the target version. */

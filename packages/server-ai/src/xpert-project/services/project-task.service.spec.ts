@@ -1,3 +1,5 @@
+jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
+import { randomUUID } from 'node:crypto'
 import { XpertProjectTaskService } from './project-task.service'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
@@ -6,6 +8,7 @@ import { XpertProjectXpertBindingService } from './project-xpert-binding.service
 import { Xpert } from '../../xpert/xpert.entity'
 import { Repository } from 'typeorm'
 import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { createUpdateTasksTool } from '../plugins/project-tasks/tools/update'
 
 function fixture(
     task: {
@@ -19,10 +22,15 @@ function fixture(
     members: Array<string | Xpert> = [],
     records = members.map((item) =>
         typeof item === 'string' ? Object.assign(new Xpert(), { id: item, latest: true }) : item
-    )
+    ),
+    otherTasks: XpertProjectTask[] = []
 ) {
     const service = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
-    const tasks = { find: jest.fn(async () => [task]), save: jest.fn(async (value) => value) }
+    const tasks = {
+        findOneBy: jest.fn(async () => task),
+        find: jest.fn(async () => [task, ...otherTasks]),
+        save: jest.fn(async (value) => value)
+    }
     const manager = {
         getRepository: (entity: object) =>
             entity === XpertProject
@@ -60,6 +68,40 @@ function fixture(
 }
 
 describe('XpertProjectTaskService.updateTaskSteps', () => {
+    it('returns only changed tasks and leaves unrelated Pipeline projections alone', async () => {
+        const task = { id: 'task', name: 'Implementation', status: 'todo', steps: [] }
+        const pipeline = Object.assign(new XpertProjectTask(), { id: 'pipeline', controlKind: 'pipeline',
+            pipelineInstanceId: 'instance', status: 'in_progress', steps: [], executions: [] })
+        const service = fixture(task, [], [], [pipeline])
+        const updated = await service.updateTaskSteps('project', 'thread', { id: task.id, status: 'cancelled' })
+        expect(updated).toEqual([task])
+        expect(task.status).toBe('cancelled')
+        expect(pipeline.status).toBe('in_progress')
+    })
+
+    it('updates native execution bookkeeping once without visiting an unrelated Pipeline task', async () => {
+        const task = { id: randomUUID(), name: 'Implementation', status: 'todo', steps: [] }
+        const pipeline = Object.assign(new XpertProjectTask(), { id: randomUUID(), controlKind: 'pipeline',
+            pipelineInstanceId: randomUUID(), status: 'in_progress', steps: [], executions: [] })
+        const service = fixture(task, [], [], [pipeline])
+        const projectId = randomUUID(), executionId = randomUUID()
+        const attempt = Object.assign(new XpertProjectTaskExecution(), { id: randomUUID(), taskId: task.id, agentExecutionId: executionId })
+        const relations = jest.spyOn(service, 'listTaskRelations').mockImplementation(async (_projectId, taskId) => ({
+            conversations: [], executions: [Object.assign(new XpertProjectTaskExecution(), attempt, { taskId })]
+        }))
+        const update = jest.spyOn(service, 'updateExecution').mockResolvedValue(attempt)
+        const permission = jest.fn()
+        await createUpdateTasksTool({ projectId, service, assertPermission: permission }).invoke({
+            tasks: [{ id: task.id, status: 'in_progress' }, { id: task.id, status: 'blocked' }]
+        }, { configurable: { executionId } })
+        expect(permission).toHaveBeenCalledTimes(1)
+        expect(relations).toHaveBeenCalledTimes(1)
+        expect(relations).toHaveBeenCalledWith(projectId, task.id)
+        expect(update).toHaveBeenCalledTimes(1)
+        expect(update).toHaveBeenCalledWith(projectId, task.id, attempt.id, expect.objectContaining({ status: 'failed' }))
+        expect(pipeline.status).toBe('in_progress')
+    })
+
     it.each([false, true])(
         'stores the current Assistant ID for a historical caller (historical Project binding: %s)',
         async (historicalBinding) => {

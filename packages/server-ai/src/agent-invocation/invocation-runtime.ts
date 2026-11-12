@@ -34,6 +34,7 @@ import {
 import type { AgentActivityRecorder } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
 import { TaskControlStore, withTaskControl } from '@xpert-ai/server-core'
+import { invocationStartupHeartbeat } from './invocation-startup-heartbeat'
 import {
     AgentInvocationError,
     AgentInvocationErrorCode,
@@ -232,6 +233,31 @@ export class AgentInvocationRuntime {
         record = claimed
         if (record.invocation.executionTarget?.kind === 'host')
             this.owned.set(id, { access: { ...access, signal: undefined }, target: record.invocation.executionTarget })
+        const heartbeat = invocationStartupHeartbeat(async (leaseMs) => {
+            const latest = await this.store.read(id, access.scope)
+            if (
+                !latest ||
+                latest.invocation.startPendingId !== claimed.invocation.startPendingId ||
+                latest.invocation.status !== 'running' ||
+                latest.invocation.control ||
+                !(Date.parse(latest.invocation.startPendingUntil ?? '') > Date.now())
+            )
+                return false
+            // A revision conflict leaves the existing fence intact; the next heartbeat retries it.
+            await this.store.replace(
+                {
+                    ...latest,
+                    invocation: {
+                        ...latest.invocation,
+                        startPendingUntil: new Date(Date.now() + leaseMs).toISOString(),
+                        revision: latest.invocation.revision + 1,
+                        updatedAt: new Date().toISOString()
+                    }
+                },
+                latest.invocation.revision
+            )
+            return true
+        }, 120_000)
         try {
             const launch = () =>
                 strategy.start(
@@ -303,6 +329,8 @@ export class AgentInvocationRuntime {
             else if (task && access.controlAdapter === 'native-graph')
                 await this.tasks.receipt(task.id, 'completed', taskClaim)
             throw error
+        } finally {
+            await heartbeat.stop()
         }
     }
 
@@ -490,12 +518,17 @@ export class AgentInvocationRuntime {
     }
 
     /** Pause changes an execution attempt, never the idempotency identity of its calls. */
-    private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
-        const task = await this.tasks?.execution(access.scope.parentExecutionId)
-        if (!task) return access
-        if (task.tenantId !== access.scope.tenantId || task.organizationId !== (access.scope.organizationId ?? null))
+    async resolveIdentityScope(scope: Readonly<AgentInvocationScope>): Promise<AgentInvocationScope> {
+        const task = await this.tasks?.execution(scope.parentExecutionId)
+        if (!task) return { ...scope }
+        if (task.tenantId !== scope.tenantId || task.organizationId !== (scope.organizationId ?? null))
             throw invocationError('NotFound')
-        return { ...access, scope: { ...access.scope, parentExecutionId: task.attempts[0] } }
+        if (!task.attempts[0]) throw invocationError('InvalidScope')
+        return { ...scope, parentExecutionId: task.attempts[0] }
+    }
+
+    private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
+        return { ...access, scope: await this.resolveIdentityScope(access.scope) }
     }
 
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {
@@ -510,6 +543,10 @@ export class AgentInvocationRuntime {
                   }
                 : undefined,
             scope: access.scope,
+            // Keep task semantics available to adapters without exposing reply routing or sharing mutable state.
+            ...(record.invocation.request.dispatch?.projectTask
+                ? { projectTask: structuredClone(record.invocation.request.dispatch.projectTask) }
+                : {}),
             signal: access.signal,
             capabilities: access.capabilities,
             ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),
@@ -621,6 +658,12 @@ export class AgentInvocationRuntime {
                         : startup === 'finish' || isAgentInvocationTerminal(observation.status)
                           ? undefined
                           : record.invocation.startPendingUntil,
+                startPendingId:
+                    startup === 'begin'
+                        ? randomUUID()
+                        : startup === 'finish' || isAgentInvocationTerminal(observation.status)
+                          ? undefined
+                          : record.invocation.startPendingId,
                 revision: record.invocation.revision + 1,
                 updatedAt: new Date().toISOString()
             }

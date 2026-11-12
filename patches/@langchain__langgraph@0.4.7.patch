@@ -1,0 +1,72 @@
+diff --git a/dist/pregel/loop.cjs b/dist/pregel/loop.cjs
+index c9412c94e42edc3d1b2a2c14c51b7341095b3211..ebec2f0a5de9e95f0a9ed502759605bb74c93645 100644
+--- a/dist/pregel/loop.cjs
++++ b/dist/pregel/loop.cjs
+@@ -450,6 +450,9 @@ class PregelLoop {
+         this._checkpointerChainedPromise = this._checkpointerChainedPromise.then(() => {
+             return this.checkpointer?.put(input.config, input.checkpoint, input.metadata, input.newVersions);
+         });
++        // Observe rejection now; retain the rejected promise for normal graph error propagation.
++        // Otherwise a fenced write can terminate Node while the next graph step is still running.
++        void this._checkpointerChainedPromise.catch(() => {});
+         this.checkpointerPromises.push(this._checkpointerChainedPromise);
+     }
+     /**
+@@ -476,7 +479,9 @@ class PregelLoop {
+             [constants_js_1.CONFIG_KEY_CHECKPOINT_ID]: this.checkpoint.id,
+         });
+         if (this.durability !== "exit" && this.checkpointer != null) {
+-            this.checkpointerPromises.push(this.checkpointer.putWrites(config, writesCopy, taskId));
++            const promise = this.checkpointer.putWrites(config, writesCopy, taskId);
++            void promise.catch(() => {});
++            this.checkpointerPromises.push(promise);
+         }
+         if (this.tasks) {
+             this._outputWrites(taskId, writesCopy);
+@@ -936,7 +941,9 @@ class PregelLoop {
+         }
+         // submit writes to checkpointer
+         for (const [tid, ws] of Object.entries(byTask)) {
+-            this.checkpointerPromises.push(this.checkpointer.putWrites(config, ws, tid));
++            const promise = this.checkpointer.putWrites(config, ws, tid);
++            void promise.catch(() => {});
++            this.checkpointerPromises.push(promise);
+         }
+     }
+     _matchWrites(tasks) {
+diff --git a/dist/pregel/loop.js b/dist/pregel/loop.js
+index 213e6f2eee51c96501b7384f501a35e4f15c2773..35948a96ba261726a512b099d7a83dcaea42c9d5 100644
+--- a/dist/pregel/loop.js
++++ b/dist/pregel/loop.js
+@@ -447,6 +447,9 @@ export class PregelLoop {
+         this._checkpointerChainedPromise = this._checkpointerChainedPromise.then(() => {
+             return this.checkpointer?.put(input.config, input.checkpoint, input.metadata, input.newVersions);
+         });
++        // Observe rejection now; retain the rejected promise for normal graph error propagation.
++        // Otherwise a fenced write can terminate Node while the next graph step is still running.
++        void this._checkpointerChainedPromise.catch(() => {});
+         this.checkpointerPromises.push(this._checkpointerChainedPromise);
+     }
+     /**
+@@ -473,7 +476,9 @@ export class PregelLoop {
+             [CONFIG_KEY_CHECKPOINT_ID]: this.checkpoint.id,
+         });
+         if (this.durability !== "exit" && this.checkpointer != null) {
+-            this.checkpointerPromises.push(this.checkpointer.putWrites(config, writesCopy, taskId));
++            const promise = this.checkpointer.putWrites(config, writesCopy, taskId);
++            void promise.catch(() => {});
++            this.checkpointerPromises.push(promise);
+         }
+         if (this.tasks) {
+             this._outputWrites(taskId, writesCopy);
+@@ -933,7 +938,9 @@ export class PregelLoop {
+         }
+         // submit writes to checkpointer
+         for (const [tid, ws] of Object.entries(byTask)) {
+-            this.checkpointerPromises.push(this.checkpointer.putWrites(config, ws, tid));
++            const promise = this.checkpointer.putWrites(config, ws, tid);
++            void promise.catch(() => {});
++            this.checkpointerPromises.push(promise);
+         }
+     }
+     _matchWrites(tasks) {

@@ -5,7 +5,7 @@ export const defaultExecutionLimits: ModelExecutionLimits = {
     requestsPerMinute: 60,
     requestIdleSeconds: 600,
     leaseSeconds: 120,
-    maxDurationSeconds: 3600
+    maxDurationSeconds: 7200
 }
 
 /** The guest cannot reach the API through its own loopback interface. */

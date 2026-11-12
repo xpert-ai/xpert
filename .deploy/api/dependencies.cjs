@@ -21,6 +21,7 @@ const packages = [
   'plugins/draft',
   'plugins/github-integration',
   'plugins/execution-observability',
+  'plugins/coding-project',
   'plugins/vlm-default'
 ].map((name) => `packages/${name}`)
 const dependencyFields = [
@@ -56,7 +57,7 @@ function profile(stage) {
 function prepareManifestWorkspace(stage, destination, sourceRoot = root, seedLock) {
   const files = profile(stage)
   copy(path.join(sourceRoot, files.manifest), path.join(destination, 'package.json'))
-  for (const file of ['pnpm-workspace.yaml', '.npmrc']) copy(path.join(sourceRoot, file), path.join(destination, file))
+  for (const file of ['pnpm-workspace.yaml', '.npmrc', 'patches']) copy(path.join(sourceRoot, file), path.join(destination, file))
   const directories = stage === 'build' ? [...packages, 'apps/api'] : packages
   for (const dir of directories)
     copy(path.join(sourceRoot, dir, 'package.json'), path.join(destination, dir, 'package.json'))
@@ -154,7 +155,7 @@ function prepareRuntime(destination, sourceRoot = root) {
   const files = profile('production')
   copy(path.join(sourceRoot, files.manifest), path.join(destination, 'package.json'))
   copy(path.join(sourceRoot, files.lock), path.join(destination, 'pnpm-lock.yaml'))
-  for (const file of ['pnpm-workspace.yaml', '.npmrc', 'tsconfig.base.json'])
+  for (const file of ['pnpm-workspace.yaml', '.npmrc', 'tsconfig.base.json', 'patches'])
     copy(path.join(sourceRoot, file), path.join(destination, file))
 }
 

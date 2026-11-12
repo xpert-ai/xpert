@@ -339,7 +339,7 @@ describe('RemoteComponentRendererComponent', () => {
 
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
     expect(frame.getAttribute('sandbox')?.split(/\s+/).sort()).toEqual(
-      ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-same-origin', 'allow-scripts'].sort()
+      ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-same-origin', 'allow-scripts'].sort()
     )
     expect(frame.getAttribute('allow')).toBe('autoplay')
   })

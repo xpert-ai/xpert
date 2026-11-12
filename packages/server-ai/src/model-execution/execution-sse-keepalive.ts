@@ -1,7 +1,11 @@
-// Transport comments prevent proxy read-idle expiry; they never signal provider activity.
+// Transport heartbeats never signal provider activity or extend execution deadlines.
 import type { Response } from 'express'
 
-export function startExecutionSseKeepalive(response: Response, signal: AbortSignal) {
+export function startExecutionSseKeepalive(
+    response: Response,
+    signal: AbortSignal,
+    frame: () => string = () => ': keep-alive\n\n'
+) {
     if (signal.aborted || response.destroyed || response.writableEnded) return () => undefined
 
     const stop = () => {
@@ -15,7 +19,7 @@ export function startExecutionSseKeepalive(response: Response, signal: AbortSign
         if (response.destroyed || response.writableEnded) return stop()
         if (response.writableNeedDrain) return
         try {
-            response.write(': keep-alive\n\n')
+            response.write(frame())
         } catch {
             stop()
             response.destroy()

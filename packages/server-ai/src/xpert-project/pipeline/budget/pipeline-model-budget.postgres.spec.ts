@@ -1,3 +1,13 @@
+import { Xpert } from '../../../xpert/xpert.entity'
+import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { UserType, type IUser } from '@xpert-ai/contracts'
+import { ProjectPipelineModelBudgetManagementService } from './pipeline-model-budget-management.service'
+import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
+import { XpertProjectAccessService } from '../../services/project-access.service'
+import { AssistantPrincipalAccessService } from '../../../xpert/assistant-principal/assistant-principal-access.service'
+import { XpertProjectMembership } from '../../entities/project-membership.entity'
 import { ProjectPipelineModelBudgetStore, pipelineModelBudgetTotals } from './pipeline-model-budget.store'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
@@ -83,6 +93,7 @@ const configuration = projectPipelineConfigurationSchema.parse({
 
 integration('native model budget across durable instances', () => {
     const schema = `pipeline_operation_${randomUUID().replace(/-/g, '')}`
+    let management: ProjectPipelineModelBudgetManagementService, access: ProjectAccessRuntimeService
     let db: DataSource,
         store: ProjectPipelineOperationStore,
         context: ProjectPipelineContext,
@@ -103,6 +114,8 @@ integration('native model budget across durable instances', () => {
         const runner = db.createQueryRunner()
         for (const entity of [
             XpertProject,
+            XpertProjectMembership,
+            Xpert,
             XpertProjectTask,
             XpertProjectTaskExecution,
             AgentRuntimeBindingEntity,
@@ -110,6 +123,8 @@ integration('native model budget across durable instances', () => {
             XpertAgentExecution
         ])
             await runner.createTable(Table.create(db.getMetadata(entity), db.driver))
+        const junction = db.getMetadata(XpertProject).findRelationWithPropertyPath('xperts').junctionEntityMetadata
+        await runner.createTable(Table.create(junction, db.driver))
         await runner.release()
         for (const file of [
             '20261018-project-pipeline.sql',
@@ -124,6 +139,18 @@ integration('native model budget across durable instances', () => {
             await db.query(migration)
             await db.query(migration)
         }
+        const module = await Test.createTestingModule({
+            providers: [
+                ProjectPipelineModelBudgetManagementService,
+                ProjectAccessRuntimeService,
+                { provide: DataSource, useValue: db },
+                { provide: getRepositoryToken(XpertProject), useValue: db.getRepository(XpertProject) },
+                { provide: XpertProjectAccessService, useValue: {} },
+                { provide: AssistantPrincipalAccessService, useValue: { isPrincipal: async () => false } }
+            ]
+        }).compile()
+        management = module.get(ProjectPipelineModelBudgetManagementService)
+        access = module.get(ProjectAccessRuntimeService)
         store = new ProjectPipelineOperationStore(db.getRepository(ProjectPipelineOperationEntity))
     }, 30_000)
     afterAll(async () => {
@@ -140,6 +167,7 @@ integration('native model budget across durable instances', () => {
     ]
     const capacitySettings = capacityKeys.map((key) => process.env[key])
     afterEach(() => {
+        jest.restoreAllMocks()
         if (dispatchSetting === undefined) delete process.env.XPERT_PIPELINE_DISPATCH_ENABLED
         else process.env.XPERT_PIPELINE_DISPATCH_ENABLED = dispatchSetting
         capacityKeys.forEach((key, index) => {
@@ -156,6 +184,11 @@ integration('native model budget across durable instances', () => {
             projectId: randomUUID(),
             actor: { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() }
         }
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(context.actor.userId)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(context.actor.tenantId)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(context.actor.organizationId)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: context.actor.userId } as IUser)
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(undefined)
         const audit = {
             projectId: context.projectId,
             tenantId: context.actor.tenantId,
@@ -182,7 +215,13 @@ integration('native model budget across durable instances', () => {
             parameters: {}
         }
         await db.transaction(async (manager) => {
-            await manager.save(XpertProject, { id: context.projectId, name: 'Neutral test project', ...context.actor })
+            await manager.save(XpertProject, {
+                id: context.projectId,
+                name: 'Neutral test project',
+                ownerId: context.actor.userId,
+                status: 'active',
+                ...context.actor
+            })
             await manager.save(ProjectPipelineDefinitionEntity, {
                 ...audit,
                 id: definitionId,
@@ -387,5 +426,126 @@ integration('native model budget across durable instances', () => {
         )
         expect(await f.budget.admit({ ...f.call, executionId: randomUUID() })).toBe(false)
         expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+    })
+    async function increaseInput(maxTokens = 300) {
+        const instance = await db.manager.findOneByOrFail(ProjectPipelineInstanceEntity, { id: input.work.instanceId })
+        return {
+            instanceId: instance.id,
+            requestId: randomUUID(),
+            expectedRevision: instance.revision,
+            maxTokens,
+            reason: 'Human authorized this total ceiling'
+        }
+    }
+    it('raises only the total ceiling, retaining actual usage, unknown holds and denial history across reloads', async () => {
+        const f = await native(10)
+        await f.budget.admit(f.call)
+        await f.budget.settle({ ...f.call, actualTokens: 40 })
+        await f.budget.admit({ ...f.call, requestId: randomUUID() })
+        await expect(f.budget.admit({ ...f.call, requestId: randomUUID() })).rejects.toThrow()
+        const usage = await totals()
+        const request = await increaseInput()
+        const receipt = await management.increase(context, request)
+        expect(receipt.createdById).toBe(context.actor.userId)
+        expect(receipt.payload.budgetIncrease).toEqual({
+            requestId: request.requestId,
+            previousMaxTokens: 100,
+            maxTokens: 300,
+            reason: request.reason
+        })
+        expect(await totals()).toEqual(usage)
+        const state = await new ProjectPipelineModelBudgetManagementService(db, access).inspect(
+            context,
+            request.instanceId
+        )
+        expect(state.basePolicy).toEqual({ maxCalls: 10, maxTokens: 100, reservationTokens: 50 })
+        expect(state.policy).toEqual({ ...state.basePolicy, maxTokens: 300 })
+        expect(state.increases).toHaveLength(1)
+        expect(await readPipelineModelBudgetDenial(db.manager, context, f.operation.id)).toBe('MODEL_BUDGET_EXCEEDED')
+        expect((await db.manager.findOneByOrFail(ProjectPipelineOperationEntity, { id: f.operation.id })).state).toBe(
+            'pending'
+        )
+        await expect(
+            new ProjectPipelineModelBudgetStore(db).admit({ ...f.call, requestId: randomUUID() })
+        ).resolves.toBe(true)
+        expect(await totals()).toEqual({ calls: 3, tokens: 140, held: 2, actual: 40 })
+    })
+    it('replays the exact audited request once and rejects changes, stale revisions and reductions', async () => {
+        await native()
+        const request = await increaseInput()
+        const first = await management.increase(context, request)
+        expect((await management.increase(context, request)).id).toBe(first.id)
+        await expect(management.increase(context, { ...request, maxTokens: 400 })).rejects.toThrow()
+        await expect(
+            management.increase(context, { ...request, requestId: randomUUID(), maxTokens: 400 })
+        ).rejects.toThrow()
+        await expect(management.increase(context, await increaseInput(300))).rejects.toThrow()
+        await expect(management.increase(context, await increaseInput(100))).rejects.toThrow()
+        expect((await management.inspect(context, request.instanceId)).increases).toHaveLength(1)
+    })
+    it('serializes concurrent increases with revision compare-and-swap', async () => {
+        await native()
+        const request = await increaseInput()
+        const results = await Promise.allSettled([
+            management.increase(context, request),
+            management.increase(context, { ...request, requestId: randomUUID(), maxTokens: 400 })
+        ])
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+        expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1)
+        expect((await management.inspect(context, request.instanceId)).increases).toHaveLength(1)
+    })
+    it('denies delegated and communication identities before any budget change', async () => {
+        await native()
+        const request = await increaseInput()
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({ principalType: 'api_key' } as ReturnType<
+            typeof RequestContext.currentApiPrincipal
+        >)
+        await expect(management.increase(context, request)).rejects.toThrow()
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+            principalType: 'client_secret'
+        } as ReturnType<typeof RequestContext.currentApiPrincipal>)
+        await expect(management.increase(context, request)).rejects.toThrow()
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(undefined)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ type: UserType.COMMUNICATION } as IUser)
+        await expect(management.increase(context, request)).rejects.toThrow()
+    })
+    it('rechecks real manager membership inside the transaction and rejects foreign scope', async () => {
+        await native()
+        const request = await increaseInput()
+        for (const actor of [
+            { ...context.actor, userId: randomUUID() },
+            { ...context.actor, tenantId: randomUUID() },
+            { ...context.actor, organizationId: randomUUID() }
+        ])
+            await expect(management.increase({ ...context, actor }, request)).rejects.toThrow()
+        await expect(management.increase({ ...context, projectId: randomUUID() }, request)).rejects.toThrow()
+        await expect(management.increase(context, { ...request, instanceId: randomUUID() })).rejects.toThrow()
+        const original = access.assertManage.bind(access)
+        jest.spyOn(access, 'assertManage').mockImplementationOnce(async (c) => {
+            const result = await original(c)
+            await db.manager.update(XpertProject, context.projectId, { ownerId: randomUUID() })
+            return result
+        })
+        await expect(management.increase(context, request)).rejects.toThrow()
+        expect(
+            await db.manager.countBy(ProjectPipelineEventEntity, {
+                instanceId: request.instanceId,
+                type: 'model.budget_increased'
+            })
+        ).toBe(0)
+    })
+    it('retains the call limit and immutable base policy when a new operation starts', async () => {
+        const f = await native(1)
+        await f.budget.admit(f.call)
+        await management.increase(context, await increaseInput())
+        await db.manager.update(ProjectPipelineOperationEntity, f.operation.id, {
+            state: 'failed',
+            terminalObservedAt: new Date()
+        })
+        input = { ...input, attempt: 2 }
+        const next = await native(1)
+        await expect(next.budget.admit(next.call)).rejects.toThrow()
+        expect((await management.inspect(context, input.work.instanceId)).policy.maxTokens).toBe(300)
+        expect(await totals()).toEqual({ calls: 1, tokens: 50, held: 1, actual: 0 })
     })
 })

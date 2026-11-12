@@ -1,4 +1,5 @@
 import type { I18nObject, IconDefinition } from '../types'
+import type { XpertProjectTypeConfigurationDefinition } from './project-type-configuration.model'
 import type { XpertViewScalar } from '../view-extension/model'
 
 export interface XpertProjectViewSelection {
@@ -35,6 +36,7 @@ export interface XpertProjectTypeDefinition {
   icon?: IconDefinition
   /** Entity-backed applications enforce this policy in their business preparation/claim services. */
   taskConcurrency?: XpertProjectTaskConcurrency
+  configuration?: XpertProjectTypeConfigurationDefinition
   /** Entity types delegate creation and lifecycle to their registered provider. */
   binding: { kind: 'project' } | { kind: 'entity'; providerKey: string }
 }
@@ -45,6 +47,7 @@ export interface XpertProjectTypeSummary extends XpertProjectTypeRef {
   icon?: IconDefinition
   binding: XpertProjectTypeDefinition['binding']
   taskConcurrency?: XpertProjectTaskConcurrency
+  configuration?: XpertProjectTypeConfigurationDefinition
   available: boolean
 }
 

@@ -9,6 +9,21 @@ const CONSUME = `local v = redis.call('GET', KEYS[1]); if v then redis.call('DEL
 const RELEASE = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end; return 0`
 const RENEW = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('PEXPIRE', KEYS[1], ARGV[2]) end; return 0`
 const TRANSFER = `if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end; redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3]); return 1`
+const IDLE_ACTIVITY_OWNER = '\0idle'
+// Replace a live owner's activity atomically. Replayed cleanup cannot renew idle time.
+const RELEASE_ACTIVITY_WITH_IDLE = `
+local time = redis.call('TIME')
+local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now)
+if redis.call('ZREM', KEYS[1], ARGV[1]) == 0 then return 0 end
+local deadline = now + tonumber(ARGV[2])
+local previous = redis.call('ZSCORE', KEYS[1], ARGV[3])
+if not previous or tonumber(previous) < deadline then
+  redis.call('ZADD', KEYS[1], deadline, ARGV[3])
+end
+local latest = redis.call('ZREVRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+redis.call('PEXPIRE', KEYS[1], math.ceil(tonumber(latest[2]) - now))
+return 1`
 const TOUCH_ACTIVITY = `
 local time = redis.call('TIME')
 local now = tonumber(time[1]) * 1000 + math.floor(tonumber(time[2]) / 1000)
@@ -96,8 +111,17 @@ export class RedisEphemeralService {
 		})
 	}
 
-	async releaseActivity(resource: string, owner: string): Promise<void> {
+	/** An optional bounded idle window retains the resource, never execution authority. */
+	async releaseActivity(resource: string, owner: string, idleMs = 0): Promise<void> {
 		assertOwner(owner)
+		if (idleMs !== 0) {
+			assertTtl(idleMs)
+			await this.redis.eval(RELEASE_ACTIVITY_WITH_IDLE, {
+				keys: [this.key('activity', resource)],
+				arguments: [owner, String(idleMs), IDLE_ACTIVITY_OWNER]
+			})
+			return
+		}
 		await this.redis.zRem(this.key('activity', resource), owner)
 	}
 
@@ -121,7 +145,7 @@ export class RedisEphemeralService {
 }
 
 function assertOwner(owner: string): void {
-	if (!owner || owner.length > 4096) throw new Error('Invalid lease owner')
+	if (!owner || owner.length > 4096 || owner.includes('\0')) throw new Error('Invalid lease owner')
 }
 
 function assertTtl(ttlMs: number, maximum = 24 * 60 * 60 * 1000): void {

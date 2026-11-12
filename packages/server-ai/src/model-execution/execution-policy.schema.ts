@@ -3,7 +3,7 @@ import { builtinCliTools } from '@xpert-ai/cli-model-profiles'
 import { executionLimitsSchema } from './execution-schema'
 import { defaultExecutionGatewayUrl, defaultExecutionLimits } from './execution-policy.defaults'
 
-export const executionPolicySchema = z
+const policyObjectSchema = z
     .object({
         // Accept old persisted/API values, but the former tenant switch no longer controls availability.
         enabled: z
@@ -32,6 +32,7 @@ export const executionPolicySchema = z
                 )
             })
             .default(defaultExecutionGatewayUrl),
+        defaultDurationSeconds: z.number().int().positive().max(86400).default(3600),
         limits: executionLimitsSchema.default(() => ({ ...defaultExecutionLimits })),
         cliPermissions: z
             .object({
@@ -60,5 +61,16 @@ export const executionPolicySchema = z
             .default(() => builtinCliTools.map((tool) => ({ ...tool })))
     })
     .strict()
+
+// Legacy policies used one value for both default and ceiling. Preserve that behavior.
+export const executionPolicySchema = z.preprocess((value) => {
+    if (value && typeof value === 'object' && !Array.isArray(value) &&
+        !('defaultDurationSeconds' in value) && 'limits' in value && value.limits &&
+        typeof value.limits === 'object' && 'maxDurationSeconds' in value.limits) {
+        return { ...value, defaultDurationSeconds: value.limits.maxDurationSeconds }
+    }
+    return value
+}, policyObjectSchema.refine((value) => value.defaultDurationSeconds <= value.limits.maxDurationSeconds,
+    { path: ['defaultDurationSeconds'], message: 'Default duration exceeds tenant limit' }))
 
 export type ExecutionPolicyInput = z.output<typeof executionPolicySchema>

@@ -21,10 +21,12 @@ COPY --chown=node:node packages/desktop-protocol/package.json ./packages/desktop
 COPY --chown=node:node packages/plugins/cli-model-profiles/package.json ./packages/plugins/cli-model-profiles/
 COPY --chown=node:node packages/plugins/draft/package.json ./packages/plugins/draft/
 COPY --chown=node:node packages/plugins/execution-observability/package.json ./packages/plugins/execution-observability/
+COPY --chown=node:node packages/plugins/coding-project/package.json ./packages/plugins/coding-project/
 COPY --chown=node:node packages/plugins/github-integration/package.json ./packages/plugins/github-integration/
 COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plugins/vlm-default/
 
 COPY --chown=node:node pnpm-workspace.yaml ./
+COPY --chown=node:node patches ./patches
 COPY --chown=node:node .npmrc ./
 
 FROM node:20-alpine AS build-dependencies
@@ -91,11 +93,12 @@ ENV NODE_OPTIONS="--max-old-space-size=2048" \
     DEMO=false \
     LOG_LEVEL=
 
-# Install build tools for native runtime dependencies.
+# Native dependencies need build tools; Coding Project delivery uses Git over HTTPS.
 RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
     apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
       sudo \
       build-essential \
+      git ca-certificates \
       python3 \
       python3-pip && \
     rm -rf /var/lib/apt/lists/*
@@ -113,6 +116,7 @@ RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 # Source manifests and the production lock are the only application inputs to install.
 COPY --chown=node:node --from=manifests /srv/xpert/packages ./packages
 COPY --chown=node:node --from=manifests /srv/xpert/pnpm-workspace.yaml /srv/xpert/.npmrc ./
+COPY --chown=node:node --from=manifests /srv/xpert/patches ./patches
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 COPY --chown=node:node .deploy/api/pnpm-lock.production.yaml ./pnpm-lock.yaml
 RUN chown node:node /srv/xpert

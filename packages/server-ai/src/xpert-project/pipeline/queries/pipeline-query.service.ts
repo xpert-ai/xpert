@@ -1,5 +1,6 @@
 // Invariants: historical business state is immutable; runtime observations may finish later.
 // Merge observations only through persisted node/round ownership, never shared task identity alone.
+import { pipelineModelBudgetPolicy } from '../budget/pipeline-model-budget-policy'
 import { observePipelineNodes } from './pipeline-node-observations'
 import { attributePipelineExecutions } from './pipeline-execution-attribution'
 import { pipelineExecutionOwners } from './pipeline-execution-owners'
@@ -247,7 +248,10 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                 graph,
                 modelUsage,
                 nativeModelBudget: instance.nativeModelBudget
-                    ? await pipelineModelBudgetTotals(manager, instance)
+                    ? {
+                          ...(await pipelineModelBudgetTotals(manager, instance)),
+                          policy: (await pipelineModelBudgetPolicy(manager, instance)).policy
+                      }
                     : null,
                 nodes: observePipelineNodes(attributed.nodes, graph.executions),
                 executionAttribution: attributed.executionAttribution,
@@ -286,15 +290,15 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                     ? {
                           nativeModelBudget: {
                               scope: 'instance_native_llm' as const,
-                              policy: saved.instance.nativeModelBudget,
+                              policy: saved.nativeModelBudget.policy,
                               calls: saved.nativeModelBudget.calls,
                               heldCalls: saved.nativeModelBudget.held,
                               actualTokens: saved.nativeModelBudget.actual,
                               chargedAndReservedTokens: saved.nativeModelBudget.tokens,
                               admissionBlocked:
-                                  saved.nativeModelBudget.calls >= saved.instance.nativeModelBudget.maxCalls ||
-                                  saved.nativeModelBudget.tokens + saved.instance.nativeModelBudget.reservationTokens >
-                                      saved.instance.nativeModelBudget.maxTokens
+                                  saved.nativeModelBudget.calls >= saved.nativeModelBudget.policy.maxCalls ||
+                                  saved.nativeModelBudget.tokens + saved.nativeModelBudget.policy.reservationTokens >
+                                      saved.nativeModelBudget.policy.maxTokens
                           }
                       }
                     : {})

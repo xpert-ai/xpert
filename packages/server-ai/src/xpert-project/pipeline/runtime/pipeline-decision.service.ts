@@ -30,6 +30,7 @@ import { ProjectPipelineEvidenceService } from './pipeline-evidence.service'
 import { lockManagedProject, managedAudit } from './pipeline-transaction'
 import { pipelineInputs } from './pipeline-inputs'
 import { capturePipelineHumanWaitSnapshot } from '../persistence/pipeline-human-wait-snapshot'
+import { decisionEvidence } from './pipeline-decision-inputs'
 
 /** Candidate/evidence adapters run outside the transaction; the exact gate/version is checked again before commit. */
 @Injectable()
@@ -109,6 +110,7 @@ export class ProjectPipelineDecisionService {
                 throw pipelineProjectionConflict('SUBJECT_SUPERSEDED')
         await this.evidence.inputs(saved)
         for (const ref of input.evidence) await this.evidence.verify(saved, ref)
+        const approvedEvidence = decisionEvidence(saved.inputs, input.evidence)
         return manager.transaction(async (transaction) => {
             await lockManagedProject(transaction, context)
             const current = await transaction.findOneByOrFail(ProjectPipelineAttentionEntity, {
@@ -126,7 +128,8 @@ export class ProjectPipelineDecisionService {
                     existing.actorId !== context.actor.userId ||
                     existing.outcome !== input.outcome ||
                     existing.inputDigest !== input.inputDigest ||
-                    pipelineDigest(existing.evidence) !== pipelineDigest(input.evidence)
+                    (pipelineDigest(existing.evidence) !== pipelineDigest(approvedEvidence) &&
+                        pipelineDigest(existing.evidence) !== pipelineDigest(input.evidence))
                 )
                     throw pipelineProjectionConflict('DECISION_ALREADY_RECORDED')
                 return { decisionId: existing.id }
@@ -151,6 +154,9 @@ export class ProjectPipelineDecisionService {
                 currentNode.projection.state.freshness !== 'current'
             )
                 throw pipelineProjectionConflict('DECISION_VERSION_CONFLICT')
+            const currentInputs = await pipelineInputs(transaction, context, currentRound, spec, config.binding)
+            if (pipelineDigest(currentInputs) !== pipelineDigest(saved.inputs))
+                throw pipelineProjectionConflict('DECISION_VERSION_CONFLICT')
             const id = pipelineIdentity(context, 'decision', node.id, String(input.generation)),
                 audit = managedAudit(context)
             await transaction.insert(ProjectPipelineDecisionEntity, {
@@ -164,7 +170,7 @@ export class ProjectPipelineDecisionService {
                 inputDigest: input.inputDigest,
                 generation: input.generation,
                 outcome: input.outcome,
-                evidence: input.evidence,
+                evidence: approvedEvidence,
                 actorId: context.actor.userId
             })
             current.state = 'resolved'
@@ -173,7 +179,7 @@ export class ProjectPipelineDecisionService {
             await transaction.save(current)
             currentNode.projection = {
                 ...currentNode.projection,
-                evidence: input.evidence,
+                evidence: approvedEvidence,
                 state: { ...currentNode.projection.state, lifecycle: 'completed' }
             }
             await transaction.save(currentNode)

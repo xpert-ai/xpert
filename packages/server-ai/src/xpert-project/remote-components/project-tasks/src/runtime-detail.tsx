@@ -40,6 +40,7 @@ const detailSchema = z.object({
             invocationRevision: z.number().optional(),
             runtimeProvider: z.string().optional(),
             runtimeToolId: z.string().optional(),
+            executionBudget: z.object({ maxDurationSeconds: z.number(), deadline: z.string() }).optional(),
             purpose: projectTaskExecutionPurposeSchema.nullish(),
             progress: agentRuntimeProgressSchema.nullish(),
             observedAt: z.string().optional(),
@@ -55,6 +56,8 @@ const detailSchema = z.object({
 })
 type Detail = z.output<typeof detailSchema>
 const zh = {
+    duration: '执行上限',
+    deadline: '截止时间',
     requestCheck: '重试回传并请求检查',
     open: '查看执行过程',
     conversation: '打开负责人对话',
@@ -62,6 +65,27 @@ const zh = {
     requirements: '完成要求',
     implementation: '实现',
     review: '独立验收 · 仅证据',
+    executionReview: '独立验收 · 实际执行',
+    findings: '验收反馈',
+    reviewChecks: '实际检查',
+    reviewer: '独立验收方式',
+    evidenceMode: '仅核对证据',
+    executionMode: '实际执行',
+    reworkFindings: '本次返工反馈',
+    blocking: '阻断',
+    nonBlocking: '非阻断',
+    command: '检查命令',
+    evidencePaths: '证据路径',
+    reproduction: '复现步骤',
+    relatedRequirement: '对应要求',
+    defect: '代码缺陷',
+    environment: '环境问题',
+    requirement: '需求歧义',
+    coverage: '覆盖不足',
+    suggestion: '建议',
+    passed: '通过',
+    expected: '预期',
+    actual: '实际',
     waiting: '结果已产生，等待负责人处理',
     processed: '负责人已消费结果，业务完成仍需明确确认',
     host: '平台观测',
@@ -106,6 +130,29 @@ const zh = {
     project_agent: '项目主 Agent'
 }
 const en: typeof zh = {
+    duration: 'Execution limit',
+    deadline: 'Deadline',
+    executionReview: 'Independent acceptance · execution',
+    findings: 'Review findings',
+    reviewChecks: 'Executed checks',
+    reviewer: 'Independent review mode',
+    evidenceMode: 'Evidence only',
+    executionMode: 'Execution',
+    reworkFindings: 'Rework findings',
+    blocking: 'Blocking',
+    nonBlocking: 'Non-blocking',
+    command: 'Check command',
+    evidencePaths: 'Evidence paths',
+    reproduction: 'Reproduction',
+    relatedRequirement: 'Requirement',
+    defect: 'Defect',
+    environment: 'Environment',
+    requirement: 'Requirement ambiguity',
+    coverage: 'Missing coverage',
+    suggestion: 'Suggestion',
+    passed: 'Passed',
+    expected: 'Expected',
+    actual: 'Actual',
     requestCheck: 'Retry delivery for review',
     open: 'View execution',
     conversation: 'Open responsible conversation',
@@ -281,16 +328,26 @@ export function RuntimeDetail({
             {detail?.executions
                 .filter((item) => item.invocationId)
                 .map((attempt) => (
-                    <section key={attempt.id} className="space-y-2 border-t pt-3">
+                    <section key={attempt.id} className="min-w-0 space-y-2 border-t pt-3">
                         <h4 className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
                             <CodingToolIcon
                                 toolId={attempt.runtimeToolId}
                                 provider={attempt.runtimeProvider}
                                 decorative
                             />
-                            #{attempt.attempt} · {attempt.purpose?.type === 'review' ? t.review : t.implementation} ·{' '}
+                            #{attempt.attempt} · {attempt.purpose?.type === 'review'
+                                ? attempt.purpose.mode === 'execution' ? t.executionReview : t.review
+                                : t.implementation} ·{' '}
                             {executionProviderLabel(attempt)}
+                            {attempt.executionBudget && <span className="text-xs font-normal text-muted-foreground"
+                                title={`${t.deadline}: ${new Date(attempt.executionBudget.deadline).toLocaleString(locale)}`}>
+                                · {t.duration} {Number((attempt.executionBudget.maxDurationSeconds / 3600).toFixed(2))} h
+                            </span>}
                         </h4>
+                        {attempt.purpose?.type === 'implementation' && attempt.purpose.reviewer &&
+                            <p className="text-xs text-muted-foreground">{t.reviewer} · {attempt.purpose.reviewer.mode === 'execution' ? t.executionMode : t.evidenceMode}</p>}
+                        {attempt.purpose?.type === 'implementation' && attempt.purpose.rework &&
+                            <p className="break-words text-xs">{t.reworkFindings}: {attempt.purpose.rework.findingIds.join(', ')}</p>}
                         <p className="text-xs">
                             {attempt.invocationStatus === 'unknown'
                                 ? t.statusUnknown
@@ -356,11 +413,33 @@ export function RuntimeDetail({
                             )}
                         {attempt.error && <p className="break-words text-sm text-destructive">{attempt.error}</p>}
                         {attempt.reviewReport && (
-                            <div className="space-y-1 text-sm">
+                            <div className="space-y-2 break-words text-sm">
                                 <strong>{t[attempt.reviewReport.verdict]}</strong>
-                                {attempt.reviewReport.findings.map((item, index) => (
-                                    <p key={index}>{item}</p>
-                                ))}
+                                {attempt.reviewReport.version === 1
+                                    ? attempt.reviewReport.findings.map((item, index) => <p key={index}>{item}</p>)
+                                    : <>
+                                        <p>{attempt.reviewReport.summary}</p>
+                                        <strong className="text-xs">{t.reviewChecks}</strong>
+                                        {attempt.reviewReport.checks.map((check, index) => (
+                                            <div key={index} className="space-y-1">
+                                                <p>{check.description} · {t[check.outcome]}</p>
+                                                {check.command && <p className="whitespace-pre-wrap text-xs">{t.command}: <code>{check.command}</code></p>}
+                                                {check.expected && <p className="whitespace-pre-wrap text-xs">{t.expected}: {check.expected}</p>}
+                                                <p className="whitespace-pre-wrap text-xs">{t.actual}: {check.actual}</p>
+                                                {!!check.evidencePaths?.length && <p className="text-xs">{t.evidencePaths}: {check.evidencePaths.join(', ')}</p>}
+                                            </div>
+                                        ))}
+                                        <strong className="text-xs">{t.findings}</strong>
+                                        {attempt.reviewReport.findings.map((finding) => (
+                                            <div key={finding.id} className="space-y-1">
+                                                <p>{finding.id} · {t[finding.kind]} · {finding.blocking ? t.blocking : t.nonBlocking}: {finding.description}</p>
+                                                {finding.requirement && <p className="whitespace-pre-wrap text-xs">{t.relatedRequirement}: {finding.requirement}</p>}
+                                                {finding.reproduction && <p className="whitespace-pre-wrap text-xs">{t.reproduction}: {finding.reproduction}</p>}
+                                                {finding.expected && <p className="whitespace-pre-wrap text-xs">{t.expected}: {finding.expected}</p>}
+                                                {finding.actual && <p className="whitespace-pre-wrap text-xs">{t.actual}: {finding.actual}</p>}
+                                            </div>
+                                        ))}
+                                    </>}
                                 <p className="text-xs text-muted-foreground">
                                     {t.limitations}: {attempt.reviewReport.limitations.join('; ')}
                                 </p>

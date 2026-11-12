@@ -1,0 +1,127 @@
+---
+title: 'Proposal: Project task CLI startup and diagnostics'
+description: 'Keep dispatch waiting for confirmed CLI startup while improving phase timing, progress, deadlines, cancellation and recovery.'
+---
+
+**Status: proposed, pending review; not implemented.** Recorded on November 8, 2026. Existing startup heartbeats, process receipts and isolated performance repairs do not establish completion of this proposal.
+
+Keep `project_dispatch_task` waiting for executor startup rather than returning on enqueue. The existing call awaits `api.start()`; the proposed confirmation below adds a clearer evidence boundary and does not claim every current CLI already acknowledges its input. After confirmed startup, the coordinating Assistant can end its current turn and rely on durable result delivery to resume it. Improve preparation timing, bounded waiting, cancellation and failure diagnostics.
+
+## Problem and evidence limits
+
+Total dispatch duration combines admission, environment preparation and executor startup. A long wait or preparation failure can occur before any model call; it cannot by itself measure coding effort or model autonomy. Without phase timing, delays cannot be attributed to locks, environment operations, CLI preparation or host load.
+
+This proposal defines the measurements needed to establish causes. Individual run logs, screenshots and historical delivery records remain Project artifacts or local diagnostic material rather than dependencies of this page. CPU/GC pressure and context retention are investigation candidates; no single cause is assumed for all slow starts.
+
+## Preserve the dispatch semantics
+
+- Successful dispatch means the executor has confirmed startup and accepted this task. The coordinator does not need another query just to learn whether execution began.
+- The tool waits for startup, not the entire implementation, deployment, test or independent review. Business results continue through the existing durable delivery and conversation continuation mechanism.
+- Startup failures return actionable information in the tool call. Unconfirmed launch outcomes remain explicitly uncertain.
+- File delivery, business acceptance and runtime readiness remain separate. `delivery.mode = "none"` disables output file delivery; it does not skip the selected adapter's environment preparation, review preparation or executor startup.
+- Keep environment-specific work in its adapter. Pro Computer continues to use its existing Docker implementation; shared Project and Invocation services must not import Computer code. This proposal does not introduce business acceptance rules or a mandatory development pipeline.
+
+Do not change the default to returning on enqueue or remove `await` to create an untracked background Promise. Evaluate an optional asynchronous mode separately only if measurements show that cold startup frequently needs to outlive the current call.
+
+## Current call chain
+
+These are logical phases, not a claim that corresponding persisted phase fields or timers already exist.
+
+| Phase                  | Current work                                                                                                                                        | Main repository location                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Task admission         | Check identity, bindings, task revision, dependencies, replay and concurrency; capture requirements and the review subject                          | `packages/server-ai/src/xpert-project/runtime/project-task-dispatch.service.ts`          |
+| Execution registration | Persist execution and invocation dispatch intent and recovery identities; invoke and await `api.start()`                                            | The dispatch service and `packages/server-ai/src/agent-invocation/invocation-runtime.ts` |
+| Environment preparation | Authorize and prepare the selected execution environment and workspace; concrete generation, mount and service checks belong to its adapter | The selected Runtime / runner adapter behind `AgentExecutionRunner` |
+| Executor preparation | Check tool availability and prepare configuration, credentials and budget; execution-review preparation is supplied by the configured review environment | Runtime adapter and `packages/server-ai/src/xpert-project/review/project-review.environment.ts` |
+| Launch and observation | Retain launch/recovery receipts, start the execution and return the adapter's observation | Runtime adapter and `packages/plugin-sdk/src/lib/agent/runtime/execution-runner.ts` |
+
+An Invocation can currently enter `running` before the adapter's start call finishes. Launch receipts also serve recovery and must be interpreted according to the adapter's guarantees. Existing `running` status, receipt existence or an available PID is therefore insufficient on its own to prove the proposed input-acceptance boundary.
+
+Shared code owns admission, execution correlation, control intent and generic progress. Environment acquisition, review file copying and process inspection stay in the owning adapter. Reuse existing typed runtime contracts; add a public SDK field only for a concrete cross-package consumer, and do not expose a new Capability merely to connect host-internal services. Computer-specific implementation and tests belong in Pro.
+
+## Proposed design
+
+### Define startup confirmation
+
+Each executor adapter supplies evidence appropriate to its protocol: environment and CLI preparation is complete, the execution session is available, and the executor has accepted the task input. Evidence must correlate with the invocation and environment generation.
+
+Reuse existing acknowledgements where possible. Inspect each supported executor before implementation. Where a protocol lacks input acknowledgement, add verifiable delivery evidence and state exactly what it guarantees. Host wrapper liveness, a successful stdin write and acknowledgement from the CLI are different facts.
+
+Confirmation does not require the first model response, business tool call or passing test. Errors that only become observable during a real model request, including model access errors, belong to that actual phase. Do not add paid inference solely as a startup probe.
+
+### Expose phase progress and timing
+
+Represent startup progress as structured information under the Invocation, reusing existing execution events and card projections before considering changes to the full task status enum. Define phase identifiers in shared contracts and localize their presentation; do not infer phases from error text.
+
+Suggested phases are task admission, environment lock wait, environment preparation, workspace or review preparation, executor probe, credential preparation, launch and input acceptance. Merge or refine them against actual call boundaries during implementation. Adapter-specific detail must not make a particular container technology or review snapshot mandatory for every Runtime.
+
+Record phase identifier, start/end time, outcome, attempt sequence and execution correlation at transitions. Use a monotonic clock for durations within a process. Separate lock wait from active work and cold startup from environment reuse. Preserve separate spans across recovery so restarts do not create misleading durations or allow stale progress to overwrite newer execution facts.
+
+The UI keeps total tool duration and adds the current phase and its duration. Cancellation shows which phase is stopping. Uncertain launch outcomes are shown as requiring reconciliation rather than active coding.
+
+Publish progress through existing events and persist phase transitions. The UI computes elapsed time. Reuse required heartbeats; do not introduce frequent database writes or continuous polling just to display seconds.
+
+### Bound preparation and startup separately
+
+Use an overall startup deadline and phase deadlines independently of the configured business execution duration. Extending the task budget is not startup failure handling. Do not silently change when the existing execution budget starts.
+
+Parse startup policy into typed configuration at the configuration boundary and capture effective values at execution start. Establish defaults and alert thresholds from warm environment, cold startup and review snapshot measurements, then decide whether environment-specific overrides are needed. This proposal does not promise unmeasured timing targets or add unnecessary user configuration screens.
+
+Share an absolute startup deadline; phase retries must not reset it. The existing startup heartbeat renews ownership for at most ten minutes but does not interrupt arbitrary awaited operations. It is not an end-to-end hard timeout.
+
+Timeouts must trigger downstream cancellation or bounded cleanup. Returning an error through `Promise.race` while a detached operation can still launch the task is insufficient. For operations that cannot be interrupted, prevent late results from proceeding to task delivery and reconcile the outcome when necessary.
+
+### Cancellation, failures and recovery
+
+Persist cancellation intent through existing task control and propagate it into environment acquisition, snapshots, CLI probes and launch operations. Recheck control intent, deadline, ownership and environment generation before side-effect boundaries.
+
+| Established fact                                                     | Result and recovery principle                                                                                                                         |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The task never started and late operations cannot start it           | Return explicit `not_started` evidence; settle cancellation as cancelled or report the startup failure; permit bounded retries according to the cause |
+| The executor confirmed startup and accepted the task                 | Return startup success; subsequent failures follow normal execution and result delivery                                                               |
+| Launch was requested but its response or outcome is unavailable      | Return unknown or reconciling; preserve the invocation and do not automatically create another execution                                              |
+| Cancellation races with launch and this invocation may own a process | Stop and reconcile using the original process receipt; do not claim cancellation without termination evidence                                         |
+
+Preserve request deduplication, CAS, environment generations and execution receipts. Replaying or recovering a dispatch reconciles the same execution without delivering the task again. Cleanup is limited to processes, temporary files, credentials and leases owned by that invocation; preserve the shared execution environment and other tasks' work.
+
+Give the coordinator the phase, stable error code, sanitized reason, certainty that the task did not start, and a suggested next action. Logs retain correlation and internal cause classification instead of collapsing everything into runtime preparation failure. Exclude tokens, CLI configuration bodies and complete task prompts.
+
+### Optimize from phase evidence
+
+Measure host event-loop delay, CPU/GC, database and lease waits, environment operations, workspace preparation, executor probes and handshakes separately. A Computer adapter can additionally measure Docker operations, mounts and snapshot size in Pro. Context-retention repairs require their own regression checks and startup timing comparison; passing an isolated test does not establish that long startup waits are resolved.
+
+Cache only preparation results that are demonstrably stable, with invalidation for authorization, configuration, CLI version and container generation changes. Full Xpert builds, plugin installation and business acceptance remain task work performed by the Coding Agent using skills; do not add them to every dispatch's startup-success conditions.
+
+## Implementation sequence
+
+1. **Baseline and diagnostics:** add phase timing and sanitized error context, reproduce warm, cold and execution-review startup, and identify dominant blocking operations.
+2. **Startup confirmation:** inspect executor protocols, add confirmation evidence and card progress, and preserve synchronous return and durable result continuation.
+3. **Deadlines and cancellation:** propagate deadlines and cancellation, covering late responses, cancellation without a handle, lost receipts after launch and recovery races.
+4. **Targeted optimization and acceptance:** repair measured bottlenecks and calibrate default deadlines; update feature documentation only after real dispatch and background result delivery pass.
+
+Implementation spans shared contracts, Invocation, executor adapters and existing execution cards. Shared work is reviewed in Xpert first; Computer-specific work is reviewed separately in Pro and integrated through the existing runtime boundary. Prefer incremental extensions over a second scheduler. Approval of this proposal does not mean its implementation or deployment is complete.
+
+## Verification and acceptance
+
+| Scenario                                                 | Required evidence                                                                                                           |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Normal dispatch to a ready execution environment         | Tool returns after startup confirmation; CLI continues in the background; the result resumes the coordinator                |
+| Cold startup or a larger review snapshot                 | Real phases and waiting reasons are visible; preparation time is distinguishable from CLI execution time                    |
+| Missing/incompatible CLI or preparation failure          | Specific failure phase and cause; zero model calls when the task is confirmed not started                                   |
+| Lock contention or a delayed dependency                  | Phase and total deadlines hold; late operations cannot launch a new task beyond cancellation or deadline boundaries         |
+| Cancellation in every preparation phase                  | The wait settles within a bound; status matches launch/termination evidence; the shared environment remains usable          |
+| Lost launch response, host restart or duplicate dispatch | Uncertainty is retained and reconciled against the original execution; no duplicate business process or result continuation |
+| Repeated sequential dispatch and cancellation            | No comparable retained Shell context or memory growth with call count; progress does not introduce frequent persistence     |
+
+Report phase and end-to-end timings, success/failure/cancellation counts, environment, build revision and sample size. Separate warm and cold samples, and report p50/p95 when sufficient samples exist. Set targets from phase-one baselines before implementing optimizations; increasing timeouts alone cannot satisfy acceptance.
+
+A live regression covers an authorized Runtime from coordinator dispatch through executor work and automatic result delivery. Pro adds the Computer CLI development/testing and independent execution-review path. The verifier checks evidence without performing the Coding Agent's business operations. Business acceptance remains the independent review workflow's responsibility; shared diagnostics must not require Pro to run.
+
+## Decisions to resolve during implementation
+
+- Which startup and input acceptance evidence each CLI protocol provides, and which adapter capabilities need completion.
+- Actual cold and warm timing distributions, default phase/overall deadlines and alert thresholds.
+- Which existing events and persisted fields to reuse, and how new fields remain compatible with historical records and older executors.
+- How existing recovery performs bounded reconciliation of uncertain launches and exposes the relevant action in the UI.
+
+Optional asynchronous dispatch remains a separate future evaluation. The default decision is to return after confirmed startup.

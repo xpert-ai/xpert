@@ -52,6 +52,17 @@ export const agentTaskResultSchema = z
   )
 export type AgentTaskResult = z.output<typeof agentTaskResultSchema>
 
+/** Bound structured report transfer independently of the host's artifact-export quota. */
+export const AGENT_TASK_RESULT_FILE_MAX_BYTES = 4 * 1024 * 1024
+
+/** Explicit final submission of an envelope file. Its digest pins bytes, not a business verdict. */
+export const agentTaskResultFileSchema = z.object({
+  version: z.literal(1),
+  path: agentResultPathSchema,
+  sha256: z.string().regex(/^[a-f0-9]{64}$/)
+}).strict()
+export type AgentTaskResultFile = z.output<typeof agentTaskResultFileSchema>
+
 /** Persist only after the platform has committed the artifact; never accept an ID invented by a model. */
 export interface AgentResultArtifact {
   id: string

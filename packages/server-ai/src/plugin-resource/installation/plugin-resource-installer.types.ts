@@ -22,7 +22,8 @@ export type RuntimeComponent = {
     pluginName: string
     pluginVersion?: string
     component: PluginBundleComponentRegistration
-    rootDir: string
+    /** Native registry providers have no portable filesystem root. */
+    rootDir: string | null
     targetAgentKey?: string
     policyOverrides?: XpertPluginMcpServerPolicy
     events?: string[]

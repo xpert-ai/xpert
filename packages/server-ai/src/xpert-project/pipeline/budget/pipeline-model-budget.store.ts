@@ -1,10 +1,10 @@
-// Invariants: admission locks the Project; every round and Run consumes the immutable instance budget.
+// Invariants: admission locks the Project; every round and Run consumes the same instance budget with audited human increases.
 // Only persisted native ancestry associates a call. Unknown usage retains its reservation indefinitely.
 import { ConflictException, Injectable } from '@nestjs/common'
 import { t } from 'i18next'
 import { DataSource, IsNull, type EntityManager } from 'typeorm'
 import { z } from 'zod/v3'
-import { projectPipelineNativeModelBudgetSchema } from '@xpert-ai/contracts'
+import { pipelineModelBudgetPolicy } from './pipeline-model-budget-policy'
 import { ProjectPipelineInstanceEntity, ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
 import { lockManagedProject, managedAudit } from '../runtime/pipeline-transaction'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
@@ -76,7 +76,7 @@ export class ProjectPipelineModelBudgetStore {
                 id: work.record.instanceId
             })
             if (!instance.nativeModelBudget) return false
-            const budget = projectPipelineNativeModelBudgetSchema.parse(instance.nativeModelBudget)
+            const { policy: budget } = await pipelineModelBudgetPolicy(manager, instance)
             await assertPipelineModelWorkOpen(manager, instance, work)
             const origin = pipelineModelReservationOrigin(work)
             const previous = await manager.findOne(ProjectPipelineModelReservationEntity, {

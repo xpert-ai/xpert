@@ -118,6 +118,8 @@ export function reviewReport(
         const parsed = projectTaskReviewReportSchema.safeParse(JSON.parse(resultText))
         if (
             !parsed.success ||
+            // Evidence-only findings cannot stand in for an execution review's checks.
+            (subject.mode === 'execution' ? parsed.data.version !== 2 : parsed.data.version !== 1) ||
             parsed.data.implementationInvocationId !== subject.implementationInvocationId ||
             parsed.data.specificationDigest !== subject.specificationDigest ||
             !sameInvocationData(parsed.data.evidence, subject.evidence)

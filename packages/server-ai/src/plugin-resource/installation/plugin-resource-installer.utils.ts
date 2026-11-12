@@ -47,7 +47,7 @@ export function expandPluginRuntimeComponents(
     components: PluginBundleComponentRegistration[],
     selectors: PluginResourceInstallComponent[],
     normalizedPluginName: string,
-    rootDir: string,
+    rootDir: string | null,
     pluginVersion?: string
 ): RuntimeComponent[] {
     return selectors.flatMap((selector) => {

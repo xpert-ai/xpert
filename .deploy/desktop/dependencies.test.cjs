@@ -17,6 +17,7 @@ test('manifest workspace does not contain API, backend source or prebuilt output
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'desktop-deps-test-'))
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
   prepare(directory)
+  assert.match(fs.readFileSync(path.join(directory, 'pnpm-workspace.yaml'), 'utf8'), /^allowUnusedPatches: true$/m)
   for (const dir of packages) assert.deepEqual(fs.readdirSync(path.join(directory, dir)), ['package.json'])
   for (const dir of ['apps/api', 'packages/server-ai', 'packages/plugins'])
     assert.equal(fs.existsSync(path.join(directory, dir)), false)
@@ -35,6 +36,7 @@ test('isolated builds include the shared template client without copying unrelat
     '.deploy/desktop/package.json',
     '.deploy/desktop/pnpm-lock.yaml',
     'pnpm-workspace.yaml',
+    'patches/runtime.patch',
     '.npmrc',
     'tsconfig.base.json'
   ])
@@ -50,6 +52,8 @@ test('isolated builds include the shared template client without copying unrelat
 
   prepare(destination, true, source)
 
+  assert.equal(fs.readFileSync(path.join(destination, 'patches/runtime.patch'), 'utf8'), '{}')
+  assert.match(fs.readFileSync(path.join(destination, 'pnpm-workspace.yaml'), 'utf8'), /^allowUnusedPatches: true$/m)
   assert.equal(fs.readFileSync(path.join(destination, client), 'utf8'), contents)
   assert.deepEqual(fs.readdirSync(path.join(destination, 'libs')), ['template-installation'])
   assert.deepEqual(fs.readdirSync(path.join(destination, 'libs/template-installation')), ['client.ts'])

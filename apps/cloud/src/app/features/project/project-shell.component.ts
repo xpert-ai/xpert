@@ -443,7 +443,8 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
       filter((event) => event instanceof NavigationEnd),
       startWith(null),
       map(() => {
-        const path = this.#route.firstChild?.snapshot.routeConfig?.path ?? ''
+        // Child snapshots are populated after the shell is constructed during initial navigation.
+        const path = this.#route.firstChild?.snapshot?.routeConfig?.path ?? ''
         return path === 'pipelines' ? 'timeline' : path
       })
     ),

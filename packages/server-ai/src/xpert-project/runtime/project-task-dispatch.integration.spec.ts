@@ -1,6 +1,10 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
+import { DefaultProjectReviewEnvironment } from '../review/default-project-review.environment'
+import { TaskControlStore } from '@xpert-ai/server-core'
 import { ManagedRuntimeService } from '../../agent-invocation/managed/managed-runtime.service'
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
+import { projectTaskCoordinationCases } from './testing/project-task-coordination.cases'
 import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
 import { XpertProjectTaskService } from '../services/project-task.service'
 import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
@@ -39,7 +43,7 @@ import { ProjectTaskDispatchService } from './project-task-dispatch.service'
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { XpertProjectAccessService } from '../services/project-access.service'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
-import { ProjectTaskCaller } from './project-task-dispatch.schema'
+import { ProjectTaskCaller, projectTaskInvocationScope } from './project-task-dispatch.schema'
 
 const url = process.env.XPERT_EXECUTION_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
@@ -70,7 +74,10 @@ const schemas = [
             status: text,
             revision: { type: 'int', version: true },
             providerKey: nullableText,
+            controlKind: { ...text, default: 'ordinary' },
             requirements: json,
+            parentTaskId: { ...uuid, nullable: true },
+            reviewSubject: json,
             decisions: json,
             predecessorIds: json,
             assigneeXpertId: { ...uuid, nullable: true }
@@ -97,6 +104,7 @@ const schemas = [
             attempt: { type: 'int' },
             status: text,
             invocationId: { ...uuid, nullable: true },
+            agentExecutionId: { ...uuid, nullable: true },
             dispatchRequestId: { ...uuid, nullable: true },
             dispatchState: nullableText,
             projectedTaskRevision: { type: 'int', nullable: true },
@@ -107,7 +115,8 @@ const schemas = [
             specificationSnapshot: json,
             purpose: json,
             dispatchIntent: { ...json, select: false }
-        }
+        },
+        relations: { task: { type: 'many-to-one', target: 'XpertProjectTask', joinColumn: { name: 'taskId' } } }
     }),
     new EntitySchema<AgentInvocationEntity>({
         name: 'AgentInvocationEntity',
@@ -145,7 +154,9 @@ integration('explicit task delegation / PostgreSQL', () => {
     let store: TypeOrmAgentInvocationStore
     let service: ProjectTaskDispatchService
     let cards: ProjectTaskCardProvider
+    let reviews: ProjectReviewEnvironment
     let factory: AgentInvocationFactoryService
+    let taskControl: TaskControlStore
     let scope: AgentInvocationScope
     let caller: ProjectTaskCaller
     let input: ProjectTaskDispatchInput
@@ -196,10 +207,10 @@ integration('explicit task delegation / PostgreSQL', () => {
             CREATE TABLE xpert_project (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, status varchar, "workspaceId" uuid);
             CREATE TABLE xpert_project_task (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid,
                 "projectId" uuid, title varchar, name varchar, description varchar, kind varchar, status varchar, revision int,
-                "providerKey" varchar, "predecessorIds" jsonb, "assigneeXpertId" uuid);
+                "providerKey" varchar, "controlKind" varchar DEFAULT 'ordinary', "predecessorIds" jsonb, "assigneeXpertId" uuid);
             CREATE TABLE xpert_project_task_step (id uuid PRIMARY KEY, "taskId" uuid, "stepIndex" int, description varchar);
             CREATE TABLE xpert_project_task_execution (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid, "createdById" uuid,
-                "projectId" uuid, "taskId" uuid, "conversationId" uuid, "threadId" varchar, "xpertId" uuid, attempt int, status varchar, "createdAt" timestamptz DEFAULT now());
+                "projectId" uuid, "taskId" uuid, "conversationId" uuid, "threadId" varchar, "xpertId" uuid, "agentExecutionId" uuid, attempt int, status varchar, "createdAt" timestamptz DEFAULT now());
             CREATE TABLE agent_invocation_wait (id uuid PRIMARY KEY, "tenantId" uuid, "organizationId" uuid,
                 "ownerId" varchar, state varchar, request jsonb, "nextCheckAt" timestamptz);
         `)
@@ -215,6 +226,7 @@ integration('explicit task delegation / PostgreSQL', () => {
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
         await database.query(readFileSync(join(__dirname, '../../execution-control/migration.sql'), 'utf8'))
         await database.query(readFileSync(join(__dirname, '../../../../server/src/task-control/migration.sql'), 'utf8'))
+        await database.query(readFileSync(join(__dirname, '../../chat-conversation/control-view/migration.sql'), 'utf8'))
         await database.query(migration)
         const reliable = readFileSync(
             join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),
@@ -226,6 +238,10 @@ integration('explicit task delegation / PostgreSQL', () => {
         const decisions = readFileSync(join(__dirname, '../migrations/20261006-project-task-decisions.sql'), 'utf8')
         await database.query(decisions)
         await database.query(decisions)
+        await database.query('ALTER TABLE xpert_project_task ADD COLUMN "parentTaskId" uuid NULL')
+        const reviewSubtasks = readFileSync(join(__dirname, '../migrations/20261110000000-task-review-subtasks.sql'), 'utf8')
+        await database.query(reviewSubtasks)
+        await database.query(reviewSubtasks)
     })
     afterAll(async () => {
         if (database?.isInitialized) {
@@ -330,14 +346,16 @@ integration('explicit task delegation / PostgreSQL', () => {
             assertManage: jest.fn(),
             listReadable: jest.fn()
         })
+        taskControl = new TaskControlStore(database)
         factory = new AgentInvocationFactoryService(
             database.getRepository(AgentRuntimeBindingEntity),
             query,
-            new AgentInvocationRuntime(store, registry),
+            new AgentInvocationRuntime(store, registry, undefined, taskControl),
             capabilities,
             { assertEnabled: jest.fn() } as unknown as ManagedRuntimeService,
             database.getRepository(AgentInvocationEntity)
         )
+        reviews = new DefaultProjectReviewEnvironment()
         cards = new ProjectTaskCardProvider(
             database,
             Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService
@@ -347,9 +365,63 @@ integration('explicit task delegation / PostgreSQL', () => {
             context,
             factory,
             cards,
-            bindings
+            bindings,
+            reviews
         )
     })
+
+    it('keeps resumed Project reservation, persisted invocation and runner identity aligned', async () => {
+        const originalExecutionId = scope.parentExecutionId
+        await taskControl.register({
+            tenantId: scope.tenantId, organizationId: scope.organizationId,
+            kind: 'execution', resourceId: randomUUID(), executionId: originalExecutionId, threadId: caller.threadId
+        })
+        const resumedExecutionId = randomUUID()
+        await database.transaction((manager) => taskControl.bind(originalExecutionId, resumedExecutionId, manager))
+        scope.parentExecutionId = resumedExecutionId
+        caller.executionId = resumedExecutionId
+        const result = await service.dispatch(scope.projectId, input, caller)
+        const attempt = await database.getRepository(XpertProjectTaskExecution).createQueryBuilder('attempt')
+            .addSelect('attempt.dispatchIntent').where('attempt.id = :id', { id: result.taskExecutionId }).getOneOrFail()
+        const { invocation } = await store.read(result.invocationId, scope)
+        const intent = service.intent(attempt)
+        expect(intent.scope.parentExecutionId).toBe(resumedExecutionId)
+        expect(intent.invocationParentExecutionId).toBe(originalExecutionId)
+        expect(invocation.scope).toEqual(projectTaskInvocationScope(intent))
+        expect(invocation.request).toEqual(intent.request)
+        expect(start.mock.calls[0][1].scope).toEqual(invocation.scope)
+        expect(start.mock.calls[0][1].invocationId).toBe(attempt.invocationId)
+        expect((await service.dispatch(scope.projectId, input, caller)).invocationId).toBe(result.invocationId)
+        expect(start).toHaveBeenCalledTimes(1)
+        const stale = factory.createCapturedApi({ ...scope, parentExecutionId: originalExecutionId })
+        await expect(stale.start({ ...intent.request, callId: 'stale-attempt-new-call' })).rejects.toThrow()
+        expect(start).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['pipeline', 'ordinary', 'provider'] as const)(
+        'only exempts a native Pipeline coordinator from the Computer reservation (%s)', async (controlKind) => {
+            const task = await database.getRepository(XpertProjectTask).findOneByOrFail({ id: input.taskId })
+            const coordinator = await database.getRepository(XpertProjectTask).save({
+                ...task, id: randomUUID(), controlKind, status: 'in_progress'
+            })
+            await database.getRepository(XpertProjectTaskExecution).save({
+                id: randomUUID(), tenantId: scope.tenantId, organizationId: scope.organizationId,
+                projectId: scope.projectId, createdById: scope.userId, taskId: coordinator.id,
+                conversationId: scope.conversationId, threadId: caller.threadId, agentExecutionId: caller.executionId,
+                status: 'running', attempt: 1
+            })
+            if (controlKind === 'pipeline') {
+                const result = await service.dispatch(scope.projectId, input, caller)
+                expect(result.status).toBe('running')
+                expect(start).toHaveBeenCalledTimes(1)
+                await expect(service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)).rejects.toThrow()
+                expect(start).toHaveBeenCalledTimes(1)
+            } else {
+                await expect(service.dispatch(scope.projectId, input, caller)).rejects.toThrow()
+                expect(start).not.toHaveBeenCalled()
+            }
+        }
+    )
 
     it('dispatches for the built-in Project general agent without fabricating an Assistant ID', async () => {
         scope.callerType = 'project_agent'
@@ -554,7 +626,8 @@ integration('explicit task delegation / PostgreSQL', () => {
             context,
             factory,
             cards,
-            bindings
+            bindings,
+            reviews
         )
         const receipt = await service.dispatch(scope.projectId, input, caller)
         expect(receipt.invocationId).toBe(saved.invocationId)
@@ -605,5 +678,6 @@ integration('explicit task delegation / PostgreSQL', () => {
     })
 
     reliableReturnIntegrationCases(() => ({ database, store, service, factory, scope, caller, input, start, strategy }))
-    projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context }))
+    projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context, reviews }))
+    projectTaskCoordinationCases(() => ({ database, store, service, factory, scope, caller, input, context, reviews }))
 })

@@ -109,3 +109,26 @@ The runner starts an already persisted invocation, observes its process, sends r
 The SDK contract supports host-managed Computer and Sandbox instances without naming a specific CLI or model provider. Tool/version/environment compatibility is explicitly declared in `executionTools` and remains separate from authorization. Concrete environment implementations and their supported tools are registered by the host; declaring a type does not install or enable an executor. Direct remote runtimes continue to use session/run handles without a runner.
 
 Execution grant lifetime follows the CLI session or managed invocation, independently of browser/Desktop login and viewing/control connections. Terminal completion, cancellation, expiry or invalid permissions still require host reconciliation. A stop request is not proof of termination: only `exited` confirms the process stopped, and `unknown` must remain visible.
+
+### Task result files
+
+`AgentExecutionRunner.readTaskResultFile(receipt, reference)` is the host's optional result-file reader, called by a Runtime adapter after verified CLI completion. It extends the existing runner capability; it is not a model-facing tool or a Project acceptance operation. A runner without this method does not advertise result-file submission. The concrete consumers are the Computer JSONL and OpenCode adapters in the `agent-runtimes` plugin.
+
+The data path is: CLI writes a result envelope → final reply submits its reference → adapter verifies completion → scoped runner reads and validates the file → adapter normalizes and checkpoints the result → Project coordination evaluates acceptance or rework.
+
+| Component | Responsibility |
+| --- | --- |
+| CLI | Use a JSON encoder to write the actual result and explicitly submit its file reference. |
+| Runtime adapter | Understand the CLI's completion protocol, recognize the final reference, call the host reader, and checkpoint the normalized result before cleanup. |
+| Host runner | Revalidate receipt ownership and the current environment instance; read the exact bounded file and verify its digest and envelope schema. |
+| Project coordinator and reviewer | Assess requirements and actual evidence; record acceptance or rework separately from execution completion. |
+
+The portable reference is `{ version: 1, path: "output/result.json", sha256: "<64 lowercase hex characters>" }`. Paths are relative to the receipt's host-selected working directory. The file contains the existing `AgentTaskResult` envelope (`version`, string `summary`, and typed `items`) as UTF-8 JSON. When the task requires a structured review in `summary`, encode that review as a JSON string inside the envelope; do not substitute a prose assertion that a report exists.
+
+Adapters that implement the `xpert-task-result-file` protocol accept one explicit final fenced reference, not an intermediate tool output or a file discovered by scanning the workspace. Only advertise that protocol when the scoped runner implements the reader. Inline result envelopes remain available when file submission is unsupported.
+
+The shared report transfer cap is `AGENT_TASK_RESULT_FILE_MAX_BYTES` (4 MiB), independent of artifact-export quotas. The host validates the same bytes it hashes and parses. An invalid explicit submission is a delivery failure; adapters must not silently reinterpret it as a successful prose result or rewrite the author's findings.
+
+`collectArtifacts` still exports requested deliverables under the persisted delivery policy. Reading a result file does not create an Artifact, change `delivery: none`, or grant a download. A matching SHA-256 establishes which bytes were submitted, not whether tests ran or business requirements passed. File presence does not establish CLI completion or task acceptance.
+
+See the [runner interface](../../../plugin-sdk/src/lib/agent/runtime/execution-runner.ts) and [result schemas](../../../plugin-sdk/src/lib/agent/runtime/results.ts). Release the compatible SDK and host implementation before enabling file submission in a consuming Runtime plugin; the interface alone does not install an environment reader.

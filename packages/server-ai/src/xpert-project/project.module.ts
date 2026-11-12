@@ -1,5 +1,18 @@
+import { ProjectReviewModule } from './review/project-review.module'
+import { XpertTaskModule } from '../xpert-task/xpert-task.module'
+import { ProjectConfigurationEditorsAdapter } from './configuration/runtime/project-configuration-editors.adapter'
+import { ProjectConfigurationAutomationAdapter } from './configuration/runtime/project-configuration-automation.adapter'
+import { ProjectConfigurationConnectorsAdapter } from './configuration/runtime/project-configuration-connectors.adapter'
+import { ProjectConfigurationPluginModule } from './plugins/project-configuration/project-configuration.module'
+import { ProjectConfigurationRuntimeService } from './configuration/runtime/project-configuration-runtime.service'
+import { ModelExecutionModule } from '../model-execution/model-execution.module'
+import { XpertProjectConfiguration } from './configuration/project-configuration.entity'
+import { ProjectConfigurationService } from './configuration/project-configuration.service'
+import { ProjectConfigurationController } from './configuration/project-configuration.controller'
 import { ProjectPipelineRuntimeBridgeService } from './pipeline/runtime/pipeline-runtime-bridge.service'
 import { ProjectPipelineModelBudgetStore } from './pipeline/budget/pipeline-model-budget.store'
+import { ProjectPipelineModelBudgetManagementController } from './pipeline/budget/pipeline-model-budget-management.controller'
+import { ProjectPipelineModelBudgetManagementService } from './pipeline/budget/pipeline-model-budget-management.service'
 import {
     AuthorizePipelineNativeExecutionHandler,
     PreparePipelineNativeExecutionHandler,
@@ -93,6 +106,7 @@ import { XpertAgentModule } from '../xpert-agent'
 
 import { ProjectTaskGraphController } from './project-task-graph.controller'
 import { ProjectTaskGraphService } from './services/project-task-graph.service'
+import { ProjectTasksRuntimeService } from './runtime/project-tasks-runtime.service'
 import { ProjectTaskProjectionCoordinator } from './services/task-projection/project-task-projection.coordinator'
 import { ProjectTaskProjectionStore } from './services/task-projection/project-task-projection.store'
 import { ProjectTaskProjectionService } from './services/task-projection/project-task-projection.service'
@@ -101,6 +115,11 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
+import { ProjectPluginDeploymentService } from './pipeline/plugin-deployment/plugin-deployment.service'
+import { ProjectPluginDeploymentStore } from './pipeline/plugin-deployment/plugin-deployment.store'
+import { ProjectPluginDeploymentAdapters } from './pipeline/plugin-deployment/plugin-deployment.adapters'
+import { ProjectPluginTestAccessService } from './pipeline/plugin-deployment/plugin-test-access.service'
+import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { ProjectPipelineContributionRegistry, ProjectPipelineRuntimeAdapterRegistry } from '@xpert-ai/plugin-sdk'
 import { ProjectPipelineEvidenceAccessService } from './pipeline/runtime/pipeline-evidence-access.service'
 import { ProjectPipelineConfigurationController } from './pipeline/configuration/project-pipeline-configuration.controller'
@@ -142,7 +161,10 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 
 @Module({
     imports: [
+        ProjectReviewModule,
+        ArtifactsModule,
         DiscoveryModule,
+        ProjectConfigurationPluginModule,
         AgentInvocationModule,
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
@@ -161,6 +183,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
             XpertProjectAutomationRun,
             XpertProjectTaskConversation,
             XpertProjectTaskExecution,
+            XpertProjectConfiguration,
             XpertAgentExecution,
             XpertProjectSprint,
             XpertProjectSwimlane,
@@ -174,6 +197,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
             Feature,
             FeatureOrganization
         ]),
+        forwardRef(() => ModelExecutionModule),
         TenantModule,
         RedisModule,
         FeatureModule,
@@ -188,9 +212,12 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         forwardRef(() => SkillRepositoryIndexModule),
         XpertProjectAccessModule,
         forwardRef(() => XpertAgentModule),
+        forwardRef(() => XpertTaskModule),
         forwardRef(() => XpertModule)
     ],
     controllers: [
+        ProjectConfigurationController,
+        ProjectPipelineModelBudgetManagementController,
         ProjectPipelineCommandsController,
         ProjectPipelineController,
         ProjectPipelineAnalyticsController,
@@ -204,6 +231,8 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectConfigurationService,
+        ProjectPipelineModelBudgetManagementService,
         ProjectPipelineSchemaService,
         ProjectPipelineModelBudgetStore,
         AuthorizePipelineNativeExecutionHandler,
@@ -243,6 +272,10 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineCatalogService,
         ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
+        ProjectPluginDeploymentStore,
+        ProjectPluginDeploymentService,
+        ProjectPluginTestAccessService,
+        ...ProjectPluginDeploymentAdapters,
         ProjectTaskDispatchRecoveryService,
         ProjectRuntimeObservationHandler,
         ProjectTaskCardProvider,
@@ -257,10 +290,15 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
         ProjectTaskGraphService,
+        ProjectTasksRuntimeService,
         ProjectTaskProjectionCoordinator,
         ProjectTaskProjectionStore,
         ProjectTaskProjectionService,
         ProjectTasksViewProvider,
+        ProjectConfigurationRuntimeService,
+        ProjectConfigurationEditorsAdapter,
+        ProjectConfigurationAutomationAdapter,
+        ProjectConfigurationConnectorsAdapter,
         ProjectPipelineWorkspaceService,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,

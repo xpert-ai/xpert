@@ -21,7 +21,8 @@ import {
   requireAuthentication,
   resolvePluginEndpoint,
   resolvePluginInput,
-  summarizePluginResponse
+  summarizePluginResponse,
+  summarizePluginRuntimeTarget
 } from './local-plugin-cli.mjs'
 
 const BOOLEAN_FLAGS = ['dryRun', 'forceInstall', 'help', 'noKeychain', 'skipBuild', 'skipTest']
@@ -363,6 +364,8 @@ async function main() {
     },
     deployment: {
       action: deployment.action,
+      pluginEndpoint,
+      ...summarizePluginRuntimeTarget(deployment.result),
       restartRequired,
       descriptor: summarizePluginResponse(descriptor)
     }

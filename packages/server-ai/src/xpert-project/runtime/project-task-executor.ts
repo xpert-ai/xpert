@@ -1,11 +1,13 @@
-import type { IXpertProjectTaskExecution, ProjectTaskNode } from '@xpert-ai/contracts'
+import type { IXpertProjectTaskExecution, ProjectTaskExecutionPurpose, ProjectTaskNode } from '@xpert-ai/contracts'
 
-/** A later review never changes the task's implementation identity. */
-export function latestImplementationExecutor(
-    attempts: readonly IXpertProjectTaskExecution[]
+/** Keep implementation and review executor identities separate, including their retries. */
+export function latestTaskExecutor(
+    attempts: readonly IXpertProjectTaskExecution[],
+    purpose: ProjectTaskExecutionPurpose['type']
 ): ProjectTaskNode['executor'] {
     const latest = attempts
-        .filter((item) => item.purpose?.type !== 'review')
+        // Legacy executions without a purpose belong to implementation, never to review.
+        .filter((item) => (item.purpose?.type ?? 'implementation') === purpose)
         .reduce<
             IXpertProjectTaskExecution | undefined
         >((current, item) => (!current || item.attempt > current.attempt ? item : current), undefined)

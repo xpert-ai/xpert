@@ -51,13 +51,17 @@ function fixture(t) {
     await until(() => isFinal(engine.records.get(value.operationId)?.state), 30000, diagnostics)
     return engine.records.get(value.operationId)
   }
-  const diagnostics = () => JSON.stringify({
-    ready: engine.current?.ready,
-    records: [...engine.records.values()].map((record) => ({
-      state: record.state, exitCode: record.exitCode, errorCode: record.errorCode,
-      stdout: output(record).slice(-2000), stderr: output(record, 'stderr').slice(-2000)
-    }))
-  })
+  const diagnostics = () =>
+    JSON.stringify({
+      ready: engine.current?.ready,
+      records: [...engine.records.values()].map((record) => ({
+        state: record.state,
+        exitCode: record.exitCode,
+        errorCode: record.errorCode,
+        stdout: output(record).slice(-2000),
+        stderr: output(record, 'stderr').slice(-2000)
+      }))
+    })
   const run = async (text, overrides) => {
     const value = command(text, overrides)
     engine.accept(value)
@@ -87,11 +91,15 @@ for (const mode of ['start', 'cancel', 'disconnect']) {
     const command = { command: "[IO.File]::WriteAllText('marker', 'x')", cwd: root }
     const execution = spawnWindowsExecution(defaultSettings(), command, root)
     let receipt = ''
-    execution.receipt.on('data', (data) => { receipt += data.toString('utf8') })
+    execution.receipt.on('data', (data) => {
+      receipt += data.toString('utf8')
+    })
     // Drain output as the engine would; include bootstrap errors if the executable cannot start.
     let stderr = ''
     execution.child.stdout.resume()
-    execution.child.stderr.on('data', (data) => { stderr += data.toString('utf8') })
+    execution.child.stderr.on('data', (data) => {
+      stderr += data.toString('utf8')
+    })
     const closed = new Promise((resolve, reject) => {
       execution.child.once('error', reject)
       execution.child.once('close', (code) => execution.finish().then(() => resolve(code), reject))
@@ -102,14 +110,22 @@ for (const mode of ['start', 'cancel', 'disconnect']) {
       fs.rmSync(root, { recursive: true, force: true })
     })
     if (mode === 'start') {
-      await until(() => receipt.startsWith('{"ready":true}\n'), 10000, () => stderr)
+      await until(
+        () => receipt.startsWith('{"ready":true}\n'),
+        10000,
+        () => stderr
+      )
       assert.equal(fs.existsSync(path.join(root, 'marker')), false)
       execution.start()
     } else if (mode === 'cancel') {
       execution.stop()
       execution.start() // A late ready callback must not undo queued cancellation.
     } else execution.child.stdin.end()
-    await until(() => execution.child.exitCode !== null, 20000, () => stderr)
+    await until(
+      () => execution.child.exitCode !== null,
+      20000,
+      () => stderr
+    )
     assert.equal(await closed, 0, stderr)
     assert.equal(JSON.parse(receipt.split('\n').at(-1)).state, mode === 'start' ? 'exited' : 'not_started', stderr)
     assert.equal(fs.existsSync(path.join(root, 'marker')), mode === 'start')
@@ -136,8 +152,10 @@ test('Windows commands retain module auto-loading after OS modules are prepared'
   const module = path.join(modules, 'BosiShellProbe')
   fs.mkdirSync(module, { recursive: true })
   fs.writeFileSync(path.join(module, 'BosiShellProbe.psm1'), "function Get-BosiShellProbe { 'custom-module-ready' }")
-  fs.writeFileSync(path.join(module, 'BosiShellProbe.psd1'),
-    "@{ RootModule = 'BosiShellProbe.psm1'; ModuleVersion = '1.0'; FunctionsToExport = @('Get-BosiShellProbe'); CmdletsToExport = @(); AliasesToExport = @() }")
+  fs.writeFileSync(
+    path.join(module, 'BosiShellProbe.psd1'),
+    "@{ RootModule = 'BosiShellProbe.psm1'; ModuleVersion = '1.0'; FunctionsToExport = @('Get-BosiShellProbe'); CmdletsToExport = @(); AliasesToExport = @() }"
+  )
   const result = await f.run(`$env:PSModulePath = ${quote(modules)}; Get-BosiShellProbe`)
   assert.equal(result.state, 'succeeded', f.diagnostics())
   assert.ok(output(result).includes('custom-module-ready'))
@@ -300,12 +318,16 @@ function descendantAlive(f) {
   }
 }
 async function waitForDescendant(f) {
-  await until(() => {
-    if (fs.existsSync(path.join(f.root, 'descendant.pid'))) return true
-    if ([...f.engine.records.values()].some((record) => isFinal(record.state)))
-      throw new Error(`Command ended before creating its descendant: ${f.diagnostics()}`)
-    return false
-  }, 20000, f.diagnostics)
+  await until(
+    () => {
+      if (fs.existsSync(path.join(f.root, 'descendant.pid'))) return true
+      if ([...f.engine.records.values()].some((record) => isFinal(record.state)))
+        throw new Error(`Command ended before creating its descendant: ${f.diagnostics()}`)
+      return false
+    },
+    20000,
+    f.diagnostics
+  )
 }
 for (const mode of ['natural', 'cancel', 'timeout', 'revoke', 'lease']) {
   test(`Windows ${mode} ends the whole Job before releasing the next command`, async (t) => {
