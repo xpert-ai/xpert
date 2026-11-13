@@ -1,5 +1,54 @@
 # @xpert-ai/plugin-draft
 
+## 12.1.2
+
+### Patch Changes
+
+- c238eb6: Update the coordinated ChatKit packages for shared resource navigation, provider icons, editable prompt drafts, and Remote View OAuth popups. Align the workspace, API, Web and Desktop dependency locks with the published release.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+  - @xpert-ai/plugin-sdk@3.35.0
+  - @xpert-ai/contracts@3.35.0
+
+## 12.1.1
+
+### Patch Changes
+
+- 7e9e3db: Support a separate browser-reachable signing endpoint for private S3-compatible buckets, preserve object content types through unified uploads and quota wrappers, validate signed URL expiry, encode public object keys, and invalidate tenant settings caches after changing the default provider. Document the POSIX Workspace/Artifact boundary and add real MinIO regression coverage.
+- Updated dependencies [31fa495]
+- Updated dependencies [31fa495]
+- Updated dependencies [3c37f0f]
+- Updated dependencies [8d2caf2]
+- Updated dependencies [31fa495]
+- Updated dependencies [fc9bd43]
+- Updated dependencies [31fa495]
+- Updated dependencies [23d499f]
+- Updated dependencies [f36d183]
+- Updated dependencies [1c02f14]
+- Updated dependencies [591a751]
+- Updated dependencies [0e41849]
+- Updated dependencies [d3523eb]
+- Updated dependencies [e31bdce]
+- Updated dependencies [7e9e3db]
+- Updated dependencies [d500d54]
+- Updated dependencies [58f86f3]
+- Updated dependencies [8ba2e83]
+- Updated dependencies [04954f6]
+  - @xpert-ai/contracts@3.34.0
+  - @xpert-ai/plugin-sdk@3.34.0
+
 ## 12.1.0
 
 ### Minor Changes

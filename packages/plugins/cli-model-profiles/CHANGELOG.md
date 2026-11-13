@@ -1,5 +1,27 @@
 # @xpert-ai/cli-model-profiles
 
+## 0.2.3
+
+### Patch Changes
+
+- 4e56d50: Expose the existing validated Project task snapshot in Runtime context without reply routing, new permissions or environment-specific task dispatch. Runtime adapters can combine task purpose with the host runner receipt to provide workspace instructions. Clarify coordinator and Coding Runtime responsibilities in the cloud-coding skill to avoid nested CLI execution and untracked Shell fallback during delegated delivery.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+  - @xpert-ai/plugin-sdk@3.35.0
+  - @xpert-ai/contracts@3.35.0
+
 ## 0.2.2
 
 ### Patch Changes

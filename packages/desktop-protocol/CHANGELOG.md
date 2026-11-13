@@ -1,5 +1,48 @@
 # @xpert-ai/desktop-protocol
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [bd53631]
+  - @xpert-ai/contracts@3.35.0
+
+## 0.5.0
+
+### Minor Changes
+
+- 3c37f0f: Support native Windows PowerShell commands in Bosi with platform discovery, Windows working directories, per-command approval, and Job Object supervision for cancellation and descendant completion.
+
+### Patch Changes
+
+- Updated dependencies [31fa495]
+- Updated dependencies [31fa495]
+- Updated dependencies [3c37f0f]
+- Updated dependencies [8d2caf2]
+- Updated dependencies [31fa495]
+- Updated dependencies [fc9bd43]
+- Updated dependencies [31fa495]
+- Updated dependencies [23d499f]
+- Updated dependencies [1c02f14]
+- Updated dependencies [591a751]
+- Updated dependencies [0e41849]
+- Updated dependencies [d3523eb]
+- Updated dependencies [e31bdce]
+- Updated dependencies [d500d54]
+- Updated dependencies [58f86f3]
+- Updated dependencies [04954f6]
+  - @xpert-ai/contracts@3.34.0
+
 ## 0.4.9
 
 ### Patch Changes
