@@ -62,7 +62,8 @@ describe('execution source authorization', () => {
         const test = await setup()
         test.session.runner.instanceId = 'generation-2'
         await expect(test.service.assertCurrent(context)).rejects.toThrow()
-        await expect(test.service.assertCurrent({ ...context, billableUserId: 'creator' })).rejects.toThrow()
+        const modelContext = { ...context, billableUserId: 'creator' }
+        await expect(test.service.assertCurrent(modelContext)).rejects.toThrow()
     })
     it('revokes an invocation when its binding is disabled or revised', async () => {
         const test = await setup()

@@ -306,6 +306,8 @@
         "TemplateInstallResumeMismatch": "The Assistant being restored no longer matches this workspace or template.",
         "AssistantAppearanceInvalid": "Invalid assistant name or avatar settings.",
         "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
+        "ModelExecutionAuthenticationRequired": "Sign in or configure credentials for this coding tool in your Computer, then retry the task. The platform model was not used.",
+        "ModelExecutionAuthenticationUnknown": "Local coding tool authentication could not be determined. Refresh its status in your Computer and check the local configuration. The platform model was not used.",
         "ModelExecutionUnavailable": "Model execution is disabled or unavailable in this context.",
         "ModelExecutionBridgeUnsupported": "This Chat bridge supports text and client tools only. Disable native reasoning, media, hosted tools and unsupported protocol options.",
         "ModelExecutionParametersUnsupported": "The configured model parameters are invalid or unsupported by this model or execution protocol.",

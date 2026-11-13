@@ -119,6 +119,7 @@
     "ai/artifacts/use-grants/migrations/checks/20261108000200-artifact-grant-uuid-extension.sql",
     "ai/xpert-project/migrations/checks/20261110000000-task-review-subtasks.sql",
     "core/password-reset/migrations/checks/20261110000200-bound-reset-tickets.sql",
-    "ai/xpert-project/migrations/checks/20261110000300-project-purge-receipts.sql"
+    "ai/xpert-project/migrations/checks/20261110000300-project-purge-receipts.sql",
+    "ai/model-execution/migrations/checks/20261112160000-cli-native-authentication.sql"
   ]
 }

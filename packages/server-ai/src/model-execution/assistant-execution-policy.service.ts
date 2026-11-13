@@ -1,5 +1,5 @@
 import { userHasPermission } from '../shared/service-operation'
-import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, type IUser } from '@xpert-ai/contracts'
 import { ResolveAssistantExecutionIdentityCommand } from './resolve-assistant-execution-identity.command'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -55,11 +55,10 @@ export class AssistantExecutionPolicyService {
         return identity.user
     }
 
-    async resolve(
+    /** Authorize the current conversation and execution target without resolving model access or billing. */
+    async resolveTarget(
         actor: ExecutionActor,
         conversationId: string | null | undefined,
-        requireDefault = true,
-        resolveDefault = true,
         runtimeAssistant?: { id: string; workspaceId: string }
     ) {
         // TypeORM omits undefined predicates; never turn a missing id into an arbitrary conversation.
@@ -94,6 +93,20 @@ export class AssistantExecutionPolicyService {
             const assistant = await this.assistant(actor, runtimeAssistant?.id ?? conversation.xpert.id)
             if (runtimeAssistant && assistant.workspaceId !== runtimeAssistant.workspaceId)
                 throw executionError('Denied')
+            return { user, conversation, assistant }
+        }
+        return this.withResolvedAudience(actor, user, resolve)
+    }
+
+    async resolve(
+        actor: ExecutionActor,
+        conversationId: string | null | undefined,
+        requireDefault = true,
+        resolveDefault = true,
+        runtimeAssistant?: { id: string; workspaceId: string }
+    ) {
+        const { user, conversation, assistant } = await this.resolveTarget(actor, conversationId, runtimeAssistant)
+        const resolve = async () => {
             // Binding-directed execution uses the selected Assistant's configured default, not an unrelated conversation preference.
             const canEdit = userHasPermission(user, AIPermissionsEnum.XPERT_EDIT)
             if (runtimeAssistant || !canEdit) resolveDefault = false
@@ -165,6 +178,10 @@ export class AssistantExecutionPolicyService {
             if (requireDefault && !models.some((model) => model.id === defaultModelId)) throw executionError('Model')
             return { user, conversation, assistant, models, defaultModelId }
         }
+        return this.withResolvedAudience(actor, user, resolve)
+    }
+
+    private withResolvedAudience<T>(actor: ExecutionActor, user: IUser, resolve: () => Promise<T>) {
         return user.type === UserType.COMMUNICATION
             ? runWithCapturedRequestContext(captureRequestContext({ ...actor, user }), resolve)
             : resolve()

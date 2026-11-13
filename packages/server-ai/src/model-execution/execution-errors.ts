@@ -9,6 +9,10 @@ import {
 import { t } from 'i18next'
 
 const messages = {
+    AuthenticationUnknown:
+        'Local coding tool authentication could not be determined. Refresh its status in your Computer and check the local configuration. The platform model was not used.',
+    AuthenticationRequired:
+        'Sign in or configure credentials for this coding tool in your Computer, then retry the task. The platform model was not used.',
     ParametersUnsupported:
         'The configured model parameters are invalid or unsupported by this model or execution protocol.',
     IsolationConflict:
@@ -30,9 +34,17 @@ const messages = {
 export function executionErrorMessage(code: keyof typeof messages) {
     return t(`server-ai:Error.ModelExecution${code}`, { defaultValue: messages[code] }) || messages[code]
 }
+export class CliAuthenticationRequiredError extends ForbiddenException {
+    readonly code = 'authentication_required'
+    constructor(reason: 'AuthenticationRequired' | 'AuthenticationUnknown' = 'AuthenticationRequired') {
+        super(executionErrorMessage(reason))
+    }
+}
 export function executionError(code: keyof typeof messages) {
     applicationMetrics.recordModelExecution(code)
     const message = executionErrorMessage(code)
+    if (code === 'AuthenticationRequired' || code === 'AuthenticationUnknown')
+        return new CliAuthenticationRequiredError(code)
     if (code === 'SandboxUnavailable') return new ServiceUnavailableException(message)
     return code === 'Budget' || code === 'RateLimit'
         ? new HttpException(message, HttpStatus.TOO_MANY_REQUESTS)

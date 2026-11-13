@@ -384,7 +384,25 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
-    revision: '8',
+    revision: '9',
+    native: {
+      versions: ['0.159.2'],
+      homeDirectory: '.codex',
+      statusArguments: ['login', 'status'],
+      loginArguments: ['login', '--device-auth'],
+      logoutArguments: ['logout'],
+      testArguments: ['exec', '--json', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '-'],
+      configure: ({ home, permissionMode }: { home: string; permissionMode: CliPermissionMode }) => ({
+        args: [
+          '--ask-for-approval',
+          'never',
+          '--sandbox',
+          permissionMode === 'allow' ? 'danger-full-access' : 'workspace-write'
+        ],
+        environment: { CODEX_HOME: `${home}/.codex` },
+        files: []
+      })
+    },
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',
@@ -501,6 +519,7 @@ const definitions = [
     | 'protocol'
     | 'requiredCapabilities'
     | 'permissionModes'
+    | 'native'
     | 'chatBridge'
     | 'background'
     | 'versionOutputs'

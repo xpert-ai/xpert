@@ -1,3 +1,4 @@
+import { computerCliConnectionSchema } from '../shared/cli-execution.schema'
 import {
     executionContextSchema,
     executionModelsSchema,
@@ -8,6 +9,7 @@ import {
 } from './execution-schema'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import type {
+    ComputerCliConnection,
     LLMPriceAuthority,
     LLMPriceBreakdownItem,
     CliSessionStatus,
@@ -40,6 +42,9 @@ export class CliSession extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid' }) conversationId: string
     @Column({ type: 'uuid' }) xpertId: string
     @Column({ type: 'uuid', nullable: true }) grantId: string | null
+    @Column({ type: 'uuid', nullable: true }) nativeLeaseId: string | null
+    @Column({ type: 'jsonb', nullable: true, transformer: executionJson(computerCliConnectionSchema.nullable()) })
+    connection: ComputerCliConnection | null
     @Column({ type: 'jsonb', transformer: executionJson(executionToolSchema) }) tool: { id: string; version: string }
     @Column({ type: 'varchar' }) workingDirectory: string
     @Column({ type: 'varchar', default: 'starting' }) status: CliSessionStatus

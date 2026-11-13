@@ -306,6 +306,8 @@
         "TemplateInstallResumeMismatch": "待恢复的助理与当前工作空间或模板不匹配。",
         "AssistantAppearanceInvalid": "助理名称或头像设置无效。",
         "ConversationArtifactUnavailable": "此已保存文件在当前对话中不可用。",
+        "ModelExecutionAuthenticationRequired": "请在云电脑中登录或配置此编程工具的凭据后重试任务。未使用平台模型。",
+        "ModelExecutionAuthenticationUnknown": "无法确认云电脑中编程工具的本地认证状态。请刷新状态并检查本地配置。未使用平台模型。",
         "ModelExecutionUnavailable": "当前上下文未启用模型执行或暂不可用。",
         "ModelExecutionBridgeUnsupported": "此 Chat 协议转换仅支持文本和客户端工具，请关闭原生思考、多媒体、服务端工具及不支持的协议选项。",
         "ModelExecutionParametersUnsupported": "配置的模型参数无效，或当前模型及执行协议不支持这些参数。",

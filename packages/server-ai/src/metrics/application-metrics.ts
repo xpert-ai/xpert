@@ -328,6 +328,8 @@ export class ApplicationMetricsRegistry {
             | 'IsolationConflict'
             | 'SandboxUnavailable'
             | 'ConversationRequired'
+            | 'AuthenticationRequired'
+            | 'AuthenticationUnknown'
             | 'RateLimit'
             | 'Unavailable'
             | 'Invalid'

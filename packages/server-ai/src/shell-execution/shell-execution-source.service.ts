@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { ModelExecutionContext, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ExecutionSourceContext, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import {
     CliModelProfilesCapability,
     RuntimeCapabilityProvider,
@@ -25,7 +25,7 @@ export class ShellExecutionSourceService {
         @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry
     ) {}
 
-    async assertCurrent(context: ModelExecutionContext, preparing = false) {
+    async assertCurrent(context: ExecutionSourceContext, preparing = false) {
         if (context.source.type !== 'shell_execution') throw executionError('Denied')
         const source = context.source
         const where = {
@@ -43,6 +43,7 @@ export class ShellExecutionSourceService {
                 createdById: context.actorUserId
             })
         ])
+        // Catalog revision drift does not invalidate an admitted execution's original source receipt.
         const profile = (this.capabilities.get(CliModelProfilesCapability) ?? builtinCliModelProfiles).get(
             context.tool.id
         )
@@ -62,7 +63,6 @@ export class ShellExecutionSourceService {
             shell.generation !== source.generation ||
             !isDeepStrictEqual(child.tool, context.tool) ||
             child.profileRevision !== source.profileRevision ||
-            profile.revision !== source.profileRevision ||
             !(preparing ? ['preparing', 'prepared', 'starting', 'running'] : ['starting', 'running']).includes(
                 child.status
             ) ||
