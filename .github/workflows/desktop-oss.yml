@@ -1,0 +1,61 @@
+name: Mirror Bosi release to OSS
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable Bosi tag, e.g. desktop-v0.4.1
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  mirror:
+    if: github.repository == 'xpert-ai/xpert' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: bosi-oss
+    concurrency:
+      group: bosi-oss-publisher
+      queue: max
+    env:
+      BOSI_TAG: ${{ inputs.tag }}
+      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
+      BOSI_OSS_REGION: ${{ vars.BOSI_OSS_REGION }}
+      BOSI_OSS_BUCKET: ${{ vars.BOSI_OSS_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch original published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$BOSI_TAG" =~ ^desktop-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$BOSI_TAG" > "$RUNNER_TEMP/release.json"
+          jq -e --arg tag "$BOSI_TAG" '.tag_name == $tag and .draft == false and .prerelease == false' "$RUNNER_TEMP/release.json" >/dev/null
+          gh release download "$BOSI_TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/bosi-assets"
+      - name: Install OSS SDK and test mirror
+        run: |
+          python -m pip install oss2==2.19.1
+          python -m unittest discover -s .deploy/desktop/oss
+      - name: Assume Bosi release role
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
+        with:
+          oidc-provider-arn: ${{ vars.BOSI_OSS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.BOSI_OSS_ROLE_ARN }}
+          role-session-expiration: 3600
+      - name: Mirror assets and advance the public index
+        run: python .deploy/desktop/oss/mirror.py "$RUNNER_TEMP/release.json" "$RUNNER_TEMP/bosi-assets"

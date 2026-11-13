@@ -1,5 +1,77 @@
 # @xpert-ai/server-core
 
+## 3.35.0
+
+### Minor Changes
+
+- bd53631: Add a host-only command for verified plugin archive installation and inspection, and enforce restart authorization inside the serialized installation decision.
+
+### Patch Changes
+
+- f835d49: Preserve an optional bounded resource idle window when a live activity owner completes. Use an atomic Redis transition so repeated cleanup cannot extend retention or restore expired activity. Preserve other owners and reserve the internal idle marker.
+- 608ce5f: Track host-verified archive provenance separately from client source configuration. Serialize duplicate/replacement decisions under the plugin store lease, reuse matching immutable installations without reloading, and repair missing package directories from the same approved archive. Keep configuration edits separate and return installation targets without claiming runtime convergence.
+- 2c0a3b7: Preserve the loaded artifact source on the first plugin configuration save. Save configuration in a short database transaction without overwriting installation identity, staged versions, restart flags or pending publication metadata, including concurrent first saves and installations.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+    - @xpert-ai/plugin-sdk@3.35.0
+    - @xpert-ai/contracts@3.35.0
+    - @xpert-ai/server-common@3.35.0
+    - @xpert-ai/server-config@3.35.0
+
+## 3.34.0
+
+### Minor Changes
+
+- 31fa495: Add explicit group analysis consent, exact published binding delegation, scoped resource query tools, execution audits and post-query/publication authorization checks. Keep existing read grants view-only and preserve upstream viewer data permissions.
+
+    Resolve analytics from the existing Artifact Type registration and execute through Analytics Runtime independently of presentation providers. Share fixed-version content checks between viewing and analysis, retain domain parameter constraints, and keep group execution APIs internal to the host.
+
+### Patch Changes
+
+- d06faed: Store existing Artifact content through the system FileStorage provider while preserving storage-agnostic logical references, protected local content, Artifact authorization and fixed versions. Read tenant storage settings from the SDK request context. Changing system storage configuration requires operator-managed data migration without changing file references.
+
+    The internal Artifact byte storage implementation is beta and may change incompatibly. No new Workspace file API or public reference fields are introduced.
+
+- c827c30: Defer Multer storage-provider resolution until an upload request runs, so a system configured with a plugin provider such as MinIO can bootstrap before provider registration. Keep each request's storage engine for multipart cleanup and preserve explicit provider selection.
+- 7e9e3db: Support a separate browser-reachable signing endpoint for private S3-compatible buckets, preserve object content types through unified uploads and quota wrappers, validate signed URL expiry, encode public object keys, and invalidate tenant settings caches after changing the default provider. Document the POSIX Workspace/Artifact boundary and add real MinIO regression coverage.
+- 8ba2e83: Expose an installation-bound asynchronous PluginContext.readConfig() method that reads current configuration from the database on demand, without background polling. Preserve scope and runtime artifact boundaries and fail explicitly on unavailable or invalid configuration. The synchronous config snapshot remains compatible with existing plugins.
+- 04954f6: Scope decorated Tool component keys to their owning plugin. Reject conflicting root-module provider declarations before Nest construction and report the failed plugin without blocking healthy platform traffic. Keep deployment convergence strict and preserve artifact identity, lease and recovery fences.
+- Updated dependencies [31fa495]
+- Updated dependencies [31fa495]
+- Updated dependencies [3c37f0f]
+- Updated dependencies [8d2caf2]
+- Updated dependencies [31fa495]
+- Updated dependencies [fc9bd43]
+- Updated dependencies [31fa495]
+- Updated dependencies [23d499f]
+- Updated dependencies [f36d183]
+- Updated dependencies [1c02f14]
+- Updated dependencies [591a751]
+- Updated dependencies [0e41849]
+- Updated dependencies [d3523eb]
+- Updated dependencies [e31bdce]
+- Updated dependencies [7e9e3db]
+- Updated dependencies [d500d54]
+- Updated dependencies [58f86f3]
+- Updated dependencies [8ba2e83]
+- Updated dependencies [04954f6]
+    - @xpert-ai/contracts@3.34.0
+    - @xpert-ai/plugin-sdk@3.34.0
+    - @xpert-ai/server-common@3.34.0
+    - @xpert-ai/server-config@3.34.0
+
 ## 3.33.1
 
 ### Patch Changes

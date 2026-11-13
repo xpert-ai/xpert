@@ -1,5 +1,172 @@
 # @xpert-ai/server-ai
 
+## 3.35.0
+
+### Minor Changes
+
+- 6b9b857: Add a host-owned Project Pipeline node for approved plugin archive installation. Capture exact human-gate input evidence, reauthorize the publisher on recovery, and keep bounded MCP test access separate from deployment.
+- 5bfc27b: Allow signed-in Project managers to raise an existing Pipeline native-model token ceiling through an audited, revision-checked and idempotent management API. Preserve historical usage, unknown reservations, call limits and decisions, and apply the effective ceiling to admission and status reads. This budget covers host-native LLM requests with persisted Pipeline ancestry; it does not cover Computer CLI usage or unrelated coordinator continuations.
+- eb44fd1: Share Project configuration between Cloud and Assistant Workbench through a portable view with scoped member, skill, connector and automation editors. Keep project access, configuration revisions and task run-as consent in the owning services, and launch OAuth using short-lived single-use browser tickets.
+
+    Expose configuration operations through a View-independent ProjectConfigurationApi with trusted actor/project scope and concrete business methods. Keep View action parsing inside the independently registered configuration plugin module.
+
+- 674b534: Add schema-defined, non-secret Project type configuration with scoped access, revision-checked updates, and a managed database migration. Expose the effective task duration within tenant execution limits and preserve configuration defaults separately from saved overrides.
+
+### Patch Changes
+
+- ef9e7a0: Establish the execution ownership lease before running an automatically delivered task result. Reject duplicate ownership without finalizing another process's execution, and preserve interrupted outcomes when a leased process disappears.
+- c238eb6: Update the coordinated ChatKit packages for shared resource navigation, provider icons, editable prompt drafts, and Remote View OAuth popups. Align the workspace, API, Web and Desktop dependency locks with the published release.
+- 7c65f33: Add the optional Scheduler Assistant capability. Users and agents can schedule a recurring difference check in the current branch, a selected accessible conversation, or a new chat on each run. The monitor retains its interval and difference history across runs.
+- ef9e7a0: Keep coding CLI streams alive during long gaps without visible output by emitting
+  empty Chat Completion deltas and sequenced Responses status events. Preserve real
+  provider activity deadlines, usage accounting, cancellation and stream backpressure.
+  Verify compatibility with pinned Qwen and Codex clients using offline providers.
+- 1e59570: Separate ordinary execution duration from the tenant ceiling while preserving explicit legacy policies. Pin grants to a bounded requested duration, keep lease periods within that duration, and expose the remaining authorization lifetime for trusted launchers.
+- d0bfbb4: Allow loaded native Tool Providers to be discovered, installed and listed from the scoped runtime registry without requiring a portable resource manifest. Preserve runtime registration versions and per-Agent selectors, require a valid plugin root for filesystem resources, and retain loaded-plugin scope and provider provenance checks.
+- 90b9f29: Observe background LangGraph checkpoint rejections immediately while preserving the original failure for graph execution to report. Carry the pinned patch and matching locks through API, Web and Desktop dependency preparation.
+
+    Backport only the rejection-observation fix from [langgraphjs#2969](https://github.com/langchain-ai/langgraphjs/pull/2969) to LangGraph 0.4.7. Track the deferred official-version migration and patch removal criteria in `patches/README.md`.
+
+- 608ce5f: Track host-verified archive provenance separately from client source configuration. Serialize duplicate/replacement decisions under the plugin store lease, reuse matching immutable installations without reloading, and repair missing package directories from the same approved archive. Keep configuration edits separate and return installation targets without claiming runtime convergence.
+- 2c0a3b7: Preserve the loaded artifact source on the first plugin configuration save. Save configuration in a short database transaction without overwriting installation identity, staged versions, restart flags or pending publication metadata, including concurrent first saves and installations.
+- 4e56d50: Expose the existing validated Project task snapshot in Runtime context without reply routing, new permissions or environment-specific task dispatch. Runtime adapters can combine task purpose with the host runner receipt to provide workspace instructions. Clarify coordinator and Coding Runtime responsibilities in the cloud-coding skill to avoid nested CLI execution and untracked Shell fallback during delegated delivery.
+- 3d6d022: Coordinate execution-review dispatch and explicit Project acceptance through host Runtime boundaries. Preserve pinned evidence, independent feedback, rework, revision checks and stopped-attempt checks. Hosts without an execution-review integration continue to reject admission, protocol creation and candidate verification; no environment-specific implementation or SDK capability is added.
+- 1217745: Keep Project execution-review instructions and report protocol in the shared Project feature. Move review environment admission and candidate verification out of the invocation factory into a required host-internal adapter, preserving authorization order, fail-closed defaults and transaction boundaries.
+- a668b9e: Expose bounded, localized review-report diagnostics in authorized task details and decision errors. Identify delivery shape, schema, pinned subject and evidence-order problems so Agents can correct report delivery without repeating business tests. Preserve existing acceptance, verdict, authorization and revision checks.
+- 463f220: Include scoped direct-child summaries in Project Task reads so coordinating Assistants can inspect a task hierarchy without recursively loading execution results. Preserve existing project authorization and per-invocation result access checks.
+- aed57d5: Clarify Project task delegation guidance for background result continuation, independent execution review, candidate-specific retries and explicit acceptance. Keep environment instructions in host adapters and document the Pro execution-review boundary without changing task schemas or runtime policies.
+- b88fcae: Carry selected independent-review findings into explicitly authorized rework and preserve feedback across confirmed failed retries. Validate the saved decision, candidate evidence, invocation identity and completion before supplying historical context to fresh implementation and review attempts.
+- d215b79: Coordinate independent evidence-review tasks with pinned implementation candidates, reusable review attempts, assigned reviewers, and explicit summary acceptance or rework. Preserve parent and child decision histories atomically and fence stale runtime observations without coupling shared task services to the Pro Computer verifier.
+
+    Centralize review executor admission at the existing Runtime factory boundary and leave summary state under explicit coordination instead of copying individual child runtime states.
+
+- 2293d4f: Show the latest review executor for bound independent-review tasks while retaining implementation identity for ordinary tasks. Use existing server-owned task bindings without adding public graph fields or changing acceptance status.
+- f0b370e: Protect bound review tasks from generic hierarchy edits and completion, and require coordinated summaries to complete through their owning acceptance flow. Recheck persisted ownership under the project lock and preserve ordinary scheduling and task updates.
+- 37cd956: Persist the existing Project Task review candidate binding in a nullable JSONB column and protect it from ordinary task mutations. Add an idempotent migration and deployment schema check; review dispatch and acceptance orchestration remain separate.
+- dd0d45d: Populate execution-level review verdicts from settled, matching Invocation reports. Clear stale verdicts when the Invocation is unavailable or the report does not match its pinned candidate; preserve business acceptance as a separate decision.
+- 1825b0f: Distinguish implementation, review and rework attempts in Project task views, showing validated review verdicts separately from runtime success. Preserve shared toast styling when notifications customize their close-button accessibility text.
+- e761f0d: Allow Project Tasks to create summaries and children under an unfinished ordinary summary. Validate parent scope and ownership under the project lock while preserving the dedicated graph API for changes to existing relationships.
+- db88c62: Renew invocation startup leases for up to ten minutes while the launch owner remains active. Pin each startup owner, preserve revision checks, and stop renewal after cancellation, ownership changes, expiry or persistence failure. Clear the startup fence when launch completes. Renew short leases before expiry while preserving the default heartbeat frequency.
+- 8088254: Reject template skills without a plugin filesystem root while preserving native tool providers that do not require one. Organize template execution preparation under commands and handlers.
+- bd53631: Add a host-only command for verified plugin archive installation and inspection, and enforce restart authorization inside the serialized installation decision.
+- Updated dependencies [6b9b857]
+- Updated dependencies [5bfc27b]
+- Updated dependencies [f835d49]
+- Updated dependencies [c238eb6]
+- Updated dependencies [7c65f33]
+- Updated dependencies [1e59570]
+- Updated dependencies [608ce5f]
+- Updated dependencies [2c0a3b7]
+- Updated dependencies [eb44fd1]
+- Updated dependencies [4e56d50]
+- Updated dependencies [8a639bb]
+- Updated dependencies [1825b0f]
+- Updated dependencies [674b534]
+- Updated dependencies [db88c62]
+- Updated dependencies [b0ef7bf]
+- Updated dependencies [f5b727d]
+- Updated dependencies [bd53631]
+    - @xpert-ai/plugin-sdk@3.35.0
+    - @xpert-ai/contracts@3.35.0
+    - @xpert-ai/server-core@3.35.0
+    - @xpert-ai/cli-model-profiles@0.2.3
+    - @xpert-ai/shadcn-ui@0.2.4
+    - @xpert-ai/desktop-protocol@0.5.1
+    - @xpert-ai/server-auth@3.35.0
+    - @xpert-ai/server-common@3.35.0
+    - @xpert-ai/server-config@3.35.0
+
+## 3.34.0
+
+### Minor Changes
+
+- d06faed: Store existing Artifact content through the system FileStorage provider while preserving storage-agnostic logical references, protected local content, Artifact authorization and fixed versions. Read tenant storage settings from the SDK request context. Changing system storage configuration requires operator-managed data migration without changing file references.
+
+    The internal Artifact byte storage implementation is beta and may change incompatibly. No new Workspace file API or public reference fields are introduced.
+
+- 31fa495: Add atomic acceptance and group-scoped placement of published Artifact grants, with authenticated source-management and conversation-scoped list, read, query and removal endpoints. Reuse the Artifact library viewer while keeping group references out of ordinary Project catalogs and retaining legacy source authorization.
+
+    Read integrity-checked fixed version bytes and revalidate grants, group membership, reference state and provider registration before releasing presentation results. Keep authoring Project identity separate from the group's runtime Project. Interactive queries require an explicit type allowlist and use the current viewer's data permissions; drafts, export and source file browsing are not exposed.
+
+- 31fa495: Add the OS foundation for explicit cross-project use of a fixed published Artifact version by one group in the same organization. Source managers issue expiring read grants, group owners accept or remove them, and source managers can revoke them. Recheck group membership, the bound runtime Project, source status and resource policy on each authorized read; persist lifecycle and access audits.
+
+    Artifact types must opt in to authenticated group use and can enforce resource-specific delegation policy. Grants do not confer source Project membership, data query permissions, draft access, editing, export, copying or onward sharing. Viewer/reference APIs and application integration follow in separate batches.
+
+- 8d2caf2: Provide a host-owned conversation resource directory for current Project content and accepted references in the exact group audience. Add semantic type, origin and cursor filters to Resource Assistant discovery, and support authorized Project content navigation in group conversations. Revalidate runtime membership, project binding and reference grants without copying shared resources into Project catalogs.
+
+    Reuse the canonical resource locator in group links and live navigation events. Normalize historical flat reference/content IDs when reading persisted messages, while new messages use only `resource.kind` and `resource.id`.
+
+- 31fa495: Add metadata-only resource search and Workbench navigation tools, with accepted group references, requester-scoped live events, inert fallback entries and replay protection. Preserve source editing and data-query authorization boundaries.
+
+    Keep group observer streams alive during execution by comparing persisted varchar thread IDs against UUID runtime bindings as text.
+
+    Expose navigation through the optional Resource Assistant middleware. Respect configured nodes, runtime capability selections and per-tool preferences in both Project and group conversations; group adapters retain the exact admitted delivery and never fall back to Project-wide discovery.
+
+    Offer Resource Assistant in Assistant creation and capability configuration, including quick creation. Enabling it composes the navigation middleware through the existing capability lifecycle, requires a tool-calling model, and preserves managed removal and manually configured nodes.
+
+- 31fa495: Add explicit group analysis consent, exact published binding delegation, scoped resource query tools, execution audits and post-query/publication authorization checks. Keep existing read grants view-only and preserve upstream viewer data permissions.
+
+    Resolve analytics from the existing Artifact Type registration and execute through Analytics Runtime independently of presentation providers. Share fixed-version content checks between viewing and analysis, retain domain parameter constraints, and keep group execution APIs internal to the host.
+
+- 1c02f14: Automatically project allowlisted Widget, resource card and MCP App result snapshots into group transcripts. Publish from the runtime producer, reconcile on completion, preserve card-only results and deduplicate updates independently of final reply completion. Retain group analysis delivery checks and exclude private App sessions, raw tool steps and reasoning.
+
+### Patch Changes
+
+- 8b0af46: Allow Assistant execution identities to use the active embedding and rerank models of their published, accessible knowledge bindings while preserving model and resource authorization.
+- 172929f: Add an opt-in Assistant capability that attaches the user-input middleware to the primary Agent. Capability changes use the existing graph composition and removal flow without adding a feature flag.
+- 3c37f0f: Support native Windows PowerShell commands in Bosi with platform discovery, Windows working directories, per-command approval, and Job Object supervision for cancellation and descendant completion.
+- 23d499f: Show authorized public group messages, participant filters and causal reply relationships in Conversation Map. Keep private Assistant execution records separately authorized and add a current-group message navigation target.
+
+    Unify direct and group conversation map projections, typed relationships, paging and capability-driven shared views.
+
+- f36d183: Use a dedicated direct creation path for group Projects while retaining application-managed provisioning. Recover interrupted content initialization without overwriting owner edits or Project classification, and reject entity-managed types, unavailable types and conflicting existing Projects from direct creation.
+
+    Name the shared implementation `ensureProject` in `project-provisioning.ts`. Clarify that an `updated` result includes initialization recovery for an existing Project and does not necessarily indicate metadata changes.
+
+- 899143e: Allow Project binding after a group Assistant's first attempt failed without accepting input. Require an empty runtime with finalized failed receipts and failed executions, reject active work or existing Project bindings, and preserve the original failure records.
+- 591a751: Limit group Composer Project type choices to the Assistant's configured type. Derive group Project creation and binding validation from the primary Assistant, reject mismatched types, and retain general Project compatibility for Assistants and legacy Projects without an explicit type.
+- 0e41849: Keep group Projects independent by default and require explicit consent to reuse a Project used by another group. Filter discovery by usage, primary Assistant type and Project management rights before pagination; serialize cross-group binding attempts and require Composer selections to use the group binding flow.
+- d3523eb: Reject group sends that target Assistants requiring an unbound Project before persisting messages or delivery receipts. Return a typed `GROUP_PROJECT_REQUIRED` error with the affected participant IDs, while preserving accepted-message retries and allowing the original request after Project binding.
+- 5a923a8: Keep a delegated group request open until the calling Assistant has consumed the member replies. Distinguish queued replies and pending steer inputs from consumed replies so an early continuation does not complete the parent request or suppress the eventual final answer.
+- e31bdce: Distinguish partial and final group replies with an explicit replyStage. Only a committed final tool reply completes the sender's answer and suppresses the last automatic answer for the same request. Preserve progress, collaboration, retries and legacy final-reply semantics.
+- e161541: Improve Project task execution tooltips with separate task, provider, status, and timing rows, bounded error details, and wrapping for narrow views.
+- 6f25697: Show Project task errors as dismissible bottom-right notifications with a refresh action. Repeated identical errors stay dismissed and no longer shift the task view layout.
+- 2871e90: Run workflow JavaScript Code nodes in short-lived QuickJS/WASM child processes with execution timeouts and cancellation. Source installations on Node 24 no longer need to compile isolated-vm.
+- 58f86f3: Allow resource type providers to declare public icons and carry them into authorized group resource navigation cards. Keep legacy links compatible and retain live authorization when opening.
+- fb7072b: Scope organization-owned connection deletion checks to their organization while retaining tenant-wide checks for tenant-owned connections. Traverse configuration JSON once against the collected model IDs instead of rescanning it for every saved model binding.
+- 04954f6: Scope decorated Tool component keys to their owning plugin. Reject conflicting root-module provider declarations before Nest construction and report the failed plugin without blocking healthy platform traffic. Keep deployment convergence strict and preserve artifact identity, lease and recovery fences.
+- 54f469b: Move ordinary user-input and Plan Mode behavior into the configured middleware. Register a fixed tool schema and use existing runtime state for prompts and response validation, without extending the plugin SDK context or injecting question-specific middleware during subgraph construction. Plan Mode requires the user-input capability, and configuration and publication reject unsupported Agent connections.
+- Updated dependencies [d06faed]
+- Updated dependencies [31fa495]
+- Updated dependencies [31fa495]
+- Updated dependencies [3c37f0f]
+- Updated dependencies [8d2caf2]
+- Updated dependencies [31fa495]
+- Updated dependencies [c827c30]
+- Updated dependencies [fc9bd43]
+- Updated dependencies [31fa495]
+- Updated dependencies [23d499f]
+- Updated dependencies [f36d183]
+- Updated dependencies [1c02f14]
+- Updated dependencies [591a751]
+- Updated dependencies [0e41849]
+- Updated dependencies [d3523eb]
+- Updated dependencies [e31bdce]
+- Updated dependencies [7e9e3db]
+- Updated dependencies [6f25697]
+- Updated dependencies [d500d54]
+- Updated dependencies [58f86f3]
+- Updated dependencies [8ba2e83]
+- Updated dependencies [04954f6]
+    - @xpert-ai/server-core@3.34.0
+    - @xpert-ai/contracts@3.34.0
+    - @xpert-ai/plugin-sdk@3.34.0
+    - @xpert-ai/desktop-protocol@0.5.0
+    - @xpert-ai/shadcn-ui@0.2.3
+    - @xpert-ai/server-auth@3.34.0
+    - @xpert-ai/server-common@3.34.0
+    - @xpert-ai/server-config@3.34.0
+
 ## 3.33.1
 
 ### Patch Changes

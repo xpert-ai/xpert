@@ -1,13 +1,13 @@
 # AGENTS Guide for Xpert
 
-This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signals, new control flow) on the client. Follow these rules when extending the codebase.
+This repo uses NestJS + TypeORM on the server and Angular (standalone, signals, new control flow) on the client. Resolve dependency versions from the root package.json. Follow these rules when extending the codebase.
 
 ## General
 
 - Run pnpm commands through Corepack so the repo's `packageManager` is honored. Use `corepack pnpm ...` instead of bare `pnpm ...`; this repo currently expects `pnpm@10.24.0`, and using another pnpm version can rebuild an incompatible `node_modules` layout.
 - Golden rule: code files must not exceed 1,000 lines; when a file reaches that threshold, review its responsibilities and refactor coherent functionality into focused modules.
 - Golden rule: prefer writing Tailwind utility classes directly on HTML elements. Only extract component CSS when inline utilities are impractical, such as `:host`, pseudo-elements, or other selector-driven cases.
-- Use Angular Aria + TailwindCSS v4 for UI components.
+- Use the existing z-xxx components from @xpert-ai/headless-ui and Tailwind CSS v4. Follow the component and token selection priority in docs/en/guides/ui-token-guidance.mdx and docs/zh-Hans/guides/ui-token-guidance.mdx.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
 - Keep comments succinct; add only when clarifying non-obvious logic.
 - For high-risk infrastructure or orchestration files, add a short top-of-file comment only when the file carries non-obvious constraints, historical failure modes, or compatibility invariants. Prefer `Why this exists:` or `Invariants:` over generic responsibility summaries. Keep it to 3-6 high-signal lines and keep it aligned with the code and tests.
@@ -149,7 +149,7 @@ Component standards: `docs/en/guides/ui-token-guidance.mdx` and `docs/zh-Hans/gu
 
 ## API Endpoints
 
-- Server skill repositories: `POST /skill-repository` to register, `GET /skill-repository` list, indexes at `/skill-repository/indexes` with `POST /sync/:repositoryId`.
+- Server skill repositories: `POST /skill-repository` to register and `GET /skill-repository` to list. Indexes use `GET /skill-repository-indexes`; synchronization uses `POST /skill-repository-indexes/sync/:repositoryId`. These paths are relative to the shared API prefix.
 - Match client services to these REST shapes; keep organization/tenant context via base services.
 
 ## Testing & Validation

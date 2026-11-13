@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.4
+
+### Patch Changes
+
+- 7a9e68b: Preserve workspace permissions for quota-limited commands and uploads on Docker Desktop and Linux. Leave inaccessible subtrees on the lower layer and update directory ownership only when it differs.
+
 ## 0.4.3
 
 ### Patch Changes

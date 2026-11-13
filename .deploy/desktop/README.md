@@ -187,3 +187,7 @@ in artifacts. The release job uses the production environment and `GITHUB_TOKEN`
 
 Signing options target the installed electron-builder 26.x API; see the
 [versioned signing documentation](https://www.electron.build/v26/docs/features/code-signing/).
+
+## OSS release mirror
+
+Set up the domestic download domain, bucket policy, GitHub OIDC role and repository variables using the [Bosi OSS rollout guide](oss/README.md). A configured stable build uses the mirror for update discovery and packages. The manual mirror workflow on main can backfill an existing desktop tag without rebuilding.
