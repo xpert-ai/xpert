@@ -1,62 +1,16 @@
+import type { CollaborationTransport, CollaborationTransportPayload } from './transport'
+import { parseCollaborationPresence, type CollaborationPresenceSnapshotMetadata } from './presence'
+
+// Preserve existing imports while protocol-neutral code lives outside the Yjs client.
+export * from './transport'
+export * from './presence'
+
 import type {
   ApplyCollaborationUpdateResult,
   CollaborationPresencePatch,
   CollaborationSessionDescriptor,
-  ICollaborationActor,
   ICollaborationPresence
 } from './types'
-
-export type CollaborationTransportPayload = Record<string, unknown>
-export type CollaborationTransportHandler = (payload: CollaborationTransportPayload) => void
-
-/** Framework-neutral event transport used by the collaboration client. */
-export interface CollaborationTransport {
-  readonly connected: boolean
-  /** Socket/session identifier for this exact browser client, when the transport exposes one. */
-  readonly clientId?: string | null
-  connect(): void
-  disconnect(): void
-  emit(event: string, payload?: CollaborationTransportPayload): void
-  on(event: string, handler: CollaborationTransportHandler): () => void
-}
-
-/** Minimal Socket.IO-compatible shape; keeps socket.io-client out of the SDK bundle. */
-export interface CollaborationSocketLike {
-  readonly connected: boolean
-  readonly id?: string
-  connect(): unknown
-  disconnect(): unknown
-  emit(event: string, payload?: CollaborationTransportPayload): unknown
-  on(event: string, handler: CollaborationTransportHandler): unknown
-  off(event: string, handler: CollaborationTransportHandler): unknown
-}
-
-/** Adapt a caller-owned Socket.IO client to the SDK's framework-neutral transport. */
-export function createSocketIoTransportAdapter(socket: CollaborationSocketLike): CollaborationTransport {
-  return {
-    get connected() {
-      return socket.connected
-    },
-    get clientId() {
-      return socket.id ?? null
-    },
-    connect: () => {
-      socket.connect()
-    },
-    disconnect: () => {
-      socket.disconnect()
-    },
-    emit: (event, payload = {}) => {
-      socket.emit(event, payload)
-    },
-    on: (event, handler) => {
-      socket.on(event, handler)
-      return () => {
-        socket.off(event, handler)
-      }
-    }
-  }
-}
 
 export type CollaborationDocumentUpdateHandler = (update: Uint8Array, origin: unknown) => void
 
@@ -129,99 +83,15 @@ export interface CollaborationClient {
   setPresence(patch: CollaborationPresencePatch): void
 }
 
-/** Connection-specific metadata delivered with a presence snapshot. */
-export type CollaborationPresenceSnapshotMetadata = {
-  selfClientId: string | null
-}
-
-/** Stable, framework-neutral view of active collaboration sessions and deduplicated actors. */
-export type CollaborationPresenceStoreSnapshot = {
-  selfClientId: string | null
-  /** Every active browser/Agent session keyed by `clientId`. */
-  sessions: ICollaborationPresence[]
-  /** Sessions excluding only this exact browser client. */
-  remoteSessions: ICollaborationPresence[]
-  /** One entry per actor identity, including the local actor when supplied. */
-  collaborators: ICollaborationPresence[]
-}
-
-export type CollaborationPresenceStoreOptions = {
-  selfActor?: ICollaborationActor | null
-  includeSelf?: boolean
-  onChange?: (snapshot: CollaborationPresenceStoreSnapshot) => void
-}
-
-/** Mutable presence projection used by plugin UIs without coupling them to a framework. */
-export interface CollaborationPresenceStore {
-  setSelfClientId(clientId: string | null): void
-  replace(items: ICollaborationPresence[], selfClientId?: string | null): void
-  upsert(item: ICollaborationPresence): void
-  remove(clientId: string): void
-  clear(): void
-  snapshot(): CollaborationPresenceStoreSnapshot
-}
-
 /**
- * Keep per-client sessions for cursors while exposing one collaborator per stable actor identity.
- * This prevents a second tab owned by the same user from either duplicating or hiding that user.
- */
-export function createCollaborationPresenceStore(
-  options: CollaborationPresenceStoreOptions = {}
-): CollaborationPresenceStore {
-  let selfClientId: string | null = null
-  let sessions = new Map<string, ICollaborationPresence>()
-
-  const readSnapshot = (): CollaborationPresenceStoreSnapshot => {
-    const activeSessions = Array.from(sessions.values()).sort((left, right) => right.updatedAt - left.updatedAt)
-    const remoteSessions = activeSessions.filter((item) => item.clientId !== selfClientId)
-    const actors = new Map<string, ICollaborationPresence>()
-    for (const item of activeSessions) if (!actors.has(item.presenceId)) actors.set(item.presenceId, item)
-    if (options.includeSelf !== false && options.selfActor) {
-      const existing = activeSessions.find(
-        (item) => item.clientId === selfClientId || item.presenceId === options.selfActor?.presenceId
-      )
-      actors.set(options.selfActor.presenceId, existing ?? actorPresence(options.selfActor, selfClientId))
-    }
-    const collaborators = Array.from(actors.values()).sort((left, right) => {
-      const leftSelf = left.presenceId === options.selfActor?.presenceId ? 1 : 0
-      const rightSelf = right.presenceId === options.selfActor?.presenceId ? 1 : 0
-      return rightSelf - leftSelf || right.updatedAt - left.updatedAt
-    })
-    return { selfClientId, sessions: activeSessions, remoteSessions, collaborators }
-  }
-  const publish = () => options.onChange?.(readSnapshot())
-
-  return {
-    setSelfClientId: (clientId) => {
-      selfClientId = clientId
-      publish()
-    },
-    replace: (items, clientId = selfClientId) => {
-      selfClientId = clientId
-      sessions = new Map(items.map((item) => [item.clientId, item]))
-      publish()
-    },
-    upsert: (item) => {
-      sessions.set(item.clientId, item)
-      publish()
-    },
-    remove: (clientId) => {
-      if (sessions.delete(clientId)) publish()
-    },
-    clear: () => {
-      sessions.clear()
-      selfClientId = null
-      publish()
-    },
-    snapshot: readSnapshot
-  }
-}
-
-/**
- * Create a collaboration client with update batching, state-vector repair, presence heartbeat,
+ * Create a Yjs collaboration client with update batching, state-vector repair, presence heartbeat,
  * and reconnect synchronization. The caller retains ownership of the document and transport.
  */
 export function createCollaborationClient(options: CollaborationClientOptions): CollaborationClient {
+  // Legacy sessions omit engine and use Yjs; operations must use its notification client.
+  if (options.session.engine && options.session.engine !== 'yjs') {
+    throw new Error('Yjs collaboration protocol required')
+  }
   const remoteOrigin = Object.freeze({ kind: 'platform.collaboration.remote' })
   const batchMs = positiveInteger(options.batchMs, 40)
   const syncIntervalMs = positiveInteger(options.syncIntervalMs, 2_000)
@@ -329,7 +199,7 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     )
     cleanups.push(
       options.transport.on('presence', (payload) => {
-        const item = parsePresence(payload)
+        const item = parseCollaborationPresence(payload)
         if (item) {
           presenceSeenAt.set(item.clientId, Date.now())
           options.onPresence?.(item)
@@ -339,7 +209,7 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
     cleanups.push(
       options.transport.on('presence-snapshot', (payload) => {
         const rawItems = payload['items']
-        const items = Array.isArray(rawItems) ? rawItems.map(parsePresence).filter(isPresence) : []
+        const items = Array.isArray(rawItems) ? rawItems.map(parseCollaborationPresence).filter(isPresence) : []
         selfClientId = stringValue(payload['selfClientId']) ?? options.transport.clientId ?? selfClientId
         presenceSeenAt.clear()
         for (const item of items) presenceSeenAt.set(item.clientId, Date.now())
@@ -411,23 +281,6 @@ export function createCollaborationClient(options: CollaborationClientOptions): 
   }
 }
 
-function actorPresence(actor: ICollaborationActor, clientId: string | null): ICollaborationPresence {
-  return {
-    ...actor,
-    clientId: clientId ?? `self:${actor.presenceId}`,
-    pageId: null,
-    pointer: null,
-    focus: null,
-    selection: null,
-    viewport: null,
-    mode: null,
-    status: null,
-    toolName: null,
-    operationLabel: null,
-    updatedAt: Date.now()
-  }
-}
-
 /** Encode bytes in browsers without Node.js `Buffer`; chunks avoid argument-size limits. */
 export function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''
@@ -464,103 +317,11 @@ function parseAck(payload: CollaborationTransportPayload): ApplyCollaborationUpd
   }
 }
 
-function parsePresence(value: unknown): ICollaborationPresence | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const item = value as Record<string, unknown>
-  const clientId = stringValue(item['clientId'])
-  const presenceId = stringValue(item['presenceId'])
-  const displayName = stringValue(item['displayName'])
-  const color = stringValue(item['color'])
-  const actorType = item['actorType']
-  if (
-    !clientId ||
-    !presenceId ||
-    !displayName ||
-    !color ||
-    (actorType !== 'user' && actorType !== 'agent' && actorType !== 'system')
-  )
-    return null
-  return {
-    clientId,
-    presenceId,
-    displayName,
-    color,
-    actorType,
-    avatarUrl: nullableString(item['avatarUrl']),
-    pageId: nullableString(item['pageId']),
-    pointer: parsePointer(item['pointer']),
-    focus: parseFocus(item['focus']),
-    selection: parseSelection(item['selection']),
-    viewport: parseViewport(item['viewport']),
-    mode: nullableString(item['mode']),
-    status: actorStatus(item['status']),
-    toolName: nullableString(item['toolName']),
-    operationLabel: nullableString(item['operationLabel']),
-    updatedAt: typeof item['updatedAt'] === 'number' ? item['updatedAt'] : Date.now()
-  }
-}
-
-function parsePointer(value: unknown): ICollaborationPresence['pointer'] {
-  const item = recordValue(value)
-  if (!item || typeof item['x'] !== 'number' || typeof item['y'] !== 'number') return null
-  return { pageId: nullableString(item['pageId']), x: item['x'], y: item['y'], visible: item['visible'] !== false }
-}
-
-function parseFocus(value: unknown): ICollaborationPresence['focus'] {
-  const item = recordValue(value)
-  const kind = item && stringValue(item['kind'])
-  if (!item || !kind) return null
-  return {
-    kind,
-    key: nullableString(item['key']),
-    pageId: nullableString(item['pageId']),
-    elementId: nullableString(item['elementId']),
-    fieldKey: nullableString(item['fieldKey'])
-  }
-}
-
-function parseSelection(value: unknown): ICollaborationPresence['selection'] {
-  const item = recordValue(value)
-  const kind = item?.['kind']
-  if (!item || (kind !== 'text' && kind !== 'elements')) return null
-  return {
-    kind,
-    fieldKey: nullableString(item['fieldKey']),
-    elementIds: Array.isArray(item['elementIds'])
-      ? item['elementIds'].filter((entry): entry is string => typeof entry === 'string')
-      : null,
-    anchorRelativeBase64: nullableString(item['anchorRelativeBase64']),
-    headRelativeBase64: nullableString(item['headRelativeBase64'])
-  }
-}
-
-function parseViewport(value: unknown): ICollaborationPresence['viewport'] {
-  const item = recordValue(value)
-  if (
-    !item ||
-    typeof item['zoom'] !== 'number' ||
-    typeof item['width'] !== 'number' ||
-    typeof item['height'] !== 'number'
-  )
-    return null
-  return { zoom: item['zoom'], width: item['width'], height: item['height'] }
-}
-
-function recordValue(value: unknown) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
-}
-
 function isPresence(value: ICollaborationPresence | null): value is ICollaborationPresence {
   return value !== null
 }
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-function nullableString(value: unknown) {
-  return stringValue(value) ?? null
-}
-function actorStatus(value: unknown) {
-  return value === 'thinking' || value === 'editing' || value === 'done' || value === 'failed' ? value : null
 }
 function positiveInteger(value: number | undefined, fallback: number) {
   return Number.isFinite(value) && Number(value) > 0 ? Math.trunc(Number(value)) : fallback

@@ -188,3 +188,17 @@ export type AssistantComposerReference = {
   | { type: 'quote'; source?: string; messageId?: string }
 )
 export type AssistantComposerAppendReferencesPayload = { references: AssistantComposerReference[] }
+
+/** Host-owned browser persistence. Plugins never choose an account/storage namespace. */
+export const WORKBENCH_CONTENT_DRAFT_COMMAND = 'workbench.content.draft'
+export interface XpertViewLocalDraftBinding {
+  resourceId: string
+  scopeKey: string
+  maxBytes: number
+}
+export type WorkbenchContentDraftRequest = { resourceId: string } & (
+  | { operation: 'list' }
+  | { operation: 'read'; draftId: string }
+  | { operation: 'write'; draftId: string; expectedRevision: number; content: string }
+  | { operation: 'delete'; draftId: string; expectedRevision: number }
+)
