@@ -84,6 +84,10 @@
         "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
     },
     "Error": {
+        "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",
+        "CollaborationInvalidRevision": "协作资源版本无效。",
+        "CollaborationSchemaChanged": "协作文档已升级或修改，请重新加载后重试。",
+        "CollaborationMigrationInvalid": "不支持此协作协议升级。",
         "ScheduleReportMissing": "检查未提交有效的差异报告。",
         "ScheduleRunInProgress": "任务正在运行，检查完成后可更改运行位置。",
         "AmbiguousTaskName": "有多个同名任务，请指定任务 ID。",

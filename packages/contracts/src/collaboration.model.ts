@@ -127,7 +127,8 @@ export interface ICollaborationUpdate extends IBasePerTenantAndOrganizationEntit
   /** Sequence assigned while the document row is locked. */
   sequenceNumber: number
   updateBase64: string
-  /** SHA-256 of the decoded update bytes; unique per document. */
+  /** SHA-256 deduplication key, unique per document. Ordinary updates hash decoded bytes;
+   * schema migrations prefix them with `platform:schema-migration:<targetSchemaVersion>:`. */
   updateHash: string
   origin?: string | null
   actorType?: CollaborationActorType | null

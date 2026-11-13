@@ -84,6 +84,10 @@
         "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
     },
     "Error": {
+        "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",
+        "CollaborationInvalidRevision": "The collaboration resource revision is invalid.",
+        "CollaborationSchemaChanged": "The collaboration document changed or was upgraded. Reload before retrying.",
+        "CollaborationMigrationInvalid": "This collaboration schema migration is not supported.",
         "ScheduleReportMissing": "The check did not submit a difference report.",
         "ScheduleRunInProgress": "This task is running. Change its destination when the check finishes.",
         "AmbiguousTaskName": "Multiple tasks match this name. Provide the task ID.",
