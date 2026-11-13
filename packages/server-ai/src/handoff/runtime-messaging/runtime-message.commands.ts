@@ -14,7 +14,11 @@ export class ClaimAgentRuntimeResultsCommand extends Command<void> {
 
 /** Reconcile a Project projection without changing Invocation facts or deciding a business retry. */
 export class ProjectRuntimeObservationCommand extends Command<void> {
-    constructor(public readonly invocationId: string) {
+    constructor(
+        public readonly invocationId: string,
+        /** Trusted terminal bookkeeping only; never an HTTP/model-supplied actor. */
+        public readonly terminalActor?: Pick<AgentInvocationScope, 'tenantId' | 'organizationId' | 'userId'>
+    ) {
         super()
     }
 }

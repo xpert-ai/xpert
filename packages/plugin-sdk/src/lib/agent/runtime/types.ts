@@ -151,8 +151,13 @@ export interface AgentInvocationRequest {
   dispatch?: AgentInvocationDispatchContext
 }
 
+/** Host supervisor causes; provider observations cannot replace a pending termination. */
+export type AgentRunnerTerminationReason = 'authorization_revoked' | 'lease_expired' | 'runner_unavailable'
+
 /** Host-owned invocation snapshot; not an update DTO. */
 export interface AgentInvocation extends AgentRuntimeObservation {
+  /** Durable host stop intent. Only matching descendant-exit evidence can settle this execution. */
+  runnerTermination?: { reason: AgentRunnerTerminationReason; requestedAt: string }
   /** Persisted business outcome awaiting independent process completion evidence. */
   reportedOutcome?: 'succeeded' | 'failed' | 'cancelled'
   /** Pinned at admission; plugins cannot replace the original host or execution generation. */

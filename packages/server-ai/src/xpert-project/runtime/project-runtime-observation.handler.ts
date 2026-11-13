@@ -26,17 +26,18 @@ export function runtimeTaskStatus(invocation: AgentInvocation): 'in_progress' | 
 export class ProjectRuntimeObservationHandler implements ICommandHandler<ProjectRuntimeObservationCommand> {
     constructor(private readonly dataSource: DataSource) {}
     async execute(command: ProjectRuntimeObservationCommand) {
-        const tenantId = RequestContext.currentTenantId(),
-            organizationId = RequestContext.getOrganizationId(),
-            ownerId = RequestContext.currentUserId()
+        const tenantId = command.terminalActor?.tenantId ?? RequestContext.currentTenantId(),
+            organizationId = command.terminalActor?.organizationId ?? RequestContext.getOrganizationId(),
+            ownerId = command.terminalActor?.userId ?? RequestContext.currentUserId()
         if (!tenantId || !organizationId || !ownerId) return
         const record = await this.dataSource.getRepository(AgentInvocationEntity).findOneBy({
             id: command.invocationId,
-            tenantId: RequestContext.currentTenantId(),
-            organizationId: RequestContext.getOrganizationId(),
-            ownerId: RequestContext.currentUserId()
+            tenantId,
+            organizationId,
+            ownerId
         })
         if (!record) return
+        if (command.terminalActor && !invocationCanRelease(record.invocation)) return
         const parsed = agentInvocationDispatchContextSchema.safeParse(record.invocation.request.dispatch)
         const reference = parsed.success ? parsed.data.projectTask : null
         if (!reference) return
@@ -72,19 +73,31 @@ export class ProjectRuntimeObservationHandler implements ICommandHandler<Project
             const task = await taskRepo.findOne({ where: { ...where, id: attempt.taskId }, relations: ['steps'] })
             const status = runtimeTaskStatus(invocation)
             const ordinary = task && !task.providerKey && (!task.controlKind || task.controlKind === 'ordinary')
-            if (ordinary && task.kind === 'task' && task.reviewSubject && attempt.purpose?.type === 'review' &&
-                sameInvocationData(reference.purpose, attempt.purpose) && latest?.id === attempt.id &&
+            if (
+                ordinary &&
+                task.kind === 'task' &&
+                task.reviewSubject &&
+                attempt.purpose?.type === 'review' &&
+                sameInvocationData(reference.purpose, attempt.purpose) &&
+                latest?.id === attempt.id &&
                 attempt.projectedTaskRevision === task.revision &&
                 ['todo', 'in_progress', 'review', 'blocked'].includes(task.status) &&
                 task.reviewSubject.implementationTaskId === attempt.purpose.implementationTaskId &&
                 task.reviewSubject.implementationExecutionId === attempt.purpose.implementationExecutionId &&
-                task.reviewSubject.specificationDigest === attempt.purpose.specificationDigest) {
+                task.reviewSubject.specificationDigest === attempt.purpose.specificationDigest
+            ) {
                 // A negative verdict finishes the review, while the implementation still needs a decision.
-                const reviewStatus = invocation.status === 'succeeded' && invocationCanRelease(invocation)
-                    ? (reviewReport(attempt.purpose, invocation.result?.text) ? 'done' : 'blocked') : status
+                const reviewStatus =
+                    invocation.status === 'succeeded' && invocationCanRelease(invocation)
+                        ? reviewReport(attempt.purpose, invocation.result?.text)
+                            ? 'done'
+                            : 'blocked'
+                        : status
                 if (reviewStatus && task.status !== reviewStatus) {
-                    const changed = await taskRepo.update({ ...where, id: task.id, revision: task.revision },
-                        { status: reviewStatus, revision: task.revision + 1 })
+                    const changed = await taskRepo.update(
+                        { ...where, id: task.id, revision: task.revision },
+                        { status: reviewStatus, revision: task.revision + 1 }
+                    )
                     if (changed.affected) attempt.projectedTaskRevision = task.revision + 1
                 }
             }

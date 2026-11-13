@@ -74,6 +74,53 @@ function receipt(id: string, outcome: 'cancelled' | 'succeeded' = 'cancelled'): 
 }
 
 describe('Invocation completion evidence', () => {
+    it('does not accept a provider-supplied host termination intent', async () => {
+        const f = fixture(),
+            started = await f.api.start(f.request)
+        const observation = {
+            status: 'running' as const,
+            runnerTermination: {
+                reason: 'authorization_revoked' as const,
+                requestedAt: new Date().toISOString()
+            }
+        }
+        f.inspect.mockResolvedValueOnce(observation)
+        expect((await f.api.inspect(started.id)).runnerTermination).toBeUndefined()
+    })
+
+    it('keeps a supervisor stop pending without bypassing ordinary read authorization', async () => {
+        const f = fixture(),
+            started = await f.api.start(f.request)
+        const current = f.store.rows.get(started.id).invocation
+        current.runnerTermination = { reason: 'authorization_revoked', requestedAt: new Date().toISOString() }
+        current.status = 'cancelling'
+        expect((await f.api.inspect(started.id)).status).toBe('cancelling')
+        expect(f.inspect).not.toHaveBeenCalled()
+        const denied = f.runtime.scoped({
+            ...f.access,
+            authorize: async () => {
+                throw new Error('access revoked')
+            }
+        })
+        await expect(denied.inspect(started.id)).rejects.toThrow()
+    })
+
+    it('does not let an in-flight provider result overwrite a newer supervisor stop', async () => {
+        const f = fixture(),
+            started = await f.api.start(f.request)
+        f.inspect.mockImplementationOnce(async () => {
+            const current = f.store.rows.get(started.id).invocation
+            current.runnerTermination = { reason: 'authorization_revoked', requestedAt: new Date().toISOString() }
+            current.status = 'cancelling'
+            current.revision++
+            return { status: 'succeeded', result: { text: 'late result' } }
+        })
+        const result = await f.api.inspect(started.id)
+        expect(result.status).toBe('cancelling')
+        expect(result.result).toBeUndefined()
+        expect(result.runnerTermination.reason).toBe('authorization_revoked')
+    })
+
     it('does not accept v2 provider evidence when both generation targets are absent', async () => {
         const f = fixture(),
             started = await f.api.start(f.request)

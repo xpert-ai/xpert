@@ -359,6 +359,8 @@ export class AgentInvocationRuntime {
             this.pinned(record)
             return record.invocation
         }
+        // The original supervisor owns this durable stop; ordinary reads still require authorization above.
+        if (record.invocation.runnerTermination) return record.invocation
         if (operation === 'cancel' && !record.invocation.control) {
             const task = await this.tasks?.find(access.scope, 'invocation', id)
             if (task) await this.tasks.change(task.id, 'terminated')
@@ -593,6 +595,7 @@ export class AgentInvocationRuntime {
             )
                 throw invocationError('CallConflict')
             if (invocationCanRelease(latest.invocation)) return latest
+            if (latest.invocation.runnerTermination) return latest
             if (hostEvidence && observation.controlEvidence?.source === 'native_graph' && !isBuiltinInlineGraph(latest))
                 throw invocationError('CallConflict')
             const checked = hostEvidence
@@ -646,6 +649,7 @@ export class AgentInvocationRuntime {
                 executionTarget: record.invocation.executionTarget,
                 completionEvidence: record.invocation.completionEvidence,
                 reportedOutcome: record.invocation.reportedOutcome,
+                runnerTermination: record.invocation.runnerTermination,
                 hostResponse:
                     record.invocation.hostResponse?.claimed &&
                     observation.interaction &&

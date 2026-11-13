@@ -1,4 +1,5 @@
 import { RuntimeDeploymentsService } from './managed/runtime-deployments.service'
+import { RecordRunnerTerminationHandler } from './runner-termination.handler'
 import { TaskControlCoordinator } from './task-control-coordinator.service'
 import { ManagedRuntimeService } from './managed/managed-runtime.service'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../handoff/runtime-messaging/runtime-message.entity'
@@ -70,6 +71,7 @@ import { ReadTrailActivityHandler } from './execution-view/read-trail-activity.h
     ],
     controllers: [RuntimeDeliveryController, AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        RecordRunnerTerminationHandler,
         ManagedRuntimeService,
         RuntimeDeploymentsService,
         TaskControlCoordinator,
