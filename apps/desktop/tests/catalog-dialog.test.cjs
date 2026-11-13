@@ -16,7 +16,7 @@ const {
   installation,
   templateResult
 } = require('./fixtures/discovery-catalog.cjs')
-const { createCatalogCache } = require('../src/catalog/catalog-cache.ts')
+const { createCatalogCache, isCatalogDataKind } = require('../src/catalog/catalog-cache.ts')
 const { subscribeAppActivation } = require('../src/app-activation.ts')
 const { catalogBusinessAreas, matchesBusinessArea } = require('../src/catalog/business-area-filter.ts')
 // Match Vite's React deduplication instead of resolving Radix's nested peer copy in Node.
@@ -89,6 +89,10 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     Button: ({ type = 'button', ...props }) => element('button')({ type, ...props }),
     Input: element('input'),
     Label: element('label'),
+    DropdownMenu: ({ children }) => e(React.Fragment, {}, children),
+    DropdownMenuTrigger: ({ children }) => children,
+    DropdownMenuContent: element('div'),
+    DropdownMenuItem: ({ children, onSelect }) => e('button', { onClick: onSelect }, children),
     Textarea: element('textarea'),
     Checkbox: ({ checked, onCheckedChange, ...props }) =>
       e('input', { ...props, type: 'checkbox', checked, onChange: (event) => onCheckedChange(event.target.checked) }),
@@ -123,6 +127,8 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
   const host = {
     HostError: class HostError extends Error {},
     openWorkspace() {},
+    uploadOrganizationPluginZip: (organizationId, file) =>
+      host.invoke('installOrganizationPluginZip', { organizationId, file }),
     invoke: async (method, input) => {
       calls.push({ method, input })
       return handler(method, input)
@@ -151,12 +157,15 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
           'X',
           'Check',
           'ExternalLink',
+          'ChevronDown',
+          'FileArchive',
+          'GitBranch',
           'Info'
         ].map((name) => [name, () => null])
       ),
       './avatar': { BotAvatar: () => null, PluginAvatar: () => null },
       './catalog/CatalogAvatar': { CatalogAvatar: () => null },
-      './catalog/catalog-cache': { createCatalogCache },
+      './catalog/catalog-cache': { createCatalogCache, isCatalogDataKind },
       './catalog/template-source': require('../src/catalog/template-source.ts'),
       './catalog/business-area-filter': { catalogBusinessAreas, matchesBusinessArea },
       './catalog/blank-assistant': {
@@ -191,16 +200,27 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     runInNewContext(code, {
       exports,
       window: dom.window,
+      FormData: dom.window.FormData,
       Error,
       crypto: global.crypto,
       require(id) {
         if (Object.hasOwn(imports, id)) return imports[id]
+        if (id === '../electron/plugin-archive.mjs') return require(id)
         if (id === '../host') return host
         if (id === '../i18n') return imports['./i18n']
         if (['../../electron/workbench-platform.mjs', '../electron/workbench-platform.mjs'].includes(id))
           return { platformCommandUrl: () => 'http://localhost/connectors' }
         if (['react', 'react/jsx-runtime'].includes(id)) return require(id)
-        if (['./CatalogSetup', './PluginCatalog', './SkillsCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
+        if (
+          [
+            './CatalogSetup',
+            './PluginCatalog',
+            './SkillsCatalog',
+            './WorkspaceConnectors',
+            './OrganizationPluginInstall'
+          ].includes(id)
+        )
+          return renderer(id.slice(2) + '.tsx')
         if (id === './catalog-labels') return renderer('catalog-labels.ts')
         if (id.endsWith('/application-toolsets')) return require('../src/catalog/application-toolsets.ts')
         if (
@@ -283,16 +303,13 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
   }
 }
 
-test('other discovery tabs still update activation-dependent access and installation status', async (t) => {
+test('expert access and application status still refresh when returning to Bosi', async (t) => {
   const view = await mountCatalog(t, defaultResult)
   await view.activate()
   assert.equal(view.count('listCatalog', 'experts'), 2)
   await view.click('Apps')
   await view.activate()
   assert.equal(view.count('listCatalog', 'applications'), 2)
-  await view.click('Plugins')
-  await view.activate()
-  assert.equal(view.count('pluginLibrary'), 2)
 })
 
 test('dialog caches the installation catalog without workspace controls, refreshes explicitly, and resets with organization', async (t) => {
@@ -974,3 +991,5 @@ test('workspace discovery gates writes and sends each resource action to the sel
   for (const method of ['installWorkspaceSkill', 'createTemplateInstallation'])
     assert.equal(view.calls.find((entry) => entry.method === method).input.workspaceId, 'two', method)
 })
+
+require('./fixtures/discovery-permissions.cjs')(mountCatalog)

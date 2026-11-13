@@ -167,6 +167,21 @@ export interface HostMethods {
   }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: undefined; output: PluginLibrary }
+  organizationPluginAccess: { input: string; output: boolean }
+  installOrganizationPlugin: {
+    input: { organizationId: string; url: string; ref: string; subdirectory?: string }
+    output: { name: string; existing: boolean }
+  }
+  installOrganizationPluginZip: {
+    input: { organizationId: string; bytes: Uint8Array<ArrayBuffer> }
+    output: HostMethods['installOrganizationPlugin']['output']
+  }
+  workspaceConnectors: { input: WorkspaceTarget; output: WorkspaceConnectorItem[] }
+  connectWorkspaceApiKey: {
+    input: WorkspaceTarget & { provider: string; methodId: string; values: Record<string, string> }
+    output: { connected: boolean }
+  }
+  disconnectWorkspaceConnector: { input: WorkspaceTarget & { bindingId: string }; output: void }
   skillCatalog: {
     input: WorkspaceTarget & { search: string; offset: number }
     output: { items: SkillCatalogItem[]; total: number }
@@ -339,7 +354,7 @@ export interface HostMethods {
   }
   templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
   catalogAvatar: { input: string; output: string | null }
-  listCatalog: { input: Exclude<CatalogKind, 'plugins' | 'skills'>; output: CatalogItem[] }
+  listCatalog: { input: CatalogItem['kind']; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
@@ -454,7 +469,7 @@ import type {
   ApplicationInput,
   ApplicationSetup,
   CatalogItem,
-  CatalogKind,
+  WorkspaceConnectorItem,
   WorkspaceTarget,
   DiscoveryWorkspace,
   SkillCatalogItem,

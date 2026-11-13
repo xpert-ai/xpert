@@ -625,6 +625,10 @@ Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').crea
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./workspace-catalog.cjs').createWorkspaceCatalogMethods(ClientError))
+Object.assign(
+  DesktopService.prototype,
+  require('./workspace-connectors.cjs').createWorkspaceConnectorMethods(ClientError)
+)
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./usage.cjs').createUsageMethods(ClientError))

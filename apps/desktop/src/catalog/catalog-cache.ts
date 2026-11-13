@@ -1,6 +1,6 @@
 import type { CatalogItem, CatalogKind } from '../catalog-types'
 
-export type CatalogDataKind = Exclude<CatalogKind, 'plugins' | 'skills'>
+export type CatalogDataKind = CatalogItem['kind']
 export interface CatalogSnapshot {
   items: CatalogItem[]
   loading: boolean
@@ -9,7 +9,10 @@ export interface CatalogSnapshot {
 }
 
 const empty: CatalogSnapshot = { items: [], loading: true, error: '' }
-const plugins: CatalogSnapshot = { items: [], loading: false, error: '' }
+export function isCatalogDataKind(kind: CatalogKind): kind is CatalogDataKind {
+  return kind === 'experts' || kind === 'applications' || kind === 'templates'
+}
+const separateCatalog: CatalogSnapshot = { items: [], loading: false, error: '' }
 
 // Each Dialog owns its cache; the host remounts it when the account or organization changes.
 export function createCatalogCache(
@@ -28,7 +31,7 @@ export function createCatalogCache(
       }
     },
     getSnapshot(kind: CatalogKind): CatalogSnapshot {
-      return kind === 'plugins' || kind === 'skills' ? plugins : entries.get(kind) || empty
+      return isCatalogDataKind(kind) ? entries.get(kind) || empty : separateCatalog
     },
     async load(kind: CatalogDataKind, refresh = false) {
       if (!refresh && entries.has(kind)) return

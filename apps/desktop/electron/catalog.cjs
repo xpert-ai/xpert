@@ -357,7 +357,8 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         .map((item) => ({
           id: required(item.id, 'Workspace ID'),
           name: text(item.name),
-          canWrite: item.capabilities?.canWrite === true
+          canWrite: item.capabilities?.canWrite === true,
+          canManage: item.capabilities?.canManage === true
         }))
     },
     async templateWorkspaces() {

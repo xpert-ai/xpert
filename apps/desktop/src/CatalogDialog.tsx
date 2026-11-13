@@ -1,3 +1,4 @@
+import { WorkspaceConnectors } from './WorkspaceConnectors'
 import { SkillsCatalog } from './SkillsCatalog'
 import { CatalogCombobox } from './CatalogCombobox'
 import { PluginCatalog } from './PluginCatalog'
@@ -28,7 +29,7 @@ import type { CatalogItem, CatalogKind, DiscoveryWorkspace } from './catalog-typ
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 import { blankAssistant } from './catalog/blank-assistant'
 import { subscribeAppActivation } from './app-activation'
-import { createCatalogCache } from './catalog/catalog-cache'
+import { createCatalogCache, isCatalogDataKind } from './catalog/catalog-cache'
 import {
   templateSource,
   templateSourceGroups,
@@ -41,6 +42,7 @@ const tabs: { id: CatalogKind; label: string }[] = [
   { id: 'experts', label: 'Digital experts' },
   { id: 'applications', label: 'Apps' },
   { id: 'plugins', label: 'Plugins' },
+  { id: 'connectors', label: 'Connectors' },
   { id: 'skills', label: 'Skills' },
   { id: 'templates', label: 'Agent templates' }
 ]
@@ -80,7 +82,32 @@ export function CatalogDialog({
   const target = { organizationId, workspaceId: workspace?.id ?? '' }
   const readOnly = !!workspace && !workspace.canWrite
   const writesPaused = workspacesLoading || !!workspaceError
-  const writable = workspaces.filter((item) => item.canWrite)
+  const connectorTab = kind === 'connectors'
+  const writable = workspaces.filter((item) => (connectorTab ? item.canManage : item.canWrite))
+  const [permissionRevision, setPermissionRevision] = useState(0)
+  const [canInstall, setCanInstall] = useState(false)
+  const [permissionError, setPermissionError] = useState('')
+  useEffect(() => {
+    let active = true
+    void invoke('organizationPluginAccess', organizationId)
+      .then((allowed) => {
+        if (!active) return
+        setPermissionError('')
+        setCanInstall(allowed === true)
+      })
+      .catch((reason: Error) => {
+        if (active) {
+          setCanInstall(false)
+          setPermissionError(reason.message)
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [organizationId, permissionRevision])
+  useEffect(() => {
+    if (kind === 'plugins' && !canInstall) setKind('experts')
+  }, [kind, canInstall])
   const locale = useLocale()
   const cache = useMemo(
     () =>
@@ -107,18 +134,20 @@ export function CatalogDialog({
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pluginRevision, setPluginRevision] = useState(0)
+  const [connectorRevision, setConnectorRevision] = useState(0)
+  const [skillRevision, setSkillRevision] = useState(0)
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const reload = useCallback(() => {
     setError('')
-    if (kind === 'plugins' || kind === 'skills') {
-      setPluginRevision((value) => value + 1)
-      return
-    }
-    void cache.load(kind, true)
+    setPermissionRevision((value) => value + 1)
+    if (kind === 'plugins') setPluginRevision((value) => value + 1)
+    else if (kind === 'connectors') setConnectorRevision((value) => value + 1)
+    else if (kind === 'skills') setSkillRevision((value) => value + 1)
+    else void cache.load(kind, true)
   }, [cache, kind])
   useEffect(() => {
-    // Templates are a browsable snapshot; native activation must not discard its cards or pagination.
-    if (kind !== 'templates') return subscribeAppActivation(reload)
+    // Only these tabs track access or installation changes on ordinary window activation.
+    if (kind === 'experts' || kind === 'applications' || kind === 'skills') return subscribeAppActivation(reload)
   }, [kind, reload])
   useEffect(() => {
     setCategory('all')
@@ -128,7 +157,7 @@ export function CatalogDialog({
     setNotice('')
     setError('')
     if (kind === 'plugins') setPluginsVisited(true)
-    else if (kind !== 'skills') void cache.load(kind)
+    else if (isCatalogDataKind(kind)) void cache.load(kind)
   }, [cache, kind])
   useEffect(() => {
     if (!templateId) return
@@ -212,7 +241,7 @@ export function CatalogDialog({
               onClick={() => {
                 setSelected(null)
                 setCreating(false)
-                if (kind !== 'plugins' && kind !== 'skills') void cache.load(kind)
+                if (isCatalogDataKind(kind)) void cache.load(kind)
               }}
             >
               <ArrowLeft />
@@ -242,14 +271,14 @@ export function CatalogDialog({
                   <CatalogCombobox
                     items={writable}
                     value=""
-                    label={t('Select a workspace you can edit')}
+                    label={t(connectorTab ? 'Select a workspace you manage' : 'Select a workspace you can edit')}
                     searchLabel={t('Search workspaces')}
                     onChange={onWorkspace}
                     disabled={busy || workspacesLoading || !writable.length}
                   />
                 )}
               </div>
-              {workspace && !workspace.canWrite && (
+              {!connectorTab && workspace && !workspace.canWrite && (
                 <span className="text-muted-foreground">{t('You do not have edit access to this workspace.')}</span>
               )}
               {workspaceError ? (
@@ -260,6 +289,7 @@ export function CatalogDialog({
                   </Button>
                 </span>
               ) : (
+                !connectorTab &&
                 !workspace &&
                 !workspacesLoading &&
                 !writable.length && (
@@ -281,6 +311,14 @@ export function CatalogDialog({
             <X />
           </Button>
         </DialogHeader>
+        {permissionError && (
+          <div role="alert" className="flex items-center gap-2 px-6 text-sm text-destructive">
+            {t('Could not check plugin installation access.')} {permissionError}
+            <Button size="sm" variant="ghost" onClick={() => setPermissionRevision((value) => value + 1)}>
+              {t('Retry')}
+            </Button>
+          </div>
+        )}
         {selected?.kind === 'templates' && !creating && !installingTemplate && (
           <TemplateOverview
             key={`${organizationId}:${selected.id}`}
@@ -320,7 +358,8 @@ export function CatalogDialog({
             if (
               value === 'experts' ||
               value === 'applications' ||
-              value === 'plugins' ||
+              (value === 'plugins' && canInstall) ||
+              value === 'connectors' ||
               value === 'skills' ||
               value === 'templates'
             )
@@ -329,19 +368,21 @@ export function CatalogDialog({
         >
           <TabsHeader className="justify-between gap-2 px-6">
             <TabsList variant="line" className="min-w-0 justify-start gap-2 overflow-x-auto lg:gap-3">
-              {tabs.map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  disabled={busy}
-                  className="shrink-0 px-1 text-base data-[state=active]:text-accent-foreground lg:text-lg"
-                >
-                  {t(tab.label)}
-                  {kind === tab.id && kind !== 'plugins' && kind !== 'skills' && !loading && (
-                    <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
-                  )}
-                </TabsTrigger>
-              ))}
+              {tabs
+                .filter((tab) => tab.id !== 'plugins' || canInstall)
+                .map((tab) => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    disabled={busy}
+                    className="shrink-0 px-1 text-base data-[state=active]:text-accent-foreground lg:text-lg"
+                  >
+                    {t(tab.label)}
+                    {kind === tab.id && isCatalogDataKind(kind) && !loading && (
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
+                    )}
+                  </TabsTrigger>
+                ))}
             </TabsList>
             <div className="flex min-w-0 items-center gap-2">
               {kind === 'experts' && (
@@ -386,21 +427,58 @@ export function CatalogDialog({
             hidden={kind !== 'plugins'}
             className="flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
           >
-            {pluginsVisited && <PluginCatalog key={locale} search={search} revision={pluginRevision} />}
+            {canInstall && pluginsVisited && (
+              <PluginCatalog
+                key={locale}
+                organizationId={organizationId}
+                organization={organization}
+                search={search}
+                revision={pluginRevision}
+                onDenied={() => {
+                  setCanInstall(false)
+                  setPluginsVisited(false)
+                }}
+              />
+            )}
           </TabsContent>
+          {connectorTab && (
+            <TabsContent value="connectors" className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-4">
+              {!workspace || !workspace.canManage || writesPaused ? (
+                <p role="status" className="py-10 text-center text-sm text-muted-foreground">
+                  {t(
+                    workspacesLoading
+                      ? 'Loading…'
+                      : workspaceError
+                        ? 'Could not load workspaces.'
+                        : !workspace && writable.length
+                          ? 'Select a workspace to configure connectors.'
+                          : 'Workspace management permission is required.'
+                  )}
+                </p>
+              ) : (
+                <WorkspaceConnectors
+                  key={JSON.stringify([locale, organizationId, workspace.id])}
+                  target={target}
+                  search={search}
+                  revision={connectorRevision}
+                  webUrl={webUrl}
+                />
+              )}
+            </TabsContent>
+          )}
           {kind === 'skills' && (
             <TabsContent value="skills" className="flex min-h-0 flex-1 flex-col">
               <SkillsCatalog
-                key={JSON.stringify([locale, target.workspaceId, readOnly, search, pluginRevision])}
+                key={JSON.stringify([locale, target.workspaceId, readOnly, search, skillRevision])}
                 search={search.trim()}
-                revision={pluginRevision}
+                revision={skillRevision}
                 target={target}
                 readOnly={readOnly}
                 writesPaused={writesPaused}
               />
             </TabsContent>
           )}
-          {kind !== 'plugins' && kind !== 'skills' && (
+          {isCatalogDataKind(kind) && (
             <TabsContent
               value={kind}
               className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"

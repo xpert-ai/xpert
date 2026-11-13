@@ -71,4 +71,4 @@ function createWorkspaceCatalogMethods(ClientError) {
     }
   }
 }
-module.exports = { createWorkspaceCatalogMethods }
+module.exports = { createWorkspaceCatalogMethods, workspacePath, resourceId }

@@ -253,7 +253,8 @@ the user's organizations and accessible published Agents from the existing
 - **应用:** use installed applications, or review installation requirements and select
   the available embedding/vision models before host-managed initialization.
 - **Skills:** search the skill index and install a skill in the current editable workspace.
-- **插件:** browse enabled organization and inherited tenant plugins, then select them directly from the conversation Plugins menu. Required connections use the existing authorization flow.
+- **插件:** accounts with organization installation permission can browse inherited tenant and organization plugins and install an Agent Plugin into the current organization from a local ZIP package (up to 100 MiB) or a Git repository. Members select available plugins directly in the conversation Plugins menu.
+- **连接器:** workspace managers can configure and disconnect shared connections. Enter API keys in Bosi or open the selected provider in Xpert for OAuth and application credentials.
 - **智能体模板:** name the assistant and create it in the current editable workspace. Platform default models and template dependencies still apply.
 
 With all workspaces selected, choose an editable workspace in discovery before writing. A completed template installation can be opened in ChatKit.

@@ -29,6 +29,10 @@ export async function invoke<K extends keyof HostMethods>(
     if (!response.ok) throw new HostError(t('Cannot connect to the desktop service. Please retry.'), response.status)
     result = await response.json()
   }
+  return unwrap(result)
+}
+
+function unwrap<T>(result: HostResult<T>): T {
   if (!result.ok)
     throw new HostError(
       t(result.key || result.message, result.params),
@@ -38,6 +42,20 @@ export async function invoke<K extends keyof HostMethods>(
       result.retryAfterMs
     )
   return result.value
+}
+
+export async function uploadOrganizationPluginZip(organizationId: string, file: File) {
+  if (window.xpertDesktop) {
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    return invoke('installOrganizationPluginZip', { organizationId, bytes })
+  }
+  const response = await fetch('/__desktop/plugin-zip?' + new URLSearchParams({ organizationId }), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/zip' },
+    body: file
+  })
+  if (!response.ok) throw new HostError(t('Cannot connect to the desktop service. Please retry.'), response.status)
+  return unwrap<HostMethods['installOrganizationPluginZip']['output']>(await response.json())
 }
 
 export function openWorkspace(webUrl: string) {

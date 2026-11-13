@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, Check, Info, LoaderCircle } from 'lucide-react'
+import { OrganizationPluginInstall } from './OrganizationPluginInstall'
 import { PluginAvatar } from './avatar'
 import { invoke } from './host'
 import { t } from './i18n'
@@ -19,7 +20,19 @@ const components: Record<PluginLibraryItem['components'][number]['kind'], string
   assistant_template: 'Assistant template'
 }
 
-export function PluginCatalog({ search, revision }: { search: string; revision: number }) {
+export function PluginCatalog({
+  search,
+  revision,
+  organizationId,
+  organization,
+  onDenied
+}: {
+  search: string
+  revision: number
+  organizationId: string
+  organization: string
+  onDenied: () => void
+}) {
   const [data, setData] = useState<PluginLibrary | null>(null)
   const [detail, setDetail] = useState<PluginLibraryItem | null>(null)
   const [loading, setLoading] = useState(true)
@@ -84,12 +97,18 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
     <section aria-label={t('Installed plugins')} className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-6 py-3 text-sm">
         <span className="text-muted-foreground">{t('Installed for your tenant or organization')}</span>
+        <OrganizationPluginInstall
+          organization={organization}
+          organizationId={organizationId}
+          onInstalled={() => setRefresh((value) => value + 1)}
+          onDenied={onDenied}
+        />
         <HoverCard open={infoOpen} onOpenChange={setInfoOpen} openDelay={200} closeDelay={150}>
           <HoverCardTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="ml-auto shrink-0 text-muted-foreground"
+              className="shrink-0 text-muted-foreground"
               aria-label={t('About installed plugins')}
               aria-describedby={infoOpen ? infoId : undefined}
               onClick={() => setInfoOpen(true)}
@@ -216,7 +235,7 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
               <p className="mx-auto max-w-md py-12 text-center text-sm leading-6 text-muted-foreground">
                 {t(
                   !data?.items.length
-                    ? 'No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.'
+                    ? 'No plugins are installed for your tenant or organization.'
                     : filter === 'available' && !search.trim()
                       ? 'No available plugins. Switch to All to view plugins that need configuration.'
                       : 'No matching results'

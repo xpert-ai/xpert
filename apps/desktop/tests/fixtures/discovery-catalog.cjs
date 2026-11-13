@@ -28,7 +28,7 @@ const expert = {
 const library = {
   workspaceId: 'one',
   workspaces: [
-    { id: 'one', name: 'First workspace', canWrite: true },
+    { id: 'one', name: 'First workspace', canWrite: true, canManage: true },
     { id: 'two', name: 'Second workspace', canWrite: true }
   ],
   experts: [],
@@ -40,6 +40,7 @@ const library = {
 function defaultResult(method, input) {
   if (method === 'listCatalog') return input === 'applications' ? [app] : input === 'experts' ? [expert] : []
   if (method === 'templateCatalogPage') return { items: [], nextOffset: null }
+  if (method === 'organizationPluginAccess') return true
   if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
