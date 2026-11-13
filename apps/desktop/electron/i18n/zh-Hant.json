@@ -1,4 +1,10 @@
 {
+  "All assistants": "全部助理",
+  "Switch organization or workspace": "切換組織或工作空間",
+  "Read only": "唯讀",
+  "Install skill": "安裝技能",
+  "Installing…": "正在安裝…",
+  "Discover resources for {{organization}}": "瀏覽 {{organization}} 的資源",
   "Show less": "收起",
   "Important": "重要",
   "Notifications": "通知",

@@ -1,4 +1,10 @@
 {
+  "All assistants": "All assistants",
+  "Switch organization or workspace": "Switch organization or workspace",
+  "Read only": "Read only",
+  "Install skill": "Install skill",
+  "Installing…": "Installing…",
+  "Discover resources for {{organization}}": "Discover resources for {{organization}}",
   "Show less": "Show less",
   "Important": "Important",
   "Notifications": "Notifications",

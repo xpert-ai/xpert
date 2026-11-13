@@ -1,10 +1,12 @@
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
+import type { DiscoveryWorkspace } from './catalog-types'
 import { DesktopAddMenu } from './groups/DesktopAddMenu'
 import { GroupItem } from './groups/GroupItem'
 import { useGroupList } from './groups/useGroupList'
 import { conversationGroups, type ConversationRow } from './conversation-list-model'
 import { t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@xpert-ai/shadcn-ui'
+import { Button, Input } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, ArrowRight, LoaderCircle, PanelLeft, Plus, RefreshCw, Search, X } from 'lucide-react'
 import { AssistantItem, type AssistantAction } from './AssistantItems'
 import { AssistantDialog } from './AssistantDialog'
@@ -21,6 +23,11 @@ export function Sidebar({
   state,
   bots,
   selected,
+  workspaceId,
+  workspaces,
+  onWorkspace,
+  workspaceError,
+  retryWorkspaces,
   pending,
   error,
   onSelect,
@@ -37,6 +44,11 @@ export function Sidebar({
   onSelectGroup,
   onCreateGroup
 }: {
+  workspaceId: string
+  workspaces: DiscoveryWorkspace[]
+  onWorkspace: (id: string) => void
+  workspaceError: string
+  retryWorkspaces: () => void
   selectedGroup: string | null
   groupRevision: number
   onSelectGroup: (id: string) => void
@@ -81,7 +93,9 @@ export function Sidebar({
     saveLayout(list.sidebar.width, value)
   }
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
-  const groups = conversationGroups(rows, groupList.items, list.sidebar, query, archivedGroups)
+  const visibleGroups = workspaceId ? [] : groupList.items
+  const groups = conversationGroups(rows, visibleGroups, list.sidebar, query, archivedGroups)
+  const loadingAssistants = pending && bots.length === 0
   const pinned = groups.find((group) => group.kind === 'pinned')?.rows ?? []
   const groupLabel = (group: (typeof groups)[number]) =>
     group.kind === 'section' || group.kind === 'domain' ? group.name : t(group.name)
@@ -154,7 +168,6 @@ export function Sidebar({
   const searchInput = useRef<HTMLInputElement>(null)
   const searchButton = useRef<HTMLButtonElement>(null)
   const profile = state.profile!
-  const organization = profile.organizations.find((org) => org.id === profile.organizationId)
   const isMac = window.xpertDesktop?.platform === 'darwin'
   useEffect(() => {
     window.xpertDesktop?.setSidebarCollapsed?.(collapsed)
@@ -249,7 +262,7 @@ export function Sidebar({
             <Search className="size-5" />
           </Button>
           <AssistantScrollArea label={t('Conversation avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
-            {pending && (
+            {loadingAssistants && (
               <span
                 role="status"
                 aria-label={t('Loading assistants')}
@@ -273,9 +286,9 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
-            {!pending &&
-              !error &&
-              groups.map((group, index) => (
+            {groups
+              .filter((group) => group.rows.length)
+              .map((group, index) => (
                 <section
                   key={group.id}
                   aria-label={groupLabel(group)}
@@ -298,27 +311,17 @@ export function Sidebar({
       <div id="bot-sidebar-content" className={collapsed ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
         <div className="shrink-0 px-5">
           <div className="-ml-2 flex min-w-0 items-center gap-2">
-            <Select
-              value={profile.organizationId || undefined}
-              onOpenChange={(open) => open && onRefreshOrganizations()}
-              onValueChange={onOrganization}
-              disabled={pending}
-            >
-              <SelectTrigger
-                className="min-w-0 max-w-[calc(100%-40px)] justify-start gap-1.5 border-0 px-2 text-lg leading-6 font-semibold tracking-tight shadow-none hover:bg-muted data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-muted [&>[data-slot=select-value]]:block [&>[data-slot=select-value]]:truncate"
-                aria-label={t('Switch organization')}
-                title={organization?.name || t('No organization')}
-              >
-                <SelectValue placeholder={t('No organization')} />
-              </SelectTrigger>
-              <SelectContent position="popper" align="start" className="max-w-[320px]">
-                {profile.organizations.map((org) => (
-                  <SelectItem key={org.id} value={org.id}>
-                    {org.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <WorkspaceSwitcher
+              profile={profile}
+              workspaces={workspaces}
+              workspaceId={workspaceId}
+              onWorkspace={onWorkspace}
+              pending={pending}
+              error={workspaceError}
+              onRefreshOrganizations={onRefreshOrganizations}
+              onRefreshWorkspaces={retryWorkspaces}
+              onOrganization={onOrganization}
+            />
             <Button
               ref={searchButton}
               size="icon"
@@ -353,7 +356,7 @@ export function Sidebar({
             <h2 className="text-[0.8125rem] leading-5 font-medium text-muted-foreground">
               {t('Conversations')}
               <span className="ml-1 text-xs font-normal">
-                {bots.length + groupList.items.filter((group) => !group.archived).length || ''}
+                {bots.length + visibleGroups.filter((group) => !group.archived).length || ''}
               </span>
             </h2>
             <div className="flex">
@@ -382,7 +385,7 @@ export function Sidebar({
           </div>
         </div>
         <AssistantScrollArea label={t('Conversations')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
-          {pending && (
+          {loadingAssistants && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
               {t('Loading Bots…')}
@@ -435,34 +438,26 @@ export function Sidebar({
               {feedback}
             </p>
           )}
-          {!pending && !error && pinned.length > 0 && (
+          {pinned.length > 0 && (
             <section aria-label={t('Pinned conversations')} className="mb-3 border-b pb-3">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
                 {pinned.map((row) => renderConversation(row, 'pinned'))}
               </div>
             </section>
           )}
-          {!pending &&
-            !error &&
-            sections.map(
-              (section, index) =>
-                section.rows.length > 0 && (
-                  <section
-                    key={section.id}
-                    aria-label={groupLabel(section)}
-                    className={index > 0 ? 'border-t pt-2' : ''}
-                  >
-                    {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
-                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                        {groupLabel(section)}
-                      </h3>
-                    )}
-                    <div className="space-y-[var(--desktop-row-gap)]">
-                      {section.rows.map((row) => renderConversation(row))}
-                    </div>
-                  </section>
-                )
-            )}
+          {sections.map(
+            (section, index) =>
+              section.rows.length > 0 && (
+                <section key={section.id} aria-label={groupLabel(section)} className={index > 0 ? 'border-t pt-2' : ''}>
+                  {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
+                    <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">{groupLabel(section)}</h3>
+                  )}
+                  <div className="space-y-[var(--desktop-row-gap)]">
+                    {section.rows.map((row) => renderConversation(row))}
+                  </div>
+                </section>
+              )
+          )}
           {!pending && !error && !groups.some((group) => group.rows.length) && (
             <p className="px-3 py-6 text-sm leading-6 text-muted-foreground">
               {archivedGroups

@@ -247,16 +247,16 @@ the platform's registration and verification flow, return to Desktop to sign in.
 
 Use the existing Xpert email and password to sign in. The application then loads
 the user's organizations and accessible published Agents from the existing
-`/api/mobile/bootstrap` and `/api/mobile/xperts` APIs. Select a workspace and Bot.
-The `+` button opens **发现与添加**, a searchable catalog with three tabs:
+`/api/mobile/bootstrap` and `/api/mobile/xperts` APIs. The sidebar initially shows all accessible assistants in the organization. Its workspace selector filters the assistant list and sets the destination in **发现与添加**, available from the `+` menu:
 
 - **专家:** use accessible experts immediately, or submit an access request and reason.
 - **应用:** use installed applications, or review installation requirements and select
   the available embedding/vision models before host-managed initialization.
-- **智能体模板:** choose a writable workspace and assistant name, then initialize and
-  publish the template. Platform default models and template dependencies still apply.
+- **Skills:** search the skill index and install a skill in the current editable workspace.
+- **插件:** browse enabled organization and inherited tenant plugins, then select them directly from the conversation Plugins menu. Required connections use the existing authorization flow.
+- **智能体模板:** name the assistant and create it in the current editable workspace. Platform default models and template dependencies still apply.
 
-Successful installation refreshes the Sidebar and opens the assistant in ChatKit.
+With all workspaces selected, choose an editable workspace in discovery before writing. A completed template installation can be opened in ChatKit.
 
 Application cards use `config.presentation.screenshots` as a lightly blurred background with a theme-aware text scrim. Select the application name or **View details** to browse full screenshots, including for installed applications. The detail carousel supports previous/next buttons, numbered indicators and arrow keys, without autoplay. Missing screenshots keep the plain card; failed images can be retried in the detail view. Screenshot URLs are normalized at the host boundary, accepting inline images, HTTPS and loopback development URLs; root-relative assets resolve against the configured Web URL.
 

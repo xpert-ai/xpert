@@ -7,6 +7,15 @@ const { runInNewContext } = require('node:vm')
 const ts = require('typescript')
 const React = require('react')
 const { JSDOM } = require('jsdom')
+const {
+  app,
+  expert,
+  library,
+  defaultResult,
+  template,
+  installation,
+  templateResult
+} = require('./fixtures/discovery-catalog.cjs')
 const { createCatalogCache } = require('../src/catalog/catalog-cache.ts')
 const { subscribeAppActivation } = require('../src/app-activation.ts')
 const { catalogBusinessAreas, matchesBusinessArea } = require('../src/catalog/business-area-filter.ts')
@@ -22,45 +31,6 @@ const tabsCode = viteRequire('esbuild').buildSync({
   format: 'cjs',
   external: ['react', 'react-dom', 'react/jsx-runtime']
 }).outputFiles[0].text
-
-const app = {
-  id: 'meetings',
-  name: 'Meetings',
-  kind: 'applications',
-  publisher: 'Xpert',
-  description: 'Meeting notes',
-  categories: [],
-  tags: [],
-  screenshots: [],
-  icon: null,
-  pluginName: 'meetings',
-  appName: 'meetings',
-  status: 'not_installed',
-  botId: null,
-  steps: [],
-  summary: 'Meeting notes'
-}
-const expert = {
-  id: 'expert',
-  name: 'Meeting expert',
-  kind: 'experts',
-  publisher: 'Xpert',
-  description: 'Expert',
-  categories: [],
-  tags: [],
-  access: 'not_requested'
-}
-const library = {
-  workspaceId: 'one',
-  workspaces: [
-    { id: 'one', name: 'First workspace' },
-    { id: 'two', name: 'Second workspace' }
-  ],
-  experts: [],
-  items: [
-    { id: 'plugin', name: 'Meeting tools', description: 'Tools', status: 'available', components: [], version: '1' }
-  ]
-}
 
 // Exercise the actual catalog components and Radix tab lifecycle; replace only presentation and host I/O.
 async function mountCatalog(t, handler, onUse = async () => {}) {
@@ -141,6 +111,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     DialogTitle: element('h1'),
     DialogDescription: element('p'),
     Tabs: Tabs.Root,
+    TabsHeader: element('div'),
     TabsList: ({ variant, ...props }) => e(Tabs.List, props),
     TabsTrigger: Tabs.Trigger,
     TabsContent: Tabs.Content,
@@ -229,7 +200,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         if (['../../electron/workbench-platform.mjs', '../electron/workbench-platform.mjs'].includes(id))
           return { platformCommandUrl: () => 'http://localhost/connectors' }
         if (['react', 'react/jsx-runtime'].includes(id)) return require(id)
-        if (['./CatalogSetup', './PluginCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
+        if (['./CatalogSetup', './PluginCatalog', './SkillsCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
         if (id === './catalog-labels') return renderer('catalog-labels.ts')
         if (id.endsWith('/application-toolsets')) return require('../src/catalog/application-toolsets.ts')
         if (
@@ -257,24 +228,34 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       else delete global[key]
     }
   })
-  const render = async (key) =>
-    React.act(async () =>
-      root.render(
-        e(
-          React.StrictMode,
-          {},
-          e(CatalogDialog, {
-            key,
-            installationScope: key,
-            organizationId: key,
-            organization: key,
-            webUrl: 'http://localhost',
-            onClose() {},
-            onUse
-          })
-        )
+  const show = (key, workspace, workspaceError = '') =>
+    root.render(
+      e(
+        React.StrictMode,
+        {},
+        e(CatalogDialog, {
+          key,
+          installationScope: key,
+          organizationId: key,
+          organization: key,
+          workspace,
+          workspaces: library.workspaces,
+          onTemplateCreated() {},
+          workspaceError,
+          retryWorkspaces() {},
+          onWorkspace: (id) =>
+            show(
+              key,
+              library.workspaces.find((item) => item.id === id)
+            ),
+          webUrl: 'http://localhost',
+          onClose() {},
+          onUse
+        })
       )
     )
+  const render = (key, workspace = library.workspaces[0], error = '') =>
+    React.act(async () => show(key, workspace, error))
   const click = async (name) => {
     const button = Array.from(document.querySelectorAll('button')).find(
       (item) =>
@@ -300,13 +281,6 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     count: (method, input) =>
       calls.filter((call) => call.method === method && (input === undefined || call.input === input)).length
   }
-}
-
-function defaultResult(method, input) {
-  if (method === 'listCatalog') return input === 'applications' ? [app] : input === 'experts' ? [expert] : []
-  if (method === 'templateCatalogPage') return { items: [], nextOffset: null }
-  if (method === 'pluginLibrary') return library
-  throw new Error(`Unexpected host call: ${method}`)
 }
 
 test('other discovery tabs still update activation-dependent access and installation status', async (t) => {
@@ -537,54 +511,6 @@ test('native tool configuration requires an enabled tool and refreshes the saved
   assert.equal(view.count('initializeApplication'), 0)
 })
 
-const template = { ...expert, kind: 'templates', id: 'template', name: 'Installable template' }
-const installation = {
-  id: 'operation',
-  templateId: 'template',
-  workspaceId: 'one',
-  status: 'failed',
-  stage: 'publishing',
-  attempt: 1,
-  publish: true,
-  assistantId: 'assistant',
-  retryable: true,
-  resourceInstallationIds: [],
-  pendingAuthInstallationIds: [],
-  createdAt: '2026-10-13',
-  updatedAt: '2026-10-13',
-  error: { code: 'INSTALL_FAILED', message: 'Publish failed' }
-}
-const templateResult = (method, input) => {
-  if (method === 'templateCatalogPage') return { items: [template], nextOffset: null }
-  if (method === 'templateOverview')
-    return {
-      id: 'template',
-      title: 'Installable template',
-      publisher: 'Author',
-      description: 'Work',
-      instructions: 'Prepare drafts',
-      memories: [],
-      skills: [],
-      agents: [],
-      routines: [],
-      integrations: []
-    }
-  if (method === 'templateSetup')
-    return {
-      workspaces: library.workspaces,
-      hasPrimaryLanguageModel: true,
-      preflight: {
-        canInstall: true,
-        requiresModel: false,
-        models: [],
-        optionalCapabilities: [],
-        realtimeModels: [],
-        requiredModelFeatures: []
-      }
-    }
-  if (method === 'listTemplateInstallations') return { items: [], total: 0 }
-  return defaultResult(method, input)
-}
 test('native reactivation preserves template cards, filters and scroll without fetching again', async (t) => {
   const view = await mountCatalog(t, templateResult)
   await view.click('Agent templates')
@@ -984,4 +910,67 @@ test('App setup defaults to personal and rechecks the selected installation when
     view.calls.filter((call) => call.method === 'applicationSetup').at(-1).input.installationScope,
     'organization'
   )
+})
+
+test('skills respect workspace edit access while plugins remain available across workspace selections', async (t) => {
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'skillCatalog')
+      return { total: 1, items: [{ id: 'review', name: 'Review skill', installed: input.workspaceId ? true : null }] }
+    return defaultResult(method, input)
+  })
+  const space = library.workspaces[0]
+  await view.render('org', { ...space, canWrite: false })
+  await view.click('Skills')
+  await React.act(async () => {
+    await new Promise((done) => setTimeout(done, 20))
+  })
+  const skill = document.querySelector('article')
+  assert.match(skill.textContent, /Review skill.*Read only/)
+  assert.equal(skill.querySelector('button'), null)
+  assert.equal(view.calls.find(({ method }) => method === 'skillCatalog').input.workspaceId, '')
+  await view.click('Plugins')
+  await view.click('Meeting tools')
+  assert.match(
+    document.querySelector('[aria-label="Installed plugins"]').textContent,
+    /Available in the conversation Plugins menu/
+  )
+  await view.render('org', space, 'Offline')
+  await view.render('org', null)
+  assert.equal(view.count('pluginLibrary'), 1)
+  assert.equal(view.calls.find(({ method }) => method === 'pluginLibrary').input, undefined)
+  assert.equal(document.querySelector('[aria-label="Select a workspace you can edit"]'), null)
+})
+
+test('workspace discovery gates writes and sends each resource action to the selected workspace', async (t) => {
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'skillCatalog') return { total: 1, items: [{ id: 'review', name: 'PR review', installed: false }] }
+    if (method === 'createTemplateInstallation') return { ...installation, workspaceId: input.workspaceId }
+    if (method === 'getTemplateInstallation') return { ...installation, workspaceId: 'two' }
+    if (method === 'installWorkspaceSkill') return { installed: true }
+    return templateResult(method, input)
+  })
+  await view.render('org', null)
+  await view.click('Skills')
+  const settle = () =>
+    React.act(async () => {
+      await new Promise((done) => setTimeout(done, 20))
+    })
+  await settle()
+  const button = (label) => [...document.querySelectorAll('button')].find((item) => item.textContent === label)
+  assert.equal(button('Install skill').disabled, true)
+  assert.equal(view.count('installWorkspaceSkill'), 0)
+  await React.act(async () => {
+    const picker = document.querySelector('[aria-label="Select a workspace you can edit"]')
+    picker.value = 'two'
+    picker.dispatchEvent(new view.dom.window.Event('change', { bubbles: true }))
+  })
+  await settle()
+  await view.click('Install skill')
+  assert.equal(button('Installed').disabled, true)
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  for (const method of ['installWorkspaceSkill', 'createTemplateInstallation'])
+    assert.equal(view.calls.find((entry) => entry.method === method).input.workspaceId, 'two', method)
 })

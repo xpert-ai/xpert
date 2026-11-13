@@ -32,6 +32,7 @@ const count = (method) => calls.filter((call) => call.method === method).length
 const request = async (method, argument) => {
   calls.push({ method, at: Date.now() })
   switch (method) {
+    case 'refreshProfile':
     case 'state':
       return {
         config: {
@@ -44,15 +45,23 @@ const request = async (method, argument) => {
         profile: {
           user: { id: 'fixture', name: 'Fixture user', tenantId: 'fixture', avatarUrl: null },
           organizationId: 'fixture',
-          organizations: [{ id: 'fixture', name: 'Fixture organization' }]
+          organizations: Array.from({ length: 8 }, (_, index) => ({
+            id: index ? 'fixture-' + index : 'fixture',
+            name: 'Fixture organization ' + index
+          }))
         },
         localLoginAvailable: false
       }
+    case 'listBotPage':
+      return { bots: [], next: null, awaitingSavedBot: false }
     case 'listBots':
     case 'listGroups':
     case 'botActivity':
+    case 'discoveryWorkspaces':
     case 'listCatalog':
       return []
+    case 'notificationRefresh':
+    case 'notificationSnapshot':
     case 'restoreSession':
       return null
     case 'sidebarState':
@@ -84,11 +93,33 @@ ipcMain.handle('xpert:request', async (_event, method, argument) => {
 ipcMain.handle('xpert:template-link-read', () => null)
 ipcMain.handle('xpert:update', () => ({ status: 'disabled', currentVersion: 'test' }))
 const js = (source) => window.webContents.executeJavaScript(source)
-const paint = () => {
-  // Keep the measured window foregrounded; macOS may occlude it while terminal output is inspected.
-  window.show()
-  app.focus({ steal: true })
-  window.focus()
+async function foregroundWindow() {
+  if (!window.isVisible()) window.show()
+  const deadline = Date.now() + 10000
+  let nextRequest = 0
+  let page
+  do {
+    page = await js('({ visibility: document.visibilityState, focused: document.hasFocus() })')
+    if (window.isFocused() && page.visibility === 'visible' && page.focused) return
+    if (Date.now() >= nextRequest) {
+      // macOS may hand focus to another app after show() has already returned.
+      if (!window.isFocused() || page.visibility !== 'visible') {
+        app.focus({ steal: true })
+        window.moveTop()
+        window.focus()
+      } else if (!page.focused) {
+        window.webContents.focus()
+      }
+      nextRequest = Date.now() + 250
+    }
+    await delay(20)
+  } while (Date.now() < deadline)
+  throw new Error(
+    `Window did not reach the foreground: nativeFocus=${window.isFocused()}, page=${JSON.stringify(page)}`
+  )
+}
+const paint = async () => {
+  await foregroundWindow()
   return Promise.race([
     js('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))'),
     delay(5000).then(() => {
@@ -125,6 +156,35 @@ async function openTemplates() {
   )
   await click('[role="tab"][id$="trigger-templates"]')
 }
+async function checkOrganizationHover() {
+  await click('[aria-label="Switch organization or workspace"]')
+  await until("document.activeElement?.getAttribute('aria-label') === 'Search workspaces'")
+  await delay(150)
+  const rect = (selector) =>
+    until(`(() => {
+    const element = document.querySelector(${JSON.stringify(selector)})
+    return element && element.getBoundingClientRect().toJSON()
+  })()`)
+  const trigger = await rect('[role="dialog"] [data-slot="dropdown-menu-trigger"]')
+  const move = (x, y) => window.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(x), y: Math.round(y) })
+  const x = trigger.left + 18
+  const y = trigger.top + trigger.height / 2
+  move(x, y)
+  await until('!!document.querySelector(\'[role="menuitemradio"]\')')
+  await delay(150)
+  const item = await rect('[role="menuitemradio"]:nth-child(2)')
+  for (let step = 1; step <= 30; step++) {
+    move(x + ((item.left + item.width / 3 - x) * step) / 30, y + ((item.top + item.height / 2 - y) * step) / 30)
+    await delay(40)
+  }
+  assert.equal(
+    await js('document.querySelector(\'[role="menu"]\')?.dataset.state'),
+    'open',
+    'slow diagonal travel must reach the organization list'
+  )
+  move(5, 5)
+  await until('!document.querySelector(\'[role="menu"]\')')
+}
 async function run() {
   await app.whenReady()
   window = new BrowserWindow({
@@ -136,9 +196,6 @@ async function run() {
       nodeIntegration: false
     }
   })
-  window.show()
-  app.focus({ steal: true })
-  window.focus()
   const step = (label) => console.log(`Native catalog: ${label}`)
   // Deny external resources, including any accidental real backend request.
   window.webContents.session.webRequest.onBeforeRequest((details, done) =>
@@ -159,6 +216,12 @@ async function run() {
   await until(`!!document.querySelector('[aria-label="Add to workspace"]')`)
   await paint()
   step('shell painted')
+  if (process.argv.includes('--workspace-hover')) {
+    await checkOrganizationHover()
+    assert.deepEqual(failures, [])
+    step('workspace submenu stayed open during diagonal travel')
+    return
+  }
   const startupMs = Date.now() - started
   const firstStart = Date.now()
   await openTemplates()
@@ -174,23 +237,24 @@ async function run() {
     `window.catalogProbe = {card: Array.from(document.querySelectorAll('button')).find(n => n.textContent.trim() === 'View template'), blanked: false}; window.catalogProbe.panel = window.catalogProbe.card.closest('[role="tabpanel"]'); window.catalogProbe.panel.scrollTop = 250; new MutationObserver(() => { if (!window.catalogProbe.card.isConnected) window.catalogProbe.blanked = true }).observe(document.body,{childList:true,subtree:true})`
   )
   const baseline = count('templateCatalogPage')
+  // A fully covered macOS window stops painting even when it still owns keyboard focus.
+  if (process.platform === 'darwin') window.setAlwaysOnTop(true)
   const beforeActivations = activations
   const returns = []
   for (let index = 0; index < 5; index++) {
+    const previousActivations = activations
     window.hide()
+    await until(`document.visibilityState === 'hidden' && !document.hasFocus()`)
+    assert.equal(window.isFocused(), false, 'the hidden window must lose native focus')
     await delay(150)
     const start = Date.now()
-    window.show()
-    app.focus({ steal: true })
-    window.focus()
-    await until(`document.visibilityState === 'visible' && document.hasFocus()`)
     await paint()
+    assert.ok(activations > previousActivations, `foreground ${index + 1} must deliver a native reactivation`)
     returns.push(Date.now() - start)
     step(`foreground ${index + 1}`)
     await delay(250)
     assert.equal(await js('window.catalogProbe.card.isConnected'), true)
   }
-  assert.ok(activations - beforeActivations >= 5, 'actual native blur/focus transitions must occur')
   assert.equal(count('templateCatalogPage'), baseline)
   assert.equal(await js('window.catalogProbe.blanked'), false)
   assert.equal(await js('window.catalogProbe.panel.scrollTop'), 250)
