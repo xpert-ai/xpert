@@ -70,7 +70,14 @@ test('unknown bots and organizations cannot mint a session', async () => {
 test('avatar metadata is normalized before reaching the renderer', async () => {
   const { service } = fixture((url) => {
     if (url.endsWith('/bootstrap'))
-      return response({ ...bootstrap, user: { ...user, imageUrl: 'https://example.com/user.png' } })
+      return response({
+        ...bootstrap,
+        user: { ...user, imageUrl: 'https://example.com/user.png' },
+        organizations: [
+          { ...bootstrap.organizations[0], imageUrl: 'https://example.com/team.png' },
+          bootstrap.organizations[1]
+        ]
+      })
     if (url.includes('/mobile/xperts'))
       return response({
         items: [
@@ -80,7 +87,12 @@ test('avatar metadata is normalized before reaching the renderer', async () => {
         total: 2
       })
   })
-  assert.equal((await service.login(input)).profile.user.avatarUrl, 'https://example.com/user.png')
+  const { profile } = await service.login(input)
+  assert.equal(profile.user.avatarUrl, 'https://example.com/user.png')
+  assert.deepEqual(
+    profile.organizations.map((org) => org.imageUrl),
+    ['https://example.com/team.png', null]
+  )
   const bots = await service.listBots()
   assert.equal(bots[0].avatarUrl, 'https://example.com/bot.png')
   assert.deepEqual(bots[0].avatarEmoji, { id: 'lobster', unified: '1F99E' })

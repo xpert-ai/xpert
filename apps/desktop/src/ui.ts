@@ -1,14 +1,26 @@
 export { installShadcnThemeVars } from '../../../packages/shadcn-ui/src/theme'
+export { Avatar, AvatarFallback, AvatarImage } from '../../../packages/shadcn-ui/src/components/ui/avatar'
 export { Button } from '../../../packages/shadcn-ui/src/components/ui/button'
 export { Input } from '../../../packages/shadcn-ui/src/components/ui/input'
-export { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../packages/shadcn-ui/src/components/ui/tabs'
+export {
+  Tabs,
+  TabsHeader,
+  TabsList,
+  TabsTrigger,
+  TabsContent
+} from '../../../packages/shadcn-ui/src/components/ui/tabs'
 export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger
 } from '../../../packages/shadcn-ui/src/components/ui/dropdown-menu'
 export { Label } from '../../../packages/shadcn-ui/src/components/ui/label'
 export { Switch } from '../../../packages/shadcn-ui/src/components/ui/switch'

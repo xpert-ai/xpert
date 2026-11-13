@@ -10,6 +10,7 @@ import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
 import { Login } from './Login'
 import { Sidebar } from './Sidebar'
+import type { DiscoveryWorkspace } from './catalog-types'
 import { CatalogDialog } from './CatalogDialog'
 import { HostError, invoke } from './host'
 import type { AppState, Bot, ConnectionConfig } from './types'
@@ -120,6 +121,42 @@ export function App() {
     }
   }, [binding])
 
+  const [workspaceId, setWorkspaceId] = useState('')
+  const [workspaceOptions, setWorkspaceOptions] = useState<DiscoveryWorkspace[]>([])
+  const [workspacesLoading, setWorkspacesLoading] = useState(true)
+  const [workspaceError, setWorkspaceError] = useState('')
+  const [workspaceRevision, setWorkspaceRevision] = useState(0)
+  const organizationId = state?.profile?.organizationId
+  useEffect(() => {
+    setWorkspaceId('')
+    setWorkspaceOptions([])
+  }, [binding])
+  useEffect(() => {
+    let active = true
+    setWorkspaceError('')
+    setWorkspacesLoading(!!organizationId)
+    if (organizationId)
+      void invoke('discoveryWorkspaces')
+        .then((options) => {
+          if (!active) return
+          setWorkspaceOptions(options)
+          setWorkspaceId((current) => (options.some((item) => item.id === current) ? current : ''))
+        })
+        .catch((reason: Error) => {
+          if (active) setWorkspaceError(reason.message)
+        })
+        .finally(() => {
+          if (active) setWorkspacesLoading(false)
+        })
+    return () => {
+      active = false
+    }
+  }, [binding, organizationId, workspaceRevision])
+  const workspace = workspaceOptions.find((option) => option.id === workspaceId)
+  const selectWorkspace = (id: string) => {
+    setWorkspaceId(id)
+    navigationVersion.current++
+  }
   const bindingRef = useRef(binding)
   bindingRef.current = binding
   const rememberSession = useCallback(
@@ -272,6 +309,13 @@ export function App() {
       </div>
     )
   const bot = bots.find((item) => item.id === selected)
+  const visibleBots = workspace ? bots.filter((item) => item.workspaceId === workspace.id) : bots
+  const chatVisible = !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)
+  const showOnboarding =
+    !workspace && !selectedGroup && !bosiReady && navigationReady && !!state.profile?.organizationId
+  const revealBot = (id: string) => {
+    if (workspace && bots.find((item) => item.id === id)?.workspaceId !== workspace.id) setWorkspaceId('')
+  }
   return (
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
       <div className={settings ? 'hidden' : 'contents'} inert={settings}>
@@ -279,16 +323,20 @@ export function App() {
           <NotificationProvider
             key={binding}
             suspended={settings || catalog || createGroup}
-            activeThreadId={!selectedGroup && !settings && !catalog ? (notice?.threadId ?? initialThread) : null}
+            activeThreadId={
+              chatVisible && !selectedGroup && !settings && !catalog ? (notice?.threadId ?? initialThread) : null
+            }
             onOpen={async (item) => {
               const target = bots.find((bot) => (bot.assistantId || bot.id) === item.action.assistantId)
               if (!target || !item.action.threadId) throw new Error('Unavailable result')
+              revealBot(target.id)
               selectBot(target.id, item.action.threadId)
             }}
           >
             <VoiceProvider
               key={`${binding}:${state.config.apiUrl}`}
               onOpen={(target) => {
+                revealBot(target.botId)
                 selectBot(target.botId, target.threadId)
                 if (target.conversationId)
                   setInitialVoice({ assistantId: target.assistantId, conversationId: target.conversationId })
@@ -299,7 +347,12 @@ export function App() {
                   <Sidebar
                     key={binding}
                     state={state}
-                    bots={bots}
+                    bots={visibleBots}
+                    workspaceId={workspace?.id ?? ''}
+                    workspaces={workspaceOptions}
+                    onWorkspace={selectWorkspace}
+                    workspaceError={workspaceError}
+                    retryWorkspaces={() => setWorkspaceRevision((value) => value + 1)}
                     selected={selectedGroup ? null : selected}
                     selectedGroup={selectedGroup}
                     groupRevision={groupRevision}
@@ -308,7 +361,10 @@ export function App() {
                       selectedRef.current = null
                       setSelectedGroup(id)
                     }}
-                    onCreateGroup={() => setCreateGroup(true)}
+                    onCreateGroup={() => {
+                      setWorkspaceId('')
+                      setCreateGroup(true)
+                    }}
                     pending={pending}
                     error={error}
                     onSelect={selectBot}
@@ -345,7 +401,7 @@ export function App() {
                   />
                 </AssistantPreviewScope>
                 <main className="flex min-w-0 flex-1 flex-col">
-                  {!selectedGroup && !bosiReady && navigationReady && state.profile.organizationId ? (
+                  {showOnboarding && state.profile.organizationId ? (
                     <BosiOnboarding
                       key={binding}
                       organizationId={state.profile.organizationId}
@@ -359,20 +415,23 @@ export function App() {
                       }}
                     />
                   ) : bot || selectedGroup ? (
-                    <ChatPanel
-                      key={binding}
-                      groupId={selectedGroup}
-                      selectionVersion={selectionVersion}
-                      initialThread={initialThread}
-                      initialVoice={initialVoice}
-                      onConversationRead={onConversationRead}
-                      onSessionChange={rememberSession}
-                      bot={bot}
-                      config={{ ...state.config, appearance, locale }}
-                      dark={dark}
-                      onAppearanceSaved={loadBots}
-                    />
-                  ) : (
+                    <div className={chatVisible ? 'contents' : 'hidden'} inert={!chatVisible}>
+                      <ChatPanel
+                        key={binding}
+                        groupId={selectedGroup}
+                        selectionVersion={selectionVersion}
+                        initialThread={initialThread}
+                        initialVoice={initialVoice}
+                        onConversationRead={onConversationRead}
+                        onSessionChange={rememberSession}
+                        bot={bot}
+                        config={{ ...state.config, appearance, locale }}
+                        dark={dark}
+                        onAppearanceSaved={loadBots}
+                      />
+                    </div>
+                  ) : null}
+                  {!showOnboarding && (!chatVisible || (!bot && !selectedGroup)) && (
                     <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">
                       <BotIcon className="mb-5 size-10 text-primary" />
                       <h1 className="text-xl font-semibold">
@@ -406,6 +465,7 @@ export function App() {
             navigationVersion.current++
             selectedRef.current = null
             setSelectedGroup(id)
+            setWorkspaceId('')
             setCreateGroup(false)
             setGroupRevision((value) => value + 1)
           }}
@@ -443,6 +503,13 @@ export function App() {
       {catalog && state.profile && (
         <CatalogDialog
           key={binding}
+          workspace={workspace}
+          workspaces={workspaceOptions}
+          workspacesLoading={workspacesLoading}
+          onTemplateCreated={() => void loadBots({ background: true })}
+          onWorkspace={selectWorkspace}
+          workspaceError={workspaceError}
+          retryWorkspaces={() => setWorkspaceRevision((value) => value + 1)}
           templateId={linkedTemplate ?? undefined}
           installationScope={binding}
           organizationId={state.profile.organizationId || ''}
@@ -470,6 +537,7 @@ export function App() {
                     'The assistant is not available yet. Check its publishing status and access permissions, then retry.'
                   )
                 )
+              if (workspace && items.find((item) => item.id === id)?.workspaceId !== workspace.id) setWorkspaceId('')
               selectBot(id)
               setError('')
               setCatalog(false)

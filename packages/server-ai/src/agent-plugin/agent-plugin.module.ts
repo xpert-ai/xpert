@@ -71,6 +71,7 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
         { provide: 'XpertRuntimeResourceService', useExisting: RuntimeResourceService }
     ],
     exports: [
+        AgentPluginInstallationsService,
         RuntimeResourceCommandsService,
         AgentPluginService,
         RuntimeResourceService,

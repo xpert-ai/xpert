@@ -1,3 +1,4 @@
+jest.mock('../../connector/mcp-oauth.strategy', () => ({ McpOAuthConnectorStrategy: class {} }))
 jest.mock('i18next', () => ({ t: (key: string) => key }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: { getLanguageCode: () => 'en-US' },
@@ -5,7 +6,9 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 }))
 jest.mock('../assistant-binding.entity', () => ({ AssistantBinding: class {} }))
 jest.mock('../../xpert-workspace/workspace.service', () => ({ XpertWorkspaceService: class {} }))
-jest.mock('../../agent-plugin/agent-plugin.service', () => ({ AgentPluginService: class {} }))
+jest.mock('../../agent-plugin/agent-plugin-installations.service', () => ({
+    AgentPluginInstallationsService: class {}
+}))
 jest.mock('../../connector/connector.service', () => ({ ConnectorService: class {} }))
 import { ConflictException, ForbiddenException } from '@nestjs/common'
 import { BosiOnboardingService } from './bosi-onboarding.service'
@@ -36,21 +39,15 @@ function fixture() {
     const resource = {
         id: resourceId,
         enabled: true,
+        title: 'Documents',
         version: 'a'.repeat(64),
-        workspaceIds: [workspaceId],
+        workspaceIds: [],
         definition: { kind: 'agent_plugin', packageId },
         installations: {}
     }
     const plugins = {
-        workspaceCatalog: jest.fn(async () => ({
-            items: [{ id: packageId, name: 'Documents', status: 'not_published', expertReferences: [] }]
-        })),
-        packages: { find: jest.fn(async () => [pkg]), findOneByOrFail: jest.fn(async () => pkg) },
-        bindings: { find: jest.fn(async () => []), findOneByOrFail: jest.fn(async () => resource) },
-        addToWorkspace: jest.fn(async () => {
-            plugins.bindings.find.mockResolvedValue([resource])
-            return { bindingId: resourceId }
-        })
+        installedCatalog: jest.fn(async () => [{ pkg, binding: resource }]),
+        missingExperts: jest.fn(() => false)
     }
     const connections = []
     const connectors = {
@@ -69,14 +66,26 @@ function fixture() {
         connectors as never,
         commands as never
     )
-    return { service, binding, workspace, workspaces, commands, plugins, connectors, update, resource, connections }
+    return {
+        service,
+        binding,
+        workspace,
+        workspaces,
+        commands,
+        plugins,
+        connectors,
+        update,
+        pkg,
+        resource,
+        connections
+    }
 }
 describe('Bosi capability onboarding', () => {
-    it('shows organization packages before installation and reserves the same private workspace', async () => {
+    it('shows installed packages without workspace publication and reserves the same private workspace', async () => {
         const f = fixture()
         expect((await f.service.catalog(f.binding)).items[0]).toMatchObject({
             id: packageId,
-            status: 'available',
+            status: 'ready',
             canSelect: true,
             selected: false
         })
@@ -86,7 +95,7 @@ describe('Bosi capability onboarding', () => {
         expect(f.commands.execute).toHaveBeenCalledWith(new EnsurePersonalDefaultWorkspaceCommand('Bosi'))
         expect(f.workspaces.findOne).toHaveBeenCalledWith(workspaceId, { relations: ['members'] })
     })
-    it('persists exact installed references and rejects stale choices without repeating installation', async () => {
+    it('persists the scope installation reference and rejects stale choices', async () => {
         const f = fixture()
         const choice = { revision: 0, kind: 'plugin' as const, id: packageId, selected: true }
         const result = await f.service.choose(f.binding, choice)
@@ -97,21 +106,39 @@ describe('Bosi capability onboarding', () => {
             version: 'a'.repeat(64)
         })
         await expect(f.service.choose(f.binding, choice)).rejects.toBeInstanceOf(ConflictException)
-        expect(f.plugins.addToWorkspace).toHaveBeenCalledTimes(1)
         await f.service.choose(f.binding, { ...choice, revision: 1, selected: false })
         expect(f.binding.desktopOnboarding.packages).toEqual([])
     })
     it('distinguishes disabled and configuration-required resources from empty catalogs', async () => {
         const f = fixture()
-        f.plugins.workspaceCatalog.mockResolvedValue({
-            items: [{ id: packageId, name: 'Documents', status: 'disabled', expertReferences: [] }]
-        })
+        f.resource.enabled = false
         expect((await f.service.catalog(f.binding)).items[0]).toMatchObject({ status: 'unavailable', canSelect: false })
         await expect(
             f.service.choose(f.binding, { revision: 0, id: packageId, kind: 'plugin', selected: true })
         ).rejects.toBeInstanceOf(ForbiddenException)
-        f.plugins.workspaceCatalog.mockRejectedValue(new Error('network unavailable'))
+        f.resource.enabled = true
+        f.plugins.missingExperts.mockReturnValue(true)
+        expect((await f.service.catalog(f.binding)).items[0]).toMatchObject({
+            status: 'configuration_required',
+            canSelect: false
+        })
+        f.plugins.installedCatalog.mockRejectedValue(new Error('network unavailable'))
         await expect(f.service.catalog(f.binding)).rejects.toThrow('network unavailable')
+    })
+    it('leaves shared credentials disconnected when selecting a plugin that needs authorization', async () => {
+        const f = fixture()
+        Object.assign(f.pkg.descriptor, {
+            servers: [{ key: 'inbox', config: { url: 'https://example.test/mcp' } }],
+            extension: { connectors: { inbox: { type: 'existing', provider: 'mail' } } }
+        })
+        expect((await f.service.catalog(f.binding)).items[0]).toMatchObject({
+            status: 'requires_auth',
+            canSelect: true
+        })
+        expect(f.connectors.createBinding).not.toHaveBeenCalled()
+        await f.service.choose(f.binding, { revision: 0, kind: 'plugin', id: packageId, selected: true })
+        expect(f.connections).toMatchObject([{ status: 'disconnected', scope: { type: 'workspace', workspaceId } }])
+        expect(f.binding.desktopOnboarding.packages[0].resource.bindingId).toBe(resourceId)
     })
     it('connects only a registered service in the reserved workspace and restores connected state', async () => {
         const f = fixture()
@@ -155,6 +182,6 @@ describe('Bosi capability onboarding', () => {
         Object.assign(f.workspace, patch)
         await expect(f.service.catalog(f.binding)).rejects.toBeInstanceOf(ForbiddenException)
         expect(f.update).not.toHaveBeenCalled()
-        expect(f.plugins.workspaceCatalog).not.toHaveBeenCalled()
+        expect(f.plugins.installedCatalog).not.toHaveBeenCalled()
     })
 })

@@ -15,7 +15,9 @@ import { AssistantBinding } from '../assistant-binding.entity'
 import { parseBosiOnboardingPreferences } from './bosi-onboarding.schema'
 import { XpertWorkspaceService } from '../../xpert-workspace/workspace.service'
 import { EnsurePersonalDefaultWorkspaceCommand } from '../../xpert-workspace/commands/ensure-personal-default-workspace.command'
-import { AgentPluginService } from '../../agent-plugin/agent-plugin.service'
+import { AgentPluginInstallationsService } from '../../agent-plugin/agent-plugin-installations.service'
+import { agentPluginConnectorProviders } from '../../agent-plugin/agent-plugin-connector-providers'
+import type { RuntimeResourceReference } from '@xpert-ai/contracts'
 import { ConnectorService } from '../../connector/connector.service'
 
 @Injectable()
@@ -23,7 +25,7 @@ export class BosiOnboardingService {
     constructor(
         private readonly database: DataSource,
         private readonly workspaces: XpertWorkspaceService,
-        private readonly plugins: AgentPluginService,
+        private readonly plugins: AgentPluginInstallationsService,
         private readonly connectors: ConnectorService,
         private readonly commands: CommandBus
     ) {}
@@ -67,77 +69,88 @@ export class BosiOnboardingService {
     }
 
     async catalog(binding: AssistantBinding): Promise<BosiOnboardingCatalog> {
+        return (await this.choices(binding)).catalog
+    }
+
+    private async choices(binding: AssistantBinding) {
         this.mutable(binding)
         const workspace = await this.workspace(binding)
-        const scope = { tenantId: binding.tenantId, organizationId: binding.organizationId }
         const connectorScope = { type: 'workspace' as const, workspaceId: workspace.id }
-        const [library, packages, resources, definitions, connections] = await Promise.all([
-            this.plugins.workspaceCatalog(workspace.id),
-            this.plugins.packages.find({ where: scope }),
-            this.plugins.bindings.find({ where: scope }),
+        const [packages, definitions, connections] = await Promise.all([
+            this.plugins.installedCatalog(workspace.id),
             this.connectors.definitionsForScope(connectorScope),
             this.connectors.listBindings(connectorScope)
         ])
         const preferences = binding.desktopOnboarding
         const items: BosiOnboardingItem[] = []
         const relatedProviders = new Set<string>()
-        for (const item of library.items) {
-            const pkg = packages.find((entry) => entry.id === item.id)
-            if (!pkg) continue
-            const resource = resources.find(
-                (entry) =>
-                    entry.enabled &&
-                    !entry.supersededById &&
-                    entry.workspaceIds.includes(workspace.id) &&
-                    entry.definition.kind === 'agent_plugin' &&
-                    entry.definition.packageId === item.id
-            )
-            const requirements = Object.values(pkg.descriptor.extension?.connectors ?? {})
-            for (const requirement of requirements)
-                if (requirement.type === 'existing') relatedProviders.add(requirement.provider)
-            const references = Object.values(resource?.installations[workspace.id]?.connectors ?? {})
-            for (const reference of references) relatedProviders.add(reference.provider)
-            const missingProvider = requirements.some(
-                (requirement) =>
-                    requirement.type === 'existing' &&
-                    !definitions.some(
-                        (definition) =>
-                            definition.provider === requirement.provider &&
-                            getConnectorAuthorizationModes(definition).includes('shared')
-                    )
-            )
-            const configurationRequired =
-                missingProvider ||
-                (!resource && item.expertReferences.length > 0) ||
+        const selectable = new Map<string, { resource: RuntimeResourceReference; providers: string[] }>()
+        for (const { pkg, binding: resource } of packages) {
+            if (resource.definition.kind !== 'agent_plugin') continue
+            const requirements = resource.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {}
+            const providers = new Set<string>()
+            let configurationRequired =
+                this.plugins.missingExperts(pkg, resource) ||
                 pkg.descriptor.diagnostics.length > 0 ||
-                (resource?.definition.kind === 'agent_plugin' && !!resource.definition.oauthServers?.length)
-            const needsAuth = references.some(
-                (ref) =>
+                !!resource.definition.oauthServers?.length
+            if (resource.enabled && !configurationRequired) {
+                try {
+                    for (const { provider } of agentPluginConnectorProviders(
+                        pkg,
+                        requirements,
+                        binding.organizationId
+                    ).values()) {
+                        const definition = definitions.find(
+                            (entry) => entry.provider === provider || entry.canonicalProvider === provider
+                        )
+                        if (
+                            !definition ||
+                            definition.unavailable ||
+                            !getConnectorAuthorizationModes(definition).includes('shared')
+                        ) {
+                            configurationRequired = true
+                            continue
+                        }
+                        relatedProviders.add(definition.provider)
+                        providers.add(definition.provider)
+                    }
+                } catch (error) {
+                    if (!(error instanceof BadRequestException)) throw error
+                    configurationRequired = true
+                }
+            }
+            const needsAuth = [...providers].some(
+                (provider) =>
                     !connections.some(
                         (connection) =>
-                            connection.id === ref.bindingId &&
+                            connection.provider === provider &&
                             connection.authorizationMode === 'shared' &&
                             connection.status === 'active'
                     )
             )
-            const status =
-                item.status === 'disabled'
-                    ? 'unavailable'
-                    : configurationRequired
-                      ? 'configuration_required'
-                      : resource
-                        ? needsAuth
-                            ? 'requires_auth'
-                            : 'ready'
-                        : 'available'
+            const status = !resource.enabled
+                ? 'unavailable'
+                : configurationRequired
+                  ? 'configuration_required'
+                  : needsAuth
+                    ? 'requires_auth'
+                    : 'ready'
+            if (resource.enabled && !configurationRequired) {
+                selectable.set(pkg.id, {
+                    resource: { bindingId: resource.id, version: resource.version },
+                    providers: [...providers]
+                })
+            }
+            const language = RequestContext.getLanguageCode()
+            const display = pkg.descriptor.extension?.interface
             items.push({
-                id: item.id,
+                id: pkg.id,
                 kind: 'plugin',
-                name: item.name,
-                description: resolveI18nText(item.description, RequestContext.getLanguageCode()),
-                ...(item.icon ? { icon: { type: 'image', value: item.icon } as const } : {}),
+                name: resolveI18nText(display?.displayName, language) || resource.title,
+                description: resolveI18nText(display?.description ?? resource.description, language),
+                ...(display?.icon ? { icon: { type: 'image', value: display.icon } as const } : {}),
                 status,
-                selected: preferences.packages.some((entry) => entry.packageId === item.id),
+                selected: preferences.packages.some((entry) => entry.packageId === pkg.id),
                 canSelect: status !== 'unavailable' && status !== 'configuration_required',
                 canConnect: false,
                 ...(status === 'configuration_required'
@@ -173,7 +186,10 @@ export class BosiOnboardingService {
                 ...(!supported ? { reason: t('server-ai:Error.BosiCapabilityConfigurationRequired') } : {})
             })
         }
-        return { workspace: { id: workspace.id, name: workspace.name }, revision: preferences.revision, items }
+        return {
+            catalog: { workspace: { id: workspace.id, name: workspace.name }, revision: preferences.revision, items },
+            selectable
+        }
     }
 
     private async ensureConnector(binding: AssistantBinding, provider: string) {
@@ -190,7 +206,7 @@ export class BosiOnboardingService {
     }
 
     async choose(binding: AssistantBinding, choice: BosiOnboardingChoice) {
-        const catalog = await this.catalog(binding)
+        const { catalog, selectable } = await this.choices(binding)
         if (choice.revision !== catalog.revision) throw new ConflictException(t('server-ai:Error.BosiChoicesChanged'))
         const item = catalog.items.find((entry) => entry.id === choice.id && entry.kind === choice.kind)
         const preferences = binding.desktopOnboarding
@@ -206,26 +222,9 @@ export class BosiOnboardingService {
         if (choice.kind === 'plugin') {
             preferences.packages = preferences.packages.filter((entry) => entry.packageId !== choice.id)
             if (choice.selected) {
-                const pkg = await this.plugins.packages.findOneByOrFail({
-                    id: choice.id,
-                    tenantId: binding.tenantId,
-                    organizationId: binding.organizationId
-                })
-                for (const requirement of Object.values(pkg.descriptor.extension?.connectors ?? {}))
-                    if (requirement.type === 'existing') await this.ensureConnector(binding, requirement.provider)
-                const result = await this.plugins.addToWorkspace(catalog.workspace.id, {
-                    packageId: choice.id,
-                    experts: {}
-                })
-                const resource = await this.plugins.bindings.findOneByOrFail({
-                    id: result.bindingId,
-                    tenantId: binding.tenantId,
-                    organizationId: binding.organizationId
-                })
-                preferences.packages.push({
-                    packageId: choice.id,
-                    resource: { bindingId: resource.id, version: resource.version }
-                })
+                const plugin = selectable.get(choice.id)!
+                for (const provider of plugin.providers) await this.ensureConnector(binding, provider)
+                preferences.packages.push({ packageId: choice.id, resource: plugin.resource })
             }
         } else {
             const connections = await this.connectors.listBindings({
