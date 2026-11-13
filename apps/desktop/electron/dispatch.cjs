@@ -54,6 +54,7 @@ const methods = new Set([
   'loginLocal',
   'selectOrganization',
   'listBots',
+  'listBotPage',
   'sidebarState',
   'restoreSession',
   'rememberSession',

@@ -248,6 +248,58 @@ test('Bot pagination continues beyond the first 100 items', async () => {
   assert.equal((await service.chatSession('bot-100')).secret, 'short-lived')
 })
 
+test('first-page assistants are usable while a saved assistant on the next page is still unknown', async () => {
+  const { service, calls } = fixture((url) => {
+    if (!url.includes('/mobile/xperts')) return
+    const offset = Number(new URL(url).searchParams.get('offset'))
+    return response({ items: [{ ...bot, id: offset ? 'later' : 'first' }], total: 2 })
+  })
+  await service.login(input)
+  await service.listBots()
+  const scope = JSON.stringify([service.config.apiUrl, user.tenantId, user.id, service.profile.organizationId])
+  service.rememberSession({ scope, session: { botId: 'later', threadId: null } })
+  const first = await service.listBotPage()
+  assert.deepEqual(
+    first.bots.map((item) => item.id),
+    ['first']
+  )
+  assert.ok(first.awaitingSavedBot)
+  assert.equal((await service.chatSession('first')).secret, 'short-lived')
+  await assert.rejects(service.chatSession('later'), { status: 403 })
+  const last = await service.listBotPage(first.next)
+  assert.equal(last.next, null)
+  assert.equal(last.awaitingSavedBot, false)
+  assert.deepEqual(
+    last.bots.map((item) => item.id),
+    ['first', 'later']
+  )
+  assert.equal((await service.restoreSession()).botId, 'later')
+  await assert.rejects(service.listBotPage(first.next), { status: 409 })
+  assert.deepEqual(
+    calls.filter(({ url }) => url.includes('/mobile/xperts')).map(({ url }) => new URL(url).searchParams.get('offset')),
+    ['0', '1', '0', '1']
+  )
+})
+
+test('a page in flight cannot populate the next organization', async () => {
+  let complete
+  const { service } = fixture((url) => {
+    if (!url.includes('/mobile/xperts')) return
+    if (new URL(url).searchParams.get('offset') === '0') return response({ items: [bot], total: 2 })
+    return new Promise((resolve) => {
+      complete = () => resolve(response({ items: [{ ...bot, id: 'old-org-only' }], total: 2 }))
+    })
+  })
+  await service.login(input)
+  const first = await service.listBotPage()
+  const pending = service.listBotPage(first.next)
+  await service.selectOrganization('org-2')
+  complete()
+  await assert.rejects(pending, { status: 409 })
+  await assert.rejects(service.listBotPage(first.next), { status: 409 })
+  assert.deepEqual(service.bots, [])
+})
+
 test('host dispatch rejects arbitrary methods and hides internal errors', async () => {
   const { service } = fixture()
   assert.equal((await dispatch(service, 'request', '/api/user')).status, 403)

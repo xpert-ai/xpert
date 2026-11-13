@@ -187,6 +187,7 @@ class DesktopService {
     this.bots = []
     this.sourceBots = []
     this.generation = 0
+    this.botListRevision = 0
     this.refreshing = null
     this.assistantActivity = new AssistantActivity(this)
     this.userNotifications = new UserNotifications(this, saved?.notificationDismissals)
@@ -360,26 +361,59 @@ class DesktopService {
     return this.snapshot()
   }
 
-  async listBots() {
-    if (!this.profile?.organizationId) return []
-    const generation = this.generation
-    const items = []
-    let total = 0
-    do {
-      const page = parseBots(
-        await this.request(`/api/mobile/xperts?limit=100&offset=${items.length}`),
-        this.config.locale
-      )
-      total = page.total
-      items.push(...page.items)
-      if (!page.items.length) break
-    } while (items.length < total)
-    if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
+  readBotPage(offset) {
+    return this.request(`/api/mobile/xperts?limit=100&offset=${offset}`).then((value) =>
+      parseBots(value, this.config.locale)
+    )
+  }
+
+  commitBots(items) {
     this.sourceBots = items
     this.bots = this.decorateBots(items)
     this.assistantActivity.sync()
     this.userNotifications.sync()
     return this.bots
+  }
+
+  async listBotPage(cursor) {
+    if (!this.profile?.organizationId) throw new ClientError('Select an organization first.', 403)
+    const generation = this.generation
+    const continuation = this.botListContinuation
+    if (
+      cursor !== undefined &&
+      (!continuation || continuation.cursor !== cursor || continuation.generation !== generation)
+    )
+      throw new ClientError('The workspace changed. Please retry.', 409)
+    const offset = cursor ? continuation.offset : 0
+    const revision = cursor ? this.botListRevision : ++this.botListRevision
+    this.botListContinuation = null
+    const page = await this.readBotPage(offset)
+    if (generation !== this.generation || revision !== this.botListRevision)
+      throw new ClientError('The workspace changed. Please retry.', 409)
+    const nextOffset = offset + page.items.length
+    const next = page.items.length && nextOffset < page.total ? require('node:crypto').randomUUID() : null
+    const bots = this.commitBots(offset ? this.sourceBots.concat(page.items) : page.items)
+    if (next) this.botListContinuation = { generation, cursor: next, offset: nextOffset }
+    const saved = this.sidebarState().lastSession?.botId
+    return { bots, next, awaitingSavedBot: Boolean(next && saved && !bots.some((item) => item.id === saved)) }
+  }
+
+  async listBots() {
+    if (!this.profile?.organizationId) return []
+    const generation = this.generation
+    const revision = ++this.botListRevision
+    this.botListContinuation = null
+    const items = []
+    let total = 0
+    do {
+      const page = await this.readBotPage(items.length)
+      if (generation !== this.generation || revision !== this.botListRevision)
+        throw new ClientError('The workspace changed. Please retry.', 409)
+      total = page.total
+      items.push(...page.items)
+      if (!page.items.length) break
+    } while (items.length < total)
+    return this.commitBots(items)
   }
 
   async chatSession(input) {

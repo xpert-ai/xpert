@@ -52,6 +52,8 @@ const request = async (method, argument) => {
         },
         localLoginAvailable: false
       }
+    case 'listBotPage':
+      return { bots: [], next: null, awaitingSavedBot: false }
     case 'listBots':
     case 'listGroups':
     case 'botActivity':

@@ -308,6 +308,7 @@ export interface HostMethods {
   createGroup: { input: { title: string; assistantId: string }; output: { id: string; title: string } }
   groupPreference: { input: { id: string; key: 'pinned' | 'archived'; value: boolean }; output: unknown }
   listBots: { input: undefined; output: Bot[] }
+  listBotPage: { input: string | undefined; output: { bots: Bot[]; next: string | null; awaitingSavedBot: boolean } }
   voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
   voiceStart: {
     input: { botId: string; assistantId: string; threadId: string | null; originMode: 'web' | 'desktop' }

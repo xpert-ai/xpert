@@ -95,6 +95,7 @@ export function Sidebar({
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
   const visibleGroups = workspaceId ? [] : groupList.items
   const groups = conversationGroups(rows, visibleGroups, list.sidebar, query, archivedGroups)
+  const loadingAssistants = pending && bots.length === 0
   const pinned = groups.find((group) => group.kind === 'pinned')?.rows ?? []
   const groupLabel = (group: (typeof groups)[number]) =>
     group.kind === 'section' || group.kind === 'domain' ? group.name : t(group.name)
@@ -261,7 +262,7 @@ export function Sidebar({
             <Search className="size-5" />
           </Button>
           <AssistantScrollArea label={t('Conversation avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
-            {pending && (
+            {loadingAssistants && (
               <span
                 role="status"
                 aria-label={t('Loading assistants')}
@@ -285,9 +286,9 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
-            {!pending &&
-              !error &&
-              groups.map((group, index) => (
+            {groups
+              .filter((group) => group.rows.length)
+              .map((group, index) => (
                 <section
                   key={group.id}
                   aria-label={groupLabel(group)}
@@ -384,7 +385,7 @@ export function Sidebar({
           </div>
         </div>
         <AssistantScrollArea label={t('Conversations')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
-          {pending && (
+          {loadingAssistants && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
               {t('Loading Bots…')}
@@ -437,34 +438,26 @@ export function Sidebar({
               {feedback}
             </p>
           )}
-          {!pending && !error && pinned.length > 0 && (
+          {pinned.length > 0 && (
             <section aria-label={t('Pinned conversations')} className="mb-3 border-b pb-3">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
                 {pinned.map((row) => renderConversation(row, 'pinned'))}
               </div>
             </section>
           )}
-          {!pending &&
-            !error &&
-            sections.map(
-              (section, index) =>
-                section.rows.length > 0 && (
-                  <section
-                    key={section.id}
-                    aria-label={groupLabel(section)}
-                    className={index > 0 ? 'border-t pt-2' : ''}
-                  >
-                    {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
-                      <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">
-                        {groupLabel(section)}
-                      </h3>
-                    )}
-                    <div className="space-y-[var(--desktop-row-gap)]">
-                      {section.rows.map((row) => renderConversation(row))}
-                    </div>
-                  </section>
-                )
-            )}
+          {sections.map(
+            (section, index) =>
+              section.rows.length > 0 && (
+                <section key={section.id} aria-label={groupLabel(section)} className={index > 0 ? 'border-t pt-2' : ''}>
+                  {(section.kind === 'domain' || sections.length > 1 || list.sidebar.sections.length > 0) && (
+                    <h3 className="px-2 pt-3 pb-1 text-xs font-medium text-muted-foreground">{groupLabel(section)}</h3>
+                  )}
+                  <div className="space-y-[var(--desktop-row-gap)]">
+                    {section.rows.map((row) => renderConversation(row))}
+                  </div>
+                </section>
+              )
+          )}
           {!pending && !error && !groups.some((group) => group.rows.length) && (
             <p className="px-3 py-6 text-sm leading-6 text-muted-foreground">
               {archivedGroups

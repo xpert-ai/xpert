@@ -97,6 +97,7 @@ export function App() {
   const appearance = preview?.appearance ?? state?.config.appearance
   const request = useRef(0)
   const loadingBots = useRef<number | null>(null)
+  const nextStartupPage = useRef<Promise<{ bots: Bot[]; next: string | null }> | null>(null)
   const binding = JSON.stringify([
     state?.config.apiUrl ?? null,
     state?.profile?.user.tenantId ?? null,
@@ -195,50 +196,71 @@ export function App() {
     return () => media.removeEventListener('change', update)
   }, [theme, appearance])
 
-  const loadBots = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
-    if (background && loadingBots.current === request.current) return
-    const current = ++request.current
-    const navigation = navigationVersion.current
-    loadingBots.current = current
-    if (!background) {
-      setPending(true)
-      setError('')
-    }
-    try {
-      const items = await invoke('listBots')
-      if (current !== request.current) return
-      const restored = restorePending.current ? await invoke('restoreSession') : null
-      if (current !== request.current) return
-      restorePending.current = false
-      setNavigationReady(true)
-      setBots(items)
-      setError('')
-      if (navigation === navigationVersion.current && restored && items.some((item) => item.id === restored.botId)) {
-        selectedRef.current = restored.botId
-        setSelected(restored.botId)
-        setInitialThread(restored.threadId)
-        setInitialVoice(restored.conversation ?? null)
-        setBosiReady(true)
-        setSelectionVersion((value) => value + 1)
-      } else if (!items.some((item) => item.id === selectedRef.current)) {
-        selectedRef.current = items[0]?.id ?? null
-        setSelected(selectedRef.current)
-        setInitialThread(null)
-        setInitialVoice(null)
+  const loadBots = useCallback(
+    async ({ background = false, startup = false }: { background?: boolean; startup?: boolean } = {}) => {
+      if (background && loadingBots.current === request.current) return
+      const current = ++request.current
+      if (!startup) nextStartupPage.current = null
+      const navigation = navigationVersion.current
+      loadingBots.current = current
+      if (!background) {
+        setPending(true)
+        setError('')
       }
-    } catch (error) {
-      if (current !== request.current) return
-      if (!background) setError(error instanceof Error ? error.message : t('Could not load Bots.'))
-      if (error instanceof HostError && error.status === 401) {
-        setState(await invoke('logout'))
+      try {
+        let cursor: string | undefined
+        do {
+          const fetchPage = startup ? invoke('listBotPage', cursor) : null
+          if (fetchPage) nextStartupPage.current = fetchPage
+          const page = fetchPage ? await fetchPage : null
+          const items = page ? page.bots : await invoke('listBots')
+          if (current !== request.current) return
+          setBots(items)
+          setError('')
+          // Absence from a partial page does not mean the saved assistant is inaccessible.
+          if (restorePending.current && !page?.awaitingSavedBot) {
+            const restored = navigation === navigationVersion.current ? await invoke('restoreSession') : null
+            if (current !== request.current) return
+            restorePending.current = false
+            setNavigationReady(true)
+            if (
+              navigation === navigationVersion.current &&
+              restored &&
+              items.some((item) => item.id === restored.botId)
+            ) {
+              selectedRef.current = restored.botId
+              setSelected(restored.botId)
+              setInitialThread(restored.threadId)
+              setInitialVoice(restored.conversation ?? null)
+              setBosiReady(true)
+              setSelectionVersion((value) => value + 1)
+            }
+          }
+          if (!page?.next && !items.some((item) => item.id === selectedRef.current)) {
+            selectedRef.current = items[0]?.id ?? null
+            setSelected(selectedRef.current)
+            setInitialThread(null)
+            setInitialVoice(null)
+          }
+          if (!page?.next) return items
+          cursor = page.next
+        } while (true)
+      } catch (error) {
+        if (current !== request.current) return
+        if (!background) setError(error instanceof Error ? error.message : t('Could not load Bots.'))
+        if (error instanceof HostError && error.status === 401) {
+          setState(await invoke('logout'))
+        }
+      } finally {
+        if (loadingBots.current === current) loadingBots.current = null
+        if (current === request.current) {
+          nextStartupPage.current = null
+          setPending(false)
+        }
       }
-    } finally {
-      if (loadingBots.current === current) loadingBots.current = null
-      if (current === request.current) {
-        setPending(false)
-      }
-    }
-  }, [])
+    },
+    []
+  )
   useEffect(() => {
     request.current++
     navigationVersion.current++
@@ -255,8 +277,9 @@ export function App() {
     setNotice(undefined)
     setCatalog(false)
     setError('')
-    if (state?.profile?.organizationId) void loadBots()
+    if (state?.profile?.organizationId) void loadBots({ startup: true })
     return () => {
+      nextStartupPage.current = null
       request.current++
       selectedRef.current = null
     }
@@ -407,11 +430,27 @@ export function App() {
                       organizationId={state.profile.organizationId}
                       onReady={async (id, threadId) => {
                         if (bindingRef.current !== binding) return
-                        const navigation = navigationVersion.current
-                        await loadBots()
-                        if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
+                        if (!bots.some((item) => item.id === id)) {
+                          const navigation = navigationVersion.current
+                          let available = false
+                          let next = nextStartupPage.current
+                          while (next) {
+                            const page = await next
+                            if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
+                            available = page.bots.some((item) => item.id === id)
+                            if (available || !page.next || next === nextStartupPage.current) break
+                            next = nextStartupPage.current
+                          }
+                          if (!available) available = (await loadBots())?.some((item) => item.id === id) ?? false
+                          if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
+                          if (!available)
+                            throw new Error(
+                              t(
+                                'The assistant is not available yet. Check its publishing status and access permissions, then retry.'
+                              )
+                            )
+                        }
                         selectBot(id, threadId)
-                        setBosiReady(true)
                       }}
                     />
                   ) : bot || selectedGroup ? (
@@ -427,7 +466,9 @@ export function App() {
                         bot={bot}
                         config={{ ...state.config, appearance, locale }}
                         dark={dark}
-                        onAppearanceSaved={loadBots}
+                        onAppearanceSaved={async () => {
+                          await loadBots()
+                        }}
                       />
                     </div>
                   ) : null}
