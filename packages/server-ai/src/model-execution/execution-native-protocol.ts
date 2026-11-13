@@ -180,7 +180,7 @@ export function assertNativeResponse(value: unknown, protocol: NativeModelProtoc
             ? result.data.object !== 'response' || !['completed', 'incomplete'].includes(result.data.status ?? '')
             : result.data.type !== 'message')
     )
-        throw executionError('Unavailable')
+        throw executionError('Upstream')
     return result.data
 }
 
@@ -202,15 +202,15 @@ export class NativeStreamUsage {
                 usage: z.unknown().optional()
             })
             .safeParse(value)
-        if (!event.success) throw executionError('Invalid')
+        if (!event.success) throw executionError('Upstream')
         const e = event.data
         if (e.type === 'error') {
             this.failed = true
-            throw executionError('Unavailable')
+            throw executionError('Upstream')
         }
         if (this.protocol === 'openai_responses') {
             if (['response.completed', 'response.incomplete', 'response.failed'].includes(e.type)) {
-                if (this.ended) throw executionError('Invalid')
+                if (this.ended) throw executionError('Upstream')
                 this.ended = true
                 this.failed = e.type === 'response.failed'
                 this.receipt = readNativeUsage(e.response, this.protocol)
@@ -218,7 +218,7 @@ export class NativeStreamUsage {
                     try {
                         const response = assertNativeResponse(e.response, this.protocol)
                         const expectedStatus = e.type === 'response.completed' ? 'completed' : 'incomplete'
-                        if (response.status !== expectedStatus) throw executionError('Unavailable')
+                        if (response.status !== expectedStatus) throw executionError('Upstream')
                     } catch (error) {
                         this.failed = true
                         throw error
@@ -226,14 +226,14 @@ export class NativeStreamUsage {
                 }
             }
         } else if (e.type === 'message_start') {
-            if (this.input) throw executionError('Invalid')
+            if (this.input) throw executionError('Upstream')
             const message = receiptEnvelope.parse(e.message)
             this.messageId = message.id
             this.input = anthropicInput.parse(message.usage)
         } else if (e.type === 'message_delta') {
             this.output = z.object({ output_tokens: count }).parse(e.usage).output_tokens
         } else if (e.type === 'message_stop') {
-            if (this.ended) throw executionError('Invalid')
+            if (this.ended) throw executionError('Upstream')
             this.ended = true
             this.receipt = anthropicReceipt({ ...this.input, output_tokens: this.output }, this.messageId)
         }
@@ -252,14 +252,14 @@ export async function* nativeFrames(stream: ReadableStream<Uint8Array>, onActivi
             if (done) break
             onActivity?.()
             bytes += value.byteLength
-            if (bytes > 16 * 1024 * 1024) throw executionError('Invalid')
+            if (bytes > 16 * 1024 * 1024) throw executionError('Upstream')
             pending += decoder.decode(value, { stream: true })
             pending = pending.replace(/\r\n/g, '\n')
             let index: number
             while ((index = pending.indexOf('\n\n')) !== -1) {
                 const raw = pending.slice(0, index + 2)
                 pending = pending.slice(index + 2)
-                if (raw.length > 2 * 1024 * 1024) throw executionError('Invalid')
+                if (raw.length > 2 * 1024 * 1024) throw executionError('Upstream')
                 const data = raw
                     .split('\n')
                     .filter((line) => line.startsWith('data:'))
@@ -267,10 +267,10 @@ export async function* nativeFrames(stream: ReadableStream<Uint8Array>, onActivi
                     .join('\n')
                 yield { raw, value: data && data !== '[DONE]' ? JSON.parse(data) : undefined }
             }
-            if (pending.length > 2 * 1024 * 1024) throw executionError('Invalid')
+            if (pending.length > 2 * 1024 * 1024) throw executionError('Upstream')
         }
         pending += decoder.decode()
-        if (pending.trim()) throw executionError('Unavailable')
+        if (pending.trim()) throw executionError('Upstream')
     } finally {
         await reader.cancel().catch(() => undefined)
         reader.releaseLock()
