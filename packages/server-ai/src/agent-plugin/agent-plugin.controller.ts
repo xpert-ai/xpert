@@ -21,7 +21,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express'
 import { z } from 'zod/v3'
 import type { AgentPluginService } from './agent-plugin.service'
-import type { RuntimeResourceBindingInput, WorkspaceAgentPluginAddInput } from '@xpert-ai/contracts'
+import type { RuntimeResourceBindingInput } from '@xpert-ai/contracts'
 import { jsonValue } from './agent-plugin-parser'
 import { agentPluginConnectorsSchema } from './agent-plugin-connector.schema'
 import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
@@ -90,26 +90,6 @@ export class AgentPluginController {
         return this.installations.catalog(language)
     }
 
-    @Get('workspace-options') workspaceOptions() {
-        return this.service.workspaceOptions()
-    }
-    @Get('workspaces/:id') workspaceCatalog(@Param('id') id: string, @I18nLang() language: string) {
-        return this.service.workspaceCatalog(parseResourceInput(z.string().uuid(), id), language)
-    }
-    @Post('workspaces/:id/plugins') addToWorkspace(@Param('id') id: string, @Body() input: unknown) {
-        return this.service.addToWorkspace(
-            parseResourceInput(z.string().uuid(), id),
-            parseResourceInput(
-                z
-                    .object({
-                        packageId: z.string().uuid(),
-                        experts: z.record(z.string().uuid()).default({})
-                    })
-                    .strict(),
-                input
-            ) as WorkspaceAgentPluginAddInput
-        )
-    }
     @Get('options') options() {
         return this.service.options()
     }

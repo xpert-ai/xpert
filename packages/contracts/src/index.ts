@@ -115,10 +115,6 @@ export type {
   AgentPluginConnectorBinding,
   RuntimeResourceDefinition,
   RuntimeResourceBindingInput,
-  WorkspaceAgentPlugin,
-  WorkspaceAgentPluginOptions,
-  WorkspaceAgentPluginAddInput,
-  WorkspaceAgentPluginAddResult,
   InstalledAgentPlugin
 } from './agent-plugin'
 

@@ -7,7 +7,15 @@ const ts = require('typescript')
 const React = require('react')
 const { JSDOM } = require('jsdom')
 
-async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }, waitForRestore } = {}) {
+const defaultBots = [
+  { id: 'a', name: 'A', workspaceId: 'a' },
+  { id: 'b', name: 'B', workspaceId: 'b' }
+]
+
+async function mount(
+  t,
+  { restored = { botId: 'b', threadId: 'previous-thread' }, waitForRestore, bots = defaultBots, page } = {}
+) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
   global.window = dom.window
@@ -19,7 +27,7 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
   }
   const scope = () => JSON.stringify([state.config.apiUrl, 'tenant', 'user', state.profile.organizationId])
   const saved = new Map([[scope(), restored]])
-  const view = { sidebar: null, chat: null, bosi: null, onboardingMounts: 0 }
+  const view = { sidebar: null, chat: null, bosi: null, onboardingMounts: 0, listRequests: 0 }
   const i18n = { t: (key) => key, useLocale: () => 'en', setLocale() {}, localizeValidation() {}, clearValidation() {} }
   const imports = {
     react: React,
@@ -30,11 +38,14 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
       HostError: class HostError extends Error {},
       invoke: async (method, input) => {
         if (method === 'state') return state
-        if (method === 'listBots')
-          return [
-            { id: 'a', name: 'A' },
-            { id: 'b', name: 'B' }
-          ]
+        if (method === 'listBotPage') {
+          view.listRequests++
+          return page ? page(input) : { bots: [...bots], next: null, awaitingSavedBot: false }
+        }
+        if (method === 'listBots') {
+          view.listRequests++
+          return [...bots]
+        }
         if (method === 'restoreSession') {
           if (waitForRestore) await waitForRestore
           return saved.get(scope()) ?? null
@@ -43,6 +54,7 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
           saved.set(input.scope, input.session)
           return
         }
+        if (method === 'discoveryWorkspaces') return view.listWorkspaces?.() ?? []
         if (method === 'selectOrganization') {
           state = { ...state, profile: { ...state.profile, organizationId: input } }
           return state
@@ -119,6 +131,33 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
   return { view, saved, scope, reopen }
 }
 
+test('a failed workspace refresh preserves the current conversation until a successful list removes its space', async (t) => {
+  const { view } = await mount(t)
+  const space = { id: 'b', name: 'Engineering', canWrite: true }
+  view.listWorkspaces = () => [space]
+  await React.act(() => view.sidebar.retryWorkspaces())
+  await React.act(() => view.sidebar.onWorkspace(space.id))
+  const chat = document.getElementById('chat')
+  view.listWorkspaces = () => {
+    throw new Error('Offline')
+  }
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceError, 'Offline')
+  assert.equal(view.sidebar.workspaceId, space.id)
+  assert.deepEqual(
+    view.sidebar.bots.map((bot) => bot.id),
+    ['b']
+  )
+  assert.equal(document.getElementById('chat'), chat)
+  view.listWorkspaces = () => [space]
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceError, '')
+  assert.equal(view.sidebar.workspaceId, space.id)
+  view.listWorkspaces = () => []
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceId, '')
+})
+
 test('reopening resumes the last Assistant and changed thread without the Bosi default replacing it', async (t) => {
   const { view, saved, scope, reopen } = await mount(t)
   assert.equal(view.onboardingMounts, 0)
@@ -156,9 +195,86 @@ test('startup waits for restore and still starts normal onboarding when there is
   assert.equal(view.chat, null)
   await React.act(() => finish())
   assert.ok(document.getElementById('onboarding'))
+  const initialRequests = view.listRequests
   await React.act(() => view.bosi.onReady('a', 'welcome-thread'))
+  assert.equal(view.listRequests, initialRequests, 'opening an existing Bosi reuses the initial assistant list')
   assert.equal(view.chat.bot.id, 'a')
   assert.equal(view.chat.initialThread, 'welcome-thread')
+})
+
+test('a newly created Bosi is fetched once before opening its welcome thread', async (t) => {
+  const bots = [{ id: 'a', name: 'A' }]
+  const { view } = await mount(t, { restored: null, bots })
+  const initialRequests = view.listRequests
+  bots.push({ id: 'new', name: 'New' })
+  await React.act(() => view.bosi.onReady('new', 'welcome'))
+  assert.equal(view.listRequests, initialRequests + 1)
+  assert.equal(view.chat.bot.id, 'new')
+  assert.equal(view.chat.initialThread, 'welcome')
+})
+
+function delayedPages(awaitingSavedBot = false) {
+  let finish
+  const rest = new Promise((resolve) => {
+    finish = () => resolve({ bots: defaultBots, next: null, awaitingSavedBot: false })
+  })
+  return {
+    page: (cursor) => (cursor ? rest : { bots: defaultBots.slice(0, 1), next: 'page-2', awaitingSavedBot }),
+    finish
+  }
+}
+
+test('Bosi opens with the first page and keeps its thread when the rest of the sidebar arrives', async (t) => {
+  const { page, finish } = delayedPages()
+  const { view } = await mount(t, { page, restored: null })
+  await React.act(() => view.bosi.onReady('a', 'welcome'))
+  assert.equal(view.chat.bot.id, 'a')
+  assert.equal(view.sidebar.bots.length, 1)
+  const version = view.chat.selectionVersion
+  await React.act(finish)
+  assert.equal(view.sidebar.bots.length, 2)
+  assert.equal(view.chat.initialThread, 'welcome')
+  assert.equal(view.chat.selectionVersion, version)
+})
+
+test('a saved assistant beyond the first page is restored without opening a different chat', async (t) => {
+  const { page, finish } = delayedPages(true)
+  const { view } = await mount(t, { page })
+  assert.equal(view.chat, null)
+  assert.equal(view.bosi, null)
+  assert.equal(view.sidebar.bots.length, 1)
+  await React.act(finish)
+  assert.equal(view.chat.bot.id, 'b')
+  assert.equal(view.chat.initialThread, 'previous-thread')
+})
+
+test('a personal Bosi on a later page joins the in-flight list without loading it twice', async (t) => {
+  let finishMiddle, finishLast
+  const middle = new Promise((resolve) => {
+    finishMiddle = () => resolve({ bots: defaultBots, next: 'last', awaitingSavedBot: false })
+  })
+  const last = new Promise((resolve) => {
+    finishLast = () => resolve({ bots: [...defaultBots, { id: 'c', name: 'C' }], next: null, awaitingSavedBot: false })
+  })
+  const page = (cursor) =>
+    cursor === 'last'
+      ? last
+      : cursor === 'middle'
+        ? middle
+        : { bots: defaultBots.slice(0, 1), next: 'middle', awaitingSavedBot: false }
+  const { view } = await mount(t, { page, restored: null })
+  await React.act(async () => {
+    const opening = view.bosi.onReady('b', 'welcome')
+    finishMiddle()
+    await opening
+  })
+  assert.equal(view.listRequests, 3)
+  assert.equal(view.chat.bot.id, 'b')
+  assert.equal(view.chat.initialThread, 'welcome')
+  assert.equal(view.sidebar.pending, true)
+  await React.act(finishLast)
+  assert.equal(view.sidebar.bots.length, 3)
+  assert.equal(view.chat.initialThread, 'welcome')
 })
 
 test('restored delegated conversation passes its authorized Project to ChatKit without resetting the thread', async (t) => {

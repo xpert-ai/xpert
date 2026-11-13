@@ -52,7 +52,10 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
         }
       })
       .catch((reason) => {
-        if (alive) setError(reason instanceof Error ? reason.message : t('Could not load plugins.'))
+        if (alive) {
+          setData(null)
+          setError(reason instanceof Error ? reason.message : t('Could not load plugins.'))
+        }
       })
       .finally(() => {
         if (alive) setLoading(false)

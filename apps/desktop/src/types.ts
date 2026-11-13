@@ -37,7 +37,7 @@ export interface Profile {
     avatarUrl: string | null
     preferredLanguage?: Locale | null
   }
-  organizations: { id: string; name: string }[]
+  organizations: { id: string; name: string; imageUrl?: string | null }[]
   organizationId: string | null
 }
 export interface AppState {
@@ -49,6 +49,7 @@ export interface AppState {
 export interface Bot {
   avatar?: import('@xpert-ai/contracts').TAvatar | null
   assistantId?: string
+  workspaceId?: string
   businessArea?: { id: string; name: string } | null
   id: string
   createdAt?: string | null
@@ -166,6 +167,11 @@ export interface HostMethods {
   }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: undefined; output: PluginLibrary }
+  skillCatalog: {
+    input: WorkspaceTarget & { search: string; offset: number }
+    output: { items: SkillCatalogItem[]; total: number }
+  }
+  installWorkspaceSkill: { input: WorkspaceTarget & { indexId: string }; output: { installed: boolean } }
 
   preparePluginConnection: {
     input: { assistantId: string; provider: string }
@@ -302,6 +308,7 @@ export interface HostMethods {
   createGroup: { input: { title: string; assistantId: string }; output: { id: string; title: string } }
   groupPreference: { input: { id: string; key: 'pinned' | 'archived'; value: boolean }; output: unknown }
   listBots: { input: undefined; output: Bot[] }
+  listBotPage: { input: string | undefined; output: { bots: Bot[]; next: string | null; awaitingSavedBot: boolean } }
   voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
   voiceStart: {
     input: { botId: string; assistantId: string; threadId: string | null; originMode: 'web' | 'desktop' }
@@ -332,7 +339,7 @@ export interface HostMethods {
   }
   templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
   catalogAvatar: { input: string; output: string | null }
-  listCatalog: { input: Exclude<CatalogKind, 'plugins'>; output: CatalogItem[] }
+  listCatalog: { input: Exclude<CatalogKind, 'plugins' | 'skills'>; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
@@ -345,6 +352,7 @@ export interface HostMethods {
     output: import('./catalog-types').ApplicationToolsetSelection
   }
   discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
+  discoveryWorkspaces: { input: undefined; output: DiscoveryWorkspace[] }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
   templateOverview: { input: { id: string }; output: import('@xpert-ai/contracts').AssistantTemplateOverview }
   templateSetup: {
@@ -447,6 +455,9 @@ import type {
   ApplicationSetup,
   CatalogItem,
   CatalogKind,
+  WorkspaceTarget,
+  DiscoveryWorkspace,
+  SkillCatalogItem,
   ExpertItem,
   InitializeApplicationInput,
   WorkspaceOption
