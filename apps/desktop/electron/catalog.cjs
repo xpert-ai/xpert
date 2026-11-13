@@ -345,9 +345,24 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         throw new ClientError('The app is not ready yet. Refresh the catalog to check its status.', 409)
       return { botId: required(result.xpertId, 'Assistant ID') }
     },
+    async discoveryWorkspaces() {
+      scope(this)
+      const result = await this.request('/api/xpert-workspace/my?purpose=runtime', { scope: 'organization' })
+      return list(result?.items)
+        .filter(
+          (item) =>
+            item.organizationId === this.profile.organizationId &&
+            (item.capabilities?.canRead || item.capabilities?.canRun)
+        )
+        .map((item) => ({
+          id: required(item.id, 'Workspace ID'),
+          name: text(item.name),
+          canWrite: item.capabilities?.canWrite === true
+        }))
+    },
     async templateWorkspaces() {
       scope(this)
-      const result = await this.request('/api/xpert-workspace/my?purpose=authoring')
+      const result = await this.request('/api/xpert-workspace/my?purpose=authoring', { scope: 'organization' })
       return list(result?.items)
         .filter((item) => item.capabilities?.canWrite === true)
         .map((item) => ({

@@ -1,4 +1,10 @@
 {
+  "All assistants": "すべてのアシスタント",
+  "Switch organization or workspace": "組織またはワークスペースを切り替える",
+  "Read only": "読み取り専用",
+  "Install skill": "スキルをインストール",
+  "Installing…": "インストール中…",
+  "Discover resources for {{organization}}": "{{organization}} のリソースを探す",
   "Show less": "折りたたむ",
   "Important": "Important",
   "Notifications": "Notifications",

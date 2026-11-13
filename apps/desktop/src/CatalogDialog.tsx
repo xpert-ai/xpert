@@ -1,3 +1,5 @@
+import { SkillsCatalog } from './SkillsCatalog'
+import { CatalogCombobox } from './CatalogCombobox'
 import { PluginCatalog } from './PluginCatalog'
 import { t, useLocale } from './i18n'
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
@@ -11,6 +13,7 @@ import {
   Input,
   Tabs,
   TabsContent,
+  TabsHeader,
   TabsList,
   TabsTrigger
 } from '@xpert-ai/shadcn-ui'
@@ -21,7 +24,7 @@ import { CatalogSetup } from './CatalogSetup'
 import { TemplateOverview } from './catalog/TemplateOverview'
 import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'
-import type { CatalogItem, CatalogKind } from './catalog-types'
+import type { CatalogItem, CatalogKind, DiscoveryWorkspace } from './catalog-types'
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 import { blankAssistant } from './catalog/blank-assistant'
 import { subscribeAppActivation } from './app-activation'
@@ -38,11 +41,19 @@ const tabs: { id: CatalogKind; label: string }[] = [
   { id: 'experts', label: 'Digital experts' },
   { id: 'applications', label: 'Apps' },
   { id: 'plugins', label: 'Plugins' },
+  { id: 'skills', label: 'Skills' },
   { id: 'templates', label: 'Agent templates' }
 ]
 
 export function CatalogDialog({
   templateId,
+  workspace,
+  workspaces,
+  workspacesLoading,
+  onTemplateCreated,
+  workspaceError,
+  onWorkspace,
+  retryWorkspaces,
   installationScope,
   organizationId,
   organization,
@@ -50,6 +61,13 @@ export function CatalogDialog({
   onClose,
   onUse
 }: {
+  workspace?: DiscoveryWorkspace
+  workspaces: DiscoveryWorkspace[]
+  workspacesLoading: boolean
+  onTemplateCreated: () => void
+  workspaceError: string
+  retryWorkspaces: () => void
+  onWorkspace: (id: string) => void
   templateId?: string
   organizationId: string
   installationScope: string
@@ -59,6 +77,10 @@ export function CatalogDialog({
   onUse: (botId: string) => Promise<void>
 }) {
   const [kind, setKind] = useState<CatalogKind>('experts')
+  const target = { organizationId, workspaceId: workspace?.id ?? '' }
+  const readOnly = !!workspace && !workspace.canWrite
+  const writesPaused = workspacesLoading || !!workspaceError
+  const writable = workspaces.filter((item) => item.canWrite)
   const locale = useLocale()
   const cache = useMemo(
     () =>
@@ -88,7 +110,7 @@ export function CatalogDialog({
   const [pluginsVisited, setPluginsVisited] = useState(false)
   const reload = useCallback(() => {
     setError('')
-    if (kind === 'plugins') {
+    if (kind === 'plugins' || kind === 'skills') {
       setPluginRevision((value) => value + 1)
       return
     }
@@ -106,7 +128,7 @@ export function CatalogDialog({
     setNotice('')
     setError('')
     if (kind === 'plugins') setPluginsVisited(true)
-    else void cache.load(kind)
+    else if (kind !== 'skills') void cache.load(kind)
   }, [cache, kind])
   useEffect(() => {
     if (!templateId) return
@@ -190,7 +212,7 @@ export function CatalogDialog({
               onClick={() => {
                 setSelected(null)
                 setCreating(false)
-                if (kind !== 'plugins') void cache.load(kind)
+                if (kind !== 'plugins' && kind !== 'skills') void cache.load(kind)
               }}
             >
               <ArrowLeft />
@@ -205,13 +227,53 @@ export function CatalogDialog({
                   : selected.kind === 'templates' && !installingTemplate
                     ? t('Assistant template')
                     : statusLabel(selected)
-                : t('Discover digital experts, apps, plugins and templates for {{organization}}', { organization })}
+                : t('Discover resources for {{organization}}', { organization })}
             </DialogDescription>
           </div>
+          {(kind !== 'plugins' || selected) && (
+            <div className="flex min-w-0 max-w-[45%] shrink-0 flex-col items-end gap-1 text-sm">
+              <div className="flex h-9 min-w-0 max-w-full items-center gap-2">
+                <span className="shrink-0 text-muted-foreground">{t('Workspace')}</span>
+                {workspace ? (
+                  <span className="truncate font-medium" title={workspace.name}>
+                    {workspace.name}
+                  </span>
+                ) : (
+                  <CatalogCombobox
+                    items={writable}
+                    value=""
+                    label={t('Select a workspace you can edit')}
+                    searchLabel={t('Search workspaces')}
+                    onChange={onWorkspace}
+                    disabled={busy || workspacesLoading || !writable.length}
+                  />
+                )}
+              </div>
+              {workspace && !workspace.canWrite && (
+                <span className="text-muted-foreground">{t('You do not have edit access to this workspace.')}</span>
+              )}
+              {workspaceError ? (
+                <span role="alert" className="text-destructive">
+                  {workspaceError}{' '}
+                  <Button size="sm" variant="ghost" onClick={retryWorkspaces}>
+                    {t('Retry')}
+                  </Button>
+                </span>
+              ) : (
+                !workspace &&
+                !workspacesLoading &&
+                !writable.length && (
+                  <span className="text-muted-foreground">
+                    {t('No writable workspace is available. Create one in Xpert or request edit access.')}
+                  </span>
+                )
+              )}
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            className="-mr-2 -mt-2 size-9"
+            className="-mr-2 size-9 shrink-0"
             aria-label={t('Close discovery')}
             disabled={busy}
             onClick={onClose}
@@ -228,6 +290,7 @@ export function CatalogDialog({
         )}
         {selected && (selected.kind !== 'templates' || creating || installingTemplate) && (
           <CatalogSetup
+            workspaceId={workspace?.canWrite && !writesPaused ? workspace.id : ''}
             installationScope={installationScope}
             organizationId={organizationId}
             key={selected.id}
@@ -243,6 +306,7 @@ export function CatalogDialog({
             }}
             onInstalled={() => {
               cache.invalidate('experts')
+              if (selected.kind === 'templates') onTemplateCreated()
               if (selected.kind === 'applications') cache.invalidate('applications')
               setPluginRevision((value) => value + 1)
             }}
@@ -253,21 +317,27 @@ export function CatalogDialog({
           className={selected ? 'hidden' : 'min-h-0 flex-1 gap-0'}
           value={kind}
           onValueChange={(value) => {
-            if (value === 'experts' || value === 'applications' || value === 'plugins' || value === 'templates')
+            if (
+              value === 'experts' ||
+              value === 'applications' ||
+              value === 'plugins' ||
+              value === 'skills' ||
+              value === 'templates'
+            )
               setKind(value)
           }}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 pb-3">
-            <TabsList variant="line" className="gap-3 p-0">
+          <TabsHeader className="justify-between gap-2 px-6">
+            <TabsList variant="line" className="min-w-0 justify-start gap-2 overflow-x-auto lg:gap-3">
               {tabs.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
                   disabled={busy}
-                  className="px-1 text-lg data-[state=active]:text-accent-foreground"
+                  className="shrink-0 px-1 text-base data-[state=active]:text-accent-foreground lg:text-lg"
                 >
                   {t(tab.label)}
-                  {kind === tab.id && kind !== 'plugins' && !loading && (
+                  {kind === tab.id && kind !== 'plugins' && kind !== 'skills' && !loading && (
                     <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
                   )}
                 </TabsTrigger>
@@ -286,8 +356,11 @@ export function CatalogDialog({
                   {t('New digital expert')}
                 </Button>
               )}
-              <div className="relative w-64 max-w-full">
-                <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
+              <div className="relative min-w-0 w-44 max-w-full lg:w-64">
+                <Search
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                />
                 <Input
                   aria-label={t('Search catalog')}
                   placeholder={t('Search names, use cases or capabilities')}
@@ -306,7 +379,7 @@ export function CatalogDialog({
                 <RefreshCw className={loading ? 'animate-spin' : ''} />
               </Button>
             </div>
-          </div>
+          </TabsHeader>
           <TabsContent
             value="plugins"
             forceMount
@@ -315,7 +388,19 @@ export function CatalogDialog({
           >
             {pluginsVisited && <PluginCatalog key={locale} search={search} revision={pluginRevision} />}
           </TabsContent>
-          {kind !== 'plugins' && (
+          {kind === 'skills' && (
+            <TabsContent value="skills" className="flex min-h-0 flex-1 flex-col">
+              <SkillsCatalog
+                key={JSON.stringify([locale, target.workspaceId, readOnly, search, pluginRevision])}
+                search={search.trim()}
+                revision={pluginRevision}
+                target={target}
+                readOnly={readOnly}
+                writesPaused={writesPaused}
+              />
+            </TabsContent>
+          )}
+          {kind !== 'plugins' && kind !== 'skills' && (
             <TabsContent
               value={kind}
               className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"

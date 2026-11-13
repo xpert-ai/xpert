@@ -98,7 +98,7 @@ function parseBootstrap(value) {
   const organizations = value.organizations.map((item) => {
     if (!item || typeof item.id !== 'string' || typeof item.name !== 'string')
       throw new ClientError('Invalid workspace information.')
-    return { id: item.id, name: item.name }
+    return { id: item.id, name: item.name, imageUrl: parseAvatarUrl(item.imageUrl) }
   })
   return {
     user: parseUser(value.user),
@@ -119,6 +119,7 @@ function parseBots(value, locale) {
       const avatar = item.avatar
       return {
         id: item.id,
+        ...(typeof item.workspaceId === 'string' && { workspaceId: item.workspaceId }),
         createdAt:
           typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
         name: [...(locale?.startsWith('zh') ? [item.titleCN] : []), item.title, item.name].find(
@@ -589,6 +590,7 @@ Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').creat
 Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').createAssistantTriggerMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./workspace-catalog.cjs').createWorkspaceCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./usage.cjs').createUsageMethods(ClientError))

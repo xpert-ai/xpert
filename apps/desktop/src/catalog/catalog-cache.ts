@@ -1,6 +1,6 @@
 import type { CatalogItem, CatalogKind } from '../catalog-types'
 
-export type CatalogDataKind = Exclude<CatalogKind, 'plugins'>
+export type CatalogDataKind = Exclude<CatalogKind, 'plugins' | 'skills'>
 export interface CatalogSnapshot {
   items: CatalogItem[]
   loading: boolean
@@ -28,7 +28,7 @@ export function createCatalogCache(
       }
     },
     getSnapshot(kind: CatalogKind): CatalogSnapshot {
-      return kind === 'plugins' ? plugins : entries.get(kind) || empty
+      return kind === 'plugins' || kind === 'skills' ? plugins : entries.get(kind) || empty
     },
     async load(kind: CatalogDataKind, refresh = false) {
       if (!refresh && entries.has(kind)) return

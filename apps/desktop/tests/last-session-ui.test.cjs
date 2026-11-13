@@ -32,8 +32,8 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
         if (method === 'state') return state
         if (method === 'listBots')
           return [
-            { id: 'a', name: 'A' },
-            { id: 'b', name: 'B' }
+            { id: 'a', name: 'A', workspaceId: 'a' },
+            { id: 'b', name: 'B', workspaceId: 'b' }
           ]
         if (method === 'restoreSession') {
           if (waitForRestore) await waitForRestore
@@ -43,6 +43,7 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
           saved.set(input.scope, input.session)
           return
         }
+        if (method === 'discoveryWorkspaces') return view.listWorkspaces?.() ?? []
         if (method === 'selectOrganization') {
           state = { ...state, profile: { ...state.profile, organizationId: input } }
           return state
@@ -118,6 +119,33 @@ async function mount(t, { restored = { botId: 'b', threadId: 'previous-thread' }
   await open()
   return { view, saved, scope, reopen }
 }
+
+test('a failed workspace refresh preserves the current conversation until a successful list removes its space', async (t) => {
+  const { view } = await mount(t)
+  const space = { id: 'b', name: 'Engineering', canWrite: true }
+  view.listWorkspaces = () => [space]
+  await React.act(() => view.sidebar.retryWorkspaces())
+  await React.act(() => view.sidebar.onWorkspace(space.id))
+  const chat = document.getElementById('chat')
+  view.listWorkspaces = () => {
+    throw new Error('Offline')
+  }
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceError, 'Offline')
+  assert.equal(view.sidebar.workspaceId, space.id)
+  assert.deepEqual(
+    view.sidebar.bots.map((bot) => bot.id),
+    ['b']
+  )
+  assert.equal(document.getElementById('chat'), chat)
+  view.listWorkspaces = () => [space]
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceError, '')
+  assert.equal(view.sidebar.workspaceId, space.id)
+  view.listWorkspaces = () => []
+  await React.act(() => view.sidebar.retryWorkspaces())
+  assert.equal(view.sidebar.workspaceId, '')
+})
 
 test('reopening resumes the last Assistant and changed thread without the Bosi default replacing it', async (t) => {
   const { view, saved, scope, reopen } = await mount(t)
