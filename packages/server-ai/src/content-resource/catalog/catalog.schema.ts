@@ -26,6 +26,15 @@ export const contentProjectionSchema = z
             .max(1000)
     })
     .strict()
+    .superRefine((projection, context) => {
+        // Search extraction and native transfer share one bounded, unambiguous anchor contract.
+        if (
+            projection.sections.reduce((sum, section) => sum + section.text.length, 0) > 1_000_000 ||
+            new Set(projection.sections.map((section) => JSON.stringify(section.anchor))).size !==
+                projection.sections.length
+        )
+            context.addIssue({ code: 'custom', message: 'Invalid content projection' })
+    })
 export const contentSnapshotSchema = z
     .object({
         offlineAccess: z.literal('project').optional(),
