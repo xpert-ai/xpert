@@ -9,6 +9,7 @@ import {
   XpertViewFileAccessRequest,
   XpertViewFileAccessSessionResult,
   XpertViewQuery,
+  XpertViewLocalDraftBinding,
   XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import { injectApiBaseUrl } from '../providers'
@@ -79,6 +80,20 @@ export class ViewExtensionApiService {
     return this.httpClient.get<XpertViewDataResult>(
       `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/data`,
       { params, headers: createRuntimeScopeHeaders(runtimeScope) }
+    )
+  }
+
+  /** Resolve the server-authorized draft scope; embedded views must never choose a storage namespace. */
+  getLocalDraftBinding(
+    hostType: string,
+    hostId: string,
+    viewKey: string,
+    resourceId: string,
+    runtimeScope?: XpertViewRuntimeScopeInput
+  ) {
+    return this.httpClient.get<XpertViewLocalDraftBinding>(
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/local-draft-binding`,
+      { params: { resourceId }, headers: createRuntimeScopeHeaders(runtimeScope) }
     )
   }
 
