@@ -16,7 +16,7 @@ export const projectConfigurationOverviewSchema = z.object({
         z.object({ id: z.string(), name: z.string(), role: z.enum(['owner', 'manager', 'editor', 'member']) })
     ),
     skills: z.array(
-        z.object({ id: z.string(), name: z.string(), description: z.string().optional(), enabled: z.boolean() })
+        z.object({ id: z.string(), name: z.string(), description: z.string().optional(), enabled: z.boolean(), skillIndexId: z.string().optional() })
     ),
     automations: z.array(z.object({ id: z.string(), name: z.string(), schedule: z.string(), status: z.string() })),
     automationTotal: z.number()

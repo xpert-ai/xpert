@@ -17,6 +17,7 @@
           "packages/shadcn-ui/components.json",
           "packages/shadcn-ui/brand-icons/package.json",
           "packages/shadcn-ui/src/styles.css",
+          "packages/shadcn-ui/src/components/pickers/THIRD_PARTY_LICENSES.txt",
           "packages/shadcn-ui/src/brand-icons/*.md",
           "packages/shadcn-ui/src/brand-icons/*.txt",
           "packages/shadcn-ui/src/styles/*.css"

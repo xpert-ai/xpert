@@ -91,6 +91,7 @@ export class XpertProjectContentService {
                     path: `skills/${relativePath}`,
                     enabled: installed?.enabled ?? true,
                     source: installed?.source ?? ('legacy' as const),
+                    ...(installed?.skillIndexId ? { skillIndexId: installed.skillIndexId } : {}),
                     ...(installed?.description ? { description: installed.description } : {}),
                     ...(installed?.version ? { version: installed.version } : {})
                 }
@@ -326,6 +327,7 @@ function projectSkillSummary(entry: ProjectSkillManifestEntry) {
         path: `skills/${entry.id}/SKILL.md`,
         enabled: entry.enabled,
         source: entry.source,
+        ...(entry.skillIndexId ? { skillIndexId: entry.skillIndexId } : {}),
         ...(entry.description ? { description: entry.description } : {}),
         ...(entry.version ? { version: entry.version } : {})
     }

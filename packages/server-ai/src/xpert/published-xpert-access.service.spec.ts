@@ -31,6 +31,7 @@ import { resolvePublishedAgent } from './published-agent/resolve-published-agent
 
 function createQueryBuilderMock(options?: { count?: number; rows?: { id: string }[] }) {
     return {
+        clone: jest.fn().mockReturnThis(),
         leftJoin: jest.fn().mockReturnThis(),
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -422,6 +423,11 @@ describe('PublishedXpertAccessService', () => {
         })
         await expect(service.findAccessiblePublishedResources('other-parent')).rejects.toThrow(ForbiddenException)
         expect(qb.getRawMany).toHaveBeenCalledTimes(1)
+        const options = { where: { latest: true, organizationId: 'org-requested' }, excludeIds: ['bound'], skip: 0, take: 20 }
+        await expect(service.pageAccessiblePublishedResources(options, 'other-parent')).rejects.toThrow(ForbiddenException)
+        await expect(service.pageAccessiblePublishedResources(options, 'parent')).resolves.toEqual({ items: [{ id: 'resource' }], total: 1 })
+        expect(qb.andWhere).toHaveBeenCalledWith('xpert.id NOT IN (:...excludedIds)', { excludedIds: ['bound'] })
+        expect(qb.andWhere).toHaveBeenCalledWith('xpert.organizationId = :whereOrganizationId', { whereOrganizationId: 'org-requested' })
     })
 
     it('delegates only the resolved live resource without changing the credential audience, including concurrent reads and revocation', async () => {
@@ -485,6 +491,7 @@ describe('PublishedXpertAccessService', () => {
         }
         const service = new PublishedXpertAccessService(asXpertRepository(repository))
         await expect(service.findAccessiblePublishedResources('parent')).rejects.toThrow(ForbiddenException)
+        await expect(service.pageAccessiblePublishedResources({}, 'parent')).rejects.toThrow(ForbiddenException)
         expect(repository.createQueryBuilder).not.toHaveBeenCalled()
     })
 

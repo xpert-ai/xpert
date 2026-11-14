@@ -39,6 +39,7 @@ export async function buildRemoteReactComponent(root, outputDir = root) {
     })
 
     prependBrandIconLicense(result.metafile, scriptTargetPath, workspaceRoot)
+    prependAssetLicense(result.metafile, scriptTargetPath, join(shadcnPackageRoot, 'src/components/pickers'))
 
     execFileSync(
         resolveLocalBin(workspaceRoot, 'tailwindcss'),
@@ -237,13 +238,16 @@ export const unstable_batchedUpdates = ReactDOM.unstable_batchedUpdates;
 
 /** Include the canonical asset license only when a view actually bundles brand icons. */
 export function prependBrandIconLicense(metafile, scriptPath, workspaceRoot) {
-    const assetRoot = join(workspaceRoot, 'packages', 'shadcn-ui', 'src', 'brand-icons')
-    const includesBrandIcons = Object.values(metafile.outputs).some((output) =>
+    prependAssetLicense(metafile, scriptPath, join(workspaceRoot, 'packages', 'shadcn-ui', 'src', 'brand-icons'))
+}
+
+function prependAssetLicense(metafile, scriptPath, assetRoot) {
+    const includesAsset = Object.values(metafile.outputs).some((output) =>
         Object.entries(output.inputs).some(
             ([input, contribution]) => contribution.bytesInOutput > 0 && resolve(input).startsWith(assetRoot + sep)
         )
     )
-    if (!includesBrandIcons) return
+    if (!includesAsset) return
     const license = readFileSync(join(assetRoot, 'THIRD_PARTY_LICENSES.txt'), 'utf8').replaceAll('*/', '* /')
     writeFileSync(scriptPath, '/*!\n' + license + '\n*/\n' + readFileSync(scriptPath, 'utf8'))
 }

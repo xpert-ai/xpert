@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { z } from 'zod'
-import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, AlertDialog, AlertDialogTrigger,
+import { Button, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, AlertDialog, AlertDialogTrigger,
     AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@xpert-ai/shadcn-ui'
 import { request } from '../bridge'
 import { configurationI18n } from '../i18n'
@@ -37,7 +37,7 @@ export function useEditor<T>(loader: () => Promise<T>, dependencies: readonly (s
         setBusy(true); setError('')
         try {
             await operation()
-            onChanged()
+            await onChanged()
             if (version !== generation.current) return
             if (refresh) await load()
         } catch (error) { if (version === generation.current) setError(error instanceof Error ? error.message : 'Request failed') }
@@ -68,8 +68,4 @@ export function Pager({ page, total, onPage, busy, locale }: { page: number; tot
     return <div className="flex items-center justify-end gap-2"><Button variant="outline" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}>{t.t('previous')}</Button>
         <span className="text-xs text-muted-foreground">{t.number(page)} / {t.number(Math.max(1, Math.ceil(total / 20)))}</span>
         <Button variant="outline" disabled={busy || page * 20 >= total} onClick={() => onPage(page + 1)}>{t.t('next')}</Button></div>
-}
-export function Search({ value, onChange, locale }: { value: string; onChange: (value: string) => void; locale: string }) {
-    const t = configurationI18n(locale)
-    return <Input aria-label={t.t('search')} placeholder={t.t('search')} value={value} onChange={(event) => onChange(event.target.value)} />
 }

@@ -1,7 +1,7 @@
 import type { ProjectConfigurationApi } from '@xpert-ai/plugin-sdk'
 import { buildConnectorCallbackUrl } from '../../../connector/connector-oauth-url'
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import { RequestContext, getConnectorAuthMethods } from '@xpert-ai/plugin-sdk'
+import { RequestContext, getConnectorAuthorizationModes, getConnectorAuthMethods } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { ConnectorService } from '../../../connector/connector.service'
 import { ConnectorOAuthLaunchService } from '../../../connector/oauth-launch/connector-oauth-launch.service'
@@ -16,7 +16,9 @@ export class ProjectConfigurationConnectorsAdapter {
         const [bindings, definitions] = await Promise.all([
             this.connectors.listBindings(scope), this.connectors.definitionsForScope(scope)
         ])
-        return { bindings, definitions: definitions.map((definition) => ({ provider: definition.provider, label: definition.label,
+        return { bindings, definitions: definitions.filter((definition) =>
+            getConnectorAuthorizationModes(definition).includes('shared') || bindings.some((binding) => binding.provider === definition.provider)
+        ).map((definition) => ({ provider: definition.provider, label: definition.label,
             authMethods: getConnectorAuthMethods(definition).filter((method) => !method.deprecated) })) }
     }
     async addConnector(projectId: string, input: Parameters<ProjectConfigurationApi['addConnector']>[1]): ReturnType<ProjectConfigurationApi['addConnector']> {

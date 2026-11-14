@@ -654,15 +654,22 @@ export class PublishedXpertAccessService {
     }
 
     async findAccessiblePublishedXperts(options?: PublishedXpertQueryOptions) {
-        const query = this.buildAccessibleQuery(options).select('xpert.id', 'id').distinct(true)
+        return this.readCatalogPage(this.catalogQuery(options), options)
+    }
 
+    private catalogQuery(options?: PublishedXpertQueryOptions, parentId?: string) {
+        const query = this.buildAccessibleQuery(options, parentId).select('xpert.id', 'id').distinct(true)
+        if (options?.excludeIds?.length) {
+            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
+        }
+        return query
+    }
+
+    private async readCatalogPage(query: SelectQueryBuilder<Xpert>, options?: PublishedXpertQueryOptions) {
         Object.keys(options?.order ?? {}).forEach((name) => {
             query.addSelect(`xpert.${name}`, `order_${name}`)
         })
 
-        if (options?.excludeIds?.length) {
-            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
-        }
         // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
         // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
         if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
@@ -716,29 +723,24 @@ export class PublishedXpertAccessService {
 
     /** Internal delegation only: validate the token audience through its parent, then check the actor's resource access. */
     async findAccessiblePublishedResources(parentId: string, options?: PublishedXpertQueryOptions) {
+        await this.assertResourceParent(parentId)
+        return this.readCatalogPage(this.catalogQuery(options, parentId), options)
+    }
+
+    async pageAccessiblePublishedResources(options: PublishedXpertQueryOptions, parentId?: string) {
+        if (parentId !== undefined) await this.assertResourceParent(parentId)
+        const query = this.catalogQuery(options, parentId)
+        const [total, items] = await Promise.all([query.clone().getCount(), this.readCatalogPage(query, options)])
+        return { items, total }
+    }
+
+    private async assertResourceParent(parentId: string) {
         await this.getAccessiblePublishedXpert(parentId)
         if (this.currentPublicXpertId()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
-        const query = this.buildAccessibleQuery(options, parentId).select('xpert.id', 'id').distinct(true)
-        Object.keys(options?.order ?? {}).forEach((name) => {
-            query.addSelect(`xpert.${name}`, `order_${name}`)
-        })
-        if (options?.excludeIds?.length) {
-            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
-        }
-        // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
-        // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
-        if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
-        query.limit(options?.take).offset(options?.skip)
-        const rows = await query.getRawMany<{ id: string }>()
-        return this.loadByIds(
-            rows.map((row) => row.id),
-            this.normalizeRelations(options?.relations)
-        )
     }
 
     async getAccessiblePublishedResource(id: string, parentId: string) {
-        await this.getAccessiblePublishedXpert(parentId)
-        if (this.currentPublicXpertId()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        await this.assertResourceParent(parentId)
         const count = await this.buildAccessibleQuery({ where: { id } }, parentId).getCount()
         if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
         return this.getPublishedXpertInTenant(id, { relations: ['agent'] })

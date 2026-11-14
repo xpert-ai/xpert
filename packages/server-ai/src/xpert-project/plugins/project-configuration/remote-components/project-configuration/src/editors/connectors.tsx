@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { ChevronDown, Plug, PlugZap } from 'lucide-react'
+import { CatalogPanel, CatalogSearch, CatalogTrigger, EmptyMessage, SectionHeading } from './catalog-layout'
 import { z } from 'zod'
-import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
+import { Badge, Button, Input, Label } from '@xpert-ai/shadcn-ui'
 import { action, mutate, useEditor, Status, Choice, Confirm, localized, labelSchema, type EditorProps } from './shared'
 import { configurationI18n } from '../i18n'
 const fieldSchema = z.object({ name: z.string(), label: labelSchema.optional(), type: z.string().optional(), required: z.boolean().optional(), secret: z.boolean().optional(), placeholder: labelSchema.optional() })
@@ -11,10 +13,12 @@ const definitionSchema = z.object({ provider: z.string(), label: labelSchema, au
 const bindingSchema = z.object({ id: z.string(), provider: z.string(), status: z.string(), authorizationMode: z.string(), authMethodId: z.string().nullish() })
 const catalogSchema = z.object({ definitions: z.array(definitionSchema), bindings: z.array(bindingSchema) })
 const connectionSchema = z.object({ status: z.string(), authorizationUrl: z.string().url().nullish(), stateExpiresAt: z.string().nullish() })
-function ConnectorForm({ binding, definition, canManage, locale, refresh }: {
-    binding: z.infer<typeof bindingSchema>; definition: z.infer<typeof definitionSchema>; canManage: boolean; locale: string; refresh: () => Promise<void>
+function ConnectorForm({ binding, definition, canManage, locale, refresh, initiallyOpen }: {
+    binding: z.infer<typeof bindingSchema>; definition: z.infer<typeof definitionSchema>; canManage: boolean; locale: string; refresh: () => Promise<void>; initiallyOpen: boolean
 }) {
     const t = configurationI18n(locale)
+    const [open, setOpen] = useState(initiallyOpen)
+    const fieldsId = useId()
     const methods = definition.authMethods ?? (definition.auth ? [{ id: definition.auth.type, ...definition.auth }] : [])
     const [methodId, setMethodId] = useState(binding.authMethodId || methods[0]?.id || '')
     const method = methods.find((item) => item.id === methodId), form = method?.type === 'oauth2' ? method.appCredentials : method?.credentials
@@ -38,7 +42,18 @@ function ConnectorForm({ binding, definition, canManage, locale, refresh }: {
         timer = setTimeout(poll, 5000)
         return () => { disposed = true; clearTimeout(timer) }
     }, [url, binding.id])
-    return <form className="space-y-3 border-b pb-5" onSubmit={(event) => {
+    const label = localized(definition.label, locale) || binding.provider
+    const status = ['active','pending','expired','error','disconnected'].includes(binding.status)
+        ? binding.status as 'active' | 'pending' | 'expired' | 'error' | 'disconnected' : 'unknown'
+    return <li className="py-3">
+        <div className="flex flex-wrap items-center gap-2">
+            <Plug aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+            <h3 className="min-w-0 flex-1 break-words text-sm font-medium">{label}</h3>
+            <Badge variant="secondary">{t.t(status)}</Badge>
+            {canManage && <Button size="sm" variant="outline" type="button" aria-expanded={open} aria-controls={fieldsId}
+                onClick={() => setOpen(!open)}>{t.t('connectorSettings')}<ChevronDown aria-hidden="true" className={open ? 'rotate-180' : ''} /></Button>}
+        </div>
+        {canManage && open && <form id={fieldsId} className="mt-3 max-w-xl space-y-3 border-t pt-3" onSubmit={(event) => {
         event.preventDefault(); void state.run(async () => {
             const result = await action('connector-connect', { bindingId: binding.id, authMethodId: methodId, values }, connectionSchema)
             setValues({})
@@ -46,11 +61,9 @@ function ConnectorForm({ binding, definition, canManage, locale, refresh }: {
             else await refresh()
         }, false)
     }}>
-        <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">{localized(definition.label, locale)}</h3>
-            <span className="text-xs text-muted-foreground">{t.t(['active','pending','expired','error','disconnected'].includes(binding.status) ? binding.status as 'active' | 'pending' | 'expired' | 'error' | 'disconnected' : 'unknown')}</span></div>
         <Status {...state} locale={locale} />
-        {canManage && <>
-            <Choice label={t.t('authenticationMethod')} value={methodId} options={methods.map((item) => ({ value: item.id, label: localized('label' in item ? item.label : undefined, locale) || item.id }))} onChange={setMethodId} disabled={state.busy} />
+        <div className="space-y-1 text-sm"><span>{t.t('authenticationMethod')}</span>
+            <Choice label={t.t('authenticationMethod')} value={methodId} options={methods.map((item) => ({ value: item.id, label: localized('label' in item ? item.label : undefined, locale) || item.id }))} onChange={setMethodId} disabled={state.busy} /></div>
             {form?.fields.map((field) => <div key={field.name} className="space-y-2"><Label htmlFor={`${binding.id}-${field.name}`}>{localized(field.label, locale) || field.name}</Label>
                 <Input id={`${binding.id}-${field.name}`} type={field.type === 'password' || field.secret ? 'password' : 'text'} required={field.required} autoComplete="off" disabled={state.busy}
                     value={values[field.name] ?? ''} onChange={(event) => setValues({ ...values, [field.name]: event.target.value })} /></div>)}
@@ -59,21 +72,55 @@ function ConnectorForm({ binding, definition, canManage, locale, refresh }: {
                     action={() => void state.run(async () => { await mutate('connector-remove', { bindingId: binding.id }); await refresh() }, false)} />
                 {(url || binding.status === 'pending') && <Button variant="outline" type="button" disabled={state.busy} onClick={() => void state.run(async () => { await mutate('connector-cancel', { bindingId: binding.id }); setUrl(null); await refresh() }, false)}>{t.t('cancel')}</Button>}
             </div>
-        </>}
         {url && <a className="text-sm underline" href={url} target="_blank" rel="noopener noreferrer">{t.t('openAuthorization')}</a>}
-    </form>
+        </form>}
+    </li>
 }
 export function ConnectorsEditor({ overview, locale }: EditorProps) {
-    const t = configurationI18n(locale), state = useEditor(() => action('connectors', {}, catalogSchema), []), [provider, setProvider] = useState('')
-    return <div className="space-y-5"><Status {...state} locale={locale} />
-        {state.data && !state.data.bindings.length && <p className="text-sm text-muted-foreground">{t.t('empty')}</p>}
-        {state.data?.bindings.map((binding) => {
-            const definition = state.data?.definitions.find((item) => item.provider === binding.provider)
-            return definition ? <ConnectorForm key={binding.id} binding={binding} definition={definition} canManage={overview.canManage} locale={locale} refresh={state.load} />
-                : <p key={binding.id} className="text-sm text-muted-foreground">{binding.provider} · {t.t('unavailable')}</p>
-        })}
-        {overview.canManage && <><Choice label={t.t('selectConnector')} value={provider} onChange={setProvider} disabled={state.busy}
-            options={(state.data?.definitions ?? []).filter((definition) => !state.data?.bindings.some((binding) => binding.provider === definition.provider)).map((definition) => ({ value: definition.provider, label: localized(definition.label, locale) }))} />
-            <Button disabled={state.busy || !provider} onClick={() => void state.run(() => mutate('connector-add', { provider }))}>{t.t('add')}</Button></>}
+    const t = configurationI18n(locale)
+    const id = useId()
+    const state = useEditor(() => action('connectors', {}, catalogSchema), [])
+    const [expanded, setExpanded] = useState(false)
+    const [search, setSearch] = useState('')
+    const [added, setAdded] = useState('')
+    const [notice, setNotice] = useState('')
+    const available = state.data?.definitions.filter((definition) =>
+        !state.data?.bindings.some((binding) => binding.provider === definition.provider))
+    const matching = available?.filter((definition) =>
+        (localized(definition.label, locale) + ' ' + definition.provider).toLowerCase().includes(search.trim().toLowerCase()))
+    return <div className="space-y-4">
+        <SectionHeading title={t.t('connectors')} count={state.data?.bindings.length}>
+            {overview.canManage && <CatalogTrigger label={t.t('addConnector')} icon={<PlugZap />} controls={id} expanded={expanded}
+                onClick={() => { setExpanded(!expanded); setSearch(''); setNotice('') }} />}
+        </SectionHeading>
+        <Status {...state} locale={locale} />
+        {state.error && <Button variant="outline" size="sm" onClick={() => void state.load()}>{t.t('retry')}</Button>}
+        {notice && <p role="status" className="text-sm text-muted-foreground">{notice}</p>}
+        {overview.canManage && expanded && <CatalogPanel id={id} title={t.t('connectorCatalog')}>
+            <CatalogSearch label={t.t('connectorSearch')} value={search} onChange={setSearch} />
+            {matching && (matching.length ? <ul className="max-h-80 divide-y overflow-y-auto">
+                {matching.map((definition) => {
+                    const name = localized(definition.label, locale) || definition.provider
+                    return <li key={definition.provider} className="flex items-center justify-between gap-3 py-2">
+                        <span className="min-w-0 break-words text-sm">{name}</span>
+                        <Button size="sm" variant="outline" disabled={state.busy} onClick={() => void state.run(async () => {
+                            await mutate('connector-add', { provider: definition.provider })
+                            setAdded(definition.provider)
+                            setExpanded(false)
+                            setNotice(t.t('connectorAdded', { name }))
+                        })}>{t.t('add')}</Button>
+                    </li>
+                })}
+            </ul> : <EmptyMessage>{t.t(available?.length ? 'noResults' : 'noProviders')}</EmptyMessage>)}
+        </CatalogPanel>}
+        {state.data && (!state.data.bindings.length ? <EmptyMessage>{t.t('noConnectors')}</EmptyMessage> :
+            <ul className="divide-y rounded-lg border px-3 sm:px-4">
+                {state.data.bindings.map((binding) => {
+                    const definition = state.data?.definitions.find((item) => item.provider === binding.provider)
+                    return definition ? <ConnectorForm key={binding.id} binding={binding} definition={definition} initiallyOpen={binding.provider === added}
+                        canManage={overview.canManage} locale={locale} refresh={state.load} /> :
+                        <li key={binding.id} className="break-words py-3 text-sm text-muted-foreground">{binding.provider} · {t.t('unavailable')}</li>
+                })}
+            </ul>)}
     </div>
 }

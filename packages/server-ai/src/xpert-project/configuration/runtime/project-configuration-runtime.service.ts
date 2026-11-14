@@ -95,7 +95,7 @@ export class ProjectConfigurationRuntimeService implements ProjectConfigurationA
                     member.email ||
                     member.id
             })),
-            skills: skills.items.map(({ id, name, description, enabled }) => ({ id, name, description, enabled })),
+            skills: skills.items.map(({ id, name, description, enabled, skillIndexId }) => ({ id, name, description, enabled, skillIndexId })),
             automations: automations.map((task) => ({
                 id: task.id,
                 name: task.name || task.prompt || '',
@@ -117,11 +117,11 @@ export class ProjectConfigurationRuntimeService implements ProjectConfigurationA
     }
     async listAvailableAssistants(scope: ProjectConfigurationScope, input: Parameters<ProjectConfigurationApi['listAvailableAssistants']>[1]): ReturnType<ProjectConfigurationApi['listAvailableAssistants']> {
         const { projectId } = await this.resolve(scope)
-        return this.editors.listAvailableAssistants(projectId, input)
+        return this.editors.listAvailableAssistants(projectId, input, scope.assistantId)
     }
     async addAssistant(scope: ProjectConfigurationScope, input: Parameters<ProjectConfigurationApi['addAssistant']>[1]): ReturnType<ProjectConfigurationApi['addAssistant']> {
         const { projectId } = await this.resolve(scope)
-        return this.editors.addAssistant(projectId, input)
+        return this.editors.addAssistant(projectId, input, scope.assistantId)
     }
     async removeAssistant(scope: ProjectConfigurationScope, input: Parameters<ProjectConfigurationApi['removeAssistant']>[1]): ReturnType<ProjectConfigurationApi['removeAssistant']> {
         const { projectId } = await this.resolve(scope)

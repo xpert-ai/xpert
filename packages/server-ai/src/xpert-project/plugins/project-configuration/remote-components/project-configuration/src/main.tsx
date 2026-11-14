@@ -143,12 +143,9 @@ function ProjectPage({ locale }: { locale: string }) {
                     {available.map((page) => (
                         <TabsContent key={page} value={page} forceMount hidden={active !== page} className="min-h-0 min-w-0 overflow-y-auto">
                             {visited[page] && <div className="mx-auto max-w-5xl px-4 py-5 sm:px-7 sm:py-6">
-                                <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                                {!['experts', 'members', 'skills', 'connectors', 'automations'].includes(page) && <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                                     <h2 className="text-lg font-semibold">{t.t(page)}</h2>
-                                    {page === 'automations' && <span className="text-xs text-muted-foreground">
-                                        {t.t('automationCount', { count: t.number(overview.automationTotal) })}
-                                    </span>}
-                                </div>
+                                </div>}
                                 {page === 'instructions' ? (
                                     <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void saveInstructions() }}>
                                         <Textarea aria-label={t.t(page)} className="min-h-44" disabled={!overview.canEdit || saving}

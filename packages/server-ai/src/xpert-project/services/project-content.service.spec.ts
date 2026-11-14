@@ -302,7 +302,7 @@ describe('XpertProjectContentService', () => {
         )
         const volumeClient = { resolve: jest.fn().mockReturnValue(volume) } as unknown as VolumeClient
         const project = { id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' }
-        const access = { assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }) }
+        const access = { assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }), assertCanRead: jest.fn().mockResolvedValue({ project, role: 'editor' }) }
         const installSkillPackage = jest.fn(async (_index, installDir: string) => {
             await mkdir(path.join(installDir, 'github', 'pdf'), { recursive: true })
             await writeFile(path.join(installDir, 'github', 'pdf', 'SKILL.md'), '# PDF')
@@ -325,9 +325,13 @@ describe('XpertProjectContentService', () => {
         await expect(service.installSkill('project-1', 'index-1')).resolves.toMatchObject({
             id: 'github/pdf',
             name: 'PDF',
-            source: 'repository'
+            source: 'repository',
+            skillIndexId: 'index-1'
         })
         await expect(readFile(path.join(root, 'skills', 'github', 'pdf', 'SKILL.md'), 'utf8')).resolves.toBe('# PDF')
+        await expect(service.listSkills('project-1')).resolves.toMatchObject({
+            items: [{ id: 'github/pdf', skillIndexId: 'index-1' }]
+        })
         expect(installSkillPackage.mock.calls[0][1]).not.toBe(path.join(root, 'skills'))
     })
 

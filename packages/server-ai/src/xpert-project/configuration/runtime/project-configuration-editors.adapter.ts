@@ -2,6 +2,7 @@ import type { ProjectConfigurationApi } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
+import { XpertProjectMembership } from '../../entities/project-membership.entity'
 import { UserOrganization } from '@xpert-ai/server-core'
 import { PermissionsEnum, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -28,14 +29,11 @@ export class ProjectConfigurationEditorsAdapter {
     async update(projectId: string, input: Parameters<ProjectConfigurationApi['update']>[1]): ReturnType<ProjectConfigurationApi['update']> {
         return this.configurations.update(projectId, input)
     }
-    async listAvailableAssistants(projectId: string, input: Parameters<ProjectConfigurationApi['listAvailableAssistants']>[1]): ReturnType<ProjectConfigurationApi['listAvailableAssistants']> {
-        const { page } = input
-        const available = await this.projects.getAvailableXperts(projectId, { skip: (page - 1) * 20, take: 20 })
-        return { items: available.items.map((item) => ({ id: item.id, name: item.title || item.name })), total: available.total, page }
+    async listAvailableAssistants(projectId: string, input: Parameters<ProjectConfigurationApi['listAvailableAssistants']>[1], viewAssistantId?: string): ReturnType<ProjectConfigurationApi['listAvailableAssistants']> {
+        return this.projects.listProjectExpertCandidates(projectId, input.page, input.search, viewAssistantId)
     }
-    async addAssistant(projectId: string, input: Parameters<ProjectConfigurationApi['addAssistant']>[1]): ReturnType<ProjectConfigurationApi['addAssistant']> {
-        await this.access.assertCanManage(projectId)
-        await this.projects.addXpert(projectId, input.xpertId)
+    async addAssistant(projectId: string, input: Parameters<ProjectConfigurationApi['addAssistant']>[1], viewAssistantId?: string): ReturnType<ProjectConfigurationApi['addAssistant']> {
+        await this.projects.addXpert(projectId, input.xpertId, viewAssistantId)
         return null
     }
     async removeAssistant(projectId: string, input: Parameters<ProjectConfigurationApi['removeAssistant']>[1]): ReturnType<ProjectConfigurationApi['removeAssistant']> {
@@ -47,12 +45,20 @@ export class ProjectConfigurationEditorsAdapter {
         const { project } = await this.access.assertCanManage(projectId)
         const { page, search } = input
         const query = this.users.createQueryBuilder('membership').innerJoinAndSelect('membership.user', 'user')
-            .where('membership.tenantId = :tenantId AND membership.organizationId = :organizationId', project)
+            .leftJoin(XpertProjectMembership, 'existing',
+                'existing.projectId = :projectId AND existing.userId = user.id AND existing.removedAt IS NULL', { projectId })
+            .where('membership.tenantId = :tenantId AND membership.organizationId = :organizationId', {
+                tenantId: project.tenantId, organizationId: project.organizationId
+            })
             .andWhere('membership.isActive = true AND user.deletedAt IS NULL AND user.type = :userType', { userType: UserType.USER })
-        if (search) query.andWhere('(user.username ILIKE :search OR user.email ILIKE :search)', { search: `%${search}%` })
+            .andWhere('user.id <> :ownerId AND existing.id IS NULL', { ownerId: project.ownerId })
+        if (search.trim()) query.andWhere(
+            "(user.username ILIKE :search OR user.email ILIKE :search OR CONCAT_WS(' ', user.firstName, user.lastName) ILIKE :search)",
+            { search: `%${search.trim()}%` }
+        )
         const [rows, total] = await query.skip((page - 1) * 20).take(20).orderBy('user.id', 'ASC').getManyAndCount()
         const invites = await this.invitations.list(projectId)
-        return { items: rows.map(({ user }) => ({ id: user.id, name: user.fullName || user.username || user.email })), total, page,
+        return { items: rows.map(({ user }) => ({ id: user.id, name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || user.email })), total, page,
             canInvite: RequestContext.hasPermissions([PermissionsEnum.ORG_INVITE_EDIT]),
             invitations: invites.map((item) => ({ id: item.id, email: item.email, role: item.role, status: item.status })) }
     }

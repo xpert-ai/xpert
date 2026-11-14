@@ -121,6 +121,22 @@ describe('XpertProjectService collaboration access', () => {
         expect(repository.save).toHaveBeenCalledWith(project)
     })
 
+    it('rechecks manager authority and catalog visibility before binding an expert through an Assistant view', async () => {
+        const project = { id: 'project-1', organizationId: 'org-1', xperts: [] } as XpertProject
+        const repository = { save: jest.fn() }
+        const access = { assertCanManage: jest.fn().mockRejectedValueOnce(Error('manager required')).mockResolvedValue({ project }) }
+        const catalog = { getAccessiblePublishedResource: jest.fn()
+            .mockResolvedValueOnce({ id: 'previous', organizationId: 'org-1' }).mockRejectedValueOnce(Error('not accessible')) }
+        const bindings = { resolveCurrent: jest.fn().mockResolvedValue({ id: 'latest' }) }
+        const service = createService(repository as unknown as Repository<XpertProject>, access as unknown as XpertProjectAccessService,
+            catalog as unknown as PublishedXpertAccessService, bindings as unknown as XpertProjectXpertBindingService)
+        jest.spyOn(service, 'findOne').mockResolvedValue(project)
+        await expect(service.listProjectExpertCandidates(project.id, 1, '', 'view-parent')).rejects.toThrow('manager required')
+        await expect(service.addXpert(project.id, 'previous', 'view-parent')).rejects.toThrow('not accessible')
+        expect(catalog.getAccessiblePublishedResource.mock.calls).toEqual([['previous', 'view-parent'], ['latest', 'view-parent']])
+        expect(repository.save).not.toHaveBeenCalled()
+    })
+
     it('pauses schedules when a Project Xpert is removed', async () => {
         const project = {
             id: 'project-1',

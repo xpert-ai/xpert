@@ -67,6 +67,7 @@ export type TXpertProjectSkillSummary = {
   path: string
   enabled: boolean
   source: TXpertProjectSkillSource
+  skillIndexId?: string
   description?: string
   version?: string
 }
