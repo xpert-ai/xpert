@@ -1,8 +1,16 @@
 import { t } from 'i18next'
 
 const messages: Record<string, string> = {
-  CODING_EXECUTION_REVIEW_REQUIRED: 'Coding delivery requires a passing independent execution review of this accepted task.',
-  CODING_SOURCE_ACCEPTANCE_CHANGED: 'The source task acceptance changed. Start a new delivery from its current accepted result.',
+  CODING_DESTINATION_SELECTION_REQUIRED:
+    'Select an authorized target and repository from the listed choices before starting release.',
+  CODING_LOCAL_SCOPE_HAS_EXTERNAL_DESTINATION:
+    'Local acceptance cannot select an external target or repository. Use release mode for authorized external delivery.',
+  CODING_LOCAL_RELEASE_FORBIDDEN:
+    'Local acceptance does not authorize release approval, host installation or Git delivery.',
+  CODING_EXECUTION_REVIEW_REQUIRED:
+    'Coding delivery requires a passing independent execution review of this accepted task.',
+  CODING_SOURCE_ACCEPTANCE_CHANGED:
+    'The source task acceptance changed. Start a new delivery from its current accepted result.',
   CODING_GIT_HOST_NOT_ALLOWED: 'This stage is not authorized for fixed GitHub delivery.',
   CODING_GIT_CONNECTOR_REQUIRED: 'Authorize the configured GitHub Connector in this Assistant before Git delivery.',
   CODING_GIT_CANDIDATE_REQUIRED: 'GitHub delivery requires an approved Git bundle and accepted target deployment.',
@@ -12,10 +20,13 @@ const messages: Record<string, string> = {
   CODING_APPROVED_CANDIDATE_CHANGED: 'The submitted result does not match the approved candidate.',
   CODING_ARTIFACT_DIGEST_CHANGED: 'The restored artifact does not match its recorded checksum.',
   CODING_ARTIFACT_SCOPE_MISMATCH: 'This artifact belongs to a different project or organization.',
-  CODING_CONFIGURE_AUTHORIZED_TARGET_AND_REPOSITORY: 'Configure an authorized target and repository for this project before starting delivery.',
+  CODING_CONFIGURE_AUTHORIZED_TARGET_AND_REPOSITORY:
+    'Configure an authorized target and repository for this project before starting delivery.',
   CODING_DELIVERY_NOT_FOUND: 'The delivery was not found in this project.',
-  CODING_DEPLOYMENT_IDENTITY_MISMATCH: 'The installed package, loaded version or target does not match the approved delivery.',
-  CODING_DESTINATION_CHANGED_NEW_ROUND_REQUIRED: 'The destination configuration changed. Start a new round for approval.',
+  CODING_DEPLOYMENT_IDENTITY_MISMATCH:
+    'The installed package, loaded version or target does not match the approved delivery.',
+  CODING_DESTINATION_CHANGED_NEW_ROUND_REQUIRED:
+    'The destination configuration changed. Start a new round for approval.',
   CODING_DESTINATION_NOT_AUTHORIZED: 'The destination is no longer authorized for this project.',
   CODING_EVIDENCE_ALREADY_SEALED: 'This operation already has a different accepted result.',
   CODING_EVIDENCE_IDENTITY_MISMATCH: 'The evidence reference does not match the stored result.',
@@ -41,7 +52,8 @@ const messages: Record<string, string> = {
   CODING_REQUIREMENT_REQUIRED: 'One versioned delivery requirement is required.',
   CODING_REQUIREMENT_SUPERSEDED: 'The delivery requirement has changed. Read the current round.',
   CODING_REVISION_CONFLICT: 'Another action updated this delivery. Read its current revision.',
-  CODING_REWORK_REQUIRES_ORIGINAL_COORDINATOR: 'The original coordinating Assistant or a project manager must start rework.',
+  CODING_REWORK_REQUIRES_ORIGINAL_COORDINATOR:
+    'The original coordinating Assistant or a project manager must start rework.',
   CODING_REWORK_STALE: 'This rework request no longer matches the current delivery revision.',
   CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.'
 }

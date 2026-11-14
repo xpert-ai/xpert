@@ -4,21 +4,39 @@ import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundExce
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import {
-  ProjectAccessRuntimeCapability, ProjectPipelinesRuntimeCapability, XPERT_RUNTIME_CAPABILITIES_TOKEN,
+  ProjectAccessRuntimeCapability,
+  ProjectPipelinesRuntimeCapability,
+  XPERT_RUNTIME_CAPABILITIES_TOKEN,
   ProjectTasksRuntimeCapability,
-  type ProjectPipelineContext, type ProjectPipelineAssistantContext, type RuntimeCapabilityRegistry
+  ProjectConfigurationRuntimeCapability,
+  type ProjectPipelineContext,
+  type ProjectPipelineAssistantContext,
+  type RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import type { ProjectPipelineSubjectVersion } from '@xpert-ai/contracts'
 import { CodingDelivery, CodingDeliveryWork } from './entities'
-import { CONFIG_READER, requirementSchema, evidenceSchema, storedContextSchema, type ConfigReader, type Requirement, type Phase } from './schemas'
+import {
+  CONFIG_READER,
+  requirementSchema,
+  evidenceSchema,
+  storedContextSchema,
+  deliveryModeSchema,
+  type ConfigReader,
+  type Requirement,
+  type Phase
+} from './schemas'
 import { canonical, digest, refs } from './constants'
 import { codingError } from './errors'
 
 export const scopeWhere = (c: ProjectPipelineContext) => ({
-  tenantId: c.actor.tenantId, organizationId: c.actor.organizationId ?? IsNull(), projectId: c.projectId
+  tenantId: c.actor.tenantId,
+  organizationId: c.actor.organizationId ?? IsNull(),
+  projectId: c.projectId
 })
 export const audit = (c: ProjectPipelineContext) => ({
-  tenantId: c.actor.tenantId, organizationId: c.actor.organizationId ?? null, projectId: c.projectId
+  tenantId: c.actor.tenantId,
+  organizationId: c.actor.organizationId ?? null,
+  projectId: c.projectId
 })
 export const conflict = (code: string) => new ConflictException(codingError(code))
 
@@ -32,12 +50,17 @@ export class CodingDeliveryStore {
   ) {}
 
   async access(c: ProjectPipelineContext) {
-    return this.capabilities.require(ProjectAccessRuntimeCapability).assertEdit({ actor: c.actor, projectId: c.projectId })
+    return this.capabilities
+      .require(ProjectAccessRuntimeCapability)
+      .assertEdit({ actor: c.actor, projectId: c.projectId })
   }
   async acceptedTask(c: ProjectPipelineContext, taskId: string) {
-    const accepted = await this.capabilities.require(ProjectTasksRuntimeCapability).readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
+    const accepted = await this.capabilities
+      .require(ProjectTasksRuntimeCapability)
+      .readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
     if (!accepted) throw conflict('CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED')
-    if (accepted.projectId !== c.projectId || accepted.taskId !== taskId) throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
+    if (accepted.projectId !== c.projectId || accepted.taskId !== taskId)
+      throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
     if (!accepted.review || accepted.review.mode !== 'execution' || accepted.review.verdict !== 'pass')
       throw conflict('CODING_EXECUTION_REVIEW_REQUIRED')
     return { ...accepted, review: accepted.review }
@@ -49,34 +72,62 @@ export class CodingDeliveryStore {
     row.requirement = requirementSchema.parse(row.requirement)
     return row
   }
+  async deliveryMode(c: ProjectPipelineContext, assistantId?: string) {
+    await this.access(c)
+    const view = await this.capabilities
+      .require(ProjectConfigurationRuntimeCapability)
+      .getRuntimeConfiguration({ ...c, assistantId })
+    return deliveryModeSchema.parse(view.effectiveValues.deliveryMode ?? 'local')
+  }
   async allowed(c: ProjectPipelineContext) {
     await this.access(c)
     const config = await this.readConfig()
     return {
-      targets: config.targets.filter((item) => item.projectIds.includes(c.projectId))
+      targets: config.targets
+        .filter((item) => item.projectIds.includes(c.projectId))
         .map((item) => ({ ...item, projectIds: [c.projectId] })),
-      repositories: config.repositories.filter((item) => item.projectIds.includes(c.projectId))
+      repositories: config.repositories
+        .filter((item) => item.projectIds.includes(c.projectId))
         .map((item) => ({ ...item, projectIds: [c.projectId] }))
     }
   }
   async authorizeRequirement(c: ProjectPipelineContext, requirement: Requirement) {
+    await this.access(c)
+    if (requirement.mode === 'local') {
+      if (requirement.origin) await this.authorizeOrigin(c, requirement)
+      return
+    }
     const config = await this.allowed(c)
     const target = config.targets.find((item) => item.key === requirement.target.key)
     const repository = config.repositories.find((item) => item.key === requirement.repository.key)
     if (!target || !repository) throw new ForbiddenException(codingError('CODING_DESTINATION_NOT_AUTHORIZED'))
-    if (canonical(target) !== canonical(requirement.target) || canonical(repository) !== canonical(requirement.repository))
+    if (
+      canonical(target) !== canonical(requirement.target) ||
+      canonical(repository) !== canonical(requirement.repository)
+    )
       throw conflict('CODING_DESTINATION_CHANGED_NEW_ROUND_REQUIRED')
+    await this.authorizeOrigin(c, requirement)
+  }
+  private async authorizeOrigin(c: ProjectPipelineContext, requirement: Requirement) {
     if (requirement.origin) {
       const origin = requirement.origin
       const accepted = await this.acceptedTask(c, origin.taskId)
-      if (accepted.taskId !== origin.taskId || accepted.taskRevision !== origin.taskRevision ||
-        accepted.decisionId !== origin.decisionId || accepted.review.executionId !== origin.reviewExecutionId)
+      if (
+        accepted.taskId !== origin.taskId ||
+        accepted.taskRevision !== origin.taskRevision ||
+        accepted.decisionId !== origin.decisionId ||
+        accepted.review.executionId !== origin.reviewExecutionId
+      )
         throw conflict('CODING_SOURCE_ACCEPTANCE_CHANGED')
     }
   }
   version(row: CodingDelivery): ProjectPipelineSubjectVersion {
-    return { resolverRef: refs.subject, objectKey: row.id, version: String(row.revision),
-      digest: digest({ projectId: row.projectId, id: row.id, revision: row.revision, requirement: row.requirement }) }
+    return {
+      resolverRef: refs.subject,
+      objectKey: row.id,
+      version: String(row.revision),
+      digest: digest({ projectId: row.projectId, id: row.id, revision: row.revision, requirement: row.requirement })
+    }
   }
   async current(c: ProjectPipelineContext, subject: ProjectPipelineSubjectVersion) {
     const row = await this.get(c, subject.objectKey)
@@ -88,13 +139,20 @@ export class CodingDeliveryStore {
     await this.access(c)
     const row = await this.works.findOneBy({ ...scopeWhere(c), id })
     if (!row) throw new NotFoundException(codingError('CODING_OPERATION_NOT_FOUND'))
-    return { ...row, context: storedContextSchema.parse(row.context),
-      requirement: requirementSchema.parse(row.requirement), evidence: row.evidence ? evidenceSchema.parse(row.evidence) : null }
+    return {
+      ...row,
+      context: storedContextSchema.parse(row.context),
+      requirement: requirementSchema.parse(row.requirement),
+      evidence: row.evidence ? evidenceSchema.parse(row.evidence) : null
+    }
   }
   async stageForConversation(c: ProjectPipelineContext, conversationId: string) {
     await this.access(c)
-    const rows = await this.works.find({ where: scopeWhere(c),
-      select: ['id', 'deliveryId', 'context'], order: { createdAt: 'DESC' } })
+    const rows = await this.works.find({
+      where: scopeWhere(c),
+      select: ['id', 'deliveryId', 'context'],
+      order: { createdAt: 'DESC' }
+    })
     for (const row of rows) {
       const context = storedContextSchema.parse(row.context)
       if (context.executor.conversationId === conversationId) return { ...row, context }
@@ -107,23 +165,40 @@ export class CodingDeliveryStore {
     const existing = await this.works.findOneBy({ ...scopeWhere(c), id: c.work.operationId })
     if (existing) {
       const context = storedContextSchema.parse(existing.context)
-      if (existing.phase !== phase || existing.deliveryId !== delivery.id ||
+      if (
+        existing.phase !== phase ||
+        existing.deliveryId !== delivery.id ||
         canonical(context.work) !== canonical(c.work) ||
-        context.executor.conversationId !== c.executor.conversationId)
+        context.executor.conversationId !== c.executor.conversationId
+      )
         throw conflict('CODING_OPERATION_IDENTITY_CONFLICT')
       return existing
     }
-    const row = this.works.create({ ...audit(c), id: c.work.operationId, deliveryId: delivery.id,
-      requirementVersion: delivery.revision, requirement: delivery.requirement, phase, context: c, evidence: null, createdAt: new Date() })
-    try { await this.works.insert(row) } catch (error) {
+    const row = this.works.create({
+      ...audit(c),
+      id: c.work.operationId,
+      deliveryId: delivery.id,
+      requirementVersion: delivery.revision,
+      requirement: delivery.requirement,
+      phase,
+      context: c,
+      evidence: null,
+      createdAt: new Date()
+    })
+    try {
+      await this.works.insert(row)
+    } catch (error) {
       const replay = await this.works.findOneBy({ ...scopeWhere(c), id: row.id })
       if (!replay) throw error
       return this.begin(c, phase)
     }
     return row
   }
-  async assertActive(row: Awaited<ReturnType<CodingDeliveryStore['operation']>>, purpose: 'submit' | 'rework' = 'submit',
-    caller: ProjectPipelineContext = row.context) {
+  async assertActive(
+    row: Awaited<ReturnType<CodingDeliveryStore['operation']>>,
+    purpose: 'submit' | 'rework' = 'submit',
+    caller: ProjectPipelineContext = row.context
+  ) {
     const c = { ...row.context, actor: caller.actor }
     if (purpose === 'submit') await this.current(c, c.subjects[0])
     else {
@@ -132,10 +207,14 @@ export class CodingDeliveryStore {
     }
     const graph = await this.capabilities.require(ProjectPipelinesRuntimeCapability).graph(c, c.work.instanceId)
     const node = graph.nodes.find((item) => item.id === c.work.nodeInstanceId)
-    if (graph.roundId !== c.work.roundId || graph.round.inputDigest !== c.work.inputDigest ||
-      graph.round.generation !== c.work.generation || !['active', 'waiting'].includes(graph.runState) ||
+    if (
+      graph.roundId !== c.work.roundId ||
+      graph.round.inputDigest !== c.work.inputDigest ||
+      graph.round.generation !== c.work.generation ||
+      !['active', 'waiting'].includes(graph.runState) ||
       node?.projection.state.freshness !== 'current' ||
-      (purpose === 'submit' && ['completed', 'failed', 'cancelled'].includes(node.projection.state.lifecycle)))
+      (purpose === 'submit' && ['completed', 'failed', 'cancelled'].includes(node.projection.state.lifecycle))
+    )
       throw conflict('CODING_OPERATION_NOT_ACTIVE')
   }
 }
