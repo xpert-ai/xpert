@@ -1,6 +1,6 @@
 import { CronTime } from 'cron'
 import { calendarOptions } from './calendar-options'
-import { monitorCadence, monitorIsDue, nextMonitorCheck, monitorForm } from './conversation-monitor'
+import { cadenceFromFirstRun, firstRunOf, monitorCadence, monitorIsDue, nextMonitorCheck, monitorForm } from './conversation-monitor'
 
 describe('conversation monitor cadence', () => {
     const start = new Date('2026-11-12T02:47:51Z')
@@ -25,6 +25,21 @@ describe('conversation monitor cadence', () => {
             expect(cron.getNextDateFrom(new Date(due.getTime() - 1), 'UTC').toMillis()).toBe(due.getTime())
         }
     )
+    it('uses the requested wall minute as the first eligible check across a date boundary', () => {
+        const first = { date: '2027-02-15', time: '00:07' }
+        const cadence = cadenceFromFirstRun(first, 'Asia/Kathmandu', 17)
+        const monitor = { source: 'menu', target: 'new_chat', notify: 'new-differences', intervalMinutes: 17, ...cadence } as const
+        const due = new Date('2027-02-14T18:22:00Z')
+        expect(firstRunOf(monitor, 'Asia/Kathmandu')).toEqual(first)
+        expect(nextMonitorCheck(monitor, cadence.schedule, 'Asia/Kathmandu', 0)).toEqual(due.toISOString())
+        expect(monitorIsDue(monitor, due)).toBe(true)
+        expect(monitorIsDue(monitor, new Date(due.getTime() - 17 * 60000))).toBe(false)
+    })
+    it('rejects a skipped wall time and picks the earlier instant for a repeated time', () => {
+        expect(() => cadenceFromFirstRun({ date: '2027-03-14', time: '02:30' }, 'America/New_York', 30)).toThrow()
+        const cadence = cadenceFromFirstRun({ date: '2027-11-07', time: '01:30' }, 'America/New_York', 30)
+        expect(cadence.anchorAt).toBe('2027-11-07T05:00:00.000Z')
+    })
     it('rejects incorrect destinations and intervals while accepting previously issued forms', () => {
         const form = {
             name: 'Check',

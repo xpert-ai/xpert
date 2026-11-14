@@ -5,6 +5,9 @@ import {
     requireMonitorTarget,
     monitorIsDue,
     monitorCadence,
+    firstRunOf,
+    cadenceFromFirstRun,
+    type MonitorFirstRun,
     monitorBinding,
     resolveMonitorDestination,
     type MonitorDestination,
@@ -451,7 +454,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async updateHttpMonitor(
         id: string,
-        input: { name: string; prompt: string; intervalMinutes: number; destination: MonitorDestination }
+        input: { name: string; prompt: string; intervalMinutes: number; destination: MonitorDestination; timeZone?: string; firstRun?: MonitorFirstRun }
     ) {
         const task = await this.assertHttpMutationAccess(id)
         if (!task.monitor) throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
@@ -488,9 +491,18 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 }))
             )
                 throw new BadRequestException(t('server-ai:Error.ScheduleRunInProgress'))
-            const cadence =
-                current.monitor.intervalMinutes === input.intervalMinutes ? null : monitorCadence(input.intervalMinutes)
+            const timeZone = input.timeZone ?? current.timeZone ?? 'UTC'
+            const first = firstRunOf(current.monitor, current.timeZone || 'UTC')
+            const changedStart = input.firstRun && (first?.date !== input.firstRun.date ||
+                first?.time !== input.firstRun.time || timeZone !== current.timeZone)
+            let cadence: ReturnType<typeof monitorCadence> | undefined
+            if (input.firstRun && (changedStart || current.monitor.intervalMinutes !== input.intervalMinutes)) {
+                cadence = cadenceFromFirstRun(input.firstRun, timeZone, input.intervalMinutes)
+            } else if (current.monitor.intervalMinutes !== input.intervalMinutes) {
+                cadence = monitorCadence(input.intervalMinutes)
+            }
             await tasks.update(id, {
+                timeZone,
                 name: input.name,
                 prompt: input.prompt,
                 projectId,

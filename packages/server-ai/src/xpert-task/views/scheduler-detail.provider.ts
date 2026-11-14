@@ -2,7 +2,7 @@ import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution
 import { MonitorTargets } from '../monitor-targets'
 import { CommandBus } from '@nestjs/cqrs'
 import { CreateXpertTaskCommand } from '../commands'
-import { monitorForm, monitorDestination, monitorInterval, nextMonitorCheck } from '../conversation-monitor'
+import { firstRunOf, monitorFirstRun, monitorForm, monitorDestination, monitorInterval, nextMonitorCheck } from '../conversation-monitor'
 import { ScheduledTaskExecution } from '../scheduled-task-execution.entity'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -186,6 +186,7 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
                           }
                     : undefined,
                 intervalMinutes: task.monitor?.intervalMinutes,
+                firstRun: task.monitor ? firstRunOf(task.monitor, task.timeZone || 'UTC') : undefined,
                 id: task.id,
                 name: task.name,
                 prompt: task.prompt,
@@ -236,6 +237,7 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
                         source: 'menu',
                         destination: form.destination,
                         intervalMinutes: form.intervalMinutes,
+                        firstRun: form.firstRun,
                         conversationId: context.runtimeScope.conversationId,
                         threadId: form.threadId,
                         requestKey: form.requestId
@@ -255,13 +257,18 @@ export class SchedulerDetailViewProvider implements IXpertViewExtensionProvider 
             ) {
                 const input = edit
                     .pick({ taskId: true, name: true, prompt: true })
-                    .extend({ destination: monitorDestination, intervalMinutes: monitorInterval })
+                    .extend({
+                        destination: monitorDestination, intervalMinutes: monitorInterval,
+                        timeZone: monitorForm.shape.timeZone.optional(), firstRun: monitorFirstRun.optional()
+                    })
                     .strict()
                     .parse(request.input)
                 await this.tasks.updateHttpMonitor(task.id, {
                     name: input.name,
                     prompt: input.prompt,
                     intervalMinutes: input.intervalMinutes,
+                    timeZone: input.timeZone,
+                    firstRun: input.firstRun,
                     destination: input.destination
                 })
                 return { success: true, refresh: true }

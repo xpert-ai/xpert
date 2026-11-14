@@ -59,6 +59,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Scheduler": {
+        "InvalidLocalTime": "That local time does not exist in this time zone. Choose another time.",
         "Interval": "Every {{count}} minutes",
         "ReportInstruction": "This is a scheduled check. Inspect the source and call report_schedule_differences with stable subject identifiers and exact before/after values. Report an empty array if unchanged. If the source is unavailable, explain the failure instead."
     },

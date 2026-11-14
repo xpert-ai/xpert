@@ -1766,6 +1766,9 @@ importers:
       lodash-es:
         specifier: ^4.17.21
         version: 4.18.1
+      luxon:
+        specifier: 3.7.2
+        version: 3.7.2
       lucide-react:
         specifier: ^1.21.0
         version: 1.21.0(react@18.3.1)
@@ -1863,6 +1866,9 @@ importers:
       '@types/cron':
         specifier: 1.7.3
         version: 1.7.3
+      '@types/luxon':
+        specifier: 3.6.2
+        version: 3.6.2
       '@types/multer':
         specifier: ^1.4.7
         version: 1.4.13
