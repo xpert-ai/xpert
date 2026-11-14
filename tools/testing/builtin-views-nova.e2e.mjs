@@ -150,15 +150,24 @@ test('built-in Views use shared Nova controls and preserve their interactions', 
           await page.goto(preview.url)
           const frame = page.frameLocator('#remote-view')
           if (name === 'conversation') {
-            const trigger = frame.getByRole('button', { name: '新建对话', exact: true })
-            await trigger.click()
-            const dialog = frame.getByRole('dialog')
+            const title = conversation.state.conversation.title
+            const row = frame.getByRole('listitem').filter({
+              has: frame.getByRole('button', { name: title, exact: true })
+            })
+            await row.getByRole('button', { name: '操作', exact: true }).click()
+            await frame.getByRole('menuitem', { name: '重命名', exact: true }).click()
+            const dialog = frame.getByRole('dialog', { name: '重命名', exact: true })
             await assertDialog(dialog, mode === 'dark')
-            await dialog.getByRole('textbox', { name: '名称', exact: true }).fill('示例对话')
+            const input = dialog.getByRole('textbox', { name: '名称', exact: true })
+            await expect(input).toHaveValue(title)
+            await input.fill('示例对话')
             await page.screenshot({ path: resolve(output, `${scenario.name}-${name}.png`) })
             await dialog.getByRole('button', { name: '取消', exact: true }).click()
             await expect(dialog).toHaveCount(0)
-            await expect(trigger).toBeFocused()
+            await expect(row).toBeVisible()
+            assert.equal(preview.state.renames, 0)
+            // The menu item unmounts on selection, so the view restores focus to its header.
+            await expect(frame.getByTestId('map-header')).toBeFocused()
           } else if (name === 'scheduler') {
             await frame.getByRole('combobox', { name: '频率', exact: true }).click()
             await frame.getByRole('option', { name: '每周', exact: true }).click()
