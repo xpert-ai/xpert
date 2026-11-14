@@ -14,7 +14,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-from configuration import finish_prepare, prepare, read_env
+from configuration import assert_project, finish_prepare, prepare, read_env
 from processes import assert_port_free, identity, launch_supervisor, owns_listener, owns_supervisor, redacted_tail, start_supervisor, stop
 from runtime import atomic_json, download, lock_file
 
@@ -81,6 +81,43 @@ class EnvironmentTests(unittest.TestCase):
             install.assert_not_called()
         self.assertEqual(source.read_text(), 'DB_PASS=existing-private-value\n')
 
+    def test_project_binding_rejects_shared_legacy_and_other_project_state(self):
+        source = self.root / 'xpert'
+        source.mkdir()
+        config = {'platform': str(source)}
+        for recorded in (None, str(self.root / 'another-project')):
+            with self.subTest(recorded=recorded):
+                candidate = {**config, **({'projectRoot': recorded} if recorded else {})}
+                with self.assertRaisesRegex(RuntimeError, 'not bound to this project'):
+                    assert_project(candidate, str(self.root))
+        assert_project({**config, 'projectRoot': str(self.root.resolve())}, str(self.root))
+
+    def test_project_binding_cannot_reuse_an_external_checkout(self):
+        project = self.root / 'project'
+        project.mkdir()
+        with self.assertRaisesRegex(RuntimeError, 'inside its project root'):
+            assert_project({'platform': str(self.root), 'projectRoot': str(project.resolve())}, str(project))
+
+    def test_bound_project_requires_an_explicit_project_root_on_resumed_commands(self):
+        config = {'platform': str(self.root), 'projectRoot': str(self.root.resolve())}
+        with self.assertRaisesRegex(RuntimeError, '--project-root'):
+            assert_project(config, None)
+        # Existing non-project host environments retain their previous behavior.
+        assert_project({'platform': str(self.root)}, None)
+
+    def test_project_prepare_rejects_shared_checkout_before_installing_or_writing(self):
+        project = self.root / 'project'
+        project.mkdir()
+        state = self.root / 'state'
+        args = argparse.Namespace(platform=str(self.root), project_root=str(project), state=str(state))
+        with patch('configuration.architecture'), patch('configuration.os.getuid', return_value=1000), \
+             patch('configuration.install') as install:
+            with self.assertRaisesRegex(RuntimeError, 'reuse caches'):
+                prepare(args)
+            install.assert_not_called()
+        self.assertFalse(state.exists())
+        self.assertFalse((self.root / '.env').exists())
+
     def test_interrupted_configuration_resumes_without_rotating_secrets(self):
         state = self.root / 'state'
         state.mkdir()
@@ -125,6 +162,30 @@ class EnvironmentTests(unittest.TestCase):
         with patch('processes.subprocess.run', side_effect=AssertionError('must not spawn a detached supervisor')):
             with self.assertRaisesRegex(RuntimeError, 'supervise command under a persistent process owner'):
                 start_supervisor({'state': str(self.root), 'supervisorMode': 'managed'})
+
+    def test_prepare_defaults_to_local_supervision_and_can_explicitly_switch_existing_mode(self):
+        source = self.root / 'xpert'
+        source.mkdir()
+        (source / 'docker').mkdir()
+        (source / 'docker/env.example').write_text('')
+        state = self.root / 'state'
+        args = argparse.Namespace(platform=str(source), state=str(state), plugin_root=str(self.root),
+            cache=str(self.root / 'cache'), db_port=15432, redis_port=16379, api_port=3000,
+            web_port=4200, project_root=str(self.root), supervisor_mode=None)
+        with patch('configuration.architecture'), patch('configuration.os.getuid', return_value=1000), \
+             patch('configuration.shutil.which', return_value='/bin/tool'), \
+             patch('configuration.subprocess.run'), patch('configuration.install', return_value=self.root / 'runtime'):
+            _, config = prepare(args)
+            self.assertEqual(config['supervisorMode'], 'detached')
+            original_env = (source / '.env').read_bytes()
+            # Existing policy stays unchanged unless the caller explicitly selects a mode.
+            config['supervisorMode'] = 'managed'
+            atomic_json(state / 'environment.json', config)
+            self.assertEqual(prepare(args)[1]['supervisorMode'], 'managed')
+            args.supervisor_mode = 'detached'
+            _, switched = prepare(args)
+            self.assertEqual(switched, {**config, 'supervisorMode': 'detached'})
+            self.assertEqual((source / '.env').read_bytes(), original_env)
 
     @unittest.skipUnless(sys.platform == 'linux' and shutil.which('supervisord'), 'Linux Supervisor integration')
     def test_foreground_supervisor_outlives_a_separate_control_client(self):

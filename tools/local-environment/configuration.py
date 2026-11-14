@@ -53,6 +53,19 @@ def default_state(platform_path):
     return Path.home() / '.local/share/xpert-dev/environments' / identity
 
 
+def assert_project(config, project_root):
+    """Project jobs must not inherit another project's mutable instance state."""
+    if not project_root:
+        if config.get('projectRoot'):
+            raise RuntimeError('This environment is project-bound; pass --project-root on every command')
+        return
+    root = Path(project_root).expanduser().resolve(strict=True)
+    if config.get('projectRoot') != str(root):
+        raise RuntimeError('Environment is not bound to this project; prepare a project-owned checkout and state')
+    if not Path(config['platform']).resolve().is_relative_to(root):
+        raise RuntimeError('Project platform checkout must be inside its project root')
+
+
 def load(state):
     config = json.loads((state / 'environment.json').read_text())
     if config['state'] != str(state):
@@ -95,6 +108,10 @@ def prepare(args):
     if os.getuid() == 0:
         raise RuntimeError('Run process mode as an ordinary Linux user, not root')
     platform_path = Path(args.platform).expanduser().resolve(strict=True)
+    project_root = getattr(args, 'project_root', None)
+    project_root = str(Path(project_root).expanduser().resolve(strict=True)) if project_root else None
+    if project_root and not platform_path.is_relative_to(Path(project_root)):
+        raise RuntimeError('Project platform checkout must be inside its project root; reuse caches, not another instance')
     state = Path(args.state).expanduser().resolve() if args.state else default_state(platform_path)
     plugin_root = Path(args.plugin_root or platform_path.parent).expanduser().resolve(strict=True)
     cache = Path(args.cache).expanduser().resolve()
@@ -111,16 +128,24 @@ def prepare(args):
     manifest = state / 'environment.json'
     if manifest.exists():
         config = load(state)
+        assert_project(config, project_root)
         if config['platform'] != str(platform_path) or config['pluginRoot'] != str(plugin_root):
             raise RuntimeError('Existing environment is bound to a different checkout/plugin root')
+        mode = getattr(args, 'supervisor_mode', None)
+        if mode and mode != config.get('supervisorMode'):
+            config['supervisorMode'] = mode
+            atomic_json(manifest, config)
         # Existing ports and runtime remain authoritative across resumed tasks.
         return state, config
     intent = state / 'prepare-intent.json'
     if intent.exists():
         pending = json.loads(intent.read_text())
         config = pending['config']
+        assert_project(config, project_root)
         if config['platform'] != str(platform_path) or config['pluginRoot'] != str(plugin_root):
             raise RuntimeError('Pending preparation belongs to a different checkout/plugin root')
+        if getattr(args, 'supervisor_mode', None):
+            config['supervisorMode'] = args.supervisor_mode
         finish_prepare(state, config, pending['env'])
         return state, config
     source_env = platform_path / '.env'
@@ -163,8 +188,9 @@ def prepare(args):
     })
     config = {
         'version': 1, 'mode': 'process', 'state': str(state), 'platform': str(platform_path),
+        **({'projectRoot': project_root} if project_root else {}),
         'pluginRoot': str(plugin_root), 'runtime': str(prefix), 'ports': ports, 'identity': identity,
-        'supervisorMode': getattr(args, 'supervisor_mode', 'managed'),
+        'supervisorMode': getattr(args, 'supervisor_mode', None) or 'detached',
         'scripts': str(ROOT), 'python': shutil.which('python3'),
         'node': shutil.which('node'), 'corepack': shutil.which('corepack'),
         'supervisord': shutil.which('supervisord'), 'supervisorctl': shutil.which('supervisorctl')
