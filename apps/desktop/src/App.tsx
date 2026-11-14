@@ -5,7 +5,7 @@ import type { ConversationNotice, DesktopLastSession } from './assistant-list-ty
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import { Bot as BotIcon, LoaderCircle } from 'lucide-react'
+import { Bot as BotIcon } from 'lucide-react'
 import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
 import { Login } from './Login'
@@ -21,7 +21,7 @@ import type { SettingsSection } from './settings/sections'
 import { BosiOnboarding } from './bosi/BosiOnboarding'
 import { notifyEmbeddedAppActivation, subscribeAppActivation } from './app-activation'
 
-export function App() {
+export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => void }) {
   useEffect(() => subscribeAppActivation(() => notifyEmbeddedAppActivation()), [])
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [createGroup, setCreateGroup] = useState(false)
@@ -93,6 +93,10 @@ export function App() {
     const selectedLocale = preview?.locale ?? state?.config.locale
     if (selectedLocale) setLocale(selectedLocale)
   }, [preview?.locale, state?.config.locale])
+  const launchFailed = Boolean(fatal)
+  useEffect(() => {
+    if (menuReady || launchFailed) onLaunchReady?.(launchFailed)
+  }, [menuReady, launchFailed, onLaunchReady])
   const theme = preview?.theme ?? state?.config.theme
   const appearance = preview?.appearance ?? state?.config.appearance
   const request = useRef(0)
@@ -304,31 +308,30 @@ export function App() {
     return subscribeAppActivation(refresh)
   }, [binding, bosiReady, state?.profile?.organizationId, loadBots])
 
+  if (!state && !fatal)
+    return (
+      <div role="status" className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        {t('Opening Bosi…')}
+      </div>
+    )
   if (!state)
     return (
       <div className="flex h-full items-center justify-center gap-3 text-sm text-muted-foreground">
-        {fatal ? (
-          <div role="alert" className="space-y-4 text-center">
-            <p>{fatal}</p>
-            <div className="flex justify-center gap-3">
-              <Button onClick={() => void initialize()}>{t('Reconnect')}</Button>
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  setState(await invoke('logout'))
-                  openSettings('connection')
-                }}
-              >
-                {t('Sign in again or change connection')}
-              </Button>
-            </div>
+        <div role="alert" className="space-y-4 text-center">
+          <p>{fatal}</p>
+          <div className="flex justify-center gap-3">
+            <Button onClick={() => void initialize()}>{t('Reconnect')}</Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setState(await invoke('logout'))
+                openSettings('connection')
+              }}
+            >
+              {t('Sign in again or change connection')}
+            </Button>
           </div>
-        ) : (
-          <>
-            <LoaderCircle className="size-5 animate-spin" />
-            {t('Opening Bosi…')}
-          </>
-        )}
+        </div>
       </div>
     )
   const bot = bots.find((item) => item.id === selected)

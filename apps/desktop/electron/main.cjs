@@ -188,6 +188,7 @@ function createWindow(bounds = {}) {
     minWidth: 860,
     minHeight: 640,
     title: branding.name,
+    backgroundColor: '#0b0c13',
     icon: appIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },

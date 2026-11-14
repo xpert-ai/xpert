@@ -9,10 +9,124 @@
     />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/png" href="/resources/logo.png" />
+    <link rel="stylesheet" href="/src/branding/launch.css" />
     <title>Bosi</title>
   </head>
   <body>
     <div id="root"></div>
+    <div class="bosi-launch" role="status">
+      <div class="composition" aria-hidden="true">
+        <div class="scene-light"></div>
+        <svg class="score" viewBox="9 5 622 220" aria-hidden="true">
+          <defs>
+            <radialGradient id="launch-cell" cx="36%" cy="26%" r="78%">
+              <stop stop-color="#393647"></stop>
+              <stop offset=".53" stop-color="#191b2a"></stop>
+              <stop offset="1" stop-color="#10111b"></stop>
+            </radialGradient>
+            <radialGradient id="launch-mint-cell" cx="34%" cy="22%" r="82%">
+              <stop stop-color="#44605e"></stop>
+              <stop offset=".57" stop-color="#203437"></stop>
+              <stop offset="1" stop-color="#101e24"></stop>
+            </radialGradient>
+            <radialGradient id="launch-violet-cell" cx="34%" cy="22%" r="82%">
+              <stop stop-color="#5c4d73"></stop>
+              <stop offset=".57" stop-color="#352b49"></stop>
+              <stop offset="1" stop-color="#201c30"></stop>
+            </radialGradient>
+            <radialGradient id="launch-gold-wash">
+              <stop stop-color="#ffbd68" stop-opacity=".58"></stop>
+              <stop offset=".35" stop-color="#f3a658" stop-opacity=".23"></stop>
+              <stop offset="1" stop-color="#d28842" stop-opacity="0"></stop>
+            </radialGradient>
+            <linearGradient id="launch-tile-rim" x2=".8" y2="1" gradientUnits="objectBoundingBox">
+              <stop stop-color="#fff1ca"></stop>
+              <stop offset=".42" stop-color="#bd9068"></stop>
+              <stop offset=".66" stop-color="#634d4b"></stop>
+              <stop offset="1" stop-color="#f7c984"></stop>
+            </linearGradient>
+            <filter id="launch-bloom" x="-45%" y="-55%" width="190%" height="210%" color-interpolation-filters="sRGB">
+              <feGaussianBlur stdDeviation="2.8"></feGaussianBlur>
+            </filter>
+            <pattern id="launch-stars" width="51" height="43" patternUnits="userSpaceOnUse">
+              <circle cx="7" cy="9" r=".65" fill="#a7a4bb" opacity=".26"></circle>
+              <circle cx="37" cy="29" r=".45" fill="#eccd9f" opacity=".35"></circle>
+            </pattern>
+            <symbol id="launch-spark" viewBox="-10 -10 20 20">
+              <path d="M0-9 Q1.7-1.7 9 0 Q1.7 1.7 0 9 Q-1.7 1.7-9 0 Q-1.7-1.7 0-9Z"></path>
+            </symbol>
+          </defs>
+          <rect x="15" y="8" width="610" height="204" fill="url(#launch-stars)" aria-hidden="true"></rect>
+          <g class="guides" aria-hidden="true">
+            <path d="M196 63H374 M196 113H374 M196 163H374"></path>
+          </g>
+          <g id="launch-wires">
+            <path id="launch-arrive" d="M51 113H130"></path>
+            <path id="launch-out0" d="M130 113C170 113 167 63 215 63H280"></path>
+            <path id="launch-out1" d="M130 113H280"></path>
+            <path id="launch-out2" d="M130 113C170 113 167 163 215 163H280"></path>
+            <path id="launch-in0" d="M280 63H348C395 63 395 113 430 113"></path>
+            <path id="launch-in1" d="M280 113H430"></path>
+            <path id="launch-in2" d="M280 163H348C395 163 395 113 430 113"></path>
+            <path id="launch-join" d="M430 113H483"></path>
+            <path id="launch-deliver" d="M483 113H577"></path>
+            <path id="launch-return" d="M483 113V163Q483 194 453 194H305Q280 194 280 169V163"></path>
+          </g>
+          <use href="#launch-traces" filter="url(#launch-bloom)" opacity=".68"></use>
+          <g id="launch-traces" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+          <g id="launch-waves" aria-hidden="true"></g>
+          <g class="origin" transform="translate(51 113)">
+            <circle r="16"></circle>
+            <use href="#launch-spark" x="-9" y="-9" width="18" height="18"></use>
+          </g>
+          <g class="junction" transform="translate(130 113)"><circle r="4.5"></circle></g>
+          <g class="agent" transform="translate(280 63)">
+            <circle class="shell" r="17"></circle>
+            <circle class="orbit" r="22" pathLength="100" stroke-dasharray="17 6 2 25"></circle>
+            <g class="symbol">
+              <circle r="7.4"></circle>
+              <ellipse rx="11" ry="3.3" transform="rotate(-30)"></ellipse>
+            </g>
+          </g>
+          <g class="agent" transform="translate(280 113)">
+            <circle class="shell" r="17"></circle>
+            <circle class="orbit" r="22" pathLength="100" stroke-dasharray="17 6 2 25"></circle>
+            <g class="symbol"><path d="m-9 1 5-7 5 7 5-7 4 5 M-7 6l4-5 4 5 5-6"></path></g>
+          </g>
+          <g class="agent" data-lane="lower" transform="translate(280 163)">
+            <circle class="shell" r="17"></circle>
+            <circle class="orbit" r="22" pathLength="100" stroke-dasharray="17 6 2 25"></circle>
+            <g class="symbol"><path d="M0-9v18M-5-5V5M5-5V5M-10-1v2M10-1v2"></path></g>
+          </g>
+          <g class="junction" transform="translate(430 113)"><circle r="4"></circle></g>
+          <g id="launch-gate" transform="translate(483 113)">
+            <path d="m0-11 11 11-11 11-11-11Z"></path>
+            <circle r="2"></circle>
+          </g>
+          <g id="launch-target" transform="translate(578 113)">
+            <circle class="aura" r="56" fill="url(#launch-gold-wash)"></circle>
+            <g class="tile">
+              <rect
+                x="-21.7"
+                y="-21.7"
+                width="43.4"
+                height="43.4"
+                rx="10"
+                fill="#110f12"
+                stroke="url(#launch-tile-rim)"
+                stroke-width="1.5"
+              ></rect>
+              <image href="/resources/icon-macos.png" x="-26" y="-26" width="52" height="52"></image>
+            </g>
+          </g>
+          <use href="#launch-pulses" filter="url(#launch-bloom)" opacity=".94"></use>
+          <g id="launch-pulses" fill="none" stroke-linecap="round" aria-hidden="true"></g>
+        </svg>
+        <div class="wordmark">Bosi</div>
+        <div class="tagline" id="launch-tagline"></div>
+      </div>
+      <span class="sr-only" id="launch-status">Opening Bosi…</span>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
