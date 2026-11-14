@@ -7,6 +7,23 @@ const flush = async () => {
 describe('Artifact query scheduler', () => {
   beforeEach(() => jest.useFakeTimers())
   afterEach(() => jest.useRealTimers())
+  it('preserves the reuse policy and supersedes an earlier request when force refresh is selected', async () => {
+    const releases: Array<() => void> = []
+    const execute = jest.fn(async (value) => {
+      await new Promise<void>((resolve) => releases.push(resolve))
+      return value.cache
+    })
+    const queue = createArtifactQueryScheduler({ execute })
+    const first = queue.query({ ...input(0), cache: { maxAgeMs: 30000 } }).catch((error) => error.code)
+    await flush()
+    const force = queue.query({ ...input(0), cache: { maxAgeMs: 30000, forceRefresh: true } }, 'refresh')
+    await flush()
+    expect(await first).toBe('DOCUMENT_QUERY_SUPERSEDED')
+    for (const release of releases) release()
+    expect(await force).toEqual({ maxAgeMs: 30000, forceRefresh: true })
+    expect(execute.mock.calls[0][0].cache).toEqual({ maxAgeMs: 30000 })
+    queue.dispose()
+  })
   it.each([8, 9, 16, 32, 64])(
     'queues %i bindings, dispatches 60 per rolling minute and never exceeds four executions',
     async (count) => {
