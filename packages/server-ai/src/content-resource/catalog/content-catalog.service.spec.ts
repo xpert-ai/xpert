@@ -5,6 +5,7 @@ import { ContentCatalogService } from './content-catalog.service'
 import { getMetadataArgsStorage } from 'typeorm'
 import { ContentResourceEntry } from './content-entry.entity'
 import { contentSnapshotSchema } from './catalog.schema'
+import { ContentFileOwnershipService } from '../../shared/volume/content-file-ownership.service'
 
 it('rejects contained paths that escape the Project or ambiguously cover its root', () => {
     for (const path of ['', '/', '../private', 'folder/../private', '/absolute', 'folder//asset', 'folder\\asset']) {
@@ -112,6 +113,26 @@ function fixture() {
     }
 }
 describe('project content catalog', () => {
+    it('retains write ownership without granting offline source access', async () => {
+        const f = fixture()
+        f.catalog.describe.mockResolvedValue({
+            ...f.snapshot,
+            writeOwnership: 'provider',
+            source: { kind: 'file', path: 'private/result.json' }
+        })
+        f.entries.update.mockImplementation(async (_where, patch) => {
+            Object.assign(f.rows[0], patch)
+        })
+        await f.service.register({ ...input, source: { providerKey: 'decks', resourceId: 'deck-1' } })
+        const ownership = new ContentFileOwnershipService(
+            { find: async () => [] } as never,
+            { find: async () => f.rows } as never
+        )
+        await expect(ownership.assertUnmanaged('tenant', projectId, 'private/result.json')).rejects.toThrow()
+        f.providers.listRegistrations.mockReturnValue([])
+        await expect(f.service.get({ ...input, contentId: 'catalog-id' })).rejects.toThrow(ForbiddenException)
+        expect((await f.service.list(input)).items).toEqual([])
+    })
     it.each([200, 201, 256])('can persist an accepted opaque revision of %i characters', async (length) => {
         const f = fixture()
         const revision = 'r'.repeat(length)

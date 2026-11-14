@@ -136,7 +136,9 @@ export class ContentCatalogService implements ContentCatalogApi {
                     sourceLocation: snapshot.source,
                     sourceUpdatedAt: new Date(snapshot.updatedAt),
                     deleted: snapshot.deleted,
-                    offlineSnapshot: snapshot.offlineAccess === 'project' ? snapshot : null
+                    // Retain write restrictions even for private sources; get/list still require explicit offlineAccess.
+                    offlineSnapshot:
+                        snapshot.offlineAccess === 'project' || snapshot.writeOwnership === 'provider' ? snapshot : null
                 }
             )
             return {

@@ -38,6 +38,7 @@ export const contentProjectionSchema = z
 export const contentSnapshotSchema = z
     .object({
         offlineAccess: z.literal('project').optional(),
+        writeOwnership: z.literal('provider').optional(),
         presentation: z
             .object({
                 kind: z.literal('artifact'),
@@ -97,3 +98,15 @@ export const contentSnapshotSchema = z
         allowedActions: z.array(z.enum(['rename', 'move', 'trash', 'restore', 'duplicate'])).max(5)
     })
     .strict()
+    .superRefine((snapshot, context) => {
+        // Ownership paths are matched against Project files, so aliases and traversal are not valid metadata.
+        if (snapshot.writeOwnership !== 'provider') return
+        const paths =
+            snapshot.source.kind === 'file'
+                ? [snapshot.source.path]
+                : snapshot.source.kind === 'bundle'
+                  ? [snapshot.source.rootPath, snapshot.source.entryPath]
+                  : []
+        if (paths.some((path) => !projectPath.safeParse(path).success))
+            context.addIssue({ code: 'custom', message: 'Invalid owned content path' })
+    })
