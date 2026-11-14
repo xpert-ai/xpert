@@ -256,6 +256,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
       './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },
       './ConnectionSettings': { ConnectionSettings: () => null },
       './Login': { Login: () => null },
+      './computer-use/ComputerPermissions': { ComputerPermissions: () => null },
       './FirstRunLanguage': { FirstRunLanguage: () => null },
       './CatalogDialog': { CatalogDialog: () => null }
     },

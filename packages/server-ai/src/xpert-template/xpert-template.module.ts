@@ -16,7 +16,11 @@ import { XpertTemplate } from './xpert-template.entity'
 import { AssistantCapabilityProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
 import { RealtimeModelCatalog, RealtimeVoiceCapabilityProvider } from './capabilities/realtime-voice.capability'
-import { DesktopShellCapabilityProvider, RequestUserInputCapabilityProvider } from './capabilities/builtin-capabilities'
+import {
+    DesktopComputerCapabilityProvider,
+    DesktopShellCapabilityProvider,
+    RequestUserInputCapabilityProvider
+} from './capabilities/builtin-capabilities'
 import { CommandHandlers } from './commands/handlers'
 
 @Module({
@@ -39,6 +43,7 @@ import { CommandHandlers } from './commands/handlers'
         TemplateSkillSyncService,
         AssistantCapabilityService,
         AssistantCapabilityProviderRegistry,
+        DesktopComputerCapabilityProvider,
         DesktopShellCapabilityProvider,
         RequestUserInputCapabilityProvider,
         RealtimeModelCatalog,

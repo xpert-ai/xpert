@@ -9,6 +9,7 @@ import { Bot as BotIcon } from 'lucide-react'
 import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
 import { Login } from './Login'
+import { ComputerPermissions } from './computer-use/ComputerPermissions'
 import { FirstRunLanguage } from './FirstRunLanguage'
 import { Sidebar } from './Sidebar'
 import type { DiscoveryWorkspace } from './catalog-types'
@@ -80,7 +81,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
     }
   }, [])
-  const menuReady = state !== null && !state.needsLanguageSelection
+  const menuReady = state !== null && !state.needsLanguageSelection && !state.needsComputerSetup
   useEffect(() => {
     if (!menuReady) return
     return window.xpertDesktop?.onMenuAction?.((action) => {
@@ -336,6 +337,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       </div>
     )
   if (state.needsLanguageSelection) return <FirstRunLanguage onConfirm={setState} />
+  if (state.needsComputerSetup) return <ComputerPermissions onFinish={setState} />
   const bot = bots.find((item) => item.id === selected)
   const visibleBots = workspace ? bots.filter((item) => item.workspaceId === workspace.id) : bots
   const chatVisible = !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)

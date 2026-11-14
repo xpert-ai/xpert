@@ -121,7 +121,7 @@ export class BosiBootstrapService {
         const template = await this.templates.getTemplateDetail(BOSI_TEMPLATE_ID, this.language())
         const base = await this.capabilities.setup(template, this.language(), [])
         const options = await Promise.all(
-            (['cloud-computer', 'desktop-shell'] as const).map(async (key) => {
+            (['cloud-computer', 'desktop-shell', 'desktop-computer-use'] as const).map(async (key) => {
                 if (!base.optionalCapabilities.some((option) => option.key === key))
                     return { key, available: false, reason: t('server-ai:Error.BosiCapabilityUnavailable') }
                 const check = await this.capabilities.setup(template, this.language(), [key])

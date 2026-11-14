@@ -4,13 +4,15 @@ Bosi is the Desktop entry point for a user's personal assistant in an organizati
 
 ## First-run experience
 
+On supported Macs, first launch leads from language selection to optional Screen Recording and Accessibility setup. Users can revisit the permissions in General Settings. See [Bosi local window control on macOS](bosi-macos-computer-use.md).
+
 After login and organization selection, Desktop reads the binding. An existing accessible assistant opens directly, without reinstalling it or changing its capabilities. An inaccessible binding or failed request produces an error rather than being treated as an invitation to create another assistant.
 
 Users without a binding proceed through:
 
 1. **Introduction**: what Bosi can help with.
 2. **Capabilities & services**: optional plugins and connections available in the organization. An empty, non-actionable catalog skips this step; a failed request retains retry and skip options.
-3. **Computer, local Shell and model selection**: cloud computer is selected by default when available; local Shell starts off and retains the existing command approval flow. The server supplies capability availability and compatible models, and Desktop additionally checks native Shell support. The searchable model picker groups models by provider and displays feature badges, including vision recommendations for computer use. A compatible organization default model is preferred.
+3. **Computer, local Shell and model selection**: cloud computer is selected by default when available; local Shell and local window control start off. Shell retains the existing command approval flow. Local window control uses a per-task native window chooser and requires a vision- and tool-capable model. The server supplies capability availability and compatible models, and Desktop additionally checks native Shell support. The searchable model picker groups models by provider and displays feature badges, including vision recommendations for computer use. A compatible organization default model is preferred.
 4. **Creation and welcome**: install and publish the assistant, open its initial conversation and explicitly start the welcome run. The welcome prompt requests a brief introduction of enabled capabilities and an invitation to customize the name and avatar.
 
 The `xpert-bosi-assistant` template derives from `xpert-my-claw-xpert`, preserving its skills, memory, planning and workflow. Selected capabilities and Desktop welcome instructions are composed through the shared [assistant capability mechanism](en/guides/assistant-capabilities.mdx).
@@ -48,7 +50,7 @@ Host requests use authenticated tenant, organization and user context. Body or q
 | `GET /api/xpert/:id/appearance`                                  | Read public name, avatar, edit permission and appearance revision.                     |
 | `POST /api/xpert/:id/appearance`                                 | Save public name and avatar using that revision.                                       |
 
-`capabilities` contains the supported `cloud-computer` and `desktop-shell` keys; the setup query uses a comma-separated list. Bootstrap rechecks capability and model availability rather than relying on an earlier setup response.
+`capabilities` contains the supported `cloud-computer`, `desktop-shell` and `desktop-computer-use` keys; the setup query uses a comma-separated list. Bootstrap rechecks capability and model availability rather than relying on an earlier setup response.
 
 The nullable `desktopBootstrap` JSON checkpoint records the chosen model and capabilities, imported assistant, initial thread and stable welcome message identity. Its phases are `installing`, `welcome_pending`, `welcome_running`, `ready` and `welcome_failed`. A database session lock serializes initialization for the same tenant, organization and user. A competing request receives HTTP 409 and can refresh state to recover the existing operation.
 

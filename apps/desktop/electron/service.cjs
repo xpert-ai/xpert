@@ -182,6 +182,7 @@ class DesktopService {
     }
     // Existing installations already have settings. Fresh profiles wait for explicit confirmation.
     this.needsLanguageSelection = saved?.needsLanguageSelection ?? !validSavedConfig
+    this.needsComputerSetup = saved?.needsComputerSetup === true
     this.sidebars =
       saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
     this.credentials = validSavedConfig ? saved?.credentials || null : null
@@ -199,6 +200,7 @@ class DesktopService {
     return {
       config: this.config,
       needsLanguageSelection: this.needsLanguageSelection,
+      needsComputerSetup: Boolean(this.supportsWindowControl && this.needsComputerSetup),
       connectionDefaults: this.connectionDefaults,
       profile: this.profile,
       localLoginAvailable: this.canLoginLocal()
@@ -209,10 +211,15 @@ class DesktopService {
     return !!this.localLogin && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(this.config.apiUrl).hostname)
   }
 
-  persist({ config = this.config, needsLanguageSelection = this.needsLanguageSelection } = {}) {
+  persist({
+    config = this.config,
+    needsLanguageSelection = this.needsLanguageSelection,
+    needsComputerSetup = this.needsComputerSetup
+  } = {}) {
     this.storage.write({
       config,
       needsLanguageSelection,
+      needsComputerSetup,
       credentials: this.credentials,
       sidebars: this.sidebars,
       notificationDismissals: this.userNotifications?.dismissals
@@ -235,9 +242,17 @@ class DesktopService {
     if (!isSupportedLocale(locale)) throw new ClientError('Invalid language setting.')
     if (!this.needsLanguageSelection) return this.snapshot()
     const config = { ...this.config, locale: normalizeLocale(locale) }
-    this.persist({ config, needsLanguageSelection: false })
+    const needsComputerSetup = this.supportsWindowControl === true
+    this.persist({ config, needsLanguageSelection: false, needsComputerSetup })
+    this.needsComputerSetup = needsComputerSetup
     this.config = config
     this.needsLanguageSelection = false
+    return this.snapshot()
+  }
+
+  finishComputerSetup() {
+    this.persist({ needsComputerSetup: false })
+    this.needsComputerSetup = false
     return this.snapshot()
   }
 

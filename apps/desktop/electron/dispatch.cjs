@@ -37,6 +37,7 @@ const methods = new Set([
   'usageEntries',
   'state',
   'confirmInitialLanguage',
+  'finishComputerSetup',
   'refreshProfile',
   'shellState',
   'shellPrepare',

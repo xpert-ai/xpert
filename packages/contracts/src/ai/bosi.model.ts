@@ -46,7 +46,7 @@ export type BosiOnboardingChoice = {
 }
 
 /** Optional bootstrap capabilities; these keys match the existing template capability registry. */
-export type BosiCapability = 'cloud-computer' | 'desktop-shell'
+export type BosiCapability = 'cloud-computer' | 'desktop-shell' | 'desktop-computer-use'
 
 /** Authorized setup snapshot; access/query errors must not be represented as an empty binding. */
 export type BosiSetup = {

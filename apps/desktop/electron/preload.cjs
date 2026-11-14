@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  windowControl: (method, value) => ipcRenderer.invoke('xpert:window-control', method, value),
   requestMicrophonePermission: () => ipcRenderer.invoke('xpert:microphone-permission'),
   audioCapture: (request) => ipcRenderer.invoke('xpert:audio-capture', request),
   onNewGroup: (callback) => {
@@ -74,5 +75,6 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
   openPlatform: (payload) => ipcRenderer.invoke('xpert:open-platform', payload),
   openWorkspace: () => ipcRenderer.invoke('xpert:open-workspace'),
   setSidebarCollapsed: (collapsed) => ipcRenderer.send('xpert:sidebar-collapsed', collapsed),
+  supportsWindowControl: process.argv?.includes('--bosi-window-control') === true,
   platform: process.platform
 })

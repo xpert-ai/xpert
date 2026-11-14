@@ -6,6 +6,7 @@ import { ClientToolMiddleware } from './client-tool.middleware'
 import { ContextCompressionMiddleware } from './context-compression.middleware'
 import { HumanInTheLoopMiddleware } from './human-in-the-loop.middleware'
 import { LLMToolSelectorNameMiddleware } from './llm-tool-selector.middleware'
+import { DesktopComputerMiddleware } from './desktop-computer.middleware'
 import { OfficeAutomationMiddleware } from './office-automation.middleware'
 import { RalphLoopMiddleware } from './ralph-loop.middleware'
 import { StructuredOutputMiddleware } from './structured-output.middleware'
@@ -25,6 +26,7 @@ import { RequestUserInputMiddleware } from './request-user-input.middleware'
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
         LLMToolSelectorNameMiddleware,
+        DesktopComputerMiddleware,
         OfficeAutomationMiddleware,
         RalphLoopMiddleware,
         StructuredOutputMiddleware,
@@ -40,6 +42,7 @@ import { RequestUserInputMiddleware } from './request-user-input.middleware'
         ContextCompressionMiddleware,
         HumanInTheLoopMiddleware,
         LLMToolSelectorNameMiddleware,
+        DesktopComputerMiddleware,
         OfficeAutomationMiddleware,
         RalphLoopMiddleware,
         StructuredOutputMiddleware,

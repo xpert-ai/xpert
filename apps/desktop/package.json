@@ -5,9 +5,9 @@
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
-    "dev": "pnpm build:windows-shell && node scripts/dev.mjs",
+    "dev": "node scripts/build-computer-use.mjs && pnpm build:windows-shell && node scripts/dev.mjs",
     "dev:web": "vite",
-    "build": "pnpm build:audio-capture-native && pnpm build:windows-shell && tsc --noEmit && vite build",
+    "build": "node scripts/build-computer-use.mjs && pnpm build:audio-capture-native && pnpm build:windows-shell && tsc --noEmit && vite build",
     "icons:macos": "node scripts/generate-macos-icons.mjs",
     "start": "electron .",
     "test": "pnpm build:windows-shell && node --test tests/*.test.cjs tests/audio-capture/*.test.cjs",
@@ -62,7 +62,8 @@
       "entitlements": "resources/entitlements.mac.plist",
       "entitlementsInherit": "resources/entitlements.mac.plist",
       "binaries": [
-        "Contents/Resources/app.asar.unpacked/resources/audio-capture/audio-capture"
+        "Contents/Resources/app.asar.unpacked/resources/audio-capture/audio-capture",
+        "Contents/Resources/app.asar.unpacked/resources/computer-use/window-control"
       ],
       "icon": "resources/Xpert.icns",
       "category": "public.app-category.productivity",
@@ -89,6 +90,7 @@
     },
     "asarUnpack": [
       "resources/audio-capture/**",
+      "resources/computer-use/**",
       "resources/shell/**"
     ],
     "protocols": [

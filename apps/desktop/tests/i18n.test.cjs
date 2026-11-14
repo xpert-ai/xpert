@@ -200,6 +200,27 @@ test('first-run language confirmation survives restarts and preserves existing i
   assert.equal(create().snapshot().needsLanguageSelection, false)
 })
 
+test('supported Macs resume the permission page after language selection and remember completion', async () => {
+  let saved
+  const storage = {
+    read: () => saved,
+    write: (state) => {
+      saved = state
+    }
+  }
+  const create = () => Object.assign(new DesktopService({ storage }), { supportsWindowControl: true })
+  const first = create()
+  assert.equal(first.snapshot().needsComputerSetup, false)
+  assert.equal(first.confirmInitialLanguage('zh-Hans').needsComputerSetup, true)
+  const resumed = create()
+  assert.equal(resumed.snapshot().needsLanguageSelection, false)
+  assert.equal(resumed.snapshot().needsComputerSetup, true)
+  assert.equal((await dispatch(resumed, 'finishComputerSetup')).value.needsComputerSetup, false)
+  assert.equal(create().snapshot().needsComputerSetup, false)
+  saved = { config: DEFAULT_CONFIG }
+  assert.equal(create().snapshot().needsComputerSetup, false)
+})
+
 test('a failed first-run language save leaves the selection pending for retry', () => {
   const service = new DesktopService({
     storage: {

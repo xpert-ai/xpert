@@ -1413,5 +1413,20 @@
   "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert is temporarily unavailable. Please reconnect shortly.",
   "Install for": "Install for",
   "Only me": "Only me",
-  "Your app instance and its new resources are private by default within this organization.": "Your app instance and its new resources are private by default within this organization."
+  "Your app instance and its new resources are private by default within this organization.": "Your app instance and its new resources are private by default within this organization.",
+  "Local window control requires Bosi for macOS 14 or later.": "Local window control requires Bosi for macOS 14 or later.",
+  "Local window control": "Local window control",
+  "Operate a window you select for this task.": "Operate a window you select for this task.",
+  "Choose a window for this task": "Choose a window for this task",
+  "Window contents will be sent to this Assistant and its model.": "Window contents will be sent to this Assistant and its model.",
+  "Bosi will ask you to choose a window for each task. Window contents are shared with the active Assistant and its model.": "Bosi will ask you to choose a window for each task. Window contents are shared with the active Assistant and its model.",
+  "Check permissions": "Check permissions",
+  "Could not check window permissions.": "Could not check window permissions.",
+  "Screen Recording": "Screen Recording",
+  "Accessibility": "Accessibility",
+  "Read the selected window.": "Read the selected window.",
+  "Interact with controls in the selected window.": "Interact with controls in the selected window.",
+  "Granted": "Granted",
+  "Open System Settings": "Open System Settings",
+  "Stop window control": "Stop window control"
 }

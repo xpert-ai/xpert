@@ -1,9 +1,13 @@
 // All identities and OAuth destinations stay scoped to the authenticated host.
 module.exports.createBosiMethods = (ClientError) => {
-  const capabilityKeys = ['cloud-computer', 'desktop-shell']
+  const capabilityKeys = ['cloud-computer', 'desktop-shell', 'desktop-computer-use']
   function selection(input) {
     const keys = input?.capabilities ?? []
-    if (!Array.isArray(keys) || keys.length > 2 || keys.some((key) => !capabilityKeys.includes(key)))
+    if (
+      !Array.isArray(keys) ||
+      keys.length > capabilityKeys.length ||
+      keys.some((key) => !capabilityKeys.includes(key))
+    )
       throw new ClientError('Invalid assistant settings.')
     return [...new Set(keys)]
   }

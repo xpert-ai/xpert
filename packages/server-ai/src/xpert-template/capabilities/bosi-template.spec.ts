@@ -42,6 +42,7 @@ it('derives the Desktop identity without losing the ClawXpert graph or changing 
     expect(result.capabilities).toEqual([
         { key: 'existing-capability', required: true },
         { key: 'cloud-computer', required: false },
-        { key: 'desktop-shell', required: false }
+        { key: 'desktop-shell', required: false },
+        { key: 'desktop-computer-use', required: false }
     ])
 })

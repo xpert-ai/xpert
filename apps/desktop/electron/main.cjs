@@ -40,6 +40,7 @@ const { AudioCaptureController } = require('./audio-capture/controller.cjs')
 const { registerAudioCaptureIpc, dispatchWithAudioCapture } = require('./audio-capture/lifecycle.cjs')
 const { createAudioPermissions, registerAudioPermissionIpc } = require('./audio-permissions.cjs')
 
+const { createWindowControl } = require('./computer-use/controller.cjs')
 const branding = require('./branding.json')
 
 // Keep the existing profile and OS encryption identity when changing the display brand.
@@ -197,6 +198,7 @@ function createWindow(bounds = {}) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: service.supportsWindowControl ? ['--bosi-window-control'] : [],
       webSecurity: true,
       devTools: !app.isPackaged,
       session: connectionSession
@@ -278,6 +280,37 @@ else {
       defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults(),
       systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
+    const windowControl = createWindowControl({ service, dialog, getWindow: () => window })
+    const supportsWindowControl =
+      process.platform === 'darwin' && Number(process.getSystemVersion().split('.')[0]) >= 14
+    service.supportsWindowControl = supportsWindowControl
+    ipcMain.handle('xpert:window-control', async (event, method, value) => {
+      if (!trusted(event) || !supportsWindowControl) throw new Error('Window is unavailable')
+      if (method === 'status') return windowControl.status()
+      if (method === 'active') return windowControl.active() || null
+      if (method === 'stop') {
+        windowControl.stop()
+        return
+      }
+      if (method === 'run') return windowControl.run(value)
+      if (method === 'permission' && ['screen', 'accessibility'].includes(value)) {
+        if (value === 'accessibility') systemPreferences.isTrustedAccessibilityClient(true)
+        if (value === 'screen') await windowControl.requestScreenPermission()
+        const pane = value === 'screen' ? 'ScreenCapture' : 'Accessibility'
+        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_' + pane)
+        return
+      }
+      throw new Error('Invalid input')
+    })
+    app.on('browser-window-created', (_event, win) => {
+      win.on('closed', windowControl.stop)
+      win.webContents.on('did-start-navigation', (_event, _url, inPlace, mainFrame) => {
+        if (mainFrame && !inPlace) windowControl.stop()
+      })
+    })
+    app.on('before-quit', windowControl.stop)
+    powerMonitor.on('lock-screen', windowControl.stop)
+    powerMonitor.on('suspend', windowControl.stop)
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     const audioPermissions = createAudioPermissions({ systemPreferences, packaged: app.isPackaged })
     service.audioCapture = new AudioCaptureController(service, {
@@ -346,10 +379,13 @@ else {
           message: translate(service.config.locale, 'Request origin is not allowed.'),
           status: 403
         }
+      if (['configure', 'login', 'logout', 'loginLocal', 'selectOrganization'].includes(method)) windowControl.stop()
       const previousPolicy = connectionPolicyKey(service.config)
+      const previousGeneration = service.generation
       const previousLocale = service.config.locale
       const wasSignedIn = Boolean(service.profile)
       const result = await dispatchWithAudioCapture(service, dispatch, method, argument, translate)
+      if (service.generation !== previousGeneration) windowControl.stop()
       if (previousLocale !== service.config.locale || wasSignedIn !== Boolean(service.profile)) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (

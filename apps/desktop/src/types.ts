@@ -42,6 +42,7 @@ export interface Profile {
 }
 export interface AppState {
   config: ConnectionConfig
+  needsComputerSetup: boolean
   needsLanguageSelection: boolean
   connectionDefaults: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   profile: Profile | null
@@ -314,6 +315,7 @@ export interface HostMethods {
   shellOperations: { input: undefined; output: ShellResult[] }
   shellCancel: { input: string; output: ShellResult }
   state: { input: undefined; output: AppState }
+  finishComputerSetup: { input: undefined; output: AppState }
   confirmInitialLanguage: { input: Locale; output: AppState }
   refreshProfile: { input: undefined; output: AppState }
   configure: { input: ConnectionConfig; output: AppState }
@@ -434,6 +436,10 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      supportsWindowControl: boolean
+      windowControl(method: 'status'): Promise<{ screen: boolean; accessibility: boolean }>
+      windowControl(method: 'active'): Promise<{ title: string; name: string } | null>
+      windowControl(method: 'stop' | 'permission' | 'run', value?: unknown): Promise<unknown>
       templateLinks?: {
         read: () => Promise<{ id: string; origin: string } | null>
         dismiss: (id: string) => Promise<boolean>

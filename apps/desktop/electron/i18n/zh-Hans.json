@@ -1413,5 +1413,20 @@
   "Xpert is temporarily unavailable. Please reconnect shortly.": "Xpert 暂时不可用，请稍后重新连接。",
   "Install for": "安装范围",
   "Only me": "仅自己",
-  "Your app instance and its new resources are private by default within this organization.": "在当前组织中，你的应用实例及其新建资源默认私有。"
+  "Your app instance and its new resources are private by default within this organization.": "在当前组织中，你的应用实例及其新建资源默认私有。",
+  "Local window control requires Bosi for macOS 14 or later.": "本机窗口操作需要在 macOS 14 或更高版本上使用 Bosi。",
+  "Local window control": "本机窗口操作",
+  "Operate a window you select for this task.": "操作你为本次任务选择的窗口。",
+  "Choose a window for this task": "为本次任务选择一个窗口",
+  "Window contents will be sent to this Assistant and its model.": "窗口内容将发送给此助理及其模型。",
+  "Bosi will ask you to choose a window for each task. Window contents are shared with the active Assistant and its model.": "每次任务开始前，Bosi 都会请你选择一个窗口。窗口内容会发送给当前助理及其模型。",
+  "Check permissions": "重新检查权限",
+  "Could not check window permissions.": "无法检查窗口权限。",
+  "Screen Recording": "屏幕录制",
+  "Accessibility": "辅助功能",
+  "Read the selected window.": "读取所选窗口的画面。",
+  "Interact with controls in the selected window.": "点击控件、输入文字或滚动。",
+  "Granted": "已授权",
+  "Open System Settings": "打开系统设置",
+  "Stop window control": "停止操作"
 }

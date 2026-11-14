@@ -23,6 +23,7 @@ function createStorage(directory, encryption) {
           ...(typeof state.needsLanguageSelection === 'boolean' && {
             needsLanguageSelection: state.needsLanguageSelection
           }),
+          ...(state.needsComputerSetup === true && { needsComputerSetup: true }),
           credentials,
           sidebars: state.sidebars,
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
@@ -43,6 +44,7 @@ function createStorage(directory, encryption) {
         JSON.stringify({
           config: state.config,
           needsLanguageSelection: state.needsLanguageSelection,
+          needsComputerSetup: state.needsComputerSetup,
           encrypted,
           sidebars: state.sidebars,
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})

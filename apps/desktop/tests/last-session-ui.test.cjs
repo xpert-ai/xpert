@@ -93,6 +93,7 @@ async function mount(
     './groups/CreateGroupDialog': { CreateGroupDialog: () => null },
     './ConnectionSettings': { ConnectionSettings: () => null },
     './Login': { Login: () => null },
+    './computer-use/ComputerPermissions': { ComputerPermissions: () => null },
     './FirstRunLanguage': { FirstRunLanguage: () => null },
     './CatalogDialog': { CatalogDialog: () => null }
   }
