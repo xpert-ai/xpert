@@ -25,6 +25,7 @@ import {
 	resolveAnalyticsParameters,
 	type AnalyticsRuntimeApi,
 	type AnalyticsSourceResolver,
+	type AnalyticsResolvedSource,
 	type AnalyticsQueryExecution,
 	type AnalyticsQueryProvider,
 	type AnalyticsProviderContext,
@@ -132,34 +133,36 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		if (!normalized.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
 		const { binding } = normalized.data
 		await selected.revalidate()
-		const result = await this.withProvider(
-			actor,
-			binding.source,
-			binding.providerId,
-			async (provider, context) => {
-				if (
-					!provider.descriptor.operations.some(
-						(operation) =>
-							operation.readOnly &&
-							operation.name === binding.operation &&
-							operation.contractVersion === binding.contractVersion
+		const execute = (executionActor: DataSourceActor, source?: AnalyticsResolvedSource) =>
+			this.withProvider(
+				executionActor,
+				binding.source,
+				binding.providerId,
+				async (provider, context) => {
+					if (
+						!provider.descriptor.operations.some(
+							(operation) =>
+								operation.readOnly &&
+								operation.name === binding.operation &&
+								operation.contractVersion === binding.contractVersion
+						)
 					)
-				)
-					throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
-				return normalizeAnalyticsResult(
-					binding,
-					await provider.execute(
+						throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+					return normalizeAnalyticsResult(
 						binding,
-						resolveAnalyticsParameters(binding, normalized.data.controls),
-						context
-					),
-					context.executionId,
-					context.maxRows
-				)
-			},
-			undefined,
-			selected.source ? async () => selected.source : undefined
-		)
+						await provider.execute(
+							binding,
+							resolveAnalyticsParameters(binding, normalized.data.controls),
+							context
+						),
+						context.executionId,
+						context.maxRows
+					)
+				},
+				undefined,
+				source ? async () => source : undefined
+			)
+		const result = selected.execute ? await selected.execute(execute) : await execute(actor, selected.source)
 		await selected.revalidate()
 		return selected.project(result)
 	}

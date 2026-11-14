@@ -4,8 +4,8 @@ import type { AnalyticsResolvedSource, DataSourceActor } from '@xpert-ai/plugin-
 
 /**
  * Resolve only the fixed definition named by a live, accepted analysis grant.
- * approvedById is the grant issuer used to verify metadata delegation; actor remains the querying human.
- * This does not grant catalog access, source membership or execution under the issuer's credentials.
+ * approvedById verifies metadata delegation; actor is the viewer or the explicitly authorized delegated issuer.
+ * This command never switches identity or grants catalog access or source membership.
  */
 export class GroupAnalysisDefinitionCommand extends Command<AnalyticsResolvedSource> {
     constructor(
