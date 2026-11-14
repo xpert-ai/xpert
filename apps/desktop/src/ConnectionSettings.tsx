@@ -10,6 +10,8 @@ import { ConnectionFields } from './ConnectionFields'
 import officialConnectionDefaults from '../electron/connection/defaults.json'
 import { ShellSettings } from './shell/ShellSettings'
 import { GeneralSettings } from './settings/GeneralSettings'
+import { IslandSettings, DockSettings } from './settings/OverlaySettings'
+import { ComputerPermissions } from './computer-use/ComputerPermissions'
 import { ThemeModeChoice } from './settings/ThemeModeChoice'
 import { SettingsSidebar } from './settings/SettingsSidebar'
 import { settingsItems, type SettingsSection } from './settings/sections'
@@ -159,6 +161,9 @@ export function ConnectionSettings({
                   />
                 </Suspense>
               )}
+              {section === 'island' && <IslandSettings draft={draft} onChange={updateDraft} />}
+              {section === 'dock' && <DockSettings draft={draft} onChange={updateDraft} signedIn={signedIn} />}
+              {section === 'computer' && <ComputerPermissions />}
               {section === 'general' && (
                 <GeneralSettings
                   draft={draft}
@@ -218,7 +223,7 @@ export function ConnectionSettings({
             )}
           </div>
         </div>
-        {(section !== 'usage' || unsaved || error) && (
+        {(!['usage', 'computer'].includes(section) || unsaved || error) && (
           <footer className="shrink-0 border-t bg-background px-6 py-4 lg:px-8">
             {error && (
               <p role="alert" className="mb-3 text-sm text-destructive">

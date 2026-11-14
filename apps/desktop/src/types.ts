@@ -20,7 +20,32 @@ import type {
 } from './assistant-profile-types'
 import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 
+export type AgentDockTarget = { kind: 'assistant'; id: string; threadId: string | null } | { kind: 'group'; id: string }
+export interface AgentDockPreferences {
+  enabled: boolean
+  edge: 'left' | 'right'
+  autoHide: boolean
+  placement: 'window' | 'screen'
+  display: string
+  strip: boolean
+  results: boolean
+  size: number
+}
+export interface ActivityIslandPreferences {
+  enabled: boolean
+  idle: boolean
+  external: boolean
+  haptics: boolean
+  width: number
+  height: number
+}
+export interface DockChoices {
+  scope: string | null
+  entries: { token: string; name: string; glyph: string; image: string | null; selected: boolean }[]
+}
 export interface ConnectionConfig {
+  activityIsland?: ActivityIslandPreferences
+  agentDock?: AgentDockPreferences
   locale: Locale
   apiUrl: string
   webUrl: string
@@ -436,10 +461,18 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      onDockNavigate?: (binding: string, callback: (target: AgentDockTarget) => void) => () => void
+      onIslandReview?: (callback: (target: { botId: string; threadId: string }) => void) => () => void
+      dockSettings: {
+        onChange(callback: () => void): () => void
+        displays(): Promise<{ id: string; label: string; internal: boolean }[]>
+        choices(): Promise<DockChoices>
+        select(scope: string, token: string, selected: boolean): Promise<DockChoices>
+      }
       supportsWindowControl: boolean
       windowControl(method: 'status'): Promise<{ screen: boolean; accessibility: boolean }>
       windowControl(method: 'active'): Promise<{ title: string; name: string } | null>
-      windowControl(method: 'stop' | 'permission' | 'run', value?: unknown): Promise<unknown>
+      windowControl(method: 'stop' | 'permission' | 'managePermission' | 'run', value?: unknown): Promise<unknown>
       templateLinks?: {
         read: () => Promise<{ id: string; origin: string } | null>
         dismiss: (id: string) => Promise<boolean>

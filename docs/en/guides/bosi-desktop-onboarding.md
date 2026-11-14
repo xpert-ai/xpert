@@ -1,10 +1,14 @@
-# Bosi Desktop onboarding and public appearance
+---
+title: 'Bosi Desktop onboarding and public appearance'
+---
+
+[简体中文](/zh-Hans/guides/bosi-desktop-onboarding)
 
 Bosi is the Desktop entry point for a user's personal assistant in an organization. It reuses the existing `AssistantCode.CLAWXPERT` binding with `AssistantBindingScope.USER`, scoped by tenant, organization and user. The Desktop name does not rename the platform's ClawXpert template or invalidate existing bindings.
 
 ## First-run experience
 
-On supported Macs, first launch leads from language selection to optional Screen Recording and Accessibility setup. Users can revisit the permissions in General Settings. See [Bosi local window control on macOS](bosi-macos-computer-use.md).
+On supported Macs, first launch leads from language selection to optional Screen Recording and Accessibility setup. Users can revisit the permissions under **Settings → Computer Use**. See [Bosi local window control on macOS](/en/guides/bosi-macos-computer-use).
 
 After login and organization selection, Desktop reads the binding. An existing accessible assistant opens directly, without reinstalling it or changing its capabilities. An inaccessible binding or failed request produces an error rather than being treated as an invitation to create another assistant.
 
@@ -15,7 +19,7 @@ Users without a binding proceed through:
 3. **Computer, local Shell and model selection**: cloud computer is selected by default when available; local Shell and local window control start off. Shell retains the existing command approval flow. Local window control uses a per-task native window chooser and requires a vision- and tool-capable model. The server supplies capability availability and compatible models, and Desktop additionally checks native Shell support. The searchable model picker groups models by provider and displays feature badges, including vision recommendations for computer use. A compatible organization default model is preferred.
 4. **Creation and welcome**: install and publish the assistant, open its initial conversation and explicitly start the welcome run. The welcome prompt requests a brief introduction of enabled capabilities and an invitation to customize the name and avatar.
 
-The `xpert-bosi-assistant` template derives from `xpert-my-claw-xpert`, preserving its skills, memory, planning and workflow. Selected capabilities and Desktop welcome instructions are composed through the shared [assistant capability mechanism](en/guides/assistant-capabilities.mdx).
+The `xpert-bosi-assistant` template derives from `xpert-my-claw-xpert`, preserving its skills, memory, planning and workflow. Selected capabilities and Desktop welcome instructions are composed through the shared [assistant capability mechanism](/en/guides/assistant-capabilities).
 
 The computer illustration is a bundled preview, not a live desktop. Application hotspots change the preview caption; they do not launch applications, install software or provision a computer. The live computer view is available through the conversation's assistant dialog when the capability is available.
 
@@ -72,7 +76,7 @@ Character and pet IDs are extensible resource strings, not enums of built-in nam
 
 Desktop loads the pet catalog from `/pets/catalog.json` on its configured ChatKit frame origin rather than maintaining a second fixed ID list. Catalog and asset requests are bounded and constrained to that origin and safe pet paths. New bundled pets are delivered by publishing the frame's catalog and assets. Uploaded pets do not need a built-in catalog entry.
 
-The appearance library includes the Bosi animation, cartoon presets, configurable characters, pets and image uploads with square cropping. Uploads use platform file storage; cropped avatars produce a static PNG preview. Pet imports support animated images, both supported sprite-atlas versions and single-pet ZIP packages. See [Pet sprite import](pet-sprite-import.md) for dimensions, manifest fields, limits and validation. No AI image generation is part of this flow.
+The appearance library includes the Bosi animation, cartoon presets, configurable characters, pets and image uploads with square cropping. Uploads use platform file storage; cropped avatars produce a static PNG preview. Pet imports support animated images, both supported sprite-atlas versions and single-pet ZIP packages. See [Pet sprite import](https://github.com/xpert-ai/xpert/blob/develop/docs/pet-sprite-import.md) for dimensions, manifest fields, limits and validation. No AI image generation is part of this flow.
 
 ### Character editor
 

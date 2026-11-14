@@ -13,6 +13,7 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import { AssistantPreview } from './AssistantPreview'
 import { BotAvatar } from './avatar'
+import { SidebarAvatar } from './avatar/SidebarAvatar'
 import { t } from './i18n'
 import type { AssistantRow } from './assistant-list-model'
 import type { SidebarState } from './assistant-list-types'
@@ -109,19 +110,9 @@ export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'c
       onClick={() => onSelect(row)}
       className={`relative flex shrink-0 cursor-default items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${compact ? 'size-12' : ''}`}
     >
-      <span className="relative shrink-0">
-        <BotAvatar
-          bot={row.bot}
-          size={compact ? 'compact' : pinned ? 'large' : 'default'}
-          status={row.activity?.latestConversationStatus}
-        />
-        {row.unread && (
-          <span
-            aria-label={t('Unread')}
-            className={`absolute right-0 bottom-0 rounded-full border-background bg-primary ${compact ? 'size-2 border' : 'size-3 border-2'}`}
-          />
-        )}
-      </span>
+      <SidebarAvatar mode={mode} unread={row.unread}>
+        <BotAvatar bot={row.bot} size="fill" status={row.activity?.latestConversationStatus} />
+      </SidebarAvatar>
     </button>
   )
   return (

@@ -26,6 +26,7 @@ function createStorage(directory, encryption) {
           ...(state.needsComputerSetup === true && { needsComputerSetup: true }),
           credentials,
           sidebars: state.sidebars,
+          ...(state.dockOffsets && { dockOffsets: state.dockOffsets }),
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
         }
       } catch {
@@ -47,6 +48,7 @@ function createStorage(directory, encryption) {
           needsComputerSetup: state.needsComputerSetup,
           encrypted,
           sidebars: state.sidebars,
+          dockOffsets: state.dockOffsets,
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
         }),
         {

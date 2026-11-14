@@ -1,0 +1,395 @@
+:root {
+  color-scheme: dark;
+  --label-size: 12px;
+  --action-size: 11px;
+  font:
+    13px/1.25 -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  color: white;
+  user-select: none;
+  overflow: hidden;
+}
+/* These two animated values drive the entire surface, including its content layout. */
+@property --hover-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --detail-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --compact-width {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --hover-width {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --expanded-width {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --expanded-height {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --bar-height {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+main {
+  position: absolute;
+  top: var(--surface-top, 0px);
+  left: 50%;
+  translate: -50% 0;
+  --hover-growth: calc((var(--hover-width, 0px) - var(--compact-width, 0px)) * var(--hover-progress));
+  --detail-width: calc(
+    var(--compact-width, 0px) + (var(--expanded-width, 0px) - var(--compact-width, 0px)) * var(--detail-progress)
+  );
+  width: calc(var(--detail-width) + var(--hover-growth));
+  height: calc(
+    var(--bar-height, 0px) + 8px * var(--hover-progress) + (var(--expanded-height, 0px) - var(--bar-height, 0px)) *
+      var(--detail-progress)
+  );
+  overflow: clip;
+  isolation: isolate;
+  --shoulder: calc(6px + 13px * var(--detail-progress));
+  --radius: calc(14px + 10px * var(--detail-progress));
+  filter: drop-shadow(0 0 0 transparent);
+  --shadow-transition: filter 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    --hover-progress var(--motion),
+    --detail-progress var(--motion),
+    var(--shadow-transition);
+}
+body.ready {
+  transition:
+    --compact-width var(--motion),
+    --hover-width var(--motion),
+    --expanded-width var(--motion),
+    --expanded-height var(--motion),
+    --bar-height var(--motion);
+}
+/* The browser retargets interrupted transitions from their current rendered values. */
+body {
+  --motion: 416.67ms
+    linear(
+      0,
+      0.03,
+      0.107,
+      0.21,
+      0.327,
+      0.447,
+      0.561,
+      0.666,
+      0.757,
+      0.834,
+      0.897,
+      0.947,
+      0.984,
+      1.011,
+      1.029,
+      1.04,
+      1.045,
+      1.046,
+      1.044,
+      1.04,
+      1.035,
+      1.03,
+      1.024,
+      1.019,
+      1
+    );
+}
+body.expanded,
+body.closing {
+  --detail-spring: linear(
+    0,
+    0.029,
+    0.097,
+    0.186,
+    0.282,
+    0.376,
+    0.466,
+    0.547,
+    0.619,
+    0.682,
+    0.736,
+    0.782,
+    0.821,
+    0.854,
+    0.881,
+    0.903,
+    0.921,
+    0.936,
+    0.949,
+    0.959,
+    0.967,
+    0.973,
+    0.979,
+    0.983,
+    1
+  );
+  --motion: 420ms var(--detail-spring);
+}
+body.closing {
+  --motion: 450ms var(--detail-spring) 90ms;
+}
+.hovered:not(.expanded) main {
+  --hover-progress: 1;
+}
+.expanded main {
+  --detail-progress: 1;
+}
+.hovered main,
+.expanded main {
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.6));
+}
+@media (prefers-reduced-motion: reduce) {
+  body.ready,
+  main {
+    transition: none !important;
+  }
+}
+/* The header and details share the painted body and its rounded clip. */
+.surface {
+  --bar-padding: 12px;
+  position: absolute;
+  inset: 0;
+  background: #000;
+  border-radius: calc(16px + 8px * var(--detail-progress));
+  overflow: clip;
+  box-shadow: inset 0 -1px 0 rgba(228, 228, 228, 0.04);
+}
+/* Paint both shoulders and the body as one silhouette. Adjacent antialiased
+   fills can expose the desktop between them at fractional spring positions. */
+.notched main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #000;
+  clip-path: shape(
+    from 0 0,
+    hline to 100%,
+    arc by calc(-1 * var(--shoulder)) var(--shoulder) of var(--shoulder) ccw,
+    vline to calc(100% - var(--radius)),
+    arc by calc(-1 * var(--radius)) var(--radius) of var(--radius) cw,
+    hline to calc(var(--shoulder) + var(--radius)),
+    arc by calc(-1 * var(--radius)) calc(-1 * var(--radius)) of var(--radius) cw,
+    vline to var(--shoulder),
+    arc to 0 0 of var(--shoulder) ccw,
+    close
+  );
+}
+.notched .surface {
+  --bar-padding: 6px;
+  inset-inline: var(--shoulder);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: transparent;
+}
+.bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--camera-width, 0px) minmax(0, 1fr);
+  height: calc(var(--bar-height) + 8px * var(--hover-progress));
+  align-items: center;
+  padding-inline: var(--bar-padding);
+}
+/* The outer ends follow the body edges. The camera gap stays clear throughout the transition. */
+.notched .identity {
+  --wing-width: calc(
+    (var(--detail-width) + var(--hover-growth) - var(--camera-width)) / 2 - var(--shoulder) - var(--bar-padding)
+  );
+  transform: translateX(calc((100% - var(--wing-width)) * var(--detail-progress)));
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+button:focus {
+  outline: none;
+}
+body.keyboard-input button:focus-visible {
+  outline: 1px solid #fff;
+  outline-offset: -1px;
+}
+.identity,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.identity {
+  padding: 0;
+  border-radius: 5px;
+  font-size: var(--label-size);
+  font-weight: 600;
+  justify-self: end;
+  max-width: 100%;
+}
+body.keyboard-input .identity:focus-visible {
+  outline: none;
+  background: #606060;
+}
+#brand {
+  flex: none;
+  border-radius: 5px;
+}
+#identity .avatar,
+#list .avatar {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1;
+}
+#list .avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+#name {
+  opacity: calc(1 - var(--detail-progress));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actions {
+  max-width: 100%;
+  grid-column: 3;
+  justify-self: start;
+  padding-left: 4px;
+  gap: 4px;
+}
+body:not(.notched) .identity {
+  justify-self: start;
+}
+body:not(.notched) .actions {
+  justify-self: end;
+}
+.actions:has(#tasks:not([hidden])) {
+  justify-self: end;
+  margin-inline-end: calc(12px - var(--bar-padding));
+  max-width: calc(100% + var(--bar-padding) - 12px);
+  padding-left: 0;
+}
+.actions button {
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: var(--action-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+#tasks {
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+#tasks span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#stop {
+  flex-shrink: 0;
+  background: rgba(253, 47, 59, 0.16);
+  color: #fd2f3b;
+}
+#stop i {
+  width: 7px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: currentColor;
+}
+#tasks {
+  background: rgba(107, 199, 217, 0.16);
+  color: #8bdee8;
+}
+#body {
+  padding: 0 var(--bar-padding) var(--detail-bottom-padding);
+  opacity: var(--detail-progress);
+  filter: blur(calc(4px * (1 - var(--detail-progress))));
+}
+#body[inert] {
+  pointer-events: none;
+}
+#activity {
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+#activity strong,
+#activity small,
+#list strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#detail {
+  color: #aaa;
+  font-size: 12px;
+}
+#list button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: var(--task-row-height);
+  font-size: var(--label-size);
+  line-height: 16px;
+  border-top: 1px solid #202020;
+  text-align: left;
+  padding: 0;
+}
+#list strong {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+#list .task-action {
+  font-size: var(--action-size);
+  font-weight: 400;
+  color: #8bdee8;
+  flex: none;
+}
+#list button:hover {
+  background: #171717;
+}
+[hidden] {
+  display: none !important;
+}
+
+#tasks[data-kind='approval'] {
+  background: rgba(255, 148, 18, 0.18);
+  color: #ff9412;
+}
+body:not(.ready) main {
+  transition: none;
+}

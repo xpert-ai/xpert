@@ -7,6 +7,8 @@ const {
   isSupportedLocale,
   localizedText
 } = require('./i18n/index.mjs')
+const { dockPreferences, islandPreferences } = require('./overlay-preferences.cjs')
+const { readDockOffsets } = require('./agent-dock/model.cjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
@@ -74,6 +76,8 @@ function parseConfig(value, connectionDefaults) {
     allowUntrustedCertificates: value.allowUntrustedCertificates === true,
     theme: value.theme,
     appearance,
+    ...(value.activityIsland ? { activityIsland: islandPreferences(value.activityIsland) } : {}),
+    ...(value.agentDock ? { agentDock: dockPreferences(value.agentDock) } : {}),
     locale: normalizeLocale(value.locale)
   }
 }
@@ -183,6 +187,7 @@ class DesktopService {
     // Existing installations already have settings. Fresh profiles wait for explicit confirmation.
     this.needsLanguageSelection = saved?.needsLanguageSelection ?? !validSavedConfig
     this.needsComputerSetup = saved?.needsComputerSetup === true
+    this.dockOffsets = readDockOffsets(saved?.dockOffsets)
     this.sidebars =
       saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
     this.credentials = validSavedConfig ? saved?.credentials || null : null
@@ -221,6 +226,7 @@ class DesktopService {
       needsLanguageSelection,
       needsComputerSetup,
       credentials: this.credentials,
+      dockOffsets: this.dockOffsets,
       sidebars: this.sidebars,
       notificationDismissals: this.userNotifications?.dismissals
     })
@@ -259,6 +265,7 @@ class DesktopService {
   configure(value) {
     const next = parseConfig(value, this.connectionDefaults)
     const connectionChanged = connectionPolicyKey(next) !== connectionPolicyKey(this.config)
+    if (!next.activityIsland && this.config.activityIsland) next.activityIsland = this.config.activityIsland
     if (connectionChanged) this.logout()
     this.config = next
     this.persist()

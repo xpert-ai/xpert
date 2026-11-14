@@ -1,14 +1,20 @@
-# Bosi local window control on macOS
+---
+title: 'Bosi local window control on macOS'
+---
+
+[简体中文](/zh-Hans/guides/bosi-macos-computer-use)
 
 On macOS 14 and later, an Assistant with **Local window control** can read the application window you choose for a task, enter text, press buttons, and scroll. You can enable it independently of the cloud computer and local Shell.
 
+The macOS activity island shows the active window and provides a focus-preserving Stop control. [Activity Island for macOS](/en/guides/bosi-macos-island).
+
 ## Set up and use window control
 
-1. On first launch, choose your language. Bosi opens the **Local window control** page in that language. Select **Open System Settings** to grant **Screen Recording** and **Accessibility**, then return to Bosi and select **Check permissions**. Reopen Bosi if macOS prompts you. To defer setup, select **Set up later**. You can return to the page under **Settings → General → Local window control**.
+1. On first launch, choose your language. Bosi opens the **Local window control** page in that language. Select **Open System Settings** to grant **Screen Recording** and **Accessibility**, then return to Bosi and select **Check permissions**. Reopen Bosi if macOS prompts you. To defer setup, select **Set up later**. You can return to the page under **Settings → Computer Use**.
 2. When creating your personal Bosi or a blank Assistant, select **Local window control** and a model that supports vision and tool calling. To add the capability to an existing Assistant, attach the `DesktopComputerUse` middleware to its main agent in Studio, enable `desktop_window_control`, and publish the Assistant.
 3. Open a one-to-one chat with that Assistant in Bosi for macOS. For example, open a blank document in TextEdit and ask the Assistant to enter two lines of Chinese in the window you select, then read them back and check the punctuation and line break.
 4. Bosi opens a native window chooser showing the Assistant's name, the task, and the available windows. Select a window to share its screenshot and accessible controls with the Assistant's model through Xpert. Select **Cancel** to decline the task.
-5. During the task, the chat shows the Assistant's name and the selected window's title. Select **Stop window control** to revoke access immediately. The Assistant can also release the window when it finishes. To revoke a system permission, open **System Settings → Privacy & Security**.
+5. During the task, the chat shows the Assistant's name and the selected window's title. Select **Stop window control** to revoke access immediately. The Assistant can also release the window when it finishes. To review or revoke a granted permission, choose **Manage** beside that permission under **Settings → Computer Use**. Returning to Bosi refreshes the permission status.
 
 ## Supported operations
 
@@ -25,10 +31,10 @@ Bosi allows one window task at a time, for up to five minutes and 40 tool calls.
 
 ## Implementation
 
-- The `desktop-computer-use` capability provider declares the model requirements and attaches `DesktopComputerUse` to the main agent. The server issues client tool requests through ChatKit and resumes the run with the result. Each observation reaches the model as a tool message containing text and an image. [Capability provider](../packages/server-ai/src/xpert-template/capabilities/builtin-capabilities.ts) · [Assistant middleware](../packages/server-ai/src/xpert-middleware/desktop-computer.middleware.ts)
-- The chat checks the current Assistant, thread, and tool call ID before forwarding a request. The Electron main process owns the native chooser, the window grant, the record of duplicate requests, and the driver lifecycle. [Chat integration](../apps/desktop/src/ChatPanel.tsx) · [Window controller](../apps/desktop/electron/computer-use/controller.cjs)
-- The main process communicates with the bundled Swift helper over private standard input and output pipes. ScreenCaptureKit captures the selected window. Accessibility actions target controls belonging to the selected AX window object, and text goes directly into the application's text control. [Swift driver](../apps/desktop/native/computer-use/WindowControl.swift) · [Apple ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit) · [Apple AXUIElement](https://developer.apple.com/documentation/applicationservices/axuielement)
-- After language selection, Bosi records the pending permission step so setup can resume after a restart. Existing installations can open the same page from Settings. Checking permissions reads their current state. The user opens the macOS authorization flow by selecting **Open System Settings**. [Permission page](../apps/desktop/src/computer-use/ComputerPermissions.tsx) · [OpenBot 0.69.0 host and driver architecture](https://github.com/nightly-labs/openbot/blob/v0.69.0/docs/architecture/computer-use.md)
+- The `desktop-computer-use` capability provider declares the model requirements and attaches `DesktopComputerUse` to the main agent. The server issues client tool requests through ChatKit and resumes the run with the result. Each observation reaches the model as a tool message containing text and an image. [Capability provider](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/xpert-template/capabilities/builtin-capabilities.ts) · [Assistant middleware](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/xpert-middleware/desktop-computer.middleware.ts)
+- The chat checks the current Assistant, thread, and tool call ID before forwarding a request. The Electron main process owns the native chooser, the window grant, the record of duplicate requests, and the driver lifecycle. [Chat integration](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/src/ChatPanel.tsx) · [Window controller](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/electron/computer-use/controller.cjs)
+- The main process communicates with the bundled Swift helper over private standard input and output pipes. ScreenCaptureKit captures the selected window. Accessibility actions target controls belonging to the selected AX window object, and text goes directly into the application's text control. [Swift driver](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/native/computer-use/WindowControl.swift) · [Apple ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit) · [Apple AXUIElement](https://developer.apple.com/documentation/applicationservices/axuielement)
+- After language selection, Bosi records the pending permission step so setup can resume after a restart. Existing installations can open the same page from Settings. Checking permissions reads their current state. The user opens the macOS authorization flow by selecting **Open System Settings**. [Permission page](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/src/computer-use/ComputerPermissions.tsx) · [OpenBot 0.69.0 host and driver architecture](https://github.com/nightly-labs/openbot/blob/v0.69.0/docs/architecture/computer-use.md)
 
 ## Acceptance on a physical Mac
 

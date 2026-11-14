@@ -1,4 +1,5 @@
 const path = require('node:path')
+const { randomUUID } = require('node:crypto')
 const { spawn } = require('node:child_process')
 const { createInterface } = require('node:readline')
 const { isId } = require('@xpert-ai/desktop-protocol')
@@ -51,7 +52,7 @@ function driver() {
   }
 }
 
-function createWindowControl({ service, dialog, getWindow, makeDriver = driver }) {
+function createWindowControl({ service, dialog, getWindow, makeDriver = driver, onActivity = () => {} }) {
   let session
   const receipts = new Map()
   const stopped = new Map()
@@ -63,6 +64,7 @@ function createWindowControl({ service, dialog, getWindow, makeDriver = driver }
     clearTimeout(session.timer)
     session.driver.close()
     session = undefined
+    onActivity()
   }
   function account() {
     const profile = service.profile
@@ -70,7 +72,7 @@ function createWindowControl({ service, dialog, getWindow, makeDriver = driver }
       throw new Error('Window control requires a signed-in account')
     return JSON.stringify([service.config.apiUrl, profile.user.tenantId, profile.user.id, profile.organizationId])
   }
-  async function permissionQuery(action) {
+  async function queryHelper(action) {
     const d = makeDriver()
     try {
       return await d.call({ action })
@@ -96,8 +98,12 @@ function createWindowControl({ service, dialog, getWindow, makeDriver = driver }
       })
       const selected = choices[answer.response - 1]
       if (!selected || session !== s || s.account !== account()) throw new Error('Window control stopped')
+      const observation = await s.driver.call({ action: 'select', window: selected.id, title: selected.title })
+      if (session !== s || s.account !== account()) throw new Error('Window control stopped')
       s.title = selected.title
-      return s.driver.call({ action: 'select', window: selected.id, title: selected.title })
+      s.app = selected.app
+      onActivity()
+      return observation
     }
     if (input.action === 'finish') {
       stop()
@@ -144,6 +150,7 @@ function createWindowControl({ service, dialog, getWindow, makeDriver = driver }
       receipts.clear()
       session = {
         scope,
+        grantId: randomUUID(),
         account: identity,
         name: bot.name,
         title: '',
@@ -178,9 +185,17 @@ function createWindowControl({ service, dialog, getWindow, makeDriver = driver }
   return {
     run,
     stop,
-    status: () => permissionQuery('status'),
-    requestScreenPermission: () => permissionQuery('requestScreenPermission'),
-    active: () => session && { title: session.title, name: session.name }
+    stopGrant(id) {
+      if (!session?.title || id !== session.grantId) return false
+      stop()
+      return true
+    },
+    haptic: () => queryHelper('haptic'),
+    displayCutouts: async () => (await queryHelper('displayCutouts')).cutouts,
+    status: () => queryHelper('status'),
+    requestScreenPermission: () => queryHelper('requestScreenPermission'),
+    active: () =>
+      session?.title ? { title: session.title, name: session.name, app: session.app, id: session.grantId } : undefined
   }
 }
 module.exports = { createWindowControl }

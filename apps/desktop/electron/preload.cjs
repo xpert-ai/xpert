@@ -1,6 +1,16 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  dockSettings: {
+    onChange: (callback) => {
+      const listener = () => callback()
+      ipcRenderer.on('dock:choices-changed', listener)
+      return () => ipcRenderer.removeListener('dock:choices-changed', listener)
+    },
+    displays: () => ipcRenderer.invoke('dock:settings', 'displays'),
+    choices: () => ipcRenderer.invoke('dock:settings', 'choices'),
+    select: (scope, token, selected) => ipcRenderer.invoke('dock:settings', 'select', scope, token, selected)
+  },
   windowControl: (method, value) => ipcRenderer.invoke('xpert:window-control', method, value),
   requestMicrophonePermission: () => ipcRenderer.invoke('xpert:microphone-permission'),
   audioCapture: (request) => ipcRenderer.invoke('xpert:audio-capture', request),
@@ -16,6 +26,18 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
     ipcRenderer.on('xpert:menu-action', listener)
     ipcRenderer.send('xpert:menu-ready')
     return () => ipcRenderer.removeListener('xpert:menu-action', listener)
+  },
+  onDockNavigate: (binding, callback) => {
+    const listener = (_event, target) => callback(target)
+    ipcRenderer.on('dock:navigate', listener)
+    ipcRenderer.send('dock:main-ready', binding)
+    return () => ipcRenderer.removeListener('dock:navigate', listener)
+  },
+  onIslandReview: (callback) => {
+    const listener = (_event, target) => callback(target)
+    ipcRenderer.on('island:open-thread', listener)
+    ipcRenderer.send('island:main-ready')
+    return () => ipcRenderer.removeListener('island:open-thread', listener)
   },
   onWindowActivated: (callback) => {
     const listener = () => callback()

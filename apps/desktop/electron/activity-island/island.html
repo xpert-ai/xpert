@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data: https: http:"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>Bosi Activity Island</title>
+    <link rel="stylesheet" href="../overlay-avatar.css" />
+    <link rel="stylesheet" href="island.css" />
+    <script defer src="../overlay-avatar.js"></script>
+    <script defer src="island.js"></script>
+  </head>
+  <body>
+    <main>
+      <div class="surface">
+        <div class="bar">
+          <button class="identity" id="identity" aria-controls="body">
+            <img id="brand" src="../../resources/icon-macos.png" alt="" width="20" height="20" />
+            <span id="name"></span>
+          </button>
+          <div class="actions">
+            <span id="greeting" hidden>👋</span>
+            <button id="stop" hidden><i aria-hidden="true"></i><span></span></button>
+            <button id="tasks" aria-controls="list" hidden><span></span></button>
+          </div>
+        </div>
+        <section id="body" inert>
+          <div id="activity" role="status"><strong id="label"></strong><small id="detail"></small></div>
+          <div id="list"></div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

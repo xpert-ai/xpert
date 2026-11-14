@@ -1,6 +1,5 @@
 import { useId, type ReactNode } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import { ComputerPermissions } from '../computer-use/ComputerPermissions'
 import { ChevronRight } from 'lucide-react'
 import { t, languages } from '../i18n'
 import { ThemeSelect, fontSizes } from '../ThemeFields'
@@ -86,7 +85,6 @@ export function GeneralSettings({
           </SettingsRow>
         </div>
       </section>
-      {window.xpertDesktop?.supportsWindowControl && <ComputerPermissions />}
       <section aria-labelledby="settings-display-heading">
         <h2 id="settings-display-heading" className="mb-4 text-base font-semibold">
           {t('Everyday display')}
@@ -107,7 +105,7 @@ export function GeneralSettings({
           </SettingsRow>
           <SettingsRow
             title={t('Assistant list density')}
-            description={t('Set the spacing between assistants in the sidebar.')}
+            description={t('Adjust avatar size and row spacing in the sidebar.')}
           >
             <SettingsChoice
               label={t('Assistant list density')}

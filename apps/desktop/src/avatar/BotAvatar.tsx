@@ -11,7 +11,7 @@ export function BotAvatar({
   status
 }: {
   bot: Pick<Bot, 'id' | 'assistantId' | 'avatar' | 'avatarUrl' | 'avatarEmoji'>
-  size?: 'compact' | 'default' | 'large' | 'profile'
+  size?: 'compact' | 'default' | 'fill' | 'profile'
   status?: AvatarConversationStatus
 }) {
   const [failedUrl, setFailedUrl] = useState('')
@@ -22,7 +22,7 @@ export function BotAvatar({
   const fallback = !bosi && !imageUrl && !emoji
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-lg ${imageUrl || fallback ? 'overflow-hidden' : ''} ${fallback ? 'text-[var(--xui-color-avatar-foreground)]' : 'text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'large' ? 'size-14' : 'size-12'}`}
+      className={`flex shrink-0 items-center justify-center rounded-lg ${imageUrl || fallback ? 'overflow-hidden' : ''} ${fallback ? 'text-[var(--xui-color-avatar-foreground)]' : 'text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'fill' ? 'size-full' : 'size-12'}`}
       style={{
         background:
           bot.avatar?.background || (fallback ? `var(--xui-color-avatar-${avatarColorIndex(bot)})` : undefined),
@@ -34,7 +34,7 @@ export function BotAvatar({
       ) : emoji ? (
         <span
           aria-hidden="true"
-          className={`${size === 'profile' ? 'text-4xl' : size === 'compact' ? 'text-xl' : 'text-2xl'} leading-none`}
+          className={`${size === 'profile' ? 'text-4xl' : size === 'compact' ? 'text-xl' : size === 'fill' ? 'text-[length:50cqi]' : 'text-2xl'} leading-none`}
         >
           {emoji}
         </span>

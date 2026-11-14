@@ -1,4 +1,5 @@
 import { NotificationProvider } from './notifications/NotificationProvider'
+import type { AgentDockTarget } from './types'
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
 import type { ConversationNotice, DesktopLastSession } from './assistant-list-types'
@@ -177,6 +178,43 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     [binding]
   )
 
+  const islandReview = useRef<(target: { botId: string; threadId: string }) => void>(() => {})
+  islandReview.current = ({ botId, threadId }) => {
+    if (!bots.some((item) => item.id === botId)) return
+    setSettings(false)
+    setCatalog(false)
+    setCreateGroup(false)
+    setWorkspaceId('')
+    if (selectedGroup || selected !== botId || (notice?.threadId ?? initialThread) !== threadId)
+      selectBot(botId, threadId)
+  }
+  useEffect(() => {
+    if (!navigationReady || !state?.profile?.organizationId) return
+    return window.xpertDesktop?.onIslandReview?.((target) => islandReview.current(target))
+  }, [binding, navigationReady, state?.profile?.organizationId])
+  const dockNavigate = useRef<(target: AgentDockTarget) => void>(() => {})
+  dockNavigate.current = (target) => {
+    setSettings(false)
+    setCreateGroup(false)
+    setCatalog(false)
+    setWorkspaceId('')
+    setBosiReady(true)
+    if (target.kind === 'group') {
+      navigationVersion.current++
+      selectedRef.current = null
+      setSelectedGroup(target.id)
+    } else if (
+      selectedGroup ||
+      selected !== target.id ||
+      (target.threadId && (notice?.threadId ?? initialThread) !== target.threadId)
+    ) {
+      selectBot(target.id, target.threadId)
+    }
+  }
+  useEffect(() => {
+    if (!navigationReady || !organizationId) return
+    return window.xpertDesktop?.onDockNavigate?.(binding, (target) => dockNavigate.current(target))
+  }, [binding, navigationReady, organizationId])
   const initialize = useCallback(async () => {
     setFatal('')
     try {

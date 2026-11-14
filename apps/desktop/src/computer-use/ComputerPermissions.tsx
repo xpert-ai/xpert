@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import { Monitor, MousePointer2 } from 'lucide-react'
+import { Monitor, MousePointer2, CircleCheck, RotateCw } from 'lucide-react'
 import { t } from '../i18n'
 import { BrandLogo } from '../branding/BrandLogo'
 import { invoke } from '../host'
@@ -37,15 +37,19 @@ export function ComputerPermissions({ onFinish }: { onFinish?: (state: AppState)
   const panel = (
     <section className="w-full space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold">{t('Local window control')}</h2>
-        <Button variant="outline" onClick={() => void refresh()}>
-          {t('Check permissions')}
-        </Button>
+        <h2 className="text-lg font-semibold">{t(onFinish ? 'Local window control' : 'System permissions')}</h2>
+        {onFinish && (
+          <Button type="button" variant="outline" onClick={() => void refresh()}>
+            {t('Check permissions')}
+          </Button>
+        )}
       </div>
       <p className="text-sm leading-6 text-muted-foreground">
-        {t(
-          'Bosi will ask you to choose a window for each task. Window contents are shared with the active Assistant and its model.'
-        )}
+        {onFinish
+          ? t(
+              'Bosi will ask you to choose a window for each task. Window contents are shared with the active Assistant and its model.'
+            )
+          : t('Permissions are managed by macOS.')}
       </p>
       <div className="divide-y rounded-xl border bg-card">
         {(['screen', 'accessibility'] as const).map((key) => {
@@ -59,25 +63,38 @@ export function ComputerPermissions({ onFinish }: { onFinish?: (state: AppState)
                   {t(key === 'screen' ? 'Read the selected window.' : 'Interact with controls in the selected window.')}
                 </p>
               </div>
-              {state?.[key] ? (
-                <span className="text-sm text-muted-foreground">{t('Granted')}</span>
-              ) : (
+              {state?.[key] && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-700 dark:text-emerald-300">
+                  <CircleCheck className="size-3.5" />
+                  {t('Granted')}
+                </span>
+              )}
+              {(!onFinish || !state?.[key]) && (
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() =>
                     void window.xpertDesktop
-                      ?.windowControl('permission', key)
+                      ?.windowControl(state?.[key] ? 'managePermission' : 'permission', key)
                       .then(refresh)
                       .catch(() => setError(t('Could not check window permissions.')))
                   }
                 >
-                  {t('Open System Settings')}
+                  {t(state?.[key] ? 'Manage' : 'Open System Settings')}
                 </Button>
               )}
             </div>
           )
         })}
       </div>
+      {!onFinish && (
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" onClick={() => void refresh()}>
+            <RotateCw className="size-4" />
+            {t('Check permissions')}
+          </Button>
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}

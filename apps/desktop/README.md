@@ -27,7 +27,8 @@ Both light and dark appearance modes use this theme.
 
 Use **用户菜单 → 设置 → 桌面外观** to customize the theme. Desktop options include
 27 semantic color tokens (independent light/dark palettes), base font size, local
-font families, 0–24px radius and assistant-list density. Appearance mode,
+font families, 0–24px radius and assistant-list density. With the default 16px desktop font,
+list avatars measure 40px in Compact, 48px in Comfortable and 56px in Spacious. Appearance mode,
 density and palette selection use accessible icon toggle groups; remaining
 dropdowns use shadcn Select. Settings occupies the full window. The sidebar groups **General**, **Desktop appearance** and
 **Chat appearance** under **Basic settings**, and **Service connection** and **Local terminal**
@@ -74,6 +75,16 @@ After building the renderer, run `node scripts/test-certificates.mjs` from
 native settings reload against a temporary local self-signed HTTPS server.
 This requires OpenSSL and Electron; it uses isolated profiles and fixture
 credentials, without changing system certificate trust or the daily app account.
+
+For personal Assistant setup, optional services, and appearance customization, see [Desktop onboarding and public appearance](../../docs/en/guides/bosi-desktop-onboarding.md) · [桌面端首次设置与公开形象](../../docs/zh-Hans/guides/bosi-desktop-onboarding.md).
+
+Bosi on macOS 14 and later supports the following features.
+
+| Feature         | English                                                                               | 简体中文                                                             |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Activity Island | [View activity and pending requests](../../docs/en/guides/bosi-macos-island.md)       | [灵动岛](../../docs/zh-Hans/guides/bosi-macos-island.md)             |
+| Agent Dock      | [Open Assistants from the screen edge](../../docs/en/guides/bosi-macos-agent-dock.md) | [智能体停靠栏](../../docs/zh-Hans/guides/bosi-macos-agent-dock.md)   |
+| Computer Use    | [Control a selected window](../../docs/en/guides/bosi-macos-computer-use.md)          | [本机窗口操作](../../docs/zh-Hans/guides/bosi-macos-computer-use.md) |
 
 ## Run
 

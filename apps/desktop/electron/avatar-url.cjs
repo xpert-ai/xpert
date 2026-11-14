@@ -24,4 +24,14 @@ function parseAvatarUrl(value) {
   return source
 }
 
-module.exports = { parseAvatarUrl }
+function avatarGlyph(bot) {
+  const unified = bot.avatarEmoji?.unified
+  if (typeof unified === 'string' && /^[\da-f]{1,6}(-[\da-f]{1,6}){0,10}$/i.test(unified)) {
+    const points = unified.split('-').map((hex) => parseInt(hex, 16))
+    if (points.every((code) => code <= 0x10ffff && (code < 0xd800 || code > 0xdfff)))
+      return String.fromCodePoint(...points)
+  }
+  return ''
+}
+
+module.exports = { parseAvatarUrl, avatarGlyph }

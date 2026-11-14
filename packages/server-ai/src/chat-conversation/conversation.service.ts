@@ -1,3 +1,4 @@
+import { pendingThreadActivity } from './pending-thread-activity'
 import { assertAppPlatformUpload } from '../shared/app-platform-resource-policy'
 import { assertGroupWorkspaceFileAccess } from './workspace-files/group-workspace-file-access'
 import { createConversationWorkspaceVolumeClient } from './workspace-files/conversation-workspace-volume'
@@ -255,7 +256,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         })
     }
 
-    async getUnreadByXperts(xpertIds: string[]): Promise<IChatConversationUnreadXpertSummary[]> {
+    async getUnreadByXperts(
+        xpertIds: string[],
+        includePending = false
+    ): Promise<IChatConversationUnreadXpertSummary[]> {
         const normalizedXpertIds = Array.from(
             new Set(
                 (xpertIds ?? [])
@@ -429,8 +433,12 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestConversationStatus?: IChatConversationUnreadXpertSummary['latestConversationStatus']
         }>
 
+        const pending = includePending
+            ? await pendingThreadActivity(this.repository, tenantId, organizationId, userId, normalizedXpertIds)
+            : undefined
         return rows.map((row) => ({
             xpertId: row.xpertId,
+            ...(pending ? (pending.get(row.xpertId) ?? { pendingThreads: [], pendingThreadCount: 0 }) : {}),
             hasActiveRuns: row.hasActiveRuns ?? false,
             unreadMessages: Number(row.unreadMessages) || 0,
             unreadConversations: Number(row.unreadConversations) || 0,

@@ -128,6 +128,21 @@ final class WindowControl {
   func execute(_ input: [String: Any]) async throws -> [String: Any] {
     let action = input["action"] as? String
     switch action {
+    case "haptic":
+      NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+      return [:]
+    case "displayCutouts":
+      // AppKit supplies each side of the camera housing in global screen points.
+      let cutouts: [[String: Any]] = NSScreen.screens.compactMap { screen in
+        guard screen.safeAreaInsets.top > 0,
+          let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea,
+          right.minX > left.maxX,
+          let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        else { return nil }
+        return ["id": id, "left": left.maxX - screen.frame.minX,
+          "width": right.minX - left.maxX, "height": screen.safeAreaInsets.top]
+      }
+      return ["cutouts": cutouts]
     case "status": return permissions()
     case "requestScreenPermission": return ["screen": CGRequestScreenCaptureAccess()]
     case "windows":

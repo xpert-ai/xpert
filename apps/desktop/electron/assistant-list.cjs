@@ -7,13 +7,20 @@ const count = (value) => {
   return Number.isFinite(number) ? Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(number))) : 0
 }
 
+const validSessionId = (value) =>
+  typeof value === 'string' && /^[a-zA-Z0-9_.:-]{1,200}$/.test(value) && !['.', '..'].includes(value)
+
 function parseLastSession(value) {
-  const id = (value) =>
-    typeof value === 'string' && /^[a-zA-Z0-9_.:-]{1,200}$/.test(value) && !['.', '..'].includes(value)
-  if (!value || !id(value.botId) || !(value.threadId === null || id(value.threadId))) return null
+  if (!value || !validSessionId(value.botId) || !(value.threadId === null || validSessionId(value.threadId)))
+    return null
   const session = { botId: value.botId, threadId: value.threadId }
   if (value.conversation !== undefined) {
-    if (!value.threadId || !id(value.conversation?.assistantId) || !id(value.conversation?.conversationId)) return null
+    if (
+      !value.threadId ||
+      !validSessionId(value.conversation?.assistantId) ||
+      !validSessionId(value.conversation?.conversationId)
+    )
+      return null
     session.conversation = {
       assistantId: value.conversation.assistantId,
       conversationId: value.conversation.conversationId
@@ -173,13 +180,29 @@ function createAssistantListMethods(ClientError) {
       if (!ids.length) return []
       const result = await this.request('/api/chat-conversation/unread/xperts', {
         method: 'POST',
-        body: { xpertIds: ids }
+        body: { xpertIds: ids, ...(this.supportsActivityIsland ? { includePending: true } : {}) }
       })
       if (!Array.isArray(result)) throw new ClientError('Invalid conversation activity response.')
       return result
         .filter((item) => item && ids.includes(item.xpertId))
         .map((item) => ({
           xpertId: item.xpertId,
+          ...(this.supportsActivityIsland && { hasActiveRuns: item.hasActiveRuns === true }),
+          ...(this.supportsActivityIsland && Array.isArray(item.pendingThreads)
+            ? {
+                pendingThreadCount: count(item.pendingThreadCount ?? item.pendingThreads.length),
+                pendingThreads: item.pendingThreads
+                  .slice(0, 100)
+                  .filter(
+                    (task) => task && validSessionId(task.threadId) && ['question', 'approval'].includes(task.kind)
+                  )
+                  .map(({ threadId, kind, rank }) => ({
+                    threadId,
+                    kind,
+                    ...(Number.isSafeInteger(rank) && rank > 0 ? { rank } : {})
+                  }))
+              }
+            : {}),
           unreadMessages: count(item.unreadMessages),
           unreadConversations: count(item.unreadConversations),
           latestUnreadAt: text(item.latestUnreadAt),

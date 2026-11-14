@@ -1,0 +1,21 @@
+{
+  "island": {
+    "enabled": true,
+    "idle": false,
+    "external": false,
+    "haptics": true,
+    "width": 100,
+    "height": 100
+  },
+  "dock": {
+    "enabled": true,
+    "edge": "right",
+    "autoHide": false,
+    "strip": true,
+    "results": true,
+    "placement": "screen",
+    "display": "window",
+    "size": 100
+  },
+  "limits": { "width": [60, 125], "height": [75, 125], "size": [70, 140] }
+}
