@@ -53,7 +53,7 @@ Current sources include PostgreSQL, MySQL, Doris, data-xpert, Workspace scripts,
 
 Three.js core objects and packaging have been checked, but a full real-SSO GPU/WebGL page has not. Private Workspace scripts cannot be shared directly; organization reuse requires explicit definition publication and upstream access checks. The latest sharing regression did not verify a newly provisioned data-xpert SSO team account.
 
-There is no unified background refresh job, server change-stream push, browsable draft history, collaborative editing, version-diff/one-click rollback UI, anonymous dashboard sharing or general result cache. HTML may implement polling; MySQL/Doris scenarios exercised this path. Available ontology adapters depend on data-xpert's published resources and Actions, not a new direct REST or semantic-model provider.
+There is no unified background refresh job, server change-stream push, browsable draft history, real-time collaborative merge, general version-diff UI or anonymous dashboard sharing. Published history can be restored to a new draft for review and publication. Standard dashboards refresh while visible; optional result reuse requires a Provider that rechecks authorization and source versions. Data Xpert continues to query fresh data. See [Trusted data and artifact conversion](/en/guides/collaborative-artifacts/trusted-data). Available ontology adapters depend on data-xpert's published resources and Actions, not a new direct REST or semantic-model provider.
 
 Local evidence does not establish npm release compatibility, production images/deployment or multi-tenant load performance. Maintain feature descriptions from source contracts and explicitly scoped acceptance reports.
 

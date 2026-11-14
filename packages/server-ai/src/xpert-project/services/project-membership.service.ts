@@ -6,7 +6,7 @@ import {
     UserType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { User, UserOrganization, UserPublicDTO } from '@xpert-ai/server-core'
+import { User, UserOrganization } from '@xpert-ai/server-core'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -39,12 +39,12 @@ export class XpertProjectMembershipService {
             this.membershipRepository.find({ where: { projectId }, relations: ['user'], order: { joinedAt: 'ASC' } })
         ])
         return [
-            ...(owner ? [{ ...new UserPublicDTO(owner), projectRole: 'owner' as const }] : []),
+            ...(owner ? [{ ...publicMemberUser(owner), projectRole: 'owner' as const }] : []),
             ...memberships.flatMap((membership) =>
                 membership.user
                     ? [
                           {
-                              ...new UserPublicDTO(membership.user),
+                              ...publicMemberUser(membership.user),
                               membershipId: membership.id,
                               projectRole: membership.role,
                               joinedAt: membership.joinedAt
@@ -439,5 +439,18 @@ export function validateProjectMemberRole(role: string): asserts role is TXpertP
         throw new BadRequestException(
             t('server-ai:Error.InvalidProjectMemberRole', { defaultValue: 'Invalid Project member role' })
         )
+    }
+}
+
+/** DTO constructors copy enumerable properties; spreading drops their decorator-based exclusions.
+ * Select the member response fields explicitly so credentials and future User fields cannot leak. */
+function publicMemberUser(user: Pick<User, 'id' | 'firstName' | 'lastName' | 'email' | 'username' | 'imageUrl'>) {
+    return {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        imageUrl: user.imageUrl
     }
 }

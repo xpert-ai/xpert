@@ -89,7 +89,7 @@ export class ArtifactUseGrantService {
     /** Host-only composition with reference insertion; the caller owns the transaction. */
     async acceptInTransaction(
         actor: ContentActor,
-        input: ChangeArtifactUseGrant & { acceptAnalysis?: boolean },
+        input: ChangeArtifactUseGrant & { acceptAnalysis?: boolean; acceptDelegatedResults?: boolean },
         manager: EntityManager
     ) {
         this.actor(actor)
@@ -99,7 +99,12 @@ export class ArtifactUseGrantService {
         const { artifact } = await this.source(manager, actor, grant.artifactId, grant.versionId, grant.ownerProjectId)
         await this.types.assertUseGrant(artifact, grant)
         grant.status = 'active'
-        if (!input.acceptAnalysis) grant.analysis = null
+        // Older clients cannot consent to issuer-identity execution accidentally.
+        if (
+            !input.acceptAnalysis ||
+            (grant.analysis?.execution === 'delegated_results' && !input.acceptDelegatedResults)
+        )
+            grant.analysis = null
         grant.acceptedById = actor.userId
         grant.acceptedAt = new Date()
         grant.revision++

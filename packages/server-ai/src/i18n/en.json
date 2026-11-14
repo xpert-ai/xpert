@@ -85,6 +85,11 @@
         "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
     },
     "Error": {
+        "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
+        "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",
+        "CollaborationInvalidRevision": "The collaboration resource revision is invalid.",
+        "CollaborationSchemaChanged": "The collaboration document changed or was upgraded. Reload before retrying.",
+        "CollaborationMigrationInvalid": "This collaboration schema migration is not supported.",
         "ScheduleReportMissing": "The check did not submit a difference report.",
         "ScheduleRunInProgress": "This task is running. Change its destination when the check finishes.",
         "AmbiguousTaskName": "Multiple tasks match this name. Provide the task ID.",
@@ -709,6 +714,9 @@
         "McpOAuthProOnly": "MCP OAuth is available only in Xpert Pro.",
         "McpAppApprovalDenied": "MCP App tool approval is missing, invalid, expired, or was issued for another call.",
         "McpAppApprovalNotFound": "MCP App tool approval request was not found or has expired.",
+        "McpAppViewToolArgumentsTooLarge": "MCP App tool arguments exceed the host limit.",
+        "McpAppViewToolInvocationInvalid": "Invalid MCP App view tool invocation.",
+        "McpAppViewToolConfirmationRequired": "MCP App view tool requires user confirmation.",
         "McpAppToolResultTextRequired": "An MCP App tool result must include non-empty text content for non-App clients.",
         "McpAppToolResultStructuredRequired": "An MCP App tool result must include structuredContent for the App.",
         "McpAppUserBindingMismatch": "The MCP App instance belongs to another user.",

@@ -1,9 +1,12 @@
 import type { ArtifactDocumentControls } from './protocol'
+import type { AnalyticsQueryRequest } from '@xpert-ai/contracts'
 
 export type ArtifactQueryPriority = 'interactive' | 'initial' | 'refresh'
 export interface ArtifactQueryInput {
   bindingId: string
   controls: ArtifactDocumentControls
+  /** Forward to the runtime; a refresh must not coalesce with an earlier reuse request. */
+  cache?: AnalyticsQueryRequest['cache']
 }
 export interface ArtifactQueryState {
   bindingId: string
@@ -38,6 +41,7 @@ const failure = (code: string) => Object.assign(new Error(code), { code })
 const keyOf = (input: ArtifactQueryInput) =>
   JSON.stringify([
     input.bindingId,
+    input.cache ?? null,
     Object.keys(input.controls)
       .sort()
       .map((key) => [key, input.controls[key]])
@@ -143,7 +147,11 @@ export function createArtifactQueryScheduler<T>(options: ArtifactQuerySchedulerO
         rejectPromise = no
       })
       const task: Task<T> = {
-        input: { bindingId: input.bindingId, controls: { ...input.controls } },
+        input: {
+          bindingId: input.bindingId,
+          controls: { ...input.controls },
+          ...(input.cache ? { cache: { ...input.cache } } : {})
+        },
         key,
         priority: priorities[priority],
         controller: new AbortController(),

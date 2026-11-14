@@ -49,8 +49,59 @@ export function sanitizePresence(value: ICollaborationPresence): ICollaborationP
     }
 }
 
+export function sanitizeCellRange(
+    value: unknown
+): NonNullable<NonNullable<ICollaborationPresence['selection']>['cells']> | null {
+    if (
+        !value ||
+        typeof value !== 'object' ||
+        !('sheetId' in value) ||
+        typeof value.sheetId !== 'string' ||
+        !value.sheetId ||
+        value.sheetId.length > 256 ||
+        !('startRow' in value) ||
+        !('endRow' in value) ||
+        !('startColumn' in value) ||
+        !('endColumn' in value)
+    )
+        return null
+    const { sheetId, startRow, endRow, startColumn, endColumn } = value
+    if (
+        typeof startRow !== 'number' ||
+        typeof endRow !== 'number' ||
+        typeof startColumn !== 'number' ||
+        typeof endColumn !== 'number' ||
+        ![startRow, endRow, startColumn, endColumn].every(Number.isSafeInteger) ||
+        startRow < 0 ||
+        startColumn < 0 ||
+        endRow < startRow ||
+        endColumn < startColumn ||
+        endRow > 1048575 ||
+        endColumn > 16383
+    )
+        return null
+    const baseRevision = 'baseRevision' in value ? value.baseRevision : undefined
+    if (
+        baseRevision !== undefined &&
+        (typeof baseRevision !== 'number' || !Number.isSafeInteger(baseRevision) || baseRevision < 1)
+    )
+        return null
+    return {
+        sheetId,
+        startRow,
+        endRow,
+        startColumn,
+        endColumn,
+        ...(typeof baseRevision === 'number' ? { baseRevision } : {})
+    }
+}
+
 function sanitizeSelection(selection: ICollaborationPresence['selection']) {
     if (!selection) return null
+    if (selection.kind === 'cells') {
+        const cells = sanitizeCellRange(selection.cells)
+        return cells ? { kind: 'cells' as const, cells } : null
+    }
     return {
         kind: selection.kind,
         fieldKey: optionalText(selection.fieldKey, 512) ?? null,

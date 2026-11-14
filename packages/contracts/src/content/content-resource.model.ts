@@ -1,6 +1,6 @@
-import type { I18nObject } from './i18n.model'
-import type { ArtifactTypeDescriptor } from './artifact.model'
-import type { IconDefinition } from './types'
+import type { I18nObject } from '../i18n.model'
+import type { ArtifactTypeDescriptor } from '../artifacts/artifact.model'
+import type { IconDefinition } from '../types'
 
 export type ContentAction = 'rename' | 'move' | 'trash' | 'restore' | 'duplicate'
 export type ContentSourceLocation =
@@ -38,6 +38,9 @@ export interface ContentResourceSnapshot extends ContentModelIdentity {
   /** Opt in only when all Project readers may read the source even without this provider.
    * Resources with additional native ACLs must omit this field and fail closed offline. */
   offlineAccess?: 'project'
+  /** Provider owns persistence for these source/contained paths. Ordinary Workspace
+   * writes are rejected; provider Runtime capabilities retain their authorized writer. */
+  writeOwnership?: 'provider'
   sourceSync?: { status: 'synced' | 'pending' | 'failed'; revision?: string }
   /** Safe structural preview, never HTML, credentials or viewer-dependent query data. */
   preview?: { kind: 'outline'; revision: string; lines: string[] }

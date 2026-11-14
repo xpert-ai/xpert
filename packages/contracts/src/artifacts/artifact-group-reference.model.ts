@@ -1,6 +1,6 @@
 import type { ArtifactLibraryView } from './artifact-presentation.model'
 import type { IArtifactUseGrant } from './artifact-use-grant.model'
-import type { ResourceAnalysisPolicy } from './resource-analysis.model'
+import type { ResourceAnalysisPolicy } from '../analytics/resource-analysis.model'
 
 /**
  * Client-safe grant projection used by source-management and group acceptance APIs.

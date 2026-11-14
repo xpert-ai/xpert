@@ -60,6 +60,8 @@ export interface AnalyticsProviderResult {
   upstreamExecutionId?: string
   /** Reference to audit evidence, not embedded logs or credentials. */
   auditRef?: string
+  /** Only source-verified business approvals; never copy from Binding payload or display metadata. */
+  certification?: AnalyticalDataset['provenance']['certification']
 }
 
 /**
@@ -71,6 +73,15 @@ export interface AnalyticsQueryProvider {
   readonly descriptor: AnalyticsProviderDescriptor
   readonly configuration?: AnalyticsConfigurationEntry
   readonly authoring?: AnalyticsDefinitionAuthoring
+  /** Independently authorize this exact query, including upstream privileges, and return its current
+   * sourceVersion. Called before and after EVERY reuse (including coalesced requests). Omission disables
+   * caching. The revision must match execute() and cover the exact result, including its certification.
+   * Metadata discovery alone is insufficient. Never return a credential or reusable grant. */
+  authorizeResultReuse?(
+    binding: AnalyticsBinding,
+    parameters: Record<string, AnalyticsValue>,
+    context: AnalyticsProviderContext
+  ): Promise<{ sourceVersion: string }>
   /** Explicit source authority to disclose this binding's results to a group.
    * Read access alone is insufficient. Unsupported providers must remain view-only. */
   authorizeGroupSharing?(binding: AnalyticsBinding, context: AnalyticsProviderContext): Promise<void>

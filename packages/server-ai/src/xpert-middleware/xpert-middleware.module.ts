@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { McpAppToolsMiddleware } from './mcp-app-tools.middleware'
 import { ChatConversationModule } from '../chat-conversation'
 import { BrowserAutomationMiddleware } from './browser-automation.middleware'
 import { ClientEffectMiddleware } from './client-effect.middleware'
@@ -17,6 +18,7 @@ import { RequestUserInputMiddleware } from './request-user-input.middleware'
 @Module({
     imports: [ChatConversationModule],
     providers: [
+        McpAppToolsMiddleware,
         ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,
@@ -32,6 +34,7 @@ import { RequestUserInputMiddleware } from './request-user-input.middleware'
         TodoListMiddleware
     ],
     exports: [
+        McpAppToolsMiddleware,
         ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,

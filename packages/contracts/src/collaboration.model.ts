@@ -1,6 +1,12 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 
-export type CollaborationEngine = 'yjs'
+/**
+ * Selects who owns authoritative content, not a generic merge algorithm.
+ * `yjs`: the platform persists/merges CRDT state and the plugin materializes it.
+ * `operations`: the domain service commits its own operations; the platform provides
+ * authorized sessions, presence and revision invalidation, without accepting content edits.
+ */
+export type CollaborationEngine = 'yjs' | 'operations'
 export type CollaborationDocumentStatus = 'active' | 'archived' | 'deleted'
 export type CollaborationMaterializationStatus = 'ready' | 'pending' | 'failed'
 export type CollaborationActorType = 'user' | 'agent' | 'system'
@@ -42,9 +48,19 @@ export interface ICollaborationFocus {
   fieldKey?: string | null
 }
 
-/** A text range expressed as Yjs relative positions, or a set of selected element ids. */
+/** A text range expressed as Yjs relative positions, selected element ids, or a cell range. */
 export interface ICollaborationSelection {
-  kind: 'text' | 'elements'
+  kind: 'text' | 'elements' | 'cells'
+  /** Zero-based, bounded range for operation-backed spreadsheet presence. */
+  cells?: {
+    sheetId: string
+    startRow: number
+    endRow: number
+    startColumn: number
+    endColumn: number
+    /** Canonical revision whose coordinates this range uses. Absent means unversioned. */
+    baseRevision?: number
+  } | null
   fieldKey?: string | null
   elementIds?: string[] | null
   anchorRelativeBase64?: string | null
@@ -71,8 +87,9 @@ export interface ICollaborationPresence extends ICollaborationActor {
 }
 
 /**
- * Authoritative, platform-managed state of one plugin collaboration resource.
- * Plugin business entities are materialized projections of this Yjs state.
+ * Platform registration and lifecycle metadata for one collaboration resource.
+ * Only `yjs` stores authoritative content here. For `operations`, content and the
+ * current revision remain in the domain service; CRDT fields are compatibility placeholders.
  */
 export interface ICollaborationDocument extends IBasePerTenantAndOrganizationEntityModel {
   /** Provider registered by a plugin, such as `presentation-studio.deck`. */
@@ -80,18 +97,20 @@ export interface ICollaborationDocument extends IBasePerTenantAndOrganizationEnt
   /** Stable business-resource id understood by the provider. */
   resourceId: string
   engine: CollaborationEngine
-  /** Version of the plugin-owned Yjs schema, not the platform database schema. */
+  /** Provider schema version used to fence sessions; not the platform database schema. */
   schemaVersion: number
   status: CollaborationDocumentStatus
-  /** Complete Yjs state encoded as a base64 update. */
+  /** Complete Yjs state encoded as a base64 update; empty for `operations`. */
   stateBase64: string
-  /** State vector corresponding exactly to `stateBase64`. */
+  /** Yjs state vector corresponding to `stateBase64`; empty for `operations`. */
   stateVectorBase64: string
-  /** Monotonic platform sequence incremented once for each unique accepted update. */
+  /** Yjs update sequence. For `operations`, initialization metadata only; never the live domain revision. */
   sequenceNumber: number
+  /** Accepted Yjs updates; remains zero for `operations`. */
   updateCount: number
-  /** Highest sequence successfully projected into the plugin business entity. */
+  /** Highest materialized Yjs sequence; unused by the `operations` content pipeline. */
   materializedSequence: number
+  /** Yjs projection health; `operations` starts ready and has no platform projection. */
   materializationStatus: CollaborationMaterializationStatus
   lastMaterializationError?: string | null
   workspaceId?: string | null
@@ -108,7 +127,8 @@ export interface ICollaborationUpdate extends IBasePerTenantAndOrganizationEntit
   /** Sequence assigned while the document row is locked. */
   sequenceNumber: number
   updateBase64: string
-  /** SHA-256 of the decoded update bytes; unique per document. */
+  /** SHA-256 deduplication key, unique per document. Ordinary updates hash decoded bytes;
+   * schema migrations prefix them with `platform:schema-migration:<targetSchemaVersion>:`. */
   updateHash: string
   origin?: string | null
   actorType?: CollaborationActorType | null

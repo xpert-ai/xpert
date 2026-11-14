@@ -74,6 +74,22 @@ describe('platform collaboration SDK', () => {
     expect(CollaborationRuntimeCapability.id).toBe('platform.collaboration')
   })
 
+  it('rejects operations sessions before observing a binary document or opening transport', () => {
+    const transport = new TestTransport()
+    const document = new TestDocument()
+    const observe = jest.spyOn(document, 'onUpdate')
+    expect(() =>
+      createCollaborationClient({
+        session: { ...testSession(), engine: 'operations' },
+        transport,
+        document
+      })
+    ).toThrow('Yjs collaboration protocol required')
+    expect(observe).not.toHaveBeenCalled()
+    expect(transport.connected).toBe(false)
+    expect(transport.emitted).toEqual([])
+  })
+
   it('round-trips browser-safe base64 payloads', () => {
     const bytes = new Uint8Array([0, 1, 127, 128, 255])
     expect(base64ToBytes(bytesToBase64(bytes))).toEqual(bytes)

@@ -46,7 +46,11 @@ export type CollaborationRuntimeActor = {
   avatarUrl?: string | null
 }
 
-/** Metadata-only representation of the platform collaboration document. */
+/**
+ * Platform registration metadata. In `operations` mode, sequence/materialization fields
+ * are initialization metadata, not the live domain revision; use revision notifications
+ * to invalidate the domain API read. Business writes never go through this record.
+ */
 export type CollaborationDocumentRecord = CollaborationScope & {
   id: string
   providerKey: string
@@ -100,6 +104,8 @@ export type ApplyCollaborationUpdateInput = {
   origin?: string | null
   /** Optional compare-and-set guard for destructive or order-sensitive operations. */
   expectedSequence?: number | null
+  /** Reject updates from a pre-migration session, including races after its access check. */
+  expectedSchemaVersion?: number | null
   actor?: CollaborationRuntimeActor | null
 }
 
@@ -121,6 +127,8 @@ export type CreateCollaborationSessionInput = {
 
 /** Credentials and backend URL required by a browser transport. */
 export type CollaborationSessionDescriptor = {
+  /** Omitted by legacy hosts; those sessions always use Yjs. */
+  engine?: CollaborationEngine
   sessionId: string
   clientKey: string
   documentId: string
@@ -159,15 +167,32 @@ export type RemoveVirtualPresenceInput = {
   actorKey?: string | null
 }
 
+/** Provider-owned schema migration with a revision fence; callers cannot submit replacement state. */
+export type MigrateCollaborationDocumentInput = {
+  documentId: string
+  expectedSequence: number
+  expectedSchemaVersion: number
+  targetSchemaVersion: number
+}
+
 /** Runtime capability exposed to scoped plugin and Agent executions. */
 export interface CollaborationApi {
+  /**
+   * Operations only: invalidate subscribers after the domain transaction commits.
+   * Reads the provider revision; callers cannot supply a fabricated revision. This is
+   * not a write acknowledgement or an operation log. Reconnect/periodic sync repairs
+   * missed notifications. Optional for compatibility with older hosts.
+   */
+  notifyRevision?(input: GetCollaborationDocumentInput): Promise<{ documentId: string; revision: number }>
+  /** Yjs only. Optional on older hosts; preserves identity while fencing old schema sessions. */
+  migrateDocument?(input: MigrateCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
   /** Ensure a provider/resource pair has one platform collaboration document. */
   ensureDocument(input: EnsureCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
-  /** Read document metadata and trigger materialization read repair when required. */
+  /** Read registration metadata; trigger projection repair only for Yjs documents. */
   getDocument(input: GetCollaborationDocumentInput): Promise<CollaborationDocumentRecord>
-  /** Read complete state or a state-vector-relative Yjs delta. */
+  /** Yjs only: read complete state or a state-vector-relative delta. Rejects operations documents. */
   getDocumentState(input: GetCollaborationDocumentStateInput): Promise<CollaborationDocumentState>
-  /** Authorize, deduplicate, merge, persist, broadcast, and materialize an update. */
+  /** Yjs only: authorize, merge, persist and materialize a binary update. Rejects operations documents. */
   applyUpdate(input: ApplyCollaborationUpdateInput): Promise<ApplyCollaborationUpdateResult>
   /** Issue single-document browser credentials with read or write access. */
   createSession(input: CreateCollaborationSessionInput): Promise<CollaborationSessionDescriptor>
@@ -221,14 +246,21 @@ export type CollaborationMaterializationEvent = CollaborationProviderContext & {
 }
 
 /**
- * Plugin-owned adapter between a business resource and the platform collaboration engine.
+ * Yjs adapter between a business resource and the platform CRDT engine.
  * Authorization remains the plugin's responsibility; the platform owns transport and CRDT state.
  */
 export interface ICollaborationDocumentProvider {
+  readonly engine?: 'yjs'
   /** Authorize the exact resource and requested operation in the supplied platform scope. */
   authorize(context: CollaborationProviderContext): Promise<boolean> | boolean
   /** Validate the merged state before commit, including updates received through WebSockets. */
-  validateDocument?(context: CollaborationProviderContext & { stateBase64: string }): Promise<void> | void
+  validateDocument?(
+    context: CollaborationProviderContext & { stateBase64: string; schemaVersion?: number }
+  ): Promise<void> | void
+  /** Upgrade a known persisted schema; never infer or downgrade versions. Host serializes and validates it. */
+  migrateDocument?(
+    context: CollaborationProviderContext & { stateBase64: string; schemaVersion: number; targetSchemaVersion: number }
+  ): Promise<CollaborationDocumentInitialization> | CollaborationDocumentInitialization
   /** Return an idempotent initial snapshot without creating a business version. */
   initializeDocument(
     context: CollaborationProviderContext
@@ -238,3 +270,21 @@ export interface ICollaborationDocumentProvider {
   /** Optionally clean plugin-owned associations after a platform soft delete. */
   onDocumentDeleted?(context: CollaborationProviderContext): Promise<void> | void
 }
+
+/**
+ * Adapter for domain-owned operations; it does not implement OT or CRDT merging.
+ * The domain service owns commands, validation, authorization, idempotency, conflicts,
+ * persistence and undo. The platform owns sessions, revision invalidation and presence.
+ * There are deliberately no initialize/materialize/apply hooks for content here.
+ */
+export interface ICollaborationOperationsProvider {
+  readonly engine: 'operations'
+  /** Session compatibility version; independent of the monotonically increasing domain revision. */
+  readonly schemaVersion: number
+  /** Recheck current resource access; a session never grants domain write permission on its own. */
+  authorize(context: CollaborationProviderContext): Promise<boolean> | boolean
+  /** Read the committed, monotonic safe-integer revision (>= 0); must not mutate domain state. */
+  getRevision(context: CollaborationProviderContext): Promise<number> | number
+  onDocumentDeleted?(context: CollaborationProviderContext): Promise<void> | void
+}
+export type CollaborationProvider = ICollaborationDocumentProvider | ICollaborationOperationsProvider

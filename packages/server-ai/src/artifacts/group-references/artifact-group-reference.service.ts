@@ -73,7 +73,7 @@ export class ArtifactGroupReferenceService {
     async attach(
         actor: ContentActor,
         groupId: string,
-        input: ChangeArtifactUseGrant & { acceptAnalysis?: boolean }
+        input: ChangeArtifactUseGrant & { acceptAnalysis?: boolean; acceptDelegatedResults?: boolean }
     ): Promise<ArtifactGroupReference> {
         const target = await this.target(actor, groupId, 'manage')
         return this.db.transaction(async (manager) => {

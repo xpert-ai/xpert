@@ -8,6 +8,7 @@ import {
     SandboxJobRuntimeError,
     AnalyticsProviderError,
     type AnalyticsQueryProvider,
+    type AnalyticsProviderContext,
     type AnalyticsProviderResult
 } from '@xpert-ai/plugin-sdk'
 import {
@@ -82,6 +83,7 @@ describe('one Analytics Runtime for governed sources', () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(actor.tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(actor.userId)
+        delete provider.authorizeResultReuse
         list.mockReset().mockReturnValue([provider])
         groupBinding.mockReset()
         execute.mockReset().mockResolvedValue(result)
@@ -142,6 +144,171 @@ describe('one Analytics Runtime for governed sources', () => {
             {},
             expect.objectContaining({ actor, source: ref, options: { private: 'secret' } })
         )
+    })
+    it('keeps caching opt-in and unsupported providers fresh', async () => {
+        await runtime.query(actor, { binding, controls: {}, cache: { maxAgeMs: 60000 } })
+        await runtime.query(actor, { binding, controls: {}, cache: { maxAgeMs: 60000 } })
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        await runtime.query(actor, { binding, controls: {} })
+        await runtime.query(actor, { binding, controls: {} })
+        expect(execute).toHaveBeenCalledTimes(4)
+    })
+    it('reauthorizes each hit and retains original execution timestamps and immutable copies', async () => {
+        const proof = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        provider.authorizeResultReuse = proof
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        const first = await runtime.query(actor, input)
+        const original = structuredClone(first)
+        first.rows[0].amount = '999'
+        expect(await runtime.query(actor, input)).toEqual(original)
+        expect(execute).toHaveBeenCalledTimes(1)
+        expect(proof).toHaveBeenCalledTimes(5)
+        proof.mockRejectedValue(new Error('revoked'))
+        await expect(runtime.query(actor, input)).rejects.toThrow()
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+    it('invalidates on source changes and never releases a result revoked during cache retrieval', async () => {
+        const proof = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        provider.authorizeResultReuse = proof
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        await runtime.query(actor, input)
+        proof.mockResolvedValueOnce({ sourceVersion: 'v1' }).mockRejectedValueOnce(new Error('revoked'))
+        await expect(runtime.query(actor, input)).rejects.toThrow()
+        proof.mockResolvedValue({ sourceVersion: 'v2' })
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v2' })
+        expect((await runtime.query(actor, input)).provenance.sourceVersion).toBe('v2')
+        expect(execute).toHaveBeenCalledTimes(2)
+    })
+    it('partitions identity, resolved source options and parameters, and honors force refresh', async () => {
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        await runtime.query(actor, input)
+        await runtime.query(actor, { ...input, cache: { ...input.cache, forceRefresh: true } })
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('second-viewer')
+        await runtime.query({ ...actor, userId: 'second-viewer' }, input)
+        resolve.mockImplementation(async (_actor, ref) => ({
+            source: ref,
+            providerIds: ['file.table'],
+            options: { private: 'changed' },
+            revalidate
+        }))
+        await runtime.query({ ...actor, userId: 'second-viewer' }, input)
+        await runtime.query(
+            { ...actor, userId: 'second-viewer' },
+            {
+                ...input,
+                binding: {
+                    ...binding,
+                    parameters: [{ name: 'region', controlId: 'region', type: 'string', required: true }]
+                },
+                controls: { region: 'east' }
+            }
+        )
+        expect(execute).toHaveBeenCalledTimes(5)
+    })
+    it('does not cache provider failures or mismatching source proofs', async () => {
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        execute
+            .mockRejectedValueOnce(new Error('upstream failed'))
+            .mockResolvedValueOnce({ ...result, sourceVersion: 'other' })
+            .mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        await expect(runtime.query(actor, input)).rejects.toThrow()
+        await expect(runtime.query(actor, input)).rejects.toThrow()
+        await runtime.query(actor, input)
+        await runtime.query(actor, input)
+        expect(execute).toHaveBeenCalledTimes(3)
+    })
+    it('invalidates earlier cached results even when force refresh has a zero age budget', async () => {
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        const previous = await runtime.query(actor, input)
+        await runtime.query(actor, { ...input, cache: { maxAgeMs: 0, forceRefresh: true } })
+        const latest = await runtime.query(actor, input)
+        expect(latest.provenance.executionId).not.toBe(previous.provenance.executionId)
+        expect(execute).toHaveBeenCalledTimes(3)
+    })
+    it('keeps a newer cached result when an older superseded query fails', async () => {
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        let rejectOld!: (reason: Error) => void
+        let notifyStarted!: () => void
+        const started = new Promise<void>((resolve) => {
+            notifyStarted = resolve
+        })
+        const oldResult = new Promise<AnalyticsProviderResult>((_resolve, reject) => {
+            rejectOld = reject
+        })
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' }).mockImplementationOnce(() => {
+            notifyStarted()
+            return oldResult
+        })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        const oldFailure = expect(runtime.query(actor, input)).rejects.toThrow()
+        await started
+        await runtime.query(actor, { ...input, cache: { ...input.cache, forceRefresh: true } })
+        const latest = await runtime.query(actor, input)
+        rejectOld(new Error('Old execution failed'))
+        await oldFailure
+        expect(await runtime.query(actor, input)).toEqual(latest)
+        expect(execute).toHaveBeenCalledTimes(3)
+    })
+    it('reauthorizes each coalesced caller before releasing a shared result', async () => {
+        const denied = new Set<string>()
+        const authorized: string[] = []
+        let release!: (value: AnalyticsProviderResult) => void
+        let notifyStarted!: () => void
+        const started = new Promise<void>((resolve) => {
+            notifyStarted = resolve
+        })
+        const pending = new Promise<AnalyticsProviderResult>((resolve) => {
+            release = resolve
+        })
+        execute.mockImplementation(() => {
+            notifyStarted()
+            return pending
+        })
+        provider.authorizeResultReuse = jest.fn(async (_binding, _parameters, context: AnalyticsProviderContext) => {
+            if (denied.has(context.executionId)) throw new Error('revoked')
+            authorized.push(context.executionId)
+            return { sourceVersion: 'v1' }
+        })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        const first = runtime.query(actor, input)
+        await started
+        const secondFailure = expect(runtime.query(actor, input)).rejects.toThrow()
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        expect(authorized).toHaveLength(2)
+        denied.add(authorized[1])
+        release({ ...result, sourceVersion: 'v1' })
+        expect((await first).rows).toEqual([{ amount: '12.50' }])
+        await secondFailure
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+    it('does not reuse cached results after replacing a provider instance', async () => {
+        provider.authorizeResultReuse = jest.fn().mockResolvedValue({ sourceVersion: 'v1' })
+        execute.mockResolvedValue({ ...result, sourceVersion: 'v1' })
+        const input = { binding, controls: {}, cache: { maxAgeMs: 60000 } }
+        const previous = await runtime.query(actor, input)
+        list.mockReturnValue([{ ...provider }])
+        const next = await runtime.query(actor, input)
+        expect(next.provenance.executionId).not.toBe(previous.provenance.executionId)
+        expect(execute).toHaveBeenCalledTimes(2)
+    })
+    it.each([
+        { maxAgeMs: -1 },
+        { maxAgeMs: 60001 },
+        { maxAgeMs: 1.5 },
+        { maxAgeMs: '1000' },
+        { maxAgeMs: 1000, forceRefresh: 'true' },
+        { maxAgeMs: 1000, actorId: 'someone-else' }
+    ])('rejects invalid cache options at the HTTP boundary: %j', async (cache) => {
+        const response = await post({ binding, controls: {}, cache })
+        expect(response.status).toBe(400)
+        expect(execute).not.toHaveBeenCalled()
     })
     it('retains source-specific sharing restrictions without weakening a private provider', async () => {
         const registry = app.get(AnalyticsProviderRegistry)

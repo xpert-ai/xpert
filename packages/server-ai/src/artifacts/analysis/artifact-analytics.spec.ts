@@ -1,3 +1,4 @@
+import { DelegatedResourceAnalysisService } from './delegated-resource-analysis.service'
 import { Test, TestingModule } from '@nestjs/testing'
 import type {
     AnalyticsBinding,
@@ -115,6 +116,7 @@ describe('Artifact Type analytics composition without a Presentation registry', 
         module = await Test.createTestingModule({
             providers: [
                 GroupResourceAnalysisService,
+                { provide: DelegatedResourceAnalysisService, useValue: { authorize: jest.fn(), execute: jest.fn() } },
                 ResourceAnalysisAuthoringHandler,
                 { provide: ArtifactTypesService, useValue: types },
                 {
@@ -223,5 +225,37 @@ describe('Artifact Type analytics composition without a Presentation registry', 
             types.registry.remove(actor.organizationId, type.pluginName)
         )
         await expect(authoring.execute(new ResourceAnalysisAuthoringCommand(actor, id, id, policy))).rejects.toThrow()
+    })
+    it('validates all delegated control choices before issuing a policy', async () => {
+        resolveBindings.mockResolvedValue([
+            {
+                binding: {
+                    ...binding,
+                    parameters: [
+                        { name: 'region', controlId: 'region', type: 'string', required: true, defaultValue: 'east' }
+                    ]
+                }
+            }
+        ])
+        const delegated: ResourceAnalysisPolicy = {
+            ...policy,
+            execution: 'delegated_results',
+            datasets: [{ ...policy.datasets[0], controlValues: { region: ['east', 'west'] } }]
+        }
+        await expect(
+            authoring.execute(new ResourceAnalysisAuthoringCommand(actor, id, id, delegated))
+        ).resolves.toHaveLength(1)
+        for (const controlValues of [{ unknown: ['east'] }, { region: ['east', 42] }]) {
+            authorizeGroupSharing.mockClear()
+            await expect(
+                authoring.execute(
+                    new ResourceAnalysisAuthoringCommand(actor, id, id, {
+                        ...delegated,
+                        datasets: [{ ...policy.datasets[0], controlValues }]
+                    })
+                )
+            ).rejects.toThrow()
+            expect(authorizeGroupSharing).not.toHaveBeenCalled()
+        }
     })
 })

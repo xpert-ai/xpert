@@ -52,6 +52,15 @@
                 ]
               },
               {
+                "group": "Collaborative Artifacts",
+                "pages": [
+                  "en/guides/collaborative-artifacts/overview",
+                  "en/guides/collaborative-artifacts/sheets",
+                  "en/guides/collaborative-artifacts/trusted-data",
+                  "en/guides/collaborative-artifacts/operations"
+                ]
+              },
+              {
                 "group": "Artifacts Dashboard",
                 "pages": [
                   "en/guides/artifacts-dashboard/overview",
@@ -96,6 +105,7 @@
                   "en/guides/minio-file-storage",
                   "en/guides/rustfs-file-storage",
                   "en/guides/agent-middleware",
+                  "en/guides/mcp-app-tools",
                   "en/guides/workspace-skill-creator",
                   "en/guides/chatkit-slash-commands",
                   "en/guides/runtime-user-input",
@@ -188,6 +198,15 @@
                 ]
               },
               {
+                "group": "协作成果",
+                "pages": [
+                  "zh-Hans/guides/collaborative-artifacts/overview",
+                  "zh-Hans/guides/collaborative-artifacts/sheets",
+                  "zh-Hans/guides/collaborative-artifacts/trusted-data",
+                  "zh-Hans/guides/collaborative-artifacts/operations"
+                ]
+              },
+              {
                 "group": "Artifacts 实时看板",
                 "pages": [
                   "zh-Hans/guides/artifacts-dashboard/overview",
@@ -235,6 +254,7 @@
                   "zh-Hans/guides/assistant-architecture",
                   "zh-Hans/guides/clawxpert-skill-selection",
                   "zh-Hans/guides/agent-middleware",
+                  "zh-Hans/guides/mcp-app-tools",
                   "zh-Hans/guides/workspace-skill-creator",
                   "zh-Hans/guides/view-extension-runtime-features",
                   "zh-Hans/guides/datax-metric-management-plugin",

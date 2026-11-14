@@ -1,6 +1,7 @@
 import { ArtifactGroupContentService } from './group-references/artifact-group-content.service'
 import { DiscoverGroupResourcesHandler } from './group-references/commands/handlers/discover-group-resources.handler'
 import { GroupResourceAnalysisService } from './analysis/group-resource-analysis.service'
+import { DelegatedResourceAnalysisService } from './analysis/delegated-resource-analysis.service'
 import { GroupResourceNavigationHandler } from './group-references/commands/handlers/group-resource-navigation.handler'
 import { ResourceAnalysisAuthoringHandler } from './analysis/commands/handlers/resource-analysis-authoring.handler'
 import { GroupResourceAnalysisHandler } from './analysis/commands/handlers/group-resource-analysis.handler'
@@ -88,6 +89,7 @@ import { ArtifactPresentationController } from './presentation/artifact-presenta
         DiscoverGroupResourcesHandler,
         ArtifactGroupContentService,
         GroupResourceAnalysisService,
+        DelegatedResourceAnalysisService,
         ResourceAnalysisAuthoringHandler,
         GroupResourceAnalysisHandler,
         GroupAnalysisStreamingHandler,

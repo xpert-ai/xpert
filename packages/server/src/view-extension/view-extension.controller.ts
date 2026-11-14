@@ -15,7 +15,7 @@ import {
 	UseInterceptors
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { IsObject, IsOptional, IsString } from 'class-validator'
+import { IsObject, IsOptional, IsString, Length } from 'class-validator'
 import type { Response } from 'express'
 import { SecretTokenBindingType, type XpertViewScalar } from '@xpert-ai/contracts'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
@@ -25,6 +25,12 @@ import { ApiKeyOrClientSecretAuthGuard } from '../shared/guards'
 import { UseValidationPipe } from '../shared/pipes'
 import { ViewExtensionService } from './view-extension.service'
 import { parseParameterOptionsQuery, parseViewQuery } from './view-extension.utils'
+
+class LocalDraftBindingQuery {
+	@IsString()
+	@Length(1, 256)
+	resourceId: string
+}
 
 class ExecuteViewActionDto {
 	@IsOptional()
@@ -70,6 +76,19 @@ export class ViewExtensionRoutes {
 		@Query() query: Record<string, string | string[] | undefined>
 	) {
 		return this.service.getViewData(hostType, hostId, viewKey, parseViewQuery(query))
+	}
+
+	@Get(':hostType/:hostId/views/:viewKey/local-draft-binding')
+	@UseValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })
+	async getLocalDraftBinding(
+		@Param('hostType') hostType: string,
+		@Param('hostId') hostId: string,
+		@Param('viewKey') viewKey: string,
+		@Query() query: LocalDraftBindingQuery,
+		@Res({ passthrough: true }) response: Response
+	) {
+		response.setHeader('Cache-Control', 'no-store')
+		return this.service.getLocalDraftBinding(hostType, hostId, viewKey, query.resourceId)
 	}
 
 	@Get(':hostType/:hostId/views/:viewKey/manifest')

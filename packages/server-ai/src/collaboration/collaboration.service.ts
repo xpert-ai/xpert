@@ -1,4 +1,25 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
+import {
+    toRecord,
+    collaborationScopeKey,
+    scopeColumns,
+    documentScope,
+    scopedDocumentIdWhere,
+    providerContext,
+    createUserActor,
+    createRuntimeActor,
+    createVirtualActor,
+    actorToRuntime,
+    parsePresence,
+    sessionKey,
+    presenceIndexKey,
+    presenceEntryKey,
+    hashSecret,
+    timingSafeHashEqual,
+    parseSession,
+    collaborationConnectionUrl,
+    errorMessage
+} from './collaboration-records'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { t } from 'i18next'
 import {
@@ -14,13 +35,14 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
-import type { IUser } from '@xpert-ai/contracts'
 import {
     CollaborationDocumentProviderRegistry,
     CollaborationRuntimeCapability,
     type ApplyCollaborationUpdateInput,
+    type MigrateCollaborationDocumentInput,
     type ApplyCollaborationUpdateResult,
     type CollaborationApi,
+    type CollaborationEngine,
     type CollaborationDocumentRecord,
     type CollaborationDocumentState,
     type CollaborationPresencePatch,
@@ -39,7 +61,6 @@ import {
     RequestContext,
     type UpsertVirtualPresenceInput
 } from '@xpert-ai/plugin-sdk'
-import { environment } from '@xpert-ai/server-config'
 import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { Repository } from 'typeorm'
@@ -74,6 +95,8 @@ export type CollaborationRuntimeDefaults = CollaborationScope & {
 export type CollaborationSession = CollaborationScope & {
     sessionId: string
     clientKeyHash: string
+    schemaVersion?: number
+    engine?: CollaborationEngine
     documentId: string
     providerKey: string
     resourceId: string
@@ -84,6 +107,7 @@ export type CollaborationSession = CollaborationScope & {
 
 /** Cross-node message envelope shared through Redis and the local gateway event bus. */
 export type CollaborationBroadcast =
+    | { nodeId: string; type: 'revision'; documentId: string; payload: { documentId: string; revision: number } }
     | { nodeId: string; type: 'update'; documentId: string; payload: Record<string, unknown> }
     | { nodeId: string; type: 'presence'; documentId: string; payload: Record<string, unknown> }
     | { nodeId: string; type: 'presence-remove'; documentId: string; payload: Record<string, unknown> }
@@ -129,9 +153,11 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     /** Bind runtime identity and scope once so plugins cannot provide arbitrary tenant context per call. */
     createScopedApi(defaults: CollaborationRuntimeDefaults = {}): CollaborationApi {
         return {
+            notifyRevision: (input) => this.notifyRevisionWithScope(input, this.resolveScope(defaults)),
             ensureDocument: (input) => this.ensureDocumentWithScope(input, this.resolveScope(defaults)),
             getDocument: (input) => this.getDocumentWithScope(input, this.resolveScope(defaults)),
             getDocumentState: (input) => this.getDocumentStateWithScope(input, this.resolveScope(defaults)),
+            migrateDocument: (input) => this.migrateDocumentWithScope(input, this.resolveScope(defaults)),
             applyUpdate: (input) => this.applyUpdateWithScope(input, this.resolveScope(defaults)),
             createSession: (input) => this.createSessionWithScope(input, this.resolveScope(defaults)),
             listPresence: (input) => this.listPresenceWithScope(input.documentId, this.resolveScope(defaults)),
@@ -151,6 +177,10 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         }
     }
 
+    notifyRevision(input: GetCollaborationDocumentInput) {
+        return this.notifyRevisionWithScope(input, this.resolveScope({}))
+    }
+
     ensureDocument(input: EnsureCollaborationDocumentInput) {
         return this.api.ensureDocument(input)
     }
@@ -159,6 +189,9 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     }
     getDocumentState(input: GetCollaborationDocumentStateInput) {
         return this.api.getDocumentState(input)
+    }
+    migrateDocument(input: MigrateCollaborationDocumentInput) {
+        return this.api.migrateDocument(input)
     }
     applyUpdate(input: ApplyCollaborationUpdateInput) {
         return this.api.applyUpdate(input)
@@ -210,6 +243,38 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         return session
     }
 
+    /** Operation documents have no CRDT bytes. Reconnect always reads the domain head. */
+    async getRevisionForSession(session: CollaborationSession) {
+        await this.assertSessionReadable(session)
+        return this.readOperationRevision({ documentId: session.documentId }, session)
+    }
+
+    private async readOperationRevision(input: GetCollaborationDocumentInput, scope: CollaborationScope) {
+        const document = await this.requireDocument(input, scope)
+        await this.authorize(document, scope, 'read')
+        const provider = this.providers.get(document.providerKey, scope.organizationId ?? undefined)
+        if (document.engine !== 'operations' || provider.engine !== 'operations')
+            throw new BadRequestException(t('server-ai:Error.CollaborationEngineMismatch'))
+        const revision = await provider.getRevision(
+            providerContext(document.providerKey, document.resourceId, scope, 'read', document.id)
+        )
+        if (!Number.isSafeInteger(revision) || revision < 0)
+            throw new BadRequestException(t('server-ai:Error.CollaborationInvalidRevision'))
+        await this.authorize(document, scope, 'read')
+        return { documentId: document.id, revision }
+    }
+
+    private async notifyRevisionWithScope(input: GetCollaborationDocumentInput, scope: CollaborationScope) {
+        const result = await this.readOperationRevision(input, scope)
+        await this.publishBroadcast({
+            nodeId: this.nodeId,
+            type: 'revision',
+            documentId: result.documentId,
+            payload: result
+        })
+        return result
+    }
+
     async getStateForSession(session: CollaborationSession, stateVectorBase64?: string | null) {
         await this.assertSessionReadable(session)
         return this.getDocumentStateWithScope({ documentId: session.documentId, stateVectorBase64 }, session)
@@ -220,13 +285,22 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         if (session.expiresAt <= Date.now()) throw new ForbiddenException('Collaboration session expired.')
         const document = await this.requireDocument({ documentId: session.documentId }, session)
         await this.authorize(document, session, 'read')
+        if (document.engine !== (session.engine ?? 'yjs'))
+            throw new ForbiddenException(t('server-ai:Error.CollaborationEngineMismatch'))
+        if (document.schemaVersion !== (session.schemaVersion ?? 1))
+            throw new ForbiddenException(t('server-ai:Error.CollaborationSchemaChanged'))
     }
 
     async applyUpdateForSession(session: CollaborationSession, input: ApplyCollaborationUpdateInput) {
         await this.assertSessionReadable(session)
         if (session.access !== 'write') throw new ForbiddenException('Collaboration session is read-only.')
         return this.applyUpdateWithScope(
-            { ...input, documentId: session.documentId, actor: actorToRuntime(session.actor) },
+            {
+                ...input,
+                documentId: session.documentId,
+                expectedSchemaVersion: session.schemaVersion ?? 1,
+                actor: actorToRuntime(session.actor)
+            },
             session,
             session.actor
         )
@@ -286,11 +360,31 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         const context = providerContext(providerKey, resourceId, scope, 'initialize')
         if (!(await provider.authorize(context)))
             throw new ForbiddenException('Collaboration document access was denied.')
-        const initialized = await provider.initializeDocument(context)
-        const state = parseBase64(initialized.stateBase64, 'initial collaboration state', MAX_DOCUMENT_BYTES)
-        const ydoc = new Y.Doc()
-        if (state.byteLength) Y.applyUpdate(ydoc, state)
-        const encoded = encodeDocument(ydoc)
+        const initialized =
+            provider.engine === 'operations'
+                ? {
+                      stateBase64: '',
+                      schemaVersion: provider.schemaVersion,
+                      initialSequence: await provider.getRevision(context),
+                      metadata: null
+                  }
+                : await provider.initializeDocument(context)
+        let encoded = { stateBase64: '', stateVectorBase64: '' }
+        if (provider.engine !== 'operations') {
+            const state = parseBase64(initialized.stateBase64, 'initial collaboration state', MAX_DOCUMENT_BYTES)
+            const ydoc = new Y.Doc()
+            try {
+                if (state.byteLength) Y.applyUpdate(ydoc, state)
+                encoded = encodeDocument(ydoc)
+            } finally {
+                ydoc.destroy()
+            }
+        }
+        if (
+            provider.engine === 'operations' &&
+            (!Number.isSafeInteger(initialized.initialSequence) || initialized.initialSequence! < 0)
+        )
+            throw new BadRequestException(t('server-ai:Error.CollaborationInvalidRevision'))
         const sequenceNumber = positiveInteger(initialized.initialSequence, 0)
         const document = await this.documentRepository.save(
             this.documentRepository.create({
@@ -298,7 +392,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
                 scopeKey,
                 providerKey,
                 resourceId,
-                engine: 'yjs',
+                engine: provider.engine ?? 'yjs',
                 schemaVersion: positiveInteger(input.schemaVersion ?? initialized.schemaVersion, 1),
                 status: 'active',
                 stateBase64: encoded.stateBase64,
@@ -313,11 +407,101 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
         return toRecord(document)
     }
 
+    /** Preserve document identity while replacing the CRDT schema under the same lock as edits. */
+    private async migrateDocumentWithScope(input: MigrateCollaborationDocumentInput, scope: CollaborationScope) {
+        if (
+            !Number.isInteger(input.expectedSequence) ||
+            input.expectedSequence < 0 ||
+            !Number.isInteger(input.expectedSchemaVersion) ||
+            !Number.isInteger(input.targetSchemaVersion) ||
+            input.expectedSchemaVersion < 1 ||
+            input.targetSchemaVersion <= input.expectedSchemaVersion
+        )
+            throw new BadRequestException(t('server-ai:Error.CollaborationMigrationInvalid'))
+        const migrated = await this.documentRepository.manager.transaction(async (manager) => {
+            const documents = manager.getRepository(CollaborationDocument)
+            const document = await documents.findOne({
+                where: scopedDocumentIdWhere(input.documentId, scope),
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!document || document.status !== 'active')
+                throw new NotFoundException('Collaboration document was not found.')
+            await this.authorize(document, scope, 'manage')
+            if (
+                document.sequenceNumber !== input.expectedSequence ||
+                document.schemaVersion !== input.expectedSchemaVersion
+            )
+                throw new BadRequestException(t('server-ai:Error.CollaborationSchemaChanged'))
+            const provider = this.providers.get(document.providerKey, scope.organizationId ?? undefined)
+            if (document.engine !== 'yjs' || provider.engine === 'operations' || !provider.migrateDocument)
+                throw new BadRequestException(t('server-ai:Error.CollaborationMigrationInvalid'))
+            const context = providerContext(document.providerKey, document.resourceId, scope, 'manage', document.id)
+            const next = await provider.migrateDocument({
+                ...context,
+                stateBase64: document.stateBase64,
+                schemaVersion: document.schemaVersion,
+                targetSchemaVersion: input.targetSchemaVersion
+            })
+            if (next.schemaVersion !== input.targetSchemaVersion)
+                throw new BadRequestException(t('server-ai:Error.CollaborationMigrationInvalid'))
+            parseBase64(next.stateBase64, 'migrated state', MAX_DOCUMENT_BYTES)
+            const doc = decodeDocument(next.stateBase64)
+            const encoded = encodeDocument(doc)
+            doc.destroy()
+            await provider.validateDocument?.({
+                ...context,
+                stateBase64: encoded.stateBase64,
+                schemaVersion: input.targetSchemaVersion
+            })
+            await this.authorize(document, scope, 'manage')
+            document.schemaVersion = next.schemaVersion
+            document.sequenceNumber += 1
+            document.updateCount += 1
+            document.stateBase64 = encoded.stateBase64
+            document.stateVectorBase64 = encoded.stateVectorBase64
+            document.materializationStatus = 'pending'
+            const updates = manager.getRepository(CollaborationUpdate)
+            // A schema upgrade is a distinct event even when its content bytes match an
+            // ordinary update or an earlier migration. Keep ordinary byte deduplication intact.
+            const updateHash = createHash('sha256')
+                .update(`platform:schema-migration:${input.targetSchemaVersion}:`)
+                .update(Buffer.from(encoded.stateBase64, 'base64'))
+                .digest('hex')
+            await updates.save(
+                updates.create({
+                    ...scopeColumns(scope),
+                    documentId: document.id,
+                    sequenceNumber: document.sequenceNumber,
+                    updateBase64: encoded.stateBase64,
+                    updateHash,
+                    origin: `platform:schema-migration:${input.expectedSchemaVersion}:${input.targetSchemaVersion}`,
+                    actorType: 'user',
+                    userId: scope.userId ?? null,
+                    createdById: scope.userId ?? undefined
+                })
+            )
+            return documents.save(document)
+        })
+        await this.publishBroadcast({
+            nodeId: this.nodeId,
+            type: 'update',
+            documentId: migrated.id,
+            payload: {
+                documentId: migrated.id,
+                sequenceNumber: migrated.sequenceNumber,
+                updateBase64: migrated.stateBase64,
+                origin: 'platform:schema-migration'
+            }
+        })
+        await this.materialize(migrated, null, 'platform:schema-migration')
+        return toRecord(migrated)
+    }
+
     /** Return metadata and asynchronously repair a lagging plugin projection. */
     private async getDocumentWithScope(input: GetCollaborationDocumentInput, scope: CollaborationScope) {
         const document = await this.requireDocument(input, scope)
         await this.authorize(document, scope, 'read')
-        if (document.materializedSequence < document.sequenceNumber)
+        if (document.engine === 'yjs' && document.materializedSequence < document.sequenceNumber)
             void this.materialize(document, null, 'platform:read-repair')
         return toRecord(document)
     }
@@ -329,6 +513,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     ): Promise<CollaborationDocumentState> {
         const document = await this.requireDocument(input, scope)
         await this.authorize(document, scope, 'read')
+        if (document.engine !== 'yjs') throw new BadRequestException(t('server-ai:Error.CollaborationEngineMismatch'))
         const doc = decodeDocument(document.stateBase64)
         const vector = input.stateVectorBase64
             ? parseBase64(input.stateVectorBase64, 'Yjs state vector', MAX_UPDATE_BYTES)
@@ -363,6 +548,8 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             if (!document || document.status !== 'active')
                 throw new NotFoundException('Collaboration document was not found.')
             await this.authorize(document, scope, 'write', actor)
+            if (input.expectedSchemaVersion != null && document.schemaVersion !== input.expectedSchemaVersion)
+                throw new BadRequestException(t('server-ai:Error.CollaborationSchemaChanged'))
             const updateHash = createHash('sha256').update(update).digest('hex')
             const duplicate = await updates.findOne({ where: { documentId: document.id, updateHash } })
             if (duplicate) return { document, duplicate, saved: duplicate }
@@ -375,15 +562,19 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
                     `Collaboration sequence conflict. Current sequence is ${document.sequenceNumber}.`
                 )
             }
+            const provider = this.providers.get(document.providerKey, scope.organizationId ?? undefined)
+            if (document.engine !== 'yjs' || provider.engine === 'operations')
+                throw new BadRequestException(t('server-ai:Error.CollaborationEngineMismatch'))
             const doc = decodeDocument(document.stateBase64)
             Y.applyUpdate(doc, update, input.origin ?? 'platform.collaboration')
             const encoded = encodeDocument(doc)
             doc.destroy()
             if (Buffer.byteLength(encoded.stateBase64, 'base64') > MAX_DOCUMENT_BYTES)
                 throw new BadRequestException('Collaboration document exceeds the platform size limit.')
-            await this.providers.get(document.providerKey, scope.organizationId ?? undefined).validateDocument?.({
+            await provider.validateDocument?.({
                 ...providerContext(document.providerKey, document.resourceId, scope, 'write', document.id, actor),
-                stateBase64: encoded.stateBase64
+                stateBase64: encoded.stateBase64,
+                schemaVersion: document.schemaVersion
             })
             document.sequenceNumber += 1
             document.updateCount += 1
@@ -450,6 +641,8 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             ...scope,
             sessionId,
             clientKeyHash: hashSecret(clientKey),
+            schemaVersion: document.schemaVersion,
+            engine: document.engine,
             documentId: document.id,
             providerKey: document.providerKey,
             resourceId: document.resourceId,
@@ -466,6 +659,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             sessionId,
             clientKey,
             documentId: document.id,
+            engine: document.engine,
             namespace: COLLABORATION_NAMESPACE,
             connectionUrl: collaborationConnectionUrl(),
             access,
@@ -575,6 +769,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     ) {
         try {
             const provider = this.providers.get(document.providerKey, document.organizationId ?? undefined)
+            if (provider.engine === 'operations') return true
             const scope = documentScope(document)
             const acceptedUpdate = await this.updateRepository.findOne({
                 where: { documentId: document.id, sequenceNumber: document.sequenceNumber }
@@ -772,219 +967,4 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
             .andWhere('createdAt < :dateCutoff', { dateCutoff })
             .execute()
     }
-}
-
-function toRecord(document: CollaborationDocument): CollaborationDocumentRecord {
-    return {
-        id: document.id,
-        providerKey: document.providerKey,
-        resourceId: document.resourceId,
-        engine: document.engine,
-        schemaVersion: document.schemaVersion,
-        status: document.status,
-        sequenceNumber: document.sequenceNumber,
-        updateCount: document.updateCount,
-        materializedSequence: document.materializedSequence,
-        materializationStatus: document.materializationStatus,
-        lastMaterializationError: document.lastMaterializationError ?? null,
-        tenantId: document.tenantId ?? null,
-        organizationId: document.organizationId ?? null,
-        workspaceId: document.workspaceId ?? null,
-        projectId: document.projectId ?? null,
-        xpertId: document.xpertId ?? null,
-        userId: document.userId ?? null,
-        metadata: document.metadata ?? null,
-        createdAt: document.createdAt,
-        updatedAt: document.updatedAt
-    }
-}
-
-/** Stable storage boundary that deliberately excludes public business identifiers. */
-function collaborationScopeKey(scope: CollaborationScope) {
-    return createHash('sha256')
-        .update([scope.tenantId ?? '-', scope.organizationId ?? '-'].join(':'))
-        .digest('hex')
-}
-
-function scopeColumns(scope: CollaborationScope) {
-    return {
-        tenantId: scope.tenantId ?? null,
-        organizationId: scope.organizationId ?? null,
-        workspaceId: scope.workspaceId ?? null,
-        projectId: scope.projectId ?? null,
-        xpertId: scope.xpertId ?? null,
-        userId: scope.userId ?? null
-    }
-}
-
-function documentScope(document: CollaborationDocument): CollaborationScope {
-    return scopeColumns(document)
-}
-
-function scopedDocumentIdWhere(id: string, scope: CollaborationScope) {
-    return { id, scopeKey: collaborationScopeKey(scope) }
-}
-
-function providerContext(
-    providerKey: string,
-    resourceId: string,
-    scope: CollaborationScope,
-    operation: CollaborationProviderContext['operation'],
-    documentId?: string,
-    actor?: ICollaborationActor
-): CollaborationProviderContext {
-    return { ...scope, providerKey, resourceId, operation, documentId: documentId ?? null, actor: actor ?? null }
-}
-
-function createUserActor(
-    user: IUser | null,
-    userId: string | null | undefined,
-    sessionId: string
-): ICollaborationActor {
-    const displayName = userDisplayName(user) ?? 'Collaborator'
-    const identity = userId ?? sessionId
-    return {
-        presenceId: `user_${createHash('sha256').update(identity).digest('base64url').slice(0, 22)}`,
-        actorType: 'user',
-        displayName: displayName.slice(0, 64),
-        color: actorColor(identity),
-        avatarUrl: optionalText(user?.imageUrl, 2_048) ?? null
-    }
-}
-
-function createRuntimeActor(scope: CollaborationScope, input?: CollaborationRuntimeActor | null): ICollaborationActor {
-    const actorType = input?.actorType === 'system' ? 'system' : input?.actorType === 'user' ? 'user' : 'agent'
-    const key = input?.actorKey ?? scope.xpertId ?? scope.userId ?? randomUUID()
-    return {
-        presenceId: `${actorType}_${createHash('sha256').update(key).digest('base64url').slice(0, 22)}`,
-        actorType,
-        displayName:
-            optionalText(input?.displayName, 64) ??
-            (actorType === 'agent' ? 'Xpert Agent' : actorType === 'system' ? 'System' : 'Collaborator'),
-        color: actorColor(key),
-        avatarUrl: optionalText(input?.avatarUrl, 2_048) ?? null
-    }
-}
-
-/** Build a stable Agent identity per xpert/agent/conversation/document combination. */
-function createVirtualActor(
-    documentId: string,
-    scope: CollaborationScope,
-    defaults: CollaborationRuntimeDefaults,
-    input?: CollaborationRuntimeActor | null
-) {
-    const actorType = input?.actorType === 'system' ? 'system' : 'agent'
-    const actorKey =
-        input?.actorKey ??
-        [
-            defaults.xpertId ?? scope.xpertId ?? '-',
-            defaults.agentKey ?? '-',
-            defaults.conversationId ?? '-',
-            documentId
-        ].join(':')
-    return createRuntimeActor(scope, {
-        actorType,
-        actorKey,
-        displayName:
-            input?.displayName ??
-            defaults.xpertName ??
-            defaults.agentKey ??
-            (actorType === 'agent' ? 'Xpert Agent' : 'System'),
-        avatarUrl: input?.avatarUrl
-    })
-}
-
-function actorToRuntime(actor: ICollaborationActor): CollaborationRuntimeActor {
-    return {
-        actorType: actor.actorType,
-        actorKey: actor.presenceId,
-        displayName: actor.displayName,
-        avatarUrl: actor.avatarUrl
-    }
-}
-
-function userDisplayName(user: IUser | null) {
-    if (!user) return null
-    const candidate = [user.firstName, user.lastName].filter(Boolean).join(' ').trim()
-    return optionalText(candidate || user.name || user.email, 64) ?? null
-}
-
-function actorColor(identity: string) {
-    const hue = (createHash('sha256').update(identity).digest()[0] / 255) * 330
-    return hslToHex(hue, 72, 46)
-}
-
-function hslToHex(h: number, s: number, l: number) {
-    const saturation = s / 100
-    const lightness = l / 100
-    const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation
-    const x = chroma * (1 - Math.abs(((h / 60) % 2) - 1))
-    const m = lightness - chroma / 2
-    const [r, g, b] =
-        h < 60
-            ? [chroma, x, 0]
-            : h < 120
-              ? [x, chroma, 0]
-              : h < 180
-                ? [0, chroma, x]
-                : h < 240
-                  ? [0, x, chroma]
-                  : h < 300
-                    ? [x, 0, chroma]
-                    : [chroma, 0, x]
-    return `#${[r, g, b]
-        .map((value) =>
-            Math.round((value + m) * 255)
-                .toString(16)
-                .padStart(2, '0')
-        )
-        .join('')}`
-}
-
-function parsePresence(raw: string): ICollaborationPresence | null {
-    try {
-        const value = JSON.parse(raw) as ICollaborationPresence
-        return value && typeof value.updatedAt === 'number' ? value : null
-    } catch {
-        return null
-    }
-}
-
-function sessionKey(sessionId: string) {
-    return `xpert:collaboration:session:${hashSecret(sessionId)}`
-}
-function presenceKey(scope: CollaborationScope, documentId: string) {
-    return `xpert:collaboration:presence:${collaborationScopeKey(scope)}:${documentId}`
-}
-function presenceIndexKey(scope: CollaborationScope, documentId: string) {
-    return `${presenceKey(scope, documentId)}:index`
-}
-function presenceEntryKey(scope: CollaborationScope, documentId: string, clientId: string) {
-    return `${presenceKey(scope, documentId)}:entry:${createHash('sha256').update(clientId).digest('base64url')}`
-}
-function hashSecret(value: string) {
-    return createHash('sha256').update(value).digest('hex')
-}
-function timingSafeHashEqual(left: string, right: string) {
-    const leftBuffer = Buffer.from(left)
-    const rightBuffer = Buffer.from(right)
-    return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer)
-}
-
-function parseSession(raw: string): CollaborationSession | null {
-    try {
-        const value = JSON.parse(raw) as CollaborationSession
-        return value?.sessionId && value?.documentId && value?.clientKeyHash ? value : null
-    } catch {
-        return null
-    }
-}
-
-function collaborationConnectionUrl() {
-    const base = optionalText(environment.baseUrl, 2_048) ?? 'http://localhost:3000'
-    return new URL(COLLABORATION_NAMESPACE, base.endsWith('/') ? base : `${base}/`).toString().replace(/\/$/, '')
-}
-
-function errorMessage(error: unknown) {
-    return error instanceof Error ? error.message : String(error)
 }

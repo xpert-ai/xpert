@@ -1,3 +1,5 @@
+import { flushRemoteEntry, readBlobText } from './remote-component-test-utils'
+import { registerLocalDraftTests } from './remote-component-local-draft.cases'
 import { registerViewStateTests } from './remote-view-state.cases'
 import { registerFileAccessTests } from './remote-component-file-access.cases'
 import { registerContextTests } from './remote-component-context.cases'
@@ -18,7 +20,8 @@ jest.mock('@cloud/app/@core', () => {
 
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { of, Subject, throwError } from 'rxjs'
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
+import { Store } from '@cloud/app/@core/state'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
 import { environment } from '@cloud/environments/environment'
 import {
@@ -28,22 +31,6 @@ import {
 import { RemoteComponentRendererComponent } from './remote-component-renderer.component'
 import { ViewClientCommandRegistry } from '../view-client-command-registry.service'
 import { ViewHostEventBus } from '../view-host-event-bus.service'
-
-async function flushRemoteEntry(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }) {
-  fixture.detectChanges()
-  await fixture.whenStable()
-  await Promise.resolve()
-  fixture.detectChanges()
-}
-
-async function readBlobText(blob: Blob) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(String(reader.result ?? ''))
-    reader.onerror = () => reject(reader.error)
-    reader.readAsText(blob)
-  })
-}
 
 describe('RemoteComponentRendererComponent', () => {
   const manifest: XpertExtensionViewManifest = {
@@ -77,6 +64,7 @@ describe('RemoteComponentRendererComponent', () => {
   }
 
   let api: {
+    getLocalDraftBinding: jest.Mock
     getRemoteComponentEntry: jest.Mock
     getViewData: jest.Mock
     getViewParameterOptions: jest.Mock
@@ -107,6 +95,7 @@ describe('RemoteComponentRendererComponent', () => {
     })
 
     api = {
+      getLocalDraftBinding: jest.fn(),
       getRemoteComponentEntry: jest.fn(() => of('<!doctype html><html><body></body></html>')),
       getViewData: jest.fn(),
       getViewParameterOptions: jest.fn(),
@@ -130,6 +119,7 @@ describe('RemoteComponentRendererComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), RemoteComponentRendererComponent],
       providers: [
+        { provide: Store, useValue: { selectedOrganization$: new BehaviorSubject({ id: 'organization-1' }) } },
         {
           provide: ViewExtensionApiService,
           useValue: api
@@ -339,7 +329,15 @@ describe('RemoteComponentRendererComponent', () => {
 
     const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
     expect(frame.getAttribute('sandbox')?.split(/\s+/).sort()).toEqual(
-      ['allow-downloads', 'allow-forms', 'allow-modals', 'allow-popups', 'allow-popups-to-escape-sandbox', 'allow-same-origin', 'allow-scripts'].sort()
+      [
+        'allow-downloads',
+        'allow-forms',
+        'allow-modals',
+        'allow-popups',
+        'allow-popups-to-escape-sandbox',
+        'allow-same-origin',
+        'allow-scripts'
+      ].sort()
     )
     expect(frame.getAttribute('allow')).toBe('autoplay')
   })
@@ -619,6 +617,8 @@ describe('RemoteComponentRendererComponent', () => {
   })
 
   registerFileAccessTests(() => ({ api, manifest }), flushRemoteEntry)
+
+  registerLocalDraftTests(() => ({ api, manifest }))
 
   registerContextTests(() => ({ api, manifest }), flushRemoteEntry)
 

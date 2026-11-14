@@ -1,5 +1,6 @@
 import type { AnalyticsSourceRef } from './analytics-source.model'
-import type { JSONValue } from './core.model'
+import type { JSONValue } from '../core.model'
+import type { AnalyticsCertification } from './analytics-certification.model'
 
 /** JSON-safe scalar shared by cells and controls; nested objects/arrays are not dataset cells. */
 export type AnalyticsValue = string | number | boolean | null
@@ -75,6 +76,8 @@ export interface AnalyticsQueryRequest {
   binding: AnalyticsBinding
   /** Values keyed by controlId; undeclared keys are rejected and absent keys resolve through defaults. */
   controls: Record<string, AnalyticsValue>
+  /** Opt-in reuse, only when the Provider independently reauthorizes the exact query and source revision. */
+  cache?: { maxAgeMs: number; forceRefresh?: boolean }
 }
 
 /** Canonical, provider-independent result; consumers must inspect completeness before presenting totals. */
@@ -117,6 +120,8 @@ export interface AnalyticalDataset {
     upstreamExecutionId?: string
     /** Reference to governed audit evidence; do not embed secrets or full logs here. */
     auditRef?: string
+    /** Business certification checked by the source for this query; absence means no certification claim. */
+    certification?: AnalyticsCertification
   }
 }
 

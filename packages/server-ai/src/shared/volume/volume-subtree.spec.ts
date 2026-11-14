@@ -1,7 +1,7 @@
 import { link, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ConflictException } from '@nestjs/common'
 import { VolumeHandle } from './volume'
 import { VolumeSubtreeClient } from './volume-subtree'
 
@@ -106,6 +106,62 @@ describe('VolumeSubtreeClient', () => {
             code: 'ENOENT'
         })
         await expect(readFile(join(tempRoot, 'README.md'), 'utf8')).resolves.toBe('# Root\n')
+    })
+
+    it.each(['', 'workspace'])('protects uploads and recursive deletion beneath scope "%s"', async (scopePath) => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-ownership-'))
+        const ownedPath = [scopePath, 'owned', 'notes.md'].filter(Boolean).join('/')
+        const ownedFolder = [scopePath, 'owned'].filter(Boolean).join('/')
+        await mkdir(join(tempRoot, scopePath, 'owned'), { recursive: true })
+        await writeFile(join(tempRoot, ownedPath), 'original')
+        const beforeMutation = jest.fn(async (filePath: string, recursive: boolean) => {
+            if (filePath === ownedPath || (recursive && filePath === ownedFolder)) {
+                throw new ConflictException('Native editor required')
+            }
+        })
+        const volume = new VolumeHandle(
+            { tenantId: 'tenant', catalog: 'projects', projectId: 'project' },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true, beforeMutation })
+
+        await expect(
+            client.uploadFile(scopePath, 'owned', { originalname: 'notes.md', buffer: Buffer.from('overwrite') })
+        ).rejects.toBeInstanceOf(ConflictException)
+        await expect(client.deleteFile(scopePath, 'owned')).rejects.toBeInstanceOf(BadRequestException)
+        expect(beforeMutation.mock.calls).toEqual([
+            [ownedPath, false],
+            [ownedFolder, true]
+        ])
+        expect(await readFile(join(tempRoot, ownedPath), 'utf8')).toBe('original')
+    })
+
+    it('rechecks upload ownership with the same volume-relative path before committing', async () => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-ownership-race-'))
+        await mkdir(join(tempRoot, 'workspace', 'owned'), { recursive: true })
+        await writeFile(join(tempRoot, 'workspace', 'owned', 'notes.md'), 'original')
+        const beforeMutation = jest
+            .fn(async (_filePath: string, _recursive: boolean) => undefined)
+            .mockResolvedValueOnce(undefined)
+            .mockRejectedValueOnce(new ConflictException('Native editor required'))
+        const volume = new VolumeHandle(
+            { tenantId: 'tenant', catalog: 'projects', projectId: 'project' },
+            tempRoot,
+            tempRoot,
+            'http://localhost/volume'
+        )
+        const client = new VolumeSubtreeClient(volume, { beforeMutation })
+
+        await expect(
+            client.uploadFile('workspace', 'owned', { originalname: 'notes.md', buffer: Buffer.from('overwrite') })
+        ).rejects.toBeInstanceOf(ConflictException)
+        expect(beforeMutation.mock.calls).toEqual([
+            ['workspace/owned/notes.md', false],
+            ['workspace/owned/notes.md', false]
+        ])
+        expect(await readFile(join(tempRoot, 'workspace', 'owned', 'notes.md'), 'utf8')).toBe('original')
     })
 
     it('returns zip download metadata for folders inside a subtree', async () => {

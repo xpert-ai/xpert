@@ -34,6 +34,7 @@ export class GroupResourceAnalysisHandler implements ICommandHandler<GroupResour
                     !current.grant.analysis
                 )
                     throw denied()
+                await this.analysis.validateDelivery(actor, groupId, row.referenceId, row.datasetKey)
             }
             return
         }

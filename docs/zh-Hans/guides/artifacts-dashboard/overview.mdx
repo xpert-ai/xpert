@@ -29,7 +29,7 @@ flowchart LR
 
 | 层              | 当前责任                                                  | 代码入口                                                            |
 | --------------- | --------------------------------------------------------- | ------------------------------------------------------------------- |
-| contracts       | Binding、Dataset、字段、参数、完整性、新鲜度和来源标识    | `packages/contracts/src/analytics-query.model.ts`                   |
+| contracts       | Binding、Dataset、字段、参数、完整性、新鲜度和来源标识    | `packages/contracts/src/analytics/analytics-query.model.ts`         |
 | 平台 Analytics  | 当前用户的数据源授权、Provider 分发、结果校验、期限与限额 | `packages/server/src/data-source/analytics/`                        |
 | plugin-sdk      | Provider 注册、标准化与通用 HTML 文档宿主                 | `packages/plugin-sdk/src/lib/data/analytics/`、`artifact-document/` |
 | 平台 Artifacts  | 稳定身份、工作草稿、正式版本、分享链接、展示授权          | `packages/server-ai/src/artifacts/`                                 |

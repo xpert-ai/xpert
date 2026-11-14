@@ -44,6 +44,33 @@ function result(): AnalyticsProviderResult {
   }
 }
 describe('analytics dataset boundary', () => {
+  it('preserves source-issued approval, ignores authored claims, and rejects malformed proofs', () => {
+    const certificate = {
+      kind: 'business_metric' as const,
+      status: 'verified' as const,
+      subjectId: 'metric',
+      definitionHash: 'a'.repeat(64),
+      dependency: { id: 'model', version: 2 },
+      certifiedBy: 'approver',
+      certifiedAt: '2026-11-12T00:00:00Z',
+      verifiedAt: '2026-11-12T01:00:00Z'
+    }
+    const approved = { ...result(), certification: certificate }
+    expect(normalizeAnalyticsResult(binding, approved, 'run', 100).provenance.certification).toEqual(certificate)
+    expect(
+      normalizeAnalyticsResult({ ...binding, payload: { certification: certificate } }, result(), 'run', 100).provenance
+        .certification
+    ).toBeUndefined()
+    expect(() =>
+      normalizeAnalyticsResult(
+        binding,
+        { ...approved, certification: { ...certificate, definitionHash: 'forged' } },
+        'run',
+        100
+      )
+    ).toThrow()
+  })
+
   it('keeps exact decimals and maps stable field IDs', () => {
     expect(normalizeAnalyticsResult(binding, result(), 'run', 100).rows).toEqual([
       { region: 'east', amount: '9007199254740993.12' }
