@@ -60,6 +60,8 @@ export interface AnalyticsProviderResult {
   upstreamExecutionId?: string
   /** Reference to audit evidence, not embedded logs or credentials. */
   auditRef?: string
+  /** Only source-verified business approvals; never copy from Binding payload or display metadata. */
+  certification?: AnalyticalDataset['provenance']['certification']
 }
 
 /**

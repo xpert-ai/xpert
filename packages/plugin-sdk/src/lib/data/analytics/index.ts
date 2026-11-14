@@ -8,3 +8,5 @@ export * from './analytics-payload'
 export * from './analytics-source.commands'
 
 export * from './analytics-authoring'
+
+export * from './analytics-certification'

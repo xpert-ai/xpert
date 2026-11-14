@@ -2,3 +2,5 @@
 export * from './lib/data/analytics/analytics.schema'
 export * from './lib/data/analytics/analytics-result'
 export * from './lib/data/analytics/resource-analysis.schema'
+export * from './lib/data/analytics/analytics-certification'
+export * from './lib/data/analytics/analysis-evidence'
