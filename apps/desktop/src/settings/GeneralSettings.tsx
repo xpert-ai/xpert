@@ -83,9 +83,6 @@ export function GeneralSettings({
               />
             </div>
           </SettingsRow>
-          <p className="mx-5 border-t py-4 text-[0.8125rem] leading-5 text-muted-foreground">
-            {t('On first launch, the language follows your system preferences.')}
-          </p>
         </div>
       </section>
       <section aria-labelledby="settings-display-heading">

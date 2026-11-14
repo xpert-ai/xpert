@@ -3,7 +3,7 @@ export type Locale = 'en' | 'zh-Hans' | 'zh-Hant' | 'ja'
 export type MessageKey = keyof typeof en
 export type MessageParams = Readonly<Record<string, string | number>>
 export const resources: Record<Locale, Record<MessageKey, string>>
-export const languages: readonly { value: Locale; label: string }[]
+export const languages: readonly { value: Locale; label: string; glyph: string }[]
 export function normalizeLocale(value: unknown): Locale
 export function isSupportedLocale(value: unknown): boolean
 export function resolveSystemLocale(preferredLanguages: unknown): Locale

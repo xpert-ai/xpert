@@ -36,6 +36,7 @@ const methods = new Set([
   'usageSummaries',
   'usageEntries',
   'state',
+  'confirmInitialLanguage',
   'refreshProfile',
   'shellState',
   'shellPrepare',

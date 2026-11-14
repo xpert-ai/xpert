@@ -180,6 +180,8 @@ class DesktopService {
       this.config = defaults
       validSavedConfig = false
     }
+    // Existing installations already have settings. Fresh profiles wait for explicit confirmation.
+    this.needsLanguageSelection = saved?.needsLanguageSelection ?? !validSavedConfig
     this.sidebars =
       saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
     this.credentials = validSavedConfig ? saved?.credentials || null : null
@@ -196,6 +198,7 @@ class DesktopService {
   snapshot() {
     return {
       config: this.config,
+      needsLanguageSelection: this.needsLanguageSelection,
       connectionDefaults: this.connectionDefaults,
       profile: this.profile,
       localLoginAvailable: this.canLoginLocal()
@@ -206,9 +209,10 @@ class DesktopService {
     return !!this.localLogin && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(this.config.apiUrl).hostname)
   }
 
-  persist() {
+  persist({ config = this.config, needsLanguageSelection = this.needsLanguageSelection } = {}) {
     this.storage.write({
-      config: this.config,
+      config,
+      needsLanguageSelection,
       credentials: this.credentials,
       sidebars: this.sidebars,
       notificationDismissals: this.userNotifications?.dismissals
@@ -224,6 +228,16 @@ class DesktopService {
         else throw error
       }
     }
+    return this.snapshot()
+  }
+
+  confirmInitialLanguage(locale) {
+    if (!isSupportedLocale(locale)) throw new ClientError('Invalid language setting.')
+    if (!this.needsLanguageSelection) return this.snapshot()
+    const config = { ...this.config, locale: normalizeLocale(locale) }
+    this.persist({ config, needsLanguageSelection: false })
+    this.config = config
+    this.needsLanguageSelection = false
     return this.snapshot()
   }
 

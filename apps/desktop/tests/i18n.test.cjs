@@ -12,6 +12,7 @@ const {
   localizedText
 } = require('../electron/i18n/index.mjs')
 const { DesktopService, DEFAULT_CONFIG, parseConfig } = require('../electron/service.cjs')
+const { createStorage } = require('../electron/storage.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const { menuTemplate } = require('../electron/menu.cjs')
 const branding = require('../electron/branding.json')
@@ -176,6 +177,41 @@ test('new installs and missing legacy locales use supported system languages in 
     storage: { read: () => ({ config: { ...DEFAULT_CONFIG, locale: 'ja' } }), write() {} }
   })
   assert.equal(saved.config.locale, 'ja')
+})
+
+test('first-run language confirmation survives restarts and preserves existing installations', async (t) => {
+  const directory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'bosi-language-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const storage = createStorage(directory, { isEncryptionAvailable: () => false })
+  const create = () => new DesktopService({ storage, systemLanguages: ['ja-JP'] })
+  const first = create()
+  assert.equal((await first.state()).needsLanguageSelection, true)
+  assert.equal(first.config.locale, 'ja')
+  first.persist()
+  const resumed = create()
+  assert.equal(resumed.snapshot().needsLanguageSelection, true)
+  assert.equal((await dispatch(resumed, 'confirmInitialLanguage', 'unknown')).ok, false)
+  const result = await dispatch(resumed, 'confirmInitialLanguage', 'zh-Hant')
+  assert.equal(result.value.needsLanguageSelection, false)
+  assert.equal(result.value.config.locale, 'zh-Hant')
+  assert.equal(create().logout().needsLanguageSelection, false)
+  assert.equal(create().confirmInitialLanguage('en').config.locale, 'zh-Hant')
+  storage.write({ config: { ...DEFAULT_CONFIG, locale: 'en' } })
+  assert.equal(create().snapshot().needsLanguageSelection, false)
+})
+
+test('a failed first-run language save leaves the selection pending for retry', () => {
+  const service = new DesktopService({
+    storage: {
+      read: () => null,
+      write() {
+        throw new Error('write failed')
+      }
+    }
+  })
+  const before = service.snapshot()
+  assert.throws(() => service.confirmInitialLanguage('ja'), /write failed/)
+  assert.deepEqual(service.snapshot(), before)
 })
 
 test('sign-in and restored sessions prefer the account language over the system and saved desktop language', async () => {

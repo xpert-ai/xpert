@@ -9,6 +9,7 @@ import { Bot as BotIcon } from 'lucide-react'
 import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
 import { Login } from './Login'
+import { FirstRunLanguage } from './FirstRunLanguage'
 import { Sidebar } from './Sidebar'
 import type { DiscoveryWorkspace } from './catalog-types'
 import { CatalogDialog } from './CatalogDialog'
@@ -79,7 +80,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
     }
   }, [])
-  const menuReady = state !== null
+  const menuReady = state !== null && !state.needsLanguageSelection
   useEffect(() => {
     if (!menuReady) return
     return window.xpertDesktop?.onMenuAction?.((action) => {
@@ -95,8 +96,8 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   }, [preview?.locale, state?.config.locale])
   const launchFailed = Boolean(fatal)
   useEffect(() => {
-    if (menuReady || launchFailed) onLaunchReady?.(launchFailed)
-  }, [menuReady, launchFailed, onLaunchReady])
+    if (state || launchFailed) onLaunchReady?.(launchFailed)
+  }, [state, launchFailed, onLaunchReady])
   const theme = preview?.theme ?? state?.config.theme
   const appearance = preview?.appearance ?? state?.config.appearance
   const request = useRef(0)
@@ -334,6 +335,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
         </div>
       </div>
     )
+  if (state.needsLanguageSelection) return <FirstRunLanguage onConfirm={setState} />
   const bot = bots.find((item) => item.id === selected)
   const visibleBots = workspace ? bots.filter((item) => item.workspaceId === workspace.id) : bots
   const chatVisible = !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)

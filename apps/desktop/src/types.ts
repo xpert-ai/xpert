@@ -42,6 +42,7 @@ export interface Profile {
 }
 export interface AppState {
   config: ConnectionConfig
+  needsLanguageSelection: boolean
   connectionDefaults: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   profile: Profile | null
   localLoginAvailable: boolean
@@ -313,6 +314,7 @@ export interface HostMethods {
   shellOperations: { input: undefined; output: ShellResult[] }
   shellCancel: { input: string; output: ShellResult }
   state: { input: undefined; output: AppState }
+  confirmInitialLanguage: { input: Locale; output: AppState }
   refreshProfile: { input: undefined; output: AppState }
   configure: { input: ConnectionConfig; output: AppState }
   login: { input: { email: string; password: string }; output: AppState }
