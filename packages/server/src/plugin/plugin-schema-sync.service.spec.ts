@@ -71,7 +71,8 @@ describe('plugin schema preflight', () => {
 		})
 		service = new PluginSchemaSyncService(
 			{ options: { type: 'postgres', synchronize: false } } as DataSource,
-			{} as ModuleRef
+			{} as ModuleRef,
+			[]
 		)
 	})
 

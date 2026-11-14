@@ -1,6 +1,7 @@
 import { setupPluginManagementTests } from './plugin-management.test-fixture'
 import type { RuntimeControlService } from '../runtime-control/runtime-control.service'
 import type { PluginSchemaSyncService } from './plugin-schema-sync.service'
+import { BadRequestException } from '@nestjs/common'
 
 describe('PluginManagementService', () => {
 	const fixture = setupPluginManagementTests()
@@ -77,9 +78,18 @@ describe('PluginManagementService', () => {
 		)
 	})
 
-	it('keeps the current plugin active when schema preflight fails', async () => {
+	it.each([
+		{ name: 'schema migration', error: new Error('schema migration failed') },
+		{
+			name: 'provider registration',
+			error: new BadRequestException({
+				errorCode: 'plugin-provider-registration-failed',
+				message: 'Tool json_format is already registered'
+			})
+		}
+	])('keeps the current plugin active when preflight fails: $name', async ({ error }) => {
 		const schemaSync = {
-			synchronize: jest.fn().mockRejectedValue(new Error('schema migration failed'))
+			synchronize: jest.fn().mockRejectedValue(error)
 		}
 		const guardedService = new PluginManagementService(
 			loadedPlugins,
@@ -102,15 +112,17 @@ describe('PluginManagementService', () => {
 			}
 		})
 
-		await expect(
-			guardedService.installPlugin({
-				pluginName: '@xpert-ai/plugin-openrouter',
-				version: '0.2.0'
-			})
-		).rejects.toThrow('schema migration failed')
+		const installation = guardedService.installPlugin({
+			pluginName: '@xpert-ai/plugin-openrouter',
+			version: '0.2.0'
+		})
+		if (error instanceof BadRequestException) await expect(installation).rejects.toBe(error)
+		else await expect(installation).rejects.toThrow('schema migration failed')
 		expect(schemaSync.synchronize).toHaveBeenCalled()
 		expect(pluginInstanceService.uninstallByPackageName).not.toHaveBeenCalled()
 		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
+		expect(pluginInstanceService.detachRuntime).not.toHaveBeenCalled()
+		expect(runtimeControl.recordPluginRuntimeChange).not.toHaveBeenCalled()
 	})
 
 	it('falls back to an explicit restart when cluster convergence cannot be scheduled', async () => {

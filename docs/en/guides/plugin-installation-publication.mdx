@@ -37,6 +37,32 @@ Explicit `deferActivation` staging does not create an automatic publication inte
 
 Refresh and uninstall have different effects: refresh preserves the committed registration and retained artifacts while preparing a replacement. An explicit uninstall removes the registration and version directories through the uninstall flow.
 
+## Plugin identity and updates
+
+Installation scope plus the canonical package name identifies a plugin. Version,
+archive digest and runtime directory identify its candidate artifact. Updating
+`@example/json@1.0.0` to `@example/json@2.0.0` excludes that installation's previous
+declarations from preflight; other plugins' claims remain protected. A changed
+package name or npm scope is a separate installation. A shared tool name does not
+establish an update relationship. Do not uninstall the old version before updating.
+
+Startup recovery retains the previous version only for packages still present in
+the current authoritative installation list. It removes uninstalled identities
+from the recovery snapshot and its runtime evidence, including their stored
+configuration. It does not restore a removed installation merely because an old
+snapshot once worked. This reconciliation is scoped; the same package in another
+scope and built-in runtime entries remain intact. A corrected legacy baseline gets
+one bounded recovery attempt, not an unlimited retry loop.
+
+Installation preflight checks declarations before schema changes or installation
+publication. A rejected candidate returns HTTP 400 with
+`plugin-provider-registration-failed`, preserves the serving version and does not
+request its restart. This compares currently loaded declarations; pending and
+concurrent candidates still require checks at activation. Static preflight covers
+only providers declared by the plugin root; hidden or dynamically created providers
+still depend on runtime registration checks and startup failure handling. Arbitrary
+plugin hooks and migrations are not transactional.
+
 ## Component naming
 
 A decorated `@XpertToolProvider` component key belongs to its plugin and installation scope. Two plugins can both expose a component named `tools`.

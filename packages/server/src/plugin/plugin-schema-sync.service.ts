@@ -4,7 +4,7 @@
  * PostgreSQL's session lock serializes this legacy adapter with host migrations.
  */
 import type { PluginMeta } from '@xpert-ai/contracts'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { DataSource, MixedList } from 'typeorm'
 import { createPluginLogger, GLOBAL_ORGANIZATION_SCOPE, type PluginContext } from '@xpert-ai/plugin-sdk'
@@ -12,9 +12,10 @@ import { withSchemaLock } from '../database/schema-migration'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
 import { registerPluginEntityOwnership } from './plugin-entity-policy'
 import { loadPlugin } from './plugin-loader'
-import { normalizePluginName } from './types'
 import { scopePluginSchemaSynchronization } from './plugin-schema-scope'
 import { registerAccountStorageRelations } from '../database/account-storage-guard'
+import { LOADED_PLUGINS, normalizePluginName, type LoadedPluginRecord } from './types'
+import { PluginProviderPreflightError, preflightPluginProviders } from './plugin-provider-preflight'
 
 export interface PluginSchemaSyncInput {
 	pluginName: string
@@ -32,7 +33,8 @@ export interface PluginSchemaSyncInput {
 export class PluginSchemaSyncService {
 	constructor(
 		private readonly dataSource: DataSource,
-		private readonly moduleRef: ModuleRef
+		private readonly moduleRef: ModuleRef,
+		@Inject(LOADED_PLUGINS) private readonly loadedPlugins: LoadedPluginRecord[]
 	) {}
 
 	async synchronize(input: PluginSchemaSyncInput): Promise<PluginMeta> {
@@ -65,6 +67,21 @@ export class PluginSchemaSyncService {
 			}
 		}
 		const module = plugin.register(context)
+		// Reject registration conflicts before DDL, installation publication or restart.
+		// A failed candidate must leave the currently serving plugin set intact.
+		try {
+			preflightPluginProviders(
+				module,
+				normalizePluginName(input.pluginName),
+				scope.scopeKey ?? scope.organizationId,
+				this.loadedPlugins.flatMap((item) => (item.providerClaims ? [item.providerClaims] : []))
+			)
+		} catch (error) {
+			if (error instanceof PluginProviderPreflightError) {
+				throw new BadRequestException({ errorCode: error.code, message: error.message })
+			}
+			throw error
+		}
 		const ormMetadata = collectPluginOrmMetadata([module])
 
 		if (

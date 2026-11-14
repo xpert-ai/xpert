@@ -7,7 +7,11 @@
 import { randomUUID } from 'node:crypto'
 import { rm } from 'node:fs/promises'
 import type { PluginStoreLease } from './installation/plugin-store-lock'
-import { canReusePluginArchive, prepareArchiveSourceConfig, type PluginInstallOptions } from './installation/plugin-archive-installation'
+import {
+	canReusePluginArchive,
+	prepareArchiveSourceConfig,
+	type PluginInstallOptions
+} from './installation/plugin-archive-installation'
 import {
 	publishCommittedPlugin,
 	replayPluginPublications,
@@ -90,6 +94,7 @@ import { PluginRuntimeStateService, resolvePluginRuntimeRevision } from './plugi
 import { PluginUninstallService } from './uninstall/plugin-uninstall.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import { assertPluginArtifactNamespaceAvailable } from './plugin-install-policy'
+import { isPluginProviderPreflightRejection } from './plugin-provider-preflight'
 
 @Injectable()
 export class PluginManagementService {
@@ -227,10 +232,7 @@ export class PluginManagementService {
 		}
 	}
 
-	async installPlugin(
-		body: PluginInstallInput,
-		options: PluginInstallOptions = {}
-	): Promise<PluginInstallResult> {
+	async installPlugin(body: PluginInstallInput, options: PluginInstallOptions = {}): Promise<PluginInstallResult> {
 		return withOrganizationPluginStoreLock({}, async (lease) => {
 			if (!(await replayPluginPublications(this.pluginInstanceService, this.runtimeControl, lease))) {
 				throw new BadRequestException(t('server:Error.PluginPublicationPending'))
@@ -411,16 +413,36 @@ export class PluginManagementService {
 			)
 			replacing = Boolean(existingInstallation)
 			const installedRuntimeName = getCodeRuntimeName(existingInstallation?.sourceConfig)
-			if (existingInstallation && options.archiveDeployment && canReusePluginArchive(
-				existingInstallation, options.archiveDeployment, normalizePluginName(packageName), compatibilityInfo.version,
-				installedRuntimeName ? getOrganizationPluginPath(targetOrganizationId, installedRuntimeName, scopeStoreOptions) : undefined
-			)) {
+			if (
+				existingInstallation &&
+				options.archiveDeployment &&
+				canReusePluginArchive(
+					existingInstallation,
+					options.archiveDeployment,
+					normalizePluginName(packageName),
+					compatibilityInfo.version,
+					installedRuntimeName
+						? getOrganizationPluginPath(targetOrganizationId, installedRuntimeName, scopeStoreOptions)
+						: undefined
+				)
+			) {
 				await lease.assertOwned()
 				return {
-					success: true, name: packageName, packageName, organizationId: targetOrganizationId,
-					currentVersion: existingInstallation.version, restartRequired: existingInstallation.pendingRestart,
-					runtimeRequirements: [{ scopeKey: scope.scopeKey, pluginName: normalizePluginName(packageName),
-						version: existingInstallation.version, runtimeRevision: `runtime:${installedRuntimeName}`, state: 'loaded' }]
+					success: true,
+					name: packageName,
+					packageName,
+					organizationId: targetOrganizationId,
+					currentVersion: existingInstallation.version,
+					restartRequired: existingInstallation.pendingRestart,
+					runtimeRequirements: [
+						{
+							scopeKey: scope.scopeKey,
+							pluginName: normalizePluginName(packageName),
+							version: existingInstallation.version,
+							runtimeRevision: `runtime:${installedRuntimeName}`,
+							state: 'loaded'
+						}
+					]
 				}
 			}
 			if (existingInstallation && options.archiveDeployment) {
@@ -934,6 +956,7 @@ export class PluginManagementService {
 					.catch(() => this.logger.warn(`Runtime failure report pending: ${publicationId}`))
 			}
 
+			if (isPluginProviderPreflightRejection(error)) throw error
 			throw new BadRequestException(
 				t('server:Error.PluginInstallFailed', { pluginName: body.pluginName, errorMessage })
 			)
