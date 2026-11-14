@@ -28,7 +28,16 @@ node packages/sandbox-runtime/scripts/verify-image.mjs --family browser-video --
 
 The OSS Core always loads the Runtime Definitions, and the API consumes compatible Bindings at their configured concurrency. In `development` or `test`, it also registers process-isolated `local-browser-runtime` Bindings. No profile, image, `CHROME_PATH`, or feature switch is required. If the pinned Playwright browser is missing, health reports the matching install command above. `browser-ai` health deliberately does not download resources: the first AI Sandbox creation installs the fixed catalog into the versioned XDG cache with single-flight concurrency, while `install:ai` prewarms it. In production, local Bindings are not registered and their methods fail closed; Pro registers its Docker Runtime Provider in the API process.
 
-The release target is `linux/amd64`. On an ARM development host, build a native, local-only image with temporary tag-based `NODE_BASE_IMAGE` and `PLAYWRIGHT_BASE_IMAGE` build arguments, then pass `--platform linux/arm64` to `verify-image.mjs`. Release workflows always use the digest-pinned defaults from the Dockerfile.
+The browser-video Dockerfile and image metadata support native builds for `linux/amd64` and `linux/arm64`. Its Playwright base uses the pinned multi-platform index (the amd64 child remains unchanged). On Apple Silicon, build and verify with the same explicit platform; `verify-image.mjs` otherwise defaults to amd64, and emulated amd64 Chromium may crash under QEMU:
+
+```bash
+docker build --platform linux/arm64 -f packages/sandbox-runtime/images/browser-video/Dockerfile -t xpert-sandbox-browser-video:local .
+node packages/sandbox-runtime/scripts/verify-image.mjs --family browser-video --image xpert-sandbox-browser-video:local --platform linux/arm64
+```
+
+Other browser/document families retain their declared platform lists. Current CI smoke checks and release workflows still build and publish only `linux/amd64`; declaring ARM64 in image metadata does not publish an ARM64 release. Release workflows use the digest-pinned defaults from the Dockerfile.
+
+Pro development binds the video profile to `xpert-sandbox-browser-video:local`. Build and verify that exact image before restarting the API. This uses the Docker provider with offline networking, non-root execution, a read-only root, resource limits and execution settlement; it does not bypass the macOS local-process provider's inability to prove descendant exit. Production continues to require a released digest in the Runtime lock.
 
 Production OCI Providers consume the released Runtime Artifact Catalog and must pin artifacts with `@sha256:`. Provider release CI turns those catalogs into its own immutable lock file. There is no production image/profile environment-variable override; mutable tags are aliases for development and release discovery only.
 
