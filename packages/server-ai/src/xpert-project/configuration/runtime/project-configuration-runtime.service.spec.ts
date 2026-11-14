@@ -1,6 +1,12 @@
-jest.mock('./project-configuration-connectors.adapter', () => ({ ProjectConfigurationConnectorsAdapter: class ProjectConfigurationConnectorsAdapter {} }))
-jest.mock('./project-configuration-automation.adapter', () => ({ ProjectConfigurationAutomationAdapter: class ProjectConfigurationAutomationAdapter {} }))
-jest.mock('./project-configuration-editors.adapter', () => ({ ProjectConfigurationEditorsAdapter: class ProjectConfigurationEditorsAdapter {} }))
+jest.mock('./project-configuration-connectors.adapter', () => ({
+    ProjectConfigurationConnectorsAdapter: class ProjectConfigurationConnectorsAdapter {}
+}))
+jest.mock('./project-configuration-automation.adapter', () => ({
+    ProjectConfigurationAutomationAdapter: class ProjectConfigurationAutomationAdapter {}
+}))
+jest.mock('./project-configuration-editors.adapter', () => ({
+    ProjectConfigurationEditorsAdapter: class ProjectConfigurationEditorsAdapter {}
+}))
 jest.mock('../../project.service', () => ({ XpertProjectService: class XpertProjectService {} }))
 import { ProjectConfigurationEditorsAdapter } from './project-configuration-editors.adapter'
 import { ProjectConfigurationAutomationAdapter } from './project-configuration-automation.adapter'
@@ -19,7 +25,8 @@ import { XpertTask } from '../../../xpert-task/xpert-task.entity'
 
 const context: ProjectConfigurationScope = {
     actor: { tenantId: 'tenant', organizationId: 'organization', userId: 'user' },
-    projectId: 'project', assistantId: 'assistant'
+    projectId: 'project',
+    assistantId: 'assistant'
 }
 async function fixture() {
     const accessValue = { project: { id: 'project', name: 'Project', status: 'active' }, role: 'owner' }
@@ -50,6 +57,9 @@ async function fixture() {
                 provide: ProjectConfigurationService,
                 useValue: {
                     get: jest.fn().mockResolvedValue({
+                        projectType: { applicationKey: 'coding', projectTypeKey: 'coding' },
+                        revision: 3,
+                        effectiveValues: { deliveryMode: 'local' },
                         taskExecution: {
                             effectiveMaxDurationSeconds: 7200,
                             tenantMaxDurationSeconds: 14400
@@ -68,7 +78,16 @@ async function fixture() {
             { provide: getRepositoryToken(XpertTask), useValue: tasks }
         ]
     }).compile()
-    return { provider: module.get(ProjectConfigurationRuntimeService), access, accessValue, content, tasks, editors, automations, connectors }
+    return {
+        provider: module.get(ProjectConfigurationRuntimeService),
+        access,
+        accessValue,
+        content,
+        tasks,
+        editors,
+        automations,
+        connectors
+    }
 }
 beforeEach(() => {
     jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -100,9 +119,7 @@ it('rejects missing scope, mismatched identities, machine principals and revoked
     accessValue.role = 'assistant'
     await expect(provider.getOverview(context)).rejects.toThrow()
     access.assertCanUseXpert.mockRejectedValue(Error('revoked'))
-    await expect(
-        provider.updateInstructions(context, 'Changed')
-    ).rejects.toThrow('revoked')
+    await expect(provider.updateInstructions(context, 'Changed')).rejects.toThrow('revoked')
 })
 it('retains content write authorization behind the capability', async () => {
     const { provider, content } = await fixture()
@@ -114,14 +131,14 @@ it('retains content write authorization behind the capability', async () => {
 it('renders member and archived access as read only', async () => {
     const { provider, accessValue } = await fixture()
     accessValue.role = 'member'
-    expect((await provider.getOverview(context))).toMatchObject({
+    expect(await provider.getOverview(context)).toMatchObject({
         canEdit: false,
         canManage: false,
         isOwner: false
     })
     accessValue.role = 'owner'
     accessValue.project.status = 'archived'
-    expect((await provider.getOverview(context))).toMatchObject({
+    expect(await provider.getOverview(context)).toMatchObject({
         canEdit: false,
         canManage: false,
         isOwner: false
@@ -177,4 +194,23 @@ it('retains skill installation permission checks for runtime uploads', async () 
     content.uploadSkills.mockRejectedValue(Error('editor required'))
     await expect(provider.uploadSkill(context, file)).rejects.toThrow('editor required')
     expect(content.uploadSkills).toHaveBeenCalledWith('project', file)
+})
+
+it('allows an authorized Assistant to read non-secret effective settings without management access', async () => {
+    const { provider, accessValue, access, editors } = await fixture()
+    accessValue.role = 'assistant'
+    await expect(provider.getRuntimeConfiguration(context)).resolves.toEqual({
+        projectType: { applicationKey: 'coding', projectTypeKey: 'coding' },
+        revision: 3,
+        effectiveValues: { deliveryMode: 'local' }
+    })
+    await expect(provider.get(context)).rejects.toThrow()
+    await expect(provider.update(context, { revision: 3, values: {} })).rejects.toThrow()
+    await expect(provider.getRuntimeConfiguration({ ...context, assistantId: undefined })).rejects.toThrow()
+    await expect(
+        provider.getRuntimeConfiguration({ ...context, actor: { ...context.actor, tenantId: 'other' } })
+    ).rejects.toThrow()
+    access.assertCanUseXpert.mockRejectedValueOnce(Error('revoked'))
+    await expect(provider.getRuntimeConfiguration(context)).rejects.toThrow('revoked')
+    expect(editors.update).not.toHaveBeenCalled()
 })

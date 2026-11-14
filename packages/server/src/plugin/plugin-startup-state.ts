@@ -11,9 +11,10 @@ import type { Worker } from 'node:worker_threads'
 import { createPluginStartupWatchdog } from './plugin-startup-watchdog'
 import { z } from 'zod'
 import { getConfig } from '@xpert-ai/server-config'
-import { serializePluginConfig, deserializePluginConfig } from './plugin-config.crypto'
+import { serializePluginConfig, deserializePluginConfig, deserializePluginConfigStrict } from './plugin-config.crypto'
 import type { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import type { OrganizationPluginConfig } from './plugin-instance.loader'
+import { normalizePluginName } from './types'
 
 const groupSchema = z.object({
 	tenantId: z.string().nullish(),
@@ -112,6 +113,7 @@ export class PluginStartupState {
 		}
 	}
 	select(groups: OrganizationPluginConfig[]): OrganizationPluginConfig[] {
+		this.removeUninstalledFromBaseline(groups)
 		const candidate = groups
 		const hash = fingerprint(candidate)
 		if (this.state.attempted === hash || this.state.blocked === hash) {
@@ -142,6 +144,54 @@ export class PluginStartupState {
 		this.state.active = undefined
 		this.save()
 		return candidate
+	}
+	private removeUninstalledFromBaseline(groups: OrganizationPluginConfig[]): void {
+		if (!this.state.good) return
+		const key = (scope: string | undefined, name: string) => JSON.stringify([scope, normalizePluginName(name)])
+		const requested = new Set(
+			groups.flatMap((group) =>
+				group.plugins.map((plugin) => key(group.scopeKey ?? group.organizationId, plugin.name))
+			)
+		)
+		const removed = new Set<string>()
+		const good = this.state.good.map((group) => {
+			const scope = group.scopeKey ?? group.organizationId
+			const plugins = group.plugins.filter((plugin) => {
+				const identity = key(scope, plugin.name)
+				if (requested.has(identity)) return true
+				removed.add(identity)
+				return false
+			})
+			if (plugins.length === group.plugins.length) return group
+			const removedConfigKeys = new Set(removed)
+			for (const plugin of [
+				...(this.state.goodRuntime?.plugins ?? []),
+				...(this.state.goodRuntime?.failures ?? [])
+			]) {
+				if (removed.has(key(plugin.scopeKey, plugin.packageName ?? plugin.pluginName))) {
+					removedConfigKeys.add(key(plugin.scopeKey, plugin.pluginName))
+				}
+			}
+			const configs = Object.fromEntries(
+				Object.entries(deserializePluginConfigStrict(group.configs)).filter(
+					([name]) => !removedConfigKeys.has(key(scope, name))
+				)
+			)
+			return { ...group, plugins, configs: serializePluginConfig(configs) }
+		})
+		if (!removed.size) return
+		// Strict installation discovery is authoritative. Recovery can restore an old
+		// version of a retained package, but must never resurrect an uninstalled one.
+		this.state.good = good.filter((group) => group.plugins.length)
+		// A legacy failed recovery may have loaded these removed installations.
+		// Permit one recovery from the corrected baseline; the saved trim makes it bounded.
+		this.state.recovering = false
+		if (this.state.goodRuntime) {
+			const retained = (plugin: { scopeKey: string; pluginName: string; packageName?: string }) =>
+				!removed.has(key(plugin.scopeKey, plugin.packageName ?? plugin.pluginName))
+			this.state.goodRuntime.plugins = this.state.goodRuntime.plugins.filter(retained)
+			this.state.goodRuntime.failures = this.state.goodRuntime.failures.filter(retained)
+		}
 	}
 	canRestore(state: RuntimePluginState): boolean {
 		if (!this.state.goodRuntime || !state) return false

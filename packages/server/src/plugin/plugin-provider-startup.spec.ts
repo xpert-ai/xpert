@@ -1,6 +1,7 @@
 import 'reflect-metadata'
 import { Controller, DynamicModule, Get, Injectable, Logger, Module } from '@nestjs/common'
-import { DiscoveryModule, NestFactory } from '@nestjs/core'
+import { DiscoveryModule, ModuleRef, NestFactory } from '@nestjs/core'
+import type { DataSource } from 'typeorm'
 import i18next from 'i18next'
 import { z } from 'zod/v3'
 import {
@@ -19,6 +20,7 @@ import { readWorkspacePluginRuntimeRevision } from './organization-plugin.store'
 import { loaded, loadFailures, registerPluginsAsync } from './plugin.helper'
 import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 import { preflightPluginProviders } from './plugin-provider-preflight'
+import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import type { RuntimePluginState } from '../managed-connection/instance-registry.service'
 import { RuntimePluginAdmission } from '../runtime-control/runtime-plugin-admission'
@@ -312,6 +314,56 @@ describe('plugin provider startup admission', () => {
 		} finally {
 			await app.close()
 		}
+	})
+
+	it('rejects a different package before schema work while the installed provider keeps serving', async () => {
+		const existing = fixture('@test/json', [toolProvider('json_tools', 'tools', 'json_format')])
+		const registered = await register([existing])
+		const candidate = fixture('@test/other-json', [toolProvider('other_json', 'tools', 'json_format')], true)
+		jest.mocked(loadPlugin).mockResolvedValue(candidate)
+		const service = new PluginSchemaSyncService({} as DataSource, {} as ModuleRef, loaded)
+		await expect(
+			service.synchronize({
+				pluginName: candidate.meta.name,
+				pluginBaseDir: '/candidate',
+				scopeKey: 'org-a'
+			})
+		).rejects.toThrow(/json_format/)
+		expect(loadFailures).toEqual([])
+		expect(loaded.map((item) => item.name)).toEqual(['@test/json'])
+		const app = await api(registered.modules)
+		try {
+			expect((await fetch(`${await app.getUrl()}/health`)).status).toBe(200)
+			const toolset = await app.get(ToolsetRegistry).get('json_tools', 'org-a').create({ name: 'json' })
+			expect(await toolset.getMcpCapabilityDefinitions().tools[0].execute({}, executionContext)).toMatchObject({
+				structuredContent: { ok: true }
+			})
+			expect(constructed).not.toHaveBeenCalled()
+		} finally {
+			await app.close()
+		}
+	})
+
+	it('preflights a new version against other plugins, excluding only its own previous version', async () => {
+		await register([
+			fixture('@test/json', [toolProvider('json_tools', 'tools', 'json_format')]),
+			fixture('@test/url', [toolProvider('url_tools', 'tools', 'url_encode')])
+		])
+		const previous = loaded[0]
+		const candidate = fixture('@test/json', [toolProvider('json_tools', 'tools', 'json_format')])
+		candidate.meta.version = '2.0.0'
+		jest.mocked(loadPlugin).mockResolvedValue(candidate)
+		const service = new PluginSchemaSyncService({} as DataSource, {} as ModuleRef, loaded)
+		const input = { pluginName: candidate.meta.name, pluginBaseDir: '/candidate', scopeKey: 'org-a' }
+		await expect(service.synchronize(input)).resolves.toMatchObject({ name: '@test/json', version: '2.0.0' })
+		expect(loaded[0]).toBe(previous)
+		expect(previous.instance.meta.version).toBe('1.0.0')
+		jest.mocked(loadPlugin).mockResolvedValue(
+			fixture('@test/json', [toolProvider('json_tools', 'tools', 'url_encode')])
+		)
+		await expect(service.synchronize(input)).rejects.toThrow(/url_encode/)
+		expect(loaded[0]).toBe(previous)
+		expect(loadFailures).toEqual([])
 	})
 
 	it('checks decorator metadata, class/value providers and middleware adapters without invoking a factory', async () => {

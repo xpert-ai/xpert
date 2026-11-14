@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-from configuration import default_state, load, prepare
+from configuration import assert_project, default_state, load, prepare
 from platform_services import assert_bootstrapped, bootstrap_source, configure_oidc, infrastructure, initialize, run_command, verify_local_terminal
 from processes import SERVICES, ServicePending, healthy, launch_supervisor, owns_supervisor, redacted_tail, service_pid, start_service, stop
 from runtime import architecture, atomic_json, lock_file
@@ -20,11 +20,12 @@ def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--platform', default=os.getcwd(), help='Dedicated source checkout')
     parser.add_argument('--state', help='Private persistent state directory; default derived from checkout')
+    parser.add_argument('--project-root', help='Bind and verify a project-exclusive instance; never adopts shared state')
     sub = parser.add_subparsers(dest='action', required=True)
     setup = sub.add_parser('prepare')
     setup.add_argument('--plugin-root')
-    setup.add_argument('--supervisor-mode', choices=('managed', 'detached'), default='managed',
-                       help='Use managed with an external foreground process owner; detached for a persistent local host session')
+    setup.add_argument('--supervisor-mode', choices=('managed', 'detached'),
+                       help='New environments default to detached; managed requires an explicitly owned foreground supervise process')
     setup.add_argument('--cache', default=str(Path.home() / '.cache/xpert-dev'))
     for name, default in [('db', 15432), ('redis', 16379), ('api', 3000), ('web', 4200)]:
         setup.add_argument('--' + name + '-port', type=int, default=default)
@@ -71,7 +72,7 @@ def status(config):
     revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=config['platform'],
                               capture_output=True, text=True, check=True).stdout.strip()
     result = {'status': 'platform_ready' if ready else ('infrastructure_ready' if infra_ready else 'not_ready'), 'mode': 'process',
-        'platform': config['platform'], 'state': str(state), 'services': services,
+        'platform': config['platform'], 'state': str(state), 'projectRoot': config.get('projectRoot'), 'services': services,
         'supervision': {'mode': config.get('supervisorMode', 'detached'), 'owned': supervisor is not None,
             **({key: supervisor[key] for key in ('pid', 'startTime', 'bootId')} if supervisor else {})},
         'sourceRevision': revision, 'runtime': json.loads(marker.read_text()), 'node': config['node'],
@@ -95,6 +96,7 @@ def main():
     if args.action == 'supervise':
         with lock_file(state / 'operation.lock'):
             config = load(state)
+            assert_project(config, args.project_root)
             if config['platform'] != str(platform):
                 raise RuntimeError('State belongs to a different checkout')
             if owns_supervisor(config):
@@ -111,6 +113,7 @@ def main():
     # readiness wait holds the mutation lock. exec may itself invoke this CLI.
     if args.action in ('status', 'logs', 'exec'):
         config = load(state)
+        assert_project(config, args.project_root)
         if config['platform'] != str(platform):
             raise RuntimeError('State belongs to a different checkout')
         if args.action == 'logs':
@@ -127,6 +130,7 @@ def main():
             print(json.dumps({'status': 'configured', 'state': str(state), 'runtime': config['runtime']}))
             return 0
         config = load(state)
+        assert_project(config, args.project_root)
         if config['platform'] != str(platform):
             raise RuntimeError('State belongs to a different checkout')
         if args.action == 'checkpoint':

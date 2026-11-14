@@ -1,5 +1,13 @@
 # @xpert-ai/plugin-coding-project
 
+## 0.3.0
+
+- Add a default local development and independent acceptance Pipeline without external destinations.
+- Add Project workflow selection and compact configuration preflight; retain existing release authority and evidence.
+- Distinguish missing release configuration from destination selection; pin destinations and revalidate authorization on retries.
+- Return an explicit coordination handoff after Pipeline startup to avoid duplicate task dispatch.
+- Allow published Project Assistants to read non-secret effective runtime configuration without management privileges.
+
 ## 0.2.0
 
 ### Minor Changes
