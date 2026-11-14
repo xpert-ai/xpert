@@ -230,7 +230,8 @@ export class XpertProjectController extends XpertProjectPlanningController {
         @Query('applicationKey') applicationKey?: string,
         @Query('projectTypeKey') projectTypeKey?: string,
         @Query('search') search?: string,
-        @Query('unclassified') unclassified?: string
+        @Query('unclassified') unclassified?: string,
+        @Query('manageableOnly') manageableOnly?: string
     ) {
         if (!xpertId?.trim()) {
             throw new BadRequestException(
@@ -239,12 +240,15 @@ export class XpertProjectController extends XpertProjectPlanningController {
         }
         const page = await this.service.findAvailableForXpert({
             xpertId: xpertId.trim(),
+            ...(manageableOnly === 'true' ? { manageableOnly: true } : {}),
             filter: { applicationKey, projectTypeKey, search, unclassified: unclassified === 'true' },
             status,
             skip: Math.max(Number(skip) || 0, 0),
             take: Math.min(Math.max(Number(take) || 25, 1), 100)
         })
-        return { ...page, items: page.items.map(runtimeProject) }
+        return { ...page, items: page.items.map((project) => ({
+            ...runtimeProject(project), myRole: project.myRole, canEdit: project.canEdit, canManage: project.canManage
+        })) }
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)

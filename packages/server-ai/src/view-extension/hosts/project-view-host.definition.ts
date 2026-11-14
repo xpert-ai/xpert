@@ -1,4 +1,4 @@
-import { t } from 'i18next'
+import { toProjectViewAccess } from '../../xpert-project/services/project-view-access'
 import {
     AIPermissionsEnum,
     getAgentMiddlewareNodes,
@@ -12,7 +12,7 @@ import {
 } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { RequestContext, ViewHostDefinition, ViewHostDefinitionContract } from '@xpert-ai/server-core'
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
@@ -122,16 +122,4 @@ function getEnabledXpertFeatures(features?: TXpertFeatures | null): string[] {
     return Object.entries(features)
         .filter(([, value]) => Boolean(value && typeof value === 'object' && 'enabled' in value && value.enabled))
         .map(([key]) => key)
-}
-
-function toProjectViewAccess(role: 'owner' | 'manager' | 'editor' | 'member' | 'assistant', status?: string | null) {
-    if (role === 'assistant') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
-    const writable = status !== 'archived'
-    return {
-        role,
-        canRead: true,
-        canEdit: writable && role !== 'member',
-        canManage: writable && (role === 'owner' || role === 'manager'),
-        canUse: writable
-    }
 }

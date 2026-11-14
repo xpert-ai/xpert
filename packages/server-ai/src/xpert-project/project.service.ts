@@ -1,7 +1,7 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GENERAL_PROJECT_TYPE, type XpertProjectListFilter } from '@xpert-ai/contracts'
 import { XpertProjectTypeService } from './services/project-type.service'
-import { findMyProjects, findAvailableProjects, type GroupProjectAvailability } from './services/project-list-query'
+import { findMyProjects, findAvailableProjects, findAvailableProjectTypes, type AvailableProjectQuery } from './services/project-list-query'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -281,15 +281,17 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
     }
 
-    async findAvailableForXpert(input: {
-        xpertId: string
-        filter?: XpertProjectListFilter
-        status?: 'active' | 'archived' | 'all'
-        skip?: number
-        take?: number
-        group?: GroupProjectAvailability
-    }) {
+    async findAvailableForXpert(input: AvailableProjectQuery) {
         return findAvailableProjects(this.repository, await this.resolveAccessibleCurrentXpert(input.xpertId), input)
+    }
+
+    async listAssistantProjects(input: AvailableProjectQuery) {
+        const assistant = await this.resolveAccessibleCurrentXpert(input.xpertId)
+        const [page, types] = await Promise.all([
+            findAvailableProjects(this.repository, assistant, input),
+            findAvailableProjectTypes(this.repository, assistant, input.manageableOnly)
+        ])
+        return { ...page, types, assistantName: assistant.title || assistant.name }
     }
 
     async addXpert(id: string, xpertId: string) {
