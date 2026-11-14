@@ -84,6 +84,7 @@
         "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
     },
     "Error": {
+        "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
         "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",
         "CollaborationInvalidRevision": "The collaboration resource revision is invalid.",
         "CollaborationSchemaChanged": "The collaboration document changed or was upgraded. Reload before retrying.",

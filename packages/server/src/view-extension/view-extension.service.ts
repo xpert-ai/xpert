@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto'
+import { t } from 'i18next'
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { decodeMultipartFileName } from '@xpert-ai/server-common'
 import {
 	resolveI18nText,
+	WORKBENCH_CONTENT_DRAFT_COMMAND,
+	type XpertViewLocalDraftBinding,
 	type RuntimeResourceView,
 	XpertExtensionViewManifest,
 	XpertRemoteComponentEntry,
@@ -130,6 +134,47 @@ export class ViewExtensionService {
 		return this.cacheService.getOrSetViewData(context, viewKey, query, ttlMs, () =>
 			Promise.resolve(resolved.provider.getViewData(context, resolved.manifestKey, query))
 		)
+	}
+
+	/** Reauthorize each draft operation; the returned hash is a storage namespace, not an access token. */
+	async getLocalDraftBinding(
+		hostType: string,
+		hostId: string,
+		viewKey: string,
+		resourceId: string
+	): Promise<XpertViewLocalDraftBinding> {
+		const context = await this.resolveHostContext(hostType, hostId)
+		const resolved = await this.resolveProviderManifest(context, viewKey)
+		this.permissionService.ensureManifestVisible(resolved.manifest, context)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
+		if (
+			!context.tenantId ||
+			!context.userId ||
+			!resolved.provider.authorizeLocalDraftResource ||
+			!resolved.manifest.clientCommands?.some((command) => command.key === WORKBENCH_CONTENT_DRAFT_COMMAND)
+		)
+			throw new ForbiddenException(t('server-ai:Error.ViewLocalDraftUnavailable'))
+		const canonical = await resolved.provider.authorizeLocalDraftResource(context, resolved.manifestKey, resourceId)
+		// Plugin output crosses a runtime boundary even when the TypeScript interface declares a string.
+		if (typeof canonical !== 'string' || !canonical.trim() || canonical.length > 256)
+			throw new BadRequestException(t('server-ai:Error.ViewLocalDraftUnavailable'))
+		// Use only resolved scope and the provider's canonical ID; browser input cannot choose another namespace.
+		const scopeKey = createHash('sha256')
+			.update(
+				JSON.stringify([
+					'local-draft@1',
+					context.tenantId,
+					context.organizationId ?? null,
+					context.userId,
+					hostType,
+					hostId,
+					viewKey,
+					context.runtimeScope?.projectId ?? null,
+					canonical
+				])
+			)
+			.digest('hex')
+		return { resourceId: canonical, scopeKey, maxBytes: 20 * 1024 * 1024 }
 	}
 
 	async getViewManifest(hostType: string, hostId: string, viewKey: string) {

@@ -84,6 +84,7 @@
         "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
     },
     "Error": {
+        "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
         "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",
         "CollaborationInvalidRevision": "协作资源版本无效。",
         "CollaborationSchemaChanged": "协作文档已升级或修改，请重新加载后重试。",
