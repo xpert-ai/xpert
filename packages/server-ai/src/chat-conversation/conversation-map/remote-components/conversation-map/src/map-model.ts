@@ -1,5 +1,5 @@
 import type { MapEdge, MapNode } from '../../../schema'
-import type { TrailGraph, TrailLane, TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph, TrailLane, TrailStep } from '@xpert-ai/contracts'
 
 /** Keep semantic edges intact; choose a single, loaded parent only for tree/list layout. */
 export function mapHierarchy(items: MapNode[], edges: MapEdge[], relations = false): MapNode[] {

@@ -35,6 +35,7 @@ export type AgentInvocationErrorCode =
     | 'DispatchUnknown'
     | 'NotFound'
     | 'Unsupported'
+    | 'DeliveryRecoveryUnavailable'
     | 'InteractionConflict'
     | 'MissingResult'
     | 'ConcurrentUpdate'
@@ -48,6 +49,7 @@ const status: Record<AgentInvocationErrorCode, number> = {
     DispatchUnknown: 409,
     NotFound: 404,
     Unsupported: 422,
+    DeliveryRecoveryUnavailable: 422,
     InteractionConflict: 409,
     MissingResult: 502,
     ConcurrentUpdate: 409

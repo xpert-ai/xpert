@@ -134,5 +134,5 @@ this ledger today. Consequently this ceiling is not a project-wide total token o
 cost cap. Full delegated-budget attribution remains a known infrastructure gap.
 
 The host must provide `ProjectTasksApi.readAcceptance` through `platform.project.tasks`.
-This plugin requires its accepted task to have a passing independent execution review. Fixture tests, plugin loading and real
+This plugin requires formal coordinator acceptance that references an independent execution-review report. The coordinator reads the Markdown report and records the decision; the plugin does not infer a verdict from report wording. Fixture tests, plugin loading and real
 cross-instance delivery are distinct verification layers.

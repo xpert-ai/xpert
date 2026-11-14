@@ -64,25 +64,9 @@
         "ReportInstruction": "This is a scheduled check. Inspect the source and call report_schedule_differences with stable subject identifiers and exact before/after values. Report an empty array if unchanged. If the source is unavailable, explain the failure instead."
     },
     "ReviewReportDiagnostic": {
-        "UnexpectedField": "Unexpected field; remove it from the delivered report.",
-        "ExpectedType": "Expected {{expected}}; received {{received}}.",
-        "ExpectedLiteral": "Expected {{expected}}.",
-        "ExpectedEnum": "Expected one of: {{options}}.",
-        "Maximum": "Exceeds maximum {{maximum}}.",
-        "Minimum": "Requires minimum {{minimum}}.",
-        "Consistency": "Violates report consistency rules (unique finding IDs; no blocking finding with pass).",
-        "InvalidValue": "Invalid value ({{code}}).",
-        "ImplementationMismatch": "Must equal purpose.implementationInvocationId for the pinned implementation.",
-        "SpecificationMismatch": "Must equal purpose.specificationDigest, not the candidate file snapshot digest.",
-        "EvidenceOrderMismatch": "Evidence references match, but their order differs. Preserve the current purpose.evidence array order exactly.",
-        "EvidenceMismatch": "Evidence references differ from purpose.evidence. Preserve the pinned IDs, revisions, versions and array order exactly.",
         "InvalidSubject": "The pinned review purpose is invalid.",
-        "MissingReport": "The invocation has no delivered review report.",
-        "InvalidJson": "Expected JSON report text after the runner unwraps the outer summary string.",
-        "EncodedSummary": "Must be a JSON-encoded STRING containing the review report.",
-        "UnparsedEnvelope": "The outer envelope was not unwrapped by the runner; it is not the delivered inner report.",
-        "ContractMismatch": "The result does not match the pinned review contract.",
-        "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
+        "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}",
+        "MissingMarkdown": "Independent review needs an assessment in the final reply or an explicitly selected report file. Recover delivery only if that file exists and the runtime supports reading it."
     },
     "Error": {
         "ScheduleReportMissing": "The check did not submit a difference report.",
@@ -427,6 +411,7 @@
         "AgentInvocationDispatchUnknown": "The Agent execution outcome is unknown; reconcile it before retrying.",
         "AgentInvocationNotFound": "Agent invocation was not found in this execution scope.",
         "AgentInvocationUnsupported": "This Agent runtime does not support the requested operation.",
+        "AgentInvocationDeliveryRecoveryUnavailable": "The runtime cannot reread the selected report or files from the original execution. Delivery recovery does not run the task again.",
         "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
         "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
         "AgentInvocationConcurrentUpdate": "The Agent invocation changed concurrently. Reload its current state.",
@@ -1585,15 +1570,11 @@
         "EXPIRED_COMMAND": "The command expired before it could start."
     },
     "ProjectTaskCard": {
+        "ReportDelivered": "Review report delivered",
+        "ReportUnavailable": "Review report unavailable",
         "Implementation": "Implementation",
         "Review": "Independent review",
         "Attempt": "Run #{{count}}",
-        "ReviewVerdict": {
-            "pass": "Review passed",
-            "changes_required": "Changes required",
-            "indeterminate": "Insufficient evidence",
-            "unavailable": "Review finished; verdict unavailable"
-        },
         "Status": {
             "todo": "To do",
             "in_progress": "In progress",

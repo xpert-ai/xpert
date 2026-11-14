@@ -1,4 +1,4 @@
-import type { TrailGraph, TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph, TrailStep } from '@xpert-ai/contracts'
 import { layoutTrail } from './trail-layout'
 
 function fixture(): TrailGraph {

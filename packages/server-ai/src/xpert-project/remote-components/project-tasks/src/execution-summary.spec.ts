@@ -72,21 +72,19 @@ it('prefers full Invocation status over stale native or Task state', () => {
     })
 })
 
-it.each([
-    ['pass', '评审通过', 'Review passed'],
-    ['changes_required', '需修改', 'Changes required'],
-    ['indeterminate', '无法判断', 'Indeterminate']
-] as const)('shows the %s verdict independently of successful runtime completion', (reviewVerdict, zh, en) => {
-    const value: Attempt = { ...attempt, purpose: reviewPurpose, reviewVerdict }
-    expect(executionSummary(value, texts('zh-Hans'))).toMatchObject({
-        succeeded: true, failed: false, businessResult: zh, label: '独立评审 · 运行成功', color: 'bg-[var(--success)]'
-    })
-    expect(executionSummary(value, texts('en-US'))).toMatchObject({ businessResult: en, label: 'Independent review · Runtime succeeded' })
+it('shows report delivery without inferring acceptance', () => {
+    const value: Attempt = { ...attempt, purpose: reviewPurpose, reviewReportAvailable: true }
+    expect(executionSummary(value, texts('zh-Hans')).businessResult).toBe('评审报告已交付')
+    expect(executionSummary(value, texts('en-US')).businessResult).toBe('Review report delivered')
 })
 
 it.each(['running', 'waiting', 'unknown', 'failed', 'cancelled'] as const)(
-    'does not show a stale passing verdict for a %s runtime', (invocationStatus) => {
-        const summary = executionSummary({ ...attempt, purpose: reviewPurpose, reviewVerdict: 'pass', invocationStatus }, texts('en-US'))
+    'does not show a stale passing verdict for a %s runtime',
+    (invocationStatus) => {
+        const summary = executionSummary(
+            { ...attempt, purpose: reviewPurpose, reviewReportAvailable: true, invocationStatus },
+            texts('en-US')
+        )
         expect(summary.succeeded).toBe(false)
         expect(summary.businessResult).toBeNull()
     }
@@ -94,23 +92,41 @@ it.each(['running', 'waiting', 'unknown', 'failed', 'cancelled'] as const)(
 
 it('uses declared execution purpose for labels and never infers a verdict from success', () => {
     expect(executionSummary(attempt, texts('en-US')).label).toBe('Runtime succeeded')
-    expect(executionSummary({ ...attempt, purpose: { type: 'implementation' }, reviewVerdict: 'pass' }, texts('en-US')))
-        .toMatchObject({ label: 'Implementation · Runtime succeeded', businessResult: null })
-    expect(executionSummary({ ...attempt, purpose: reviewPurpose }, texts('en-US')))
-        .toMatchObject({ label: 'Independent review · Runtime succeeded', businessResult: null })
-    const rework: Attempt = { ...attempt, purpose: { type: 'implementation', rework: {
-        reviewExecutionId: '33333333-3333-4333-8333-333333333333', findingIds: ['F1']
-    } } }
+    expect(
+        executionSummary(
+            { ...attempt, purpose: { type: 'implementation' }, reviewReportAvailable: true },
+            texts('en-US')
+        )
+    ).toMatchObject({ label: 'Implementation · Runtime succeeded', businessResult: null })
+    expect(executionSummary({ ...attempt, purpose: reviewPurpose }, texts('en-US'))).toMatchObject({
+        label: 'Independent review · Runtime succeeded',
+        businessResult: null
+    })
+    const rework: Attempt = {
+        ...attempt,
+        purpose: {
+            type: 'implementation',
+            rework: {
+                reviewExecutionId: '33333333-3333-4333-8333-333333333333',
+                feedback: 'Verify deployment'
+            }
+        }
+    }
     expect(executionSummary(rework, texts('zh-Hans')).label).toBe('反馈返工 · 运行成功')
     expect(executionSummary(rework, texts('en-US')).label).toBe('Rework · Runtime succeeded')
 })
 
 it('retains execution purpose and verdict through the graph response boundary', () => {
     const graph = graphSchema.parse({
-        projectId: 'project', cursor: 'revision', tasks: [], diagnostics: [],
-        executions: [{ ...attempt, purpose: reviewPurpose, reviewVerdict: 'changes_required' }]
+        projectId: 'project',
+        cursor: 'revision',
+        tasks: [],
+        diagnostics: [],
+        executions: [{ ...attempt, purpose: reviewPurpose, reviewReportAvailable: true }]
     })
     expect(executionSummary(graph.executions[0], texts('en-US'))).toMatchObject({
-        succeeded: true, label: 'Independent review · Runtime succeeded', businessResult: 'Changes required'
+        succeeded: true,
+        label: 'Independent review · Runtime succeeded',
+        businessResult: 'Review report delivered'
     })
 })

@@ -12,52 +12,97 @@ const taskId = '11111111-1111-4111-8111-111111111111'
 const projectId = '22222222-2222-4222-8222-222222222222'
 const invocationId = '33333333-3333-4333-8333-333333333333'
 const attemptId = '44444444-4444-4444-8444-444444444444'
-const purpose = { type: 'review', mode: 'execution', candidatePaths: ['plugin'],
-    implementationExecutionId: '55555555-5555-4555-8555-555555555555', implementationInvocationId: invocationId,
-    specificationDigest: `sha256:${'a'.repeat(64)}`, evidence: [{ type: 'invocation_result', invocationId, revision: 3 }] }
+const purpose = {
+    type: 'review',
+    mode: 'execution',
+    candidatePaths: ['plugin'],
+    implementationExecutionId: '55555555-5555-4555-8555-555555555555',
+    implementationInvocationId: invocationId,
+    specificationDigest: `sha256:${'a'.repeat(64)}`,
+    evidence: [{ type: 'invocation_result', invocationId, revision: 3 }]
+}
 
 function fixture(status = 'succeeded', executionBudget?: { maxDurationSeconds: number; deadline: string }) {
-    const invocation = { id: invocationId, status, revision: 4, scope: { callerType: 'xpert' }, request: {
-        target: { provider: 'codex-computer' }, dispatch: { projectTask: { projectId, projectTaskId: taskId, taskExecutionId: attemptId } }
-    }, handle: executionBudget ? { runner: { tool: { id: 'codex', version: '1.0' }, executionBudget } } : undefined,
-    result: { text: '```xpert-task-result\n{"version":1,"summary":{},"items":[]}\n```' } }
+    const invocation = {
+        id: invocationId,
+        status,
+        revision: 4,
+        scope: { callerType: 'xpert' },
+        request: {
+            target: { provider: 'codex-computer' },
+            dispatch: { projectTask: { projectId, projectTaskId: taskId, taskExecutionId: attemptId } }
+        },
+        handle: executionBudget ? { runner: { tool: { id: 'codex', version: '1.0' }, executionBudget } } : undefined,
+        result: { text: '' }
+    }
     const inspect = jest.fn().mockResolvedValue(invocation)
     const assertCanRead = jest.fn()
+    const assertCanEdit = jest.fn()
+    const recoverDelivery = jest.fn().mockImplementation(async () => ({ ...invocation, revision: 5 }))
+    const start = jest.fn()
     const findOneBy = jest.fn().mockResolvedValue({ id: invocationId, invocation })
     const repository = Object.assign(Object.create(Repository.prototype) as Repository<XpertProjectTask>, {
         find: jest.fn().mockResolvedValue([]),
-        findOne: jest.fn().mockResolvedValue({ id: taskId, projectId, title: 'Plugin', kind: 'task', parentTaskId: null, requirements: ['Works'], steps: [],
-            executions: [{ id: attemptId, taskId, projectId, invocationId, attempt: 1, purpose }] }),
+        findOne: jest
+            .fn()
+            .mockResolvedValue({
+                id: taskId,
+                projectId,
+                title: 'Plugin',
+                kind: 'task',
+                parentTaskId: null,
+                requirements: ['Works'],
+                steps: [],
+                executions: [{ id: attemptId, taskId, projectId, invocationId, attempt: 1, purpose }]
+            }),
         manager: { getRepository: () => ({ findOneBy, find: jest.fn().mockResolvedValue([]) }) }
     })
-    const service = new ProjectTaskRuntimeReadService(repository,
-        Object.assign(Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService, { assertCanRead }),
+    const service = new ProjectTaskRuntimeReadService(
+        repository,
+        Object.assign(Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService, {
+            assertCanRead,
+            assertCanEdit
+        }),
         Object.assign(Object.create(ProjectTaskRuntimeContextService.prototype) as ProjectTaskRuntimeContextService, {
             actor: () => ({ tenantId: 'tenant', organizationId: 'organization', userId: 'owner' })
         }),
         Object.assign(Object.create(AgentInvocationFactoryService.prototype) as AgentInvocationFactoryService, {
-            createCapturedApi: () => ({ inspect })
-        }), Object.create(CommandBus.prototype) as CommandBus)
-    return { service, inspect, assertCanRead, findOneBy, invocation, repository }
+            createCapturedApi: () => ({ inspect, recoverDelivery, start })
+        }),
+        Object.create(CommandBus.prototype) as CommandBus
+    )
+    return { service, inspect, assertCanRead, assertCanEdit, recoverDelivery, start, findOneBy, invocation, repository }
 }
 
-beforeAll(async () => { await i18next.init({ lng: 'en' }) })
+beforeAll(async () => {
+    await i18next.init({ lng: 'en' })
+})
 
 it('exposes bounded rejection diagnostics to the authorized caller without accepting the report', async () => {
     const f = fixture()
     const result = await f.service.get(projectId, taskId)
-    expect(result.executions[0]).toMatchObject({ reviewReport: null,
-        reviewReportDiagnostic: { code: 'outer_envelope_invalid', issues: expect.arrayContaining([
-            { path: 'summary', message: 'Expected string; received object.' }
-        ]) }
+    expect(result.executions[0]).toMatchObject({
+        reviewReport: null,
+        reviewReportDiagnostic: {
+            code: 'missing_report',
+            issues: expect.arrayContaining([expect.objectContaining({ path: 'result.text' })])
+        }
     })
-    expect(f.findOneBy).toHaveBeenCalledWith({ id: invocationId, tenantId: 'tenant', organizationId: 'organization', ownerId: 'owner' })
+    expect(f.findOneBy).toHaveBeenCalledWith({
+        id: invocationId,
+        tenantId: 'tenant',
+        organizationId: 'organization',
+        ownerId: 'owner'
+    })
 })
 
-it.each(['queued', 'running', 'failed', 'cancelled'])('does not diagnose report delivery for a %s invocation', async (status) => {
-    const result = await fixture(status).service.get(projectId, taskId)
-    expect(result.executions[0]).toMatchObject({ reviewReportDiagnostic: null })
-})
+it.each(['queued', 'running', 'failed', 'cancelled'])(
+    'does not diagnose report delivery for a %s invocation',
+    async (status) => {
+        const result = await fixture(status).service.get(projectId, taskId)
+        expect(result.executions[0]).toMatchObject({ reviewReportDiagnostic: null })
+    }
+)
 
 it('retains the read authorization boundary before reporting any diagnostic', async () => {
     const f = fixture()
@@ -84,27 +129,13 @@ it('rejects a mismatched invocation task reference before inspection or diagnost
     expect(f.inspect).not.toHaveBeenCalled()
 })
 
-it('returns a valid non-passing report as a verdict, not a delivery defect', async () => {
+it('returns Markdown reports without extracting pass/fail or requiring fixed headings', async () => {
     const f = fixture()
-    f.invocation.result.text = JSON.stringify({ version: 2, mode: 'execution', verdict: 'changes_required',
-        implementationInvocationId: invocationId, specificationDigest: purpose.specificationDigest,
-        evidence: purpose.evidence, summary: 'The result is incorrect',
-        checks: [{ description: 'Check output', outcome: 'failed', actual: 'Unexpected output' }],
-        findings: [{ id: 'F1', kind: 'defect', blocking: true, description: 'The result is incorrect' }], limitations: [] })
+    f.invocation.result.text = '# 实测记录\n尚未部署测试。'
     const result = await f.service.get(projectId, taskId)
-    expect(result.executions[0]).toMatchObject({ reviewReport: { verdict: 'changes_required' }, reviewReportDiagnostic: null })
-})
-
-it('rejects an evidence-only report for execution review and explains the mismatch', async () => {
-    const f = fixture()
-    f.invocation.result.text = JSON.stringify({ version: 1, verdict: 'pass',
-        implementationInvocationId: invocationId, specificationDigest: purpose.specificationDigest,
-        evidence: purpose.evidence, findings: ['Evidence looks correct'], limitations: [] })
-    const result = await f.service.get(projectId, taskId)
-    expect(result.executions[0]).toMatchObject({ reviewReport: null,
-        reviewReportDiagnostic: { code: 'report_schema_invalid', issues: expect.arrayContaining([
-            { path: 'version', message: 'Expected 2.' }
-        ]) }
+    expect(result.executions[0]).toMatchObject({
+        reviewReport: { format: 'markdown', markdown: f.invocation.result.text },
+        reviewReportDiagnostic: null
     })
 })
 
@@ -121,32 +152,124 @@ it('projects the pinned execution budget after authorization without inventing o
     expect(f.inspect).not.toHaveBeenCalled()
 })
 
+describe('delivery recovery after execution completion', () => {
+    it.each(['review', 'implementation'])(
+        'recovers a completed %s without reopening the task or restarting the CLI',
+        async (type) => {
+            const f = fixture()
+            const task = await f.repository.findOne({})
+            task.status = 'done'
+            task.revision = 3
+            Object.assign(task.executions[0], { purpose: type === 'review' ? purpose : { type: 'implementation' } })
+            f.invocation.result.text = '# Checked\nThe original Markdown report.'
+            const before = structuredClone(task)
+            const request = { expectedRevision: 4, paths: ['output/report.md'] }
+            const result = await f.service.recoverDelivery(projectId, taskId, attemptId, request)
+            expect(result).toMatchObject({
+                invocationId,
+                revision: 5,
+                status: 'succeeded',
+                result: f.invocation.result
+            })
+            expect(f.recoverDelivery).toHaveBeenCalledWith(invocationId, request)
+            expect(f.assertCanEdit).toHaveBeenCalledWith(projectId)
+            expect(f.start).not.toHaveBeenCalled()
+            expect(task).toEqual(before)
+        }
+    )
+
+    it('keeps cancelled tasks closed to delivery recovery', async () => {
+        const f = fixture()
+        const task = await f.repository.findOne({})
+        task.status = 'cancelled'
+        await expect(f.service.recoverDelivery(projectId, taskId, attemptId, { expectedRevision: 4 })).rejects.toThrow()
+        expect(f.recoverDelivery).not.toHaveBeenCalled()
+    })
+
+    it('requires current edit authorization before reading or recovering a result', async () => {
+        const f = fixture()
+        f.assertCanEdit.mockRejectedValue(new Error('Revoked'))
+        await expect(f.service.recoverDelivery(projectId, taskId, attemptId, { expectedRevision: 4 })).rejects.toThrow(
+            'Revoked'
+        )
+        expect(f.repository.findOne).not.toHaveBeenCalled()
+        expect(f.inspect).not.toHaveBeenCalled()
+        expect(f.recoverDelivery).not.toHaveBeenCalled()
+    })
+
+    it("cannot recover another owner's invocation", async () => {
+        const f = fixture()
+        f.findOneBy.mockResolvedValue(null)
+        await expect(f.service.recoverDelivery(projectId, taskId, attemptId, { expectedRevision: 4 })).rejects.toThrow()
+        expect(f.recoverDelivery).not.toHaveBeenCalled()
+    })
+
+    it('preserves the invocation revision conflict instead of dispatching another execution', async () => {
+        const f = fixture()
+        f.recoverDelivery.mockRejectedValue(new Error('ConcurrentUpdate'))
+        await expect(f.service.recoverDelivery(projectId, taskId, attemptId, { expectedRevision: 3 })).rejects.toThrow(
+            'ConcurrentUpdate'
+        )
+        expect(f.start).not.toHaveBeenCalled()
+    })
+})
+
 describe('direct child task summaries', () => {
     it('lists only reviews bound to this implementation among its summary siblings', async () => {
         const f = fixture()
         const source = await f.repository.findOne({})
         source.parentTaskId = 'summary'
-        const subject = { implementationTaskId: taskId, implementationExecutionId: attemptId, specificationDigest: 'digest' }
-        f.repository.find.mockResolvedValueOnce([]).mockResolvedValueOnce([
-            Object.assign(new XpertProjectTask(), { id: 'review', title: 'Review', kind: 'task', status: 'done', revision: 3, reviewSubject: subject }),
-            Object.assign(new XpertProjectTask(), { id: 'other-review', reviewSubject: { ...subject, implementationTaskId: 'other' } })
-        ])
+        const subject = {
+            implementationTaskId: taskId,
+            implementationExecutionId: attemptId,
+            specificationDigest: 'digest'
+        }
+        f.repository.find
+            .mockResolvedValueOnce([])
+            .mockResolvedValueOnce([
+                Object.assign(new XpertProjectTask(), {
+                    id: 'review',
+                    title: 'Review',
+                    kind: 'task',
+                    status: 'done',
+                    revision: 3,
+                    reviewSubject: subject
+                }),
+                Object.assign(new XpertProjectTask(), {
+                    id: 'other-review',
+                    reviewSubject: { ...subject, implementationTaskId: 'other' }
+                })
+            ])
         const result = await f.service.get(projectId, taskId)
-        expect(result.reviewTasks).toEqual([{ id: 'review', title: 'Review', kind: 'task', status: 'done', revision: 3, reviewSubject: subject }])
+        expect(result.reviewTasks).toEqual([
+            { id: 'review', title: 'Review', kind: 'task', status: 'done', revision: 3, reviewSubject: subject }
+        ])
         expect(f.repository.find).toHaveBeenNthCalledWith(2, {
             where: { projectId, tenantId: 'tenant', organizationId: 'organization', parentTaskId: 'summary' },
             select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
-            order: { createdAt: 'ASC', id: 'ASC' }, loadEagerRelations: false
+            order: { createdAt: 'ASC', id: 'ASC' },
+            loadEagerRelations: false
         })
         expect(f.inspect).toHaveBeenCalledTimes(1)
     })
 
     it('reuses the direct-child query for standalone implementation reviews', async () => {
         const f = fixture()
-        const subject = { implementationTaskId: taskId, implementationExecutionId: attemptId, specificationDigest: 'digest' }
-        f.repository.find.mockResolvedValue([Object.assign(new XpertProjectTask(), {
-            id: 'review', name: 'Review', kind: 'task', status: 'blocked', revision: 2, reviewSubject: subject
-        })])
+        const subject = {
+            implementationTaskId: taskId,
+            implementationExecutionId: attemptId,
+            specificationDigest: 'digest'
+        }
+        f.repository.find.mockResolvedValue([
+            Object.assign(new XpertProjectTask(), {
+                id: 'review',
+                name: 'Review',
+                kind: 'task',
+                status: 'blocked',
+                revision: 2,
+                reviewSubject: subject
+            })
+        ])
         const result = await f.service.get(projectId, taskId)
         expect(result.reviewTasks).toHaveLength(1)
         expect(result.childTasks[0]).not.toHaveProperty('reviewSubject')
@@ -158,12 +281,23 @@ describe('direct child task summaries', () => {
         const f = fixture()
         const children = [
             Object.assign(new XpertProjectTask(), {
-                id: 'child-1', title: 'Implementation', name: 'Internal name', kind: 'task', status: 'review', revision: 3,
-                requirements: ['Child requirements'], description: 'Detailed content',
+                id: 'child-1',
+                title: 'Implementation',
+                name: 'Internal name',
+                kind: 'task',
+                status: 'review',
+                revision: 3,
+                requirements: ['Child requirements'],
+                description: 'Detailed content',
                 executions: [{ invocationId: 'child-invocation', result: 'Restricted child output' }]
             }),
             Object.assign(new XpertProjectTask(), {
-                id: 'child-2', title: '', name: 'Nested summary', kind: 'summary', status: 'todo', revision: 1
+                id: 'child-2',
+                title: '',
+                name: 'Nested summary',
+                kind: 'summary',
+                status: 'todo',
+                revision: 1
             })
         ]
         f.repository.find.mockResolvedValue(children)
@@ -214,7 +348,9 @@ describe('direct child task summaries', () => {
     it('returns current child state on a later read and rechecks access', async () => {
         const f = fixture()
         const child = { id: 'child', title: 'Implementation', kind: 'task', status: 'in_progress', revision: 1 }
-        f.repository.find.mockResolvedValueOnce([child]).mockResolvedValueOnce([{ ...child, status: 'review', revision: 2 }])
+        f.repository.find
+            .mockResolvedValueOnce([child])
+            .mockResolvedValueOnce([{ ...child, status: 'review', revision: 2 }])
         const before = await f.service.get(projectId, taskId)
         const after = await f.service.get(projectId, taskId)
         expect(before.childTasks[0]).toMatchObject({ status: 'in_progress', revision: 1 })

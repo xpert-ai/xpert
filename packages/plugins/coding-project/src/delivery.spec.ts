@@ -129,9 +129,7 @@ describe('Coding delivery business boundaries', () => {
   })
   it.each<ProjectTaskAcceptanceReceipt['review']>([
     null,
-    { executionId: randomUUID(), mode: 'evidence_only', verdict: 'pass' },
-    { executionId: randomUUID(), mode: 'execution', verdict: 'changes_required' },
-    { executionId: randomUUID(), mode: 'execution', verdict: 'indeterminate' }
+    { executionId: randomUUID(), mode: 'evidence_only', reportDigest: 'a'.repeat(64) }
   ])('keeps execution-review requirements in coding delivery: %j', async (review) => {
     f.readAcceptance.mockResolvedValueOnce({ ...f.accepted(), review })
     await expect(submit()).rejects.toMatchObject({ response: { code: 'CODING_EXECUTION_REVIEW_REQUIRED' } })

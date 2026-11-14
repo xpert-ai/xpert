@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronDown, ChevronRight, Crosshair, GitBranch, X } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import type { TrailGraph, TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph, TrailStep } from '@xpert-ai/contracts'
 import type { TrailLabels } from './trail-i18n'
 
 /** Non-modal: the canvas stays interactive and keeps its full width behind this card. */

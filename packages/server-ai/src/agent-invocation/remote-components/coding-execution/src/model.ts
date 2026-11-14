@@ -1,7 +1,6 @@
 import type { ExecutionI18n, MessageKey } from './i18n/core'
 import { z } from 'zod/v3'
-import { agentTaskResultSchema } from '@xpert-ai/plugin-sdk/agent-results'
-import { executionActivityItemSchema } from '../../../../../../contracts/src/ai/execution-activity.model'
+import { executionActivityItemSchema } from '@xpert-ai/contracts'
 import { isJsonValue, type JsonValue } from './json-tree'
 
 export const response = z.object({
@@ -44,7 +43,7 @@ export type Activity = NonNullable<Snapshot['activity']>['items'][number]
 export type Execution = NonNullable<Snapshot['execution']>
 export type Output = { text: string; nextOffset: number; hasMore: boolean }
 
-/** JSON is a presentation format only. Business summaries still require the versioned SDK contract. */
+/** JSON presentation never interprets business fields or unwraps a result envelope. */
 export function publicReply(value: string): { text: string; raw?: string; json?: string; data?: JsonValue } {
     const trimmed = value.trim()
     const candidate = /^```(?:json)?\s*\n([\s\S]*?)\n```$/.exec(trimmed)?.[1] ?? trimmed
@@ -52,9 +51,8 @@ export function publicReply(value: string): { text: string; raw?: string; json?:
     try {
         const json: unknown = JSON.parse(candidate)
         if (!isJsonValue(json)) return { text: value }
-        const parsed = agentTaskResultSchema.safeParse(json)
         return {
-            text: parsed.success && typeof parsed.data.summary === 'string' ? parsed.data.summary : '',
+            text: '',
             raw: value,
             json: JSON.stringify(json, null, 2),
             data: json

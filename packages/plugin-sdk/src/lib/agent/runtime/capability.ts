@@ -18,6 +18,8 @@ export interface AgentInvocationApi {
   start(request: AgentInvocationRequest): Promise<AgentInvocation>
   /** Refresh an existing invocation, possibly persisting provider observations. Never relaunches work. */
   inspect(invocationId: string): Promise<AgentInvocation>
+  /** Retry requested file delivery without starting work; no pending delivery returns the current invocation. */
+  recoverDelivery?(invocationId: string, input: import('./results').AgentDeliveryRecovery): Promise<AgentInvocation>
   /** Request supported cancellation; cancelling does not confirm termination. */
   cancel(invocationId: string): Promise<AgentInvocation>
   /** Answer the current interaction using its exact ID and provider-defined response schema. */

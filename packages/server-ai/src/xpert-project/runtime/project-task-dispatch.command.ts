@@ -1,5 +1,10 @@
 import { ICommand } from '@nestjs/cqrs'
-import { ProjectTaskDispatchInput, ProjectTaskDecisionInput, ProjectTaskGraphChange } from '@xpert-ai/contracts'
+import {
+    ProjectTaskDispatchInput,
+    ProjectTaskDecisionInput,
+    ProjectTaskGraphChange,
+    AgentDeliveryRecovery
+} from '@xpert-ai/contracts'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
 
 /** Change a task plan using the same revision and graph validation as the Project Tasks view. */
@@ -41,5 +46,15 @@ export class ListProjectRuntimeBindingsCommand implements ICommand {
     constructor(
         readonly projectId: string,
         readonly caller: ProjectTaskCaller
+    ) {}
+}
+
+/** Recover report/artifact delivery without launching another execution. */
+export class RecoverProjectTaskDeliveryCommand implements ICommand {
+    constructor(
+        readonly projectId: string,
+        readonly taskId: string,
+        readonly executionId: string,
+        readonly input: AgentDeliveryRecovery
     ) {}
 }

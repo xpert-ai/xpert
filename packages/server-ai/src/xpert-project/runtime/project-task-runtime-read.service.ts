@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { projectTaskSpecificationSchema } from '@xpert-ai/contracts'
+import { projectTaskSpecificationSchema, type AgentDeliveryRecovery } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { z } from 'zod/v3'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
@@ -101,8 +101,10 @@ export class ProjectTaskRuntimeReadService {
                     deadline: invocation.handle.runner.executionBudget.deadline
                 },
                 reviewReport: reviewReport(execution.purpose, invocation.result?.text),
-                reviewReportDiagnostic: invocation.status === 'succeeded' && execution.purpose?.type === 'review'
-                    ? diagnoseReviewReport(execution.purpose, invocation.result?.text) : null,
+                reviewReportDiagnostic:
+                    invocation.status === 'succeeded' && execution.purpose?.type === 'review'
+                        ? diagnoseReviewReport(execution.purpose, invocation.result?.text)
+                        : null,
                 delivery,
                 consumption,
                 evidence: [
@@ -117,6 +119,9 @@ export class ProjectTaskRuntimeReadService {
                 result: invocation.result
                     ? {
                           text: invocation.result.text,
+                          textTruncated: invocation.result.textTruncated,
+                          report: invocation.result.report,
+                          deliveryHistory: invocation.result.deliveryHistory,
                           data: invocation.result.data,
                           items: invocation.result.items,
                           artifacts: invocation.result.artifacts,
@@ -138,12 +143,22 @@ export class ProjectTaskRuntimeReadService {
             loadEagerRelations: false
         })
         // A coordinated implementation's reviews are siblings; standalone reviews are its children.
-        const related = (task.kind ?? 'task') === 'task' && !task.reviewSubject
-            ? task.parentTaskId ? await this.tasks.find({
-                where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.parentTaskId },
-                select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
-                order: { createdAt: 'ASC', id: 'ASC' }, loadEagerRelations: false
-            }) : children : []
+        const related =
+            (task.kind ?? 'task') === 'task' && !task.reviewSubject
+                ? task.parentTaskId
+                    ? await this.tasks.find({
+                          where: {
+                              projectId,
+                              tenantId: actor.tenantId,
+                              organizationId: actor.organizationId,
+                              parentTaskId: task.parentTaskId
+                          },
+                          select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+                          order: { createdAt: 'ASC', id: 'ASC' },
+                          loadEagerRelations: false
+                      })
+                    : children
+                : []
         return {
             ...task,
             childTasks: children.map((child) => ({
@@ -153,14 +168,47 @@ export class ProjectTaskRuntimeReadService {
                 status: child.status,
                 revision: child.revision
             })),
-            reviewTasks: related.filter((child) => child.reviewSubject?.implementationTaskId === task.id).map((child) => ({
-                id: child.id, title: child.title || child.name, kind: child.kind,
-                status: child.status, revision: child.revision, reviewSubject: child.reviewSubject
-            })),
+            reviewTasks: related
+                .filter((child) => child.reviewSubject?.implementationTaskId === task.id)
+                .map((child) => ({
+                    id: child.id,
+                    title: child.title || child.name,
+                    kind: child.kind,
+                    status: child.status,
+                    revision: child.revision,
+                    reviewSubject: child.reviewSubject
+                })),
             specificationSnapshot: specification.success
                 ? createProjectTaskSpecificationSnapshot(specification.data)
                 : null,
             executions
+        }
+    }
+
+    async recoverDelivery(projectId: string, taskId: string, executionId: string, input: AgentDeliveryRecovery) {
+        await this.access.assertCanEdit(projectId)
+        const detail = await this.get(projectId, taskId)
+        // A completed review may still need its report/artifacts exported. Recovery
+        // changes delivery only; the invocation API retains authorization and CAS checks.
+        if (detail.status === 'cancelled') throw projectTaskRuntimeError('Invalid')
+        const attempt = detail.executions.find((item) => item.id === executionId)
+        if (!attempt?.invocationId) throw projectTaskRuntimeError('NotFound')
+        const actor = this.context.actor()
+        const record = await this.tasks.manager.getRepository(AgentInvocationEntity).findOneBy({
+            id: attempt.invocationId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            ownerId: actor.userId
+        })
+        if (!record) throw projectTaskRuntimeError('Scope')
+        const api = this.factory.createCapturedApi(record.invocation.scope)
+        if (!api.recoverDelivery) throw projectTaskRuntimeError('Invalid')
+        const invocation = await api.recoverDelivery(record.id, input)
+        return {
+            invocationId: invocation.id,
+            revision: invocation.revision,
+            status: invocation.status,
+            result: invocation.result
         }
     }
 

@@ -8,7 +8,7 @@ export interface ProjectTaskAcceptanceReceipt {
   review: {
     executionId: string
     mode: 'evidence_only' | 'execution'
-    verdict: 'pass' | 'changes_required' | 'indeterminate'
+    reportDigest: string
   } | null
   artifacts: Array<{ artifactId: string; versionId: string }>
 }

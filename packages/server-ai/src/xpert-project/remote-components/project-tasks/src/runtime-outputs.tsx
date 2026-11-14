@@ -7,6 +7,17 @@ import { Button } from '@xpert-ai/shadcn-ui'
 // Only committed artifacts are files. Result prose and declared paths are not download grants.
 export const outputResultSchema = z.object({
     text: z.string(),
+    textTruncated: z.boolean().optional(),
+    report: z
+        .discriminatedUnion('status', [
+            z.object({ status: z.literal('completed'), sha256: z.string(), path: z.string().optional() }),
+            z.object({
+                status: z.literal('failed'),
+                code: z.enum(['report_unavailable', 'report_empty', 'report_too_large']),
+                path: z.string().optional()
+            })
+        ])
+        .optional(),
     artifacts: z
         .array(z.object({ id: z.string(), name: z.string().optional(), versionId: z.string().optional() }))
         .optional(),
@@ -76,6 +87,22 @@ export function RuntimeOutputs({
                                 </p>
                             ) : (
                                 <>
+                                    {attempt.result?.textTruncated && (
+                                        <p role="status" className="text-sm text-destructive">
+                                            {label(
+                                                'The final reply exceeded the transport limit; no complete reply was retained.',
+                                                '最终回复超过传输上限，未保留完整回复。'
+                                            )}
+                                        </p>
+                                    )}
+                                    {attempt.result?.report?.status === 'failed' && (
+                                        <p role="status" className="text-sm text-destructive">
+                                            {label(
+                                                'Report delivery failed. Recover delivery without rerunning completed work.',
+                                                '报告交付失败，可单独恢复，无需重跑已完成的执行。'
+                                            )}
+                                        </p>
+                                    )}
                                     {failed && (
                                         <div role="status" className="space-y-1 text-sm text-destructive">
                                             <p>{label('File delivery failed', '文件交付失败')}</p>
@@ -111,6 +138,14 @@ export function RuntimeOutputs({
                                                       '本次执行未要求交付文件。'
                                                   )
                                                 : label('No files have been delivered.', '尚无已交付文件。')}
+                                        </p>
+                                    )}
+                                    {attempt.result?.report?.status === 'failed' && (
+                                        <p role="status" className="text-sm text-destructive">
+                                            {label(
+                                                'Report delivery failed. Recover delivery without rerunning completed work.',
+                                                '报告交付失败，可单独恢复，无需重跑已完成的执行。'
+                                            )}
                                         </p>
                                     )}
                                     {failed && (

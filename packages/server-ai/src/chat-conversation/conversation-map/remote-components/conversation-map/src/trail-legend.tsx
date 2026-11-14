@@ -1,7 +1,7 @@
 import React, { useId, useState } from 'react'
 import { ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import type { TrailGraph } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph } from '@xpert-ai/contracts'
 import { ActivityGlyph } from './trail-glyph'
 import type { TrailLabels } from './trail-i18n'
 

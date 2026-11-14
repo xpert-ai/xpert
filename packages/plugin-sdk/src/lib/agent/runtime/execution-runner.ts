@@ -1,7 +1,7 @@
 import type { CliPermissionMode, ExecutionEnvironment } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { AgentInvocationScope, AgentInvocationResult, AgentJson } from './types'
-import type { AgentArtifactSelection, AgentTaskResult, AgentTaskResultFile } from './results'
+import type { AgentArtifactSelection, AgentTaskReport } from './results'
 
 /** A host-managed process location. Remote service runtimes can use their own session/run handles. */
 export type AgentRunnerEnvironment = Extract<ExecutionEnvironment, { type: 'computer' | 'sandbox' }>
@@ -63,11 +63,8 @@ export interface AgentExecutionRunner {
     receipt: AgentRunnerReceipt,
     selection?: AgentArtifactSelection
   ): Promise<NonNullable<AgentInvocationResult['artifacts']>>
-  /** Read a submitted result envelope after checking receipt ownership, instance, byte limit, digest and schema.
-   * Adapters call after verified CLI completion and checkpoint the result before cleanup.
-   * Absence means file submission is unsupported; reading does not export files or accept the task.
-   */
-  readTaskResultFile?(receipt: AgentRunnerReceipt, reference: AgentTaskResultFile): Promise<AgentTaskResult>
+  /** Read one explicitly selected UTF-8 Markdown report after receipt and filesystem authorization. */
+  readTaskReportFile?(receipt: AgentRunnerReceipt, path: string): Promise<AgentTaskReport>
   /** Revoke model access and request process termination. Only exited confirms termination. */
   stop(
     receipt: AgentRunnerReceipt

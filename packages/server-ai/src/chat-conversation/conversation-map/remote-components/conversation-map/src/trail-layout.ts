@@ -1,4 +1,4 @@
-import type { TrailGraph, TrailLane, TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph, TrailLane, TrailStep } from '@xpert-ai/contracts'
 import { cubicPoint, cubicTangent, sampleCubic, taperedShape, type Point, type TrailShape } from './trail-geometry'
 export type { Point, TrailShape } from './trail-geometry'
 export type TrailMark = Point & { step: TrailStep; angle: number; junction: boolean }

@@ -248,7 +248,7 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
       taskRevision: 4,
       conversationId: c.executor.conversationId,
       decisionId: randomUUID(),
-      review: { executionId: reviewExecutionId, mode: 'execution', verdict: 'pass' },
+      review: { executionId: reviewExecutionId, mode: 'execution', reportDigest: 'a'.repeat(64) },
       artifacts: files.map(({ artifactId, versionId }) => ({ artifactId, versionId }))
     }
     return accepted

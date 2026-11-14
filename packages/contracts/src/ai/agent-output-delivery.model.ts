@@ -22,20 +22,33 @@ const deliveryPathsSchema = z
   .array(
     agentResultPathSchema.refine(
       (path) => !/[*?\[\]{}]/.test(path),
-      "Delivery paths must be exact relative file paths, without wildcards. Omit paths to use the executor's declared deliverables."
+      'Delivery paths must be exact relative file paths, without wildcards. Select paths explicitly when they are known.'
     )
   )
   .min(1)
   .max(AGENT_OUTPUT_MAX_PATHS)
   .optional()
   .describe(
-    'Exact file paths relative to the task working directory. No wildcards/globs or directories. If filenames are determined during execution, omit paths and require the executor to declare each deliverable as a file result item.'
+    'Exact file paths relative to the task working directory. No wildcards/globs or directories. If filenames are determined during execution, collect them with delivery recovery once the exact paths are known.'
   )
 
-/** Omission means no export. Optional paths restrict the adapter's explicitly declared deliverables. */
+/** Omission means no file delivery. A report file is optional and independent of artifact export mode. */
 export const agentOutputDeliverySchema = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('none') }).strict(),
-  z.object({ mode: z.literal('files'), paths: deliveryPathsSchema }).strict(),
-  z.object({ mode: z.literal('archive'), paths: deliveryPathsSchema }).strict()
+  z.object({ mode: z.literal('none'), reportPath: agentResultPathSchema.optional() }).strict(),
+  z
+    .object({ mode: z.literal('files'), paths: deliveryPathsSchema, reportPath: agentResultPathSchema.optional() })
+    .strict(),
+  z
+    .object({ mode: z.literal('archive'), paths: deliveryPathsSchema, reportPath: agentResultPathSchema.optional() })
+    .strict()
 ])
 export type AgentOutputDelivery = z.output<typeof agentOutputDeliverySchema>
+
+/** A delivery retry cannot relaunch the executor or change its originally selected report. */
+export const agentDeliveryRecoverySchema = z
+  .object({
+    expectedRevision: z.number().int().nonnegative(),
+    paths: deliveryPathsSchema
+  })
+  .strict()
+export type AgentDeliveryRecovery = z.output<typeof agentDeliveryRecoverySchema>

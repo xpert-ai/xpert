@@ -1,13 +1,17 @@
-import { agentOutputDeliverySchema, agentResultPathSchema, agentTaskResultSchema, agentTaskResultFileSchema } from './results'
+import { agentOutputDeliverySchema, agentResultPathSchema, agentDeliveryRecoverySchema } from './results'
 
 describe('portable task results', () => {
-  it('requires a versioned exact file reference and lowercase SHA-256 without granting export', () => {
-    const reference = { version: 1, path: 'output/结果.json', sha256: 'a'.repeat(64) }
-    expect(agentTaskResultFileSchema.parse(reference)).toEqual(reference)
-    for (const value of [{ ...reference, version: 2 }, { ...reference, sha256: 'A'.repeat(64) },
-      { ...reference, sha256: 'a'.repeat(63) }, { ...reference, path: '../private' },
-      { ...reference, artifacts: [{ id: 'invented' }] }])
-      expect(agentTaskResultFileSchema.safeParse(value).success).toBe(false)
+  it('selects a Markdown report path without model-supplied identity or digest', () => {
+    expect(agentOutputDeliverySchema.parse({ mode: 'none', reportPath: 'output/报告.md' })).toEqual({
+      mode: 'none',
+      reportPath: 'output/报告.md'
+    })
+    expect(agentOutputDeliverySchema.safeParse({ mode: 'none', reportPath: '../secret' }).success).toBe(false)
+    expect(agentDeliveryRecoverySchema.parse({ expectedRevision: 3, paths: ['plugin.tgz'] })).toEqual({
+      expectedRevision: 3,
+      paths: ['plugin.tgz']
+    })
+    expect(agentDeliveryRecoverySchema.safeParse({ expectedRevision: 3, reportPath: 'other.md' }).success).toBe(false)
   })
   it.each(['../secret', '/etc/passwd', 'nested/../secret', 'a\\b', 'a//b', './a', 'a\u0000b', 'C:/secret'])(
     'rejects a non-relative file selection: %s',
@@ -30,35 +34,5 @@ describe('portable task results', () => {
         paths: Array.from({ length: 129 }, (_, index) => `file-${index}.txt`)
       }).success
     ).toBe(false)
-  })
-
-  it('uses explicit result kinds and keeps execution findings separate from delivery', () => {
-    const result = {
-      version: 1,
-      summary: 'Checked',
-      items: [
-        { type: 'analysis', id: 'review', title: 'Review', summary: 'A finding' },
-        {
-          type: 'changes',
-          id: 'code',
-          title: 'Changes',
-          summary: 'Edited',
-          files: [{ path: 'main.py', change: 'modified' }]
-        },
-        { type: 'tests', id: 'tests', title: 'Tests', summary: 'Not run', status: 'skipped' },
-        { type: 'file', id: 'report', title: 'Report', summary: 'Deliverable', path: 'report.txt' }
-      ]
-    }
-    expect(agentTaskResultSchema.parse(result)).toEqual(result)
-    expect(
-      agentTaskResultSchema.safeParse({
-        ...result,
-        items: [{ type: 'archive', id: 'a', title: 'Archive', summary: '' }]
-      }).success
-    ).toBe(false)
-    expect(agentTaskResultSchema.safeParse({ ...result, items: [result.items[0], result.items[0]] }).success).toBe(
-      false
-    )
-    expect(agentTaskResultSchema.safeParse({ ...result, artifacts: [{ id: 'invented' }] }).success).toBe(false)
   })
 })

@@ -2,11 +2,7 @@ import { codingToolBrand } from '../../shared/coding-tools/branding'
 // Runtime success never implies task acceptance. Read only persisted facts;
 // invocation details require the original message, task, conversation and owner bindings.
 import { t } from 'i18next'
-import {
-    codingExecutionViewKey,
-    type ConversationResourceCard,
-    type ProjectTaskReviewReport
-} from '@xpert-ai/contracts'
+import { codingExecutionViewKey, type ConversationResourceCard } from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { DataSource, In, IsNull } from 'typeorm'
 import {
@@ -36,7 +32,7 @@ type ProjectTaskCardInput = {
           purpose?: 'implementation' | 'review'
           toolId?: string
           provider?: string
-          reviewVerdict?: ProjectTaskReviewReport['verdict']
+          reviewReportAvailable?: boolean
           codingInvocationId?: string
       }
 )
@@ -65,7 +61,9 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
                 : []
         const status =
             input.type === 'execution' && input.purpose === 'review' && input.status === 'succeeded'
-                ? t(`server-ai:ProjectTaskCard.ReviewVerdict.${input.reviewVerdict ?? 'unavailable'}`)
+                ? t(
+                      `server-ai:ProjectTaskCard.${input.reviewReportAvailable ? 'ReportDelivered' : 'ReportUnavailable'}`
+                  )
                 : t(`server-ai:ProjectTaskCard.Status.${input.status}`, {
                       defaultValue: t('server-ai:ProjectTaskCard.Status.unknown')
                   })
@@ -124,7 +122,14 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
             : []
         const attempts = attemptIds.length
             ? await this.dataSource.getRepository(XpertProjectTaskExecution).find({
-                  select: { id: true, taskId: true, invocationId: true, attempt: true, purpose: true, dispatchIntent: true },
+                  select: {
+                      id: true,
+                      taskId: true,
+                      invocationId: true,
+                      attempt: true,
+                      purpose: true,
+                      dispatchIntent: true
+                  },
                   where: {
                       ...projectScope,
                       id: In(attemptIds),
@@ -163,20 +168,25 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
             if (!attempt?.invocationId) return missing
             const record = recordsById.get(attempt.invocationId)
             const reference = record?.invocation.request.dispatch?.projectTask
-            const intent = attempt.dispatchIntent ? projectTaskDispatchIntentSchema.safeParse(attempt.dispatchIntent) : null
+            const intent = attempt.dispatchIntent
+                ? projectTaskDispatchIntentSchema.safeParse(attempt.dispatchIntent)
+                : null
             // The card belongs to the admitting execution, while its invocation may retain an earlier attempt's identity.
             // A malformed stored intent must not fall back to the legacy comparison.
             const messageBound = intent
-                ? intent.success && record && intent.data.scope.parentExecutionId === executionId &&
-                    intent.data.scope.tenantId === context.tenantId &&
-                    intent.data.scope.organizationId === context.organizationId &&
-                    intent.data.scope.userId === context.userId &&
-                    intent.data.scope.projectId === context.projectId &&
-                    intent.data.scope.conversationId === context.conversationId &&
-                    intent.data.request.dispatch.replyTo.threadId === context.threadId &&
-                    agentInvocationId(projectTaskInvocationScope(intent.data), intent.data.request.callId) === attempt.invocationId &&
-                    sameInvocationData(record.invocation.scope, projectTaskInvocationScope(intent.data)) &&
-                    sameInvocationData(record.invocation.request, intent.data.request)
+                ? intent.success &&
+                  record &&
+                  intent.data.scope.parentExecutionId === executionId &&
+                  intent.data.scope.tenantId === context.tenantId &&
+                  intent.data.scope.organizationId === context.organizationId &&
+                  intent.data.scope.userId === context.userId &&
+                  intent.data.scope.projectId === context.projectId &&
+                  intent.data.scope.conversationId === context.conversationId &&
+                  intent.data.request.dispatch.replyTo.threadId === context.threadId &&
+                  agentInvocationId(projectTaskInvocationScope(intent.data), intent.data.request.callId) ===
+                      attempt.invocationId &&
+                  sameInvocationData(record.invocation.scope, projectTaskInvocationScope(intent.data)) &&
+                  sameInvocationData(record.invocation.request, intent.data.request)
                 : record?.invocation.scope.parentExecutionId === executionId
             if (
                 !executionId ||
@@ -201,10 +211,10 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
                     toolId: invocation.handle?.runner?.tool.id,
                     codingInvocationId: invocation.activity?.presentation === 'coding' ? invocation.id : undefined,
                     status: invocation.status,
-                    reviewVerdict:
-                        invocation.status === 'succeeded'
-                            ? reviewReport(attempt.purpose, invocation.result?.text)?.verdict
-                            : undefined
+                    reviewReportAvailable:
+                        invocation.status === 'succeeded' &&
+                        sameInvocationData(reference.purpose, attempt.purpose) &&
+                        Boolean(reviewReport(attempt.purpose, invocation.result?.text))
                 })
             }
         })

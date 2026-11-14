@@ -1,4 +1,4 @@
-jest.mock('@xpert-ai/contracts', () => jest.requireActual('../../../contracts/src'))
+jest.mock('@xpert-ai/contracts', () => jest.requireActual('@xpert-ai/contracts'))
 
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { getTagTargets, TagCategoryEnum } from '@xpert-ai/contracts'

@@ -64,25 +64,9 @@
         "ReportInstruction": "这是一个定时检查。请核对来源数据并调用 report_schedule_differences，提供稳定的对象标识和准确的前后值。无变化时提交空数组，数据无法取得时说明失败。"
     },
     "ReviewReportDiagnostic": {
-        "UnexpectedField": "存在多余字段；请从交付报告中移除。",
-        "ExpectedType": "应为 {{expected}}，实际类型为 {{received}}。",
-        "ExpectedLiteral": "应为 {{expected}}。",
-        "ExpectedEnum": "应为以下值之一：{{options}}。",
-        "Maximum": "超过上限 {{maximum}}。",
-        "Minimum": "未达到下限 {{minimum}}。",
-        "Consistency": "违反报告一致性规则（finding ID 必须唯一，pass 不得包含阻塞性问题）。",
-        "InvalidValue": "值无效（{{code}}）。",
-        "ImplementationMismatch": "必须与固定验收对象的 purpose.implementationInvocationId 相同。",
-        "SpecificationMismatch": "必须与 purpose.specificationDigest 相同，而非候选文件快照的摘要。",
-        "EvidenceOrderMismatch": "证据引用相同，但顺序不同。请严格保留当前 purpose.evidence 数组的顺序。",
-        "EvidenceMismatch": "证据引用与 purpose.evidence 不同。请严格保留固定的 ID、revision、version 和数组顺序。",
         "InvalidSubject": "固定的验收 purpose 无效。",
-        "MissingReport": "本次调用尚未交付验收报告。",
-        "InvalidJson": "执行器解包外层 summary 字符串后，应交付 JSON 格式的报告文本。",
-        "EncodedSummary": "必须是包含验收报告的 JSON 编码字符串（JSON-encoded STRING）。",
-        "UnparsedEnvelope": "执行器尚未解包外层信封；它不是已交付的内层报告。",
-        "ContractMismatch": "结果不符合固定的验收报告契约。",
-        "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
+        "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}",
+        "MissingMarkdown": "独立验收需要最终回复中的验收意见，或明确指定的报告文件。仅在文件已存在且运行器支持读取时恢复交付。"
     },
     "Error": {
         "ScheduleReportMissing": "检查未提交有效的差异报告。",
@@ -427,6 +411,7 @@
         "AgentInvocationDispatchUnknown": "智能体执行结果未知，请先核对状态再重试。",
         "AgentInvocationNotFound": "当前执行范围内未找到此智能体调用。",
         "AgentInvocationUnsupported": "该智能体执行器不支持此操作。",
+        "AgentInvocationDeliveryRecoveryUnavailable": "运行器无法从原执行中重新读取所选报告或文件。恢复交付不会重新执行任务。",
         "AgentInvocationInteractionConflict": "此智能体交互已不再等待回复。",
         "AgentInvocationMissingResult": "智能体执行器未返回有效结果。",
         "AgentInvocationConcurrentUpdate": "智能体调用已被并发更新，请重新读取状态。",
@@ -1585,15 +1570,11 @@
         "EXPIRED_COMMAND": "命令启动前已过期。"
     },
     "ProjectTaskCard": {
+        "ReportDelivered": "评审报告已交付",
+        "ReportUnavailable": "评审报告未交付",
         "Implementation": "实现",
         "Review": "独立验收",
         "Attempt": "执行 #{{count}}",
-        "ReviewVerdict": {
-            "pass": "审查通过",
-            "changes_required": "需要返工",
-            "indeterminate": "证据不足",
-            "unavailable": "审查完成，结论不可用"
-        },
         "Status": {
             "todo": "待处理",
             "in_progress": "进行中",
