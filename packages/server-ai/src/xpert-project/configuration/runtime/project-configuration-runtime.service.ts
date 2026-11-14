@@ -69,7 +69,7 @@ export class ProjectConfigurationRuntimeService implements ProjectConfigurationA
                         tenantId: actor.tenantId,
                         organizationId: actor.organizationId ?? IsNull()
                     },
-                    select: ['id', 'name', 'prompt', 'scheduleDescription', 'status'],
+                    select: ['id', 'name', 'prompt', 'monitor', 'schedule', 'options', 'status'],
                     order: { updatedAt: 'DESC' },
                     take: 20
                 })

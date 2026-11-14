@@ -61,8 +61,9 @@ export function AutomationsEditor(props: EditorProps) {
     const [editing, setEditing] = useState<string | null>(null), [targets, setTargets] = useState<Record<string, string>>({})
     const state = useEditor(() => action('automations', { page }, pageSchema), [page])
     return <div className="space-y-5"><Status {...state} locale={locale} />
+        {state.data && !state.data.items.length && <p className="text-sm text-muted-foreground">{t.t('empty')}</p>}
         {overview.canManage && <Button disabled={state.busy || !overview.experts.length} onClick={() => setEditing(editing === 'new' ? null : 'new')}>{t.t('addAutomation')}</Button>}
-        {editing === 'new' && <AutomationForm {...props} onSaved={() => { setEditing(null); void state.load() }} />}
+        {overview.canManage && editing === 'new' && <AutomationForm {...props} onSaved={() => { setEditing(null); void state.load() }} />}
         {state.data?.items.map((task) => <div key={task.id} className="space-y-3 border-t pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">{task.name || task.prompt}</h3>
                 <span className="text-xs text-muted-foreground">{t.t(task.status === 'scheduled' || task.status === 'paused' || task.status === 'archived' ? task.status : 'unknown')}</span></div>
@@ -73,7 +74,7 @@ export function AutomationsEditor(props: EditorProps) {
                 {overview.canManage && <><Button variant="outline" disabled={state.busy} onClick={() => void state.run(() => mutate(task.status === 'scheduled' ? 'automation-pause' : 'automation-resume', { taskId: task.id }))}>{t.t(task.status === 'scheduled' ? 'pause' : 'resume')}</Button>
                     <Confirm title={t.t('remove')} description={t.t('removeAutomationWarning')} locale={locale} disabled={state.busy} action={() => void state.run(() => mutate('automation-delete', { taskId: task.id }))} /></>}
             </div>
-            {editing === task.id && <AutomationForm {...props} task={task} onSaved={() => { setEditing(null); void state.load() }} />}
+            {editing === task.id && (overview.canManage || task.runAsUserId === overview.userId) && <AutomationForm {...props} task={task} onSaved={() => { setEditing(null); void state.load() }} />}
             {task.pendingRunAsUserId && <p className="text-sm text-muted-foreground">{t.t('pendingRunAs')}: {overview.members.find((member) => member.id === task.pendingRunAsUserId)?.name || task.pendingRunAsUserId}</p>}
             {task.pendingRunAsUserId === overview.userId && <Button disabled={state.busy} onClick={() => void state.run(() => mutate('automation-accept', { taskId: task.id }))}>{t.t('acceptRunAs')}</Button>}
             {(overview.canManage || task.runAsUserId === overview.userId) && <div className="flex flex-wrap gap-2"><div className="min-w-48 flex-1"><Choice label={t.t('selectRunAs')} value={targets[task.id] || ''} disabled={state.busy}

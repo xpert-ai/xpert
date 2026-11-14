@@ -66,6 +66,7 @@ function ConnectorForm({ binding, definition, canManage, locale, refresh }: {
 export function ConnectorsEditor({ overview, locale }: EditorProps) {
     const t = configurationI18n(locale), state = useEditor(() => action('connectors', {}, catalogSchema), []), [provider, setProvider] = useState('')
     return <div className="space-y-5"><Status {...state} locale={locale} />
+        {state.data && !state.data.bindings.length && <p className="text-sm text-muted-foreground">{t.t('empty')}</p>}
         {state.data?.bindings.map((binding) => {
             const definition = state.data?.definitions.find((item) => item.provider === binding.provider)
             return definition ? <ConnectorForm key={binding.id} binding={binding} definition={definition} canManage={overview.canManage} locale={locale} refresh={state.load} />

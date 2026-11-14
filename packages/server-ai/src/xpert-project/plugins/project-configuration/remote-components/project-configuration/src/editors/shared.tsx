@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import { Button, Input, Select, SelectTrigger, SelectValue, SelectContent, SelectItem, AlertDialog, AlertDialogTrigger,
     AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@xpert-ai/shadcn-ui'
@@ -18,9 +18,11 @@ export async function action<T, I>(key: string, input: object, schema: z.ZodType
     return schema.parse(response.data)
 }
 export const mutate = (key: string, input: object) => action(key, input, z.unknown())
+export const EditorPageContext = createContext({ revision: 0, onChanged: () => {} })
 export function useEditor<T>(loader: () => Promise<T>, dependencies: readonly (string | number | boolean | undefined)[]) {
     const [data, setData] = useState<T | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
     const generation = useRef(0)
+    const { revision, onChanged } = useContext(EditorPageContext)
     const load = async () => {
         const version = ++generation.current
         setBusy(true); setError('')
@@ -28,13 +30,14 @@ export function useEditor<T>(loader: () => Promise<T>, dependencies: readonly (s
         catch (error) { if (version === generation.current) setError(error instanceof Error ? error.message : 'Request failed') }
         finally { if (version === generation.current) setBusy(false) }
     }
-    useEffect(() => { setData(null); void load(); return () => { generation.current++ } }, dependencies)
+    useEffect(() => { setData(null); void load(); return () => { generation.current++ } }, [...dependencies, revision])
     const run = async (operation: () => Promise<unknown>, refresh = true) => {
         if (busy) return
         const version = generation.current
         setBusy(true); setError('')
         try {
             await operation()
+            onChanged()
             if (version !== generation.current) return
             if (refresh) await load()
         } catch (error) { if (version === generation.current) setError(error instanceof Error ? error.message : 'Request failed') }
@@ -61,6 +64,7 @@ export function Confirm({ title, description, locale, disabled, action, children
 }
 export function Pager({ page, total, onPage, busy, locale }: { page: number; total: number; onPage: (page: number) => void; busy: boolean; locale: string }) {
     const t = configurationI18n(locale)
+    if (page <= 1 && total <= 20) return null
     return <div className="flex items-center justify-end gap-2"><Button variant="outline" disabled={busy || page <= 1} onClick={() => onPage(page - 1)}>{t.t('previous')}</Button>
         <span className="text-xs text-muted-foreground">{t.number(page)} / {t.number(Math.max(1, Math.ceil(total / 20)))}</span>
         <Button variant="outline" disabled={busy || page * 20 >= total} onClick={() => onPage(page + 1)}>{t.t('next')}</Button></div>

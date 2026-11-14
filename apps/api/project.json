@@ -40,6 +40,11 @@
           },
           {
             "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/xpert-project/plugins/project-configuration/remote-components",
+            "output": "remote-components"
+          },
+          {
+            "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/xpert-task/remote-components",
             "output": "remote-components"
           },

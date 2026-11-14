@@ -71,8 +71,8 @@ const en = {
     loading: 'Loading project configuration…',
     retry: 'Retry',
     refresh: 'Refresh',
-    manage: 'Manage',
-    inspect: 'View details',
+    tabInstructions: 'Instructions', tabExperts: 'Experts', tabMembers: 'Members', tabSkills: 'Skills',
+    tabConnectors: 'Connectors', tabAutomations: 'Automations', taskLimit: 'Task time limit', hours: '{{hours}} h',
     save: 'Save instructions',
     saving: 'Saving…',
     saved: 'Saved',
@@ -103,7 +103,7 @@ const en = {
     paused: 'Paused',
     archived: 'Archived',
     unknown: 'Unknown status',
-    dirty: 'Save your instructions before refreshing or opening an editor.'
+    dirty: 'Unsaved changes'
 }
 type Key = keyof typeof en
 const zh: Record<Key, string> = {
@@ -179,8 +179,8 @@ const zh: Record<Key, string> = {
     loading: '正在加载项目配置…',
     retry: '重试',
     refresh: '刷新',
-    manage: '管理',
-    inspect: '查看详情',
+    tabInstructions: '指令', tabExperts: '专家', tabMembers: '成员', tabSkills: '技能',
+    tabConnectors: '连接器', tabAutomations: '自动化', taskLimit: '单次任务上限', hours: '{{hours}} 小时',
     save: '保存指令',
     saving: '保存中…',
     saved: '已保存',
@@ -211,7 +211,7 @@ const zh: Record<Key, string> = {
     paused: '已暂停',
     archived: '已归档',
     unknown: '未知状态',
-    dirty: '请先保存项目指令，再刷新或打开编辑器。'
+    dirty: '有未保存的更改'
 }
 export function configurationI18n(locale: string) {
     const normalized = locale.replace(/_/g, '-').toLowerCase()

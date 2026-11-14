@@ -84,6 +84,7 @@ it('uses the current authorized project, scopes scheduled tasks and strips priva
     expect(tasks.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({
             where: { projectId: 'project', tenantId: 'tenant', organizationId: 'organization' },
+            select: ['id', 'name', 'prompt', 'monitor', 'schedule', 'options', 'status'],
             take: 20
         })
     )

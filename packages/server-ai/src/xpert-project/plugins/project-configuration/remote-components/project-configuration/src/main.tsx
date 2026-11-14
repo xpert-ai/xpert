@@ -1,283 +1,193 @@
-import { ConfigurationEditor } from './editors/editor'
-import { projectConfigurationOverviewSchema } from './model'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Button, Badge, Textarea } from '@xpert-ai/shadcn-ui'
-import { RefreshCw, Settings2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Badge, Button, Tabs, TabsContent, TabsHeader, TabsList, TabsTrigger, Textarea } from '@xpert-ai/shadcn-ui'
+import { Clock3, FolderOpen, RefreshCw, UserRound, UsersRound } from 'lucide-react'
 import { z } from 'zod'
-import {
-    type ProjectConfigurationOverview,
-    type ProjectConfigurationSection
-} from '@xpert-ai/contracts'
+import type { ProjectConfigurationOverview, ProjectConfigurationSection } from '@xpert-ai/contracts'
 import { connect, request } from './bridge'
+import { ConfigurationEditor } from './editors/editor'
+import { EditorPageContext, mutate } from './editors/shared'
 import { configurationI18n } from './i18n'
+import { projectConfigurationOverviewSchema } from './model'
 
 const response = z.object({ item: projectConfigurationOverviewSchema })
-const actionResponse = z.object({ success: z.boolean(), message: z.string().optional() })
+const pages = ['instructions', 'type', 'experts', 'members', 'skills', 'connectors', 'automations', 'delete'] as const
+type Page = ProjectConfigurationSection | 'instructions'
 
-function App() {
-    const [locale, setLocale] = useState('en-US')
-    const [data, setData] = useState<ProjectConfigurationOverview | null>(null)
-    const [instruction, setInstruction] = useState('')
-    const [loading, setLoading] = useState(true)
-    const [busy, setBusy] = useState(false)
-    const [error, setError] = useState('')
-    const [saved, setSaved] = useState(false)
-    const [editor, setEditor] = useState<ProjectConfigurationSection | null>(null)
-    const [deleted, setDeleted] = useState(false)
-    const generation = useRef(0)
+function ProjectPage({ locale }: { locale: string }) {
     const t = configurationI18n(locale)
-    const dirty = !!data && instruction !== data.instruction
+    const [overview, setOverview] = useState<ProjectConfigurationOverview | null>(null)
+    const [active, setActive] = useState<Page>('instructions')
+    const [visited, setVisited] = useState<Partial<Record<Page, boolean>>>({ instructions: true })
+    const [revisions, setRevisions] = useState<Partial<Record<Page, number>>>({})
+    const [error, setError] = useState('')
+    const [loading, setLoading] = useState(true)
+    const [deleted, setDeleted] = useState(false)
+    const [draft, setDraft] = useState<string | null>(null)
+    const [saving, setSaving] = useState(false)
+    const [saveError, setSaveError] = useState('')
+    const [saved, setSaved] = useState(false)
+    const sequence = useRef(0)
+    const mounted = useRef(false)
 
-    async function load(reset = false) {
-        const version = ++generation.current
+    const load = useCallback(async () => {
+        if (!mounted.current) return
+        const version = ++sequence.current
         setLoading(true)
         setError('')
-        setSaved(false)
-        if (reset) {
-            setDeleted(false)
-            setEditor(null)
-            setData(null)
-            setInstruction('')
-            setBusy(false)
-        }
         try {
             const { item } = response.parse(await request('requestData'))
-            if (version !== generation.current) return
-            setData(item)
-            setInstruction(item.instruction)
-        } catch (error) {
-            if (version === generation.current) setError(error instanceof Error ? error.message : t.t('failed'))
+            if (sequence.current !== version) return
+            setOverview(item)
+            if (!item.canEdit) setDraft(null)
+            if (!item.isOwner) setActive((page) => page === 'delete' ? 'instructions' : page)
+        } catch (reason) {
+            if (sequence.current === version) setError(reason instanceof Error ? reason.message : 'Request failed')
         } finally {
-            if (version === generation.current) setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        const dispose = connect(
-            (language, changed) => {
-                setLocale(language)
-                if (changed) void load(true)
-            },
-            () => {
-                void load(true)
-            }
-        )
-        return () => {
-            generation.current++
-            dispose()
+            if (sequence.current === version) setLoading(false)
         }
     }, [])
 
-    function edit(section: ProjectConfigurationSection) {
-        if (!busy && !dirty) setEditor(section)
+    useEffect(() => {
+        mounted.current = true
+        void load()
+        return () => { mounted.current = false; sequence.current++ }
+    }, [load])
+
+    function refresh() {
+        setRevisions((current) => ({ ...current, [active]: (current[active] ?? 0) + 1 }))
+        void load()
+    }
+    function select(value: string) {
+        const page = pages.find((key) => key === value)
+        if (!page || (page === 'delete' && !overview?.isOwner)) return
+        setVisited((current) => ({ ...current, [page]: true }))
+        setActive(page)
     }
 
-    async function save() {
-        if (!data?.canEdit || busy || !dirty) return
-        const version = generation.current
-        const content = instruction
-        setBusy(true)
-        setError('')
-        setSaved(false)
+    const dirty = draft !== null && draft !== overview?.instruction
+    async function saveInstructions() {
+        if (!overview?.canEdit || draft === null || !dirty || saving) return
+        setSaving(true)
+        setSaveError('')
         try {
-            const result = actionResponse.parse(
-                await request('executeAction', { actionKey: 'instructions', input: { content } })
-            )
-            if (version !== generation.current) return
-            if (!result.success) throw Error(result.message || t.t('failed'))
-            setData((current) => (current ? { ...current, instruction: content } : null))
+            await mutate('instructions', { content: draft })
+            if (!mounted.current) return
+            setOverview((current) => current && { ...current, instruction: draft })
+            setDraft(null)
             setSaved(true)
-        } catch (error) {
-            if (version === generation.current) setError(error instanceof Error ? error.message : t.t('failed'))
+            void load()
+        } catch (reason) {
+            if (mounted.current) setSaveError(reason instanceof Error ? reason.message : t.t('failed'))
         } finally {
-            if (version === generation.current) setBusy(false)
+            if (mounted.current) setSaving(false)
         }
     }
-    function section(key: ProjectConfigurationSection, children: ReactNode, editable = data?.canManage) {
-        return (
-            <section className="space-y-4" aria-labelledby={`heading-${key}`}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                    <h2 id={`heading-${key}`} className="text-base font-semibold">
-                        {t.t(key)}
-                    </h2>
-                    <Button variant="outline" disabled={busy || dirty || loading} onClick={() => void edit(key)}>
-                        {t.t(editable ? 'manage' : 'inspect')}
-                    </Button>
-                </div>
-                {children}
-            </section>
-        )
-    }
-    const empty = <p className="text-sm text-muted-foreground">{t.t('empty')}</p>
+
     if (deleted) return <main className="p-6 text-foreground" role="status">{t.t('deleted')}</main>
+    const available = pages.filter((page) => page !== 'delete' || overview?.isOwner)
+    const owner = overview?.members.find((member) => member.role === 'owner')
     return (
-        <main className="h-full overflow-auto bg-background text-foreground">
-            {data && editor && <ConfigurationEditor key={`${data.projectId}:${editor}`} section={editor} overview={data} locale={locale}
-                onClose={() => { setEditor(null); void load() }} onDeleted={() => { setEditor(null); setDeleted(true) }} />}
-            <div className="mx-auto flex max-w-5xl flex-col gap-7 p-4 sm:p-6">
-                <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
-                    <div className="min-w-0">
-                        <h1 className="flex items-center gap-2 text-xl font-semibold">
-                            <Settings2 className="size-5" />
-                            {t.t('title')}
-                        </h1>
-                        <p className="mt-1 break-words text-sm text-muted-foreground">{data?.name}</p>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        disabled={loading || busy || dirty}
-                        onClick={() => void load()}
-                        aria-label={t.t('refresh')}
-                    >
-                        <RefreshCw className="size-4" />
-                        {t.t('refresh')}
-                    </Button>
-                </header>
-                {error && (
-                    <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
-                        <p className="break-words">{error}</p>
-                        <Button variant="outline" disabled={busy || dirty} onClick={() => void load()}>
-                            {t.t('retry')}
+        <main className="flex h-full min-w-0 flex-col bg-background text-foreground">
+            <header className="shrink-0 border-b bg-muted/25">
+                <div className="mx-auto max-w-5xl px-4 py-4 sm:px-7 sm:py-5">
+                    <div className="flex items-start gap-3">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-background text-primary sm:size-12">
+                            <FolderOpen className="size-5 sm:size-6" aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            {overview && <p className="mb-0.5 text-xs font-medium text-muted-foreground">{t.t('title')}</p>}
+                            <h1 className="break-words text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
+                                {overview?.name || t.t('title')}
+                            </h1>
+                        </div>
+                        <Button variant="ghost" size="sm" aria-label={t.t('refresh')} disabled={loading || saving} onClick={refresh}>
+                            <RefreshCw className="size-4" /><span className="hidden sm:inline">{t.t('refresh')}</span>
                         </Button>
                     </div>
-                )}
-                {loading && (
-                    <p role="status" className="text-sm text-muted-foreground">
-                        {t.t('loading')}
-                    </p>
-                )}
-                {data && (
-                    <>
-                        {!data.canEdit && (
-                            <Badge variant="secondary" className="self-start">
-                                {t.t('readonly')}
-                            </Badge>
-                        )}
-                        {section(
-                            'type',
-                            <p className="text-sm text-muted-foreground">
-                                {t.t('duration', {
-                                    hours: t.number(data.effectiveMaxDurationSeconds / 3600),
-                                    ceiling: t.number(data.tenantMaxDurationSeconds / 3600)
-                                })}
-                            </p>
-                        )}
-                        {section(
-                            'experts',
-                            <div className="flex flex-wrap gap-2">
-                                {data.experts.length
-                                    ? data.experts.map((expert) => (
-                                          <Badge key={expert.id} variant="outline">
-                                              {expert.name}
-                                          </Badge>
-                                      ))
-                                    : empty}
+                    {overview && (
+                        <dl className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                            {owner && <div className="flex min-w-0 items-center gap-1.5">
+                                <UserRound aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+                                <dt className="text-muted-foreground">{t.t('owner')}</dt><dd className="break-words font-medium">{owner.name}</dd>
+                            </div>}
+                            <div className="flex items-center gap-1.5">
+                                <UsersRound aria-hidden="true" className="size-3.5 text-muted-foreground" />
+                                <dt className="text-muted-foreground">{t.t('tabMembers')}</dt><dd className="font-medium">{t.number(overview.members.length)}</dd>
                             </div>
-                        )}
-                        {section(
-                            'members',
-                            <ul className="flex flex-wrap gap-3">
-                                {data.members.length
-                                    ? data.members.map((member) => (
-                                          <li key={member.id} className="flex items-center gap-2 text-sm">
-                                              <span>{member.name}</span>
-                                              <span className="text-xs text-muted-foreground">{t.t(member.role)}</span>
-                                          </li>
-                                      ))
-                                    : empty}
-                            </ul>
-                        )}
-                        <section className="space-y-4" aria-labelledby="heading-instructions">
-                            <h2 id="heading-instructions" className="border-b pb-3 text-base font-semibold">
-                                {t.t('instructions')}
-                            </h2>
-                            <Textarea
-                                aria-label={t.t('instructions')}
-                                className="min-h-40"
-                                value={instruction}
-                                disabled={!data.canEdit || busy || loading}
-                                onChange={(event) => {
-                                    setInstruction(event.target.value)
-                                    setSaved(false)
-                                }}
-                            />
-                            {data.canEdit && (
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button disabled={!dirty || busy || loading} onClick={() => void save()}>
-                                        {t.t(busy ? 'saving' : 'save')}
-                                    </Button>
-                                    {saved && (
-                                        <span role="status" className="text-sm text-muted-foreground">
-                                            {t.t('saved')}
-                                        </span>
-                                    )}
-                                    {dirty && <p className="text-xs text-muted-foreground">{t.t('dirty')}</p>}
+                            <div className="flex items-center gap-1.5">
+                                <Clock3 aria-hidden="true" className="size-3.5 text-muted-foreground" />
+                                <dt className="text-muted-foreground">{t.t('taskLimit')}</dt>
+                                <dd className="font-medium">{t.t('hours', { hours: t.number(overview.effectiveMaxDurationSeconds / 3600) })}</dd>
+                            </div>
+                        </dl>
+                    )}
+                    {overview && !overview.canEdit && <Badge variant="secondary" className="mt-2">{t.t('readonly')}</Badge>}
+                </div>
+            </header>
+            {error && <div role="alert" className="flex items-center gap-3 px-4 py-2 text-sm text-destructive">
+                {error}<Button variant="outline" size="sm" onClick={refresh}>{t.t('retry')}</Button>
+            </div>}
+            {!overview && loading && <p role="status" className="p-4 text-sm text-muted-foreground">{t.t('loading')}</p>}
+            {overview && (
+                <Tabs value={active} onValueChange={select} activationMode="manual" className="min-h-0 flex-1 gap-0">
+                    <div className="shrink-0 border-b">
+                        <TabsHeader className="mx-auto max-w-5xl overflow-x-auto border-0 px-4 sm:px-7">
+                            <TabsList variant="line" aria-label={t.t('title')} className="shrink-0">
+                                {available.map((page) => <TabsTrigger key={page} value={page} className="px-3">
+                                    {t.t(tabLabels[page])}
+                                </TabsTrigger>)}
+                            </TabsList>
+                        </TabsHeader>
+                    </div>
+                    {available.map((page) => (
+                        <TabsContent key={page} value={page} forceMount hidden={active !== page} className="min-h-0 min-w-0 overflow-y-auto">
+                            {visited[page] && <div className="mx-auto max-w-5xl px-4 py-5 sm:px-7 sm:py-6">
+                                <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                                    <h2 className="text-lg font-semibold">{t.t(page)}</h2>
+                                    {page === 'automations' && <span className="text-xs text-muted-foreground">
+                                        {t.t('automationCount', { count: t.number(overview.automationTotal) })}
+                                    </span>}
                                 </div>
-                            )}
-                        </section>
-                        {section(
-                            'skills',
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {data.skills.length
-                                    ? data.skills.map((skill) => (
-                                          <article key={skill.id} className="space-y-1 rounded-lg border p-3">
-                                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                                  <h3 className="text-sm font-medium">{skill.name}</h3>
-                                                  <Badge variant="secondary">
-                                                      {t.t(skill.enabled ? 'enabled' : 'disabled')}
-                                                  </Badge>
-                                              </div>
-                                              {skill.description && (
-                                                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                                                      {skill.description}
-                                                  </p>
-                                              )}
-                                          </article>
-                                      ))
-                                    : empty}
-                            </div>,
-                            data.canEdit
-                        )}
-                        {section('connectors', <p className="text-sm text-muted-foreground">{t.t('connectorHint')}</p>)}
-                        {section(
-                            'automations',
-                            <div className="space-y-3">
-                                <p className="text-xs text-muted-foreground">
-                                    {t.t('automationCount', { count: t.number(data.automationTotal) })}
-                                </p>
-                                <ul className="divide-y">
-                                    {data.automations.map((task) => (
-                                        <li key={task.id} className="flex items-center justify-between gap-3 py-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium">{task.name}</p>
-                                                <p className="text-xs text-muted-foreground">{task.schedule}</p>
-                                            </div>
-                                            <Badge variant="outline">
-                                                {t.t(
-                                                    task.status === 'scheduled' ||
-                                                        task.status === 'paused' ||
-                                                        task.status === 'archived'
-                                                        ? task.status
-                                                        : 'unknown'
-                                                )}
-                                            </Badge>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                        {data.isOwner &&
-                            section(
-                                'delete',
-                                <p className="text-sm text-muted-foreground">
-                                    {t.t(data.applicationManaged ? 'managed' : 'deleteHint')}
-                                </p>
-                            )}
-                    </>
-                )}
-            </div>
+                                {page === 'instructions' ? (
+                                    <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void saveInstructions() }}>
+                                        <Textarea aria-label={t.t(page)} className="min-h-44" disabled={!overview.canEdit || saving}
+                                            value={draft ?? overview.instruction}
+                                            onChange={(event) => { setDraft(event.target.value); setSaved(false); setSaveError('') }} />
+                                        {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+                                        {overview.canEdit && <div className="flex flex-wrap items-center gap-3">
+                                            <Button type="submit" disabled={!dirty || saving}>{t.t(saving ? 'saving' : 'save')}</Button>
+                                            {saved && <span role="status" className="text-sm text-muted-foreground">{t.t('saved')}</span>}
+                                            {dirty && <span className="text-sm text-muted-foreground">{t.t('dirty')}</span>}
+                                        </div>}
+                                    </form>
+                                ) : (
+                                    <EditorPageContext.Provider value={{ revision: revisions[page] ?? 0, onChanged: load }}>
+                                        <ConfigurationEditor section={page} overview={overview} locale={locale} onDeleted={() => setDeleted(true)} />
+                                    </EditorPageContext.Provider>
+                                )}
+                            </div>}
+                        </TabsContent>
+                    ))}
+                </Tabs>
+            )}
         </main>
     )
 }
+
+const tabLabels = {
+    instructions: 'tabInstructions', type: 'type', experts: 'tabExperts', members: 'tabMembers',
+    skills: 'tabSkills', connectors: 'tabConnectors', automations: 'tabAutomations', delete: 'delete'
+} as const satisfies Record<Page, string>
+
+function App() {
+    const [locale, setLocale] = useState('en-US')
+    const [scope, setScope] = useState(0)
+    useEffect(() => {
+        const reset = () => setScope((current) => current + 1)
+        return connect((language, changed) => { setLocale(language); if (changed) reset() }, reset)
+    }, [])
+    return scope ? <ProjectPage key={scope} locale={locale} /> : null
+}
+
 createRoot(document.getElementById('root')!).render(<App />)
