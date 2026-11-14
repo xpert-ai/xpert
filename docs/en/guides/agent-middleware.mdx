@@ -20,6 +20,12 @@ Agent middleware lets you inject cross-cutting logic into the Agent lifecycle wi
 | `wrapModelCall` | Around model call        | Retry, cache, guardrails                      |
 | `wrapToolCall`  | Around tool call         | Auth, rate limit, post-processing             |
 
+## MCP App View Tools
+
+Configure `McpAppToolsMiddleware` (“Tools in open Apps”) when an Assistant needs to operate a live MCP App in the current chat. It exposes `mcp_app_tools_list` and `mcp_app_tool_call`, reusing `ClientToolMiddleware` for client execution and resumption. ChatKit identifies the view, obtains approval, and invokes tools inside its iframe.
+
+See [MCP App View Tools](./mcp-app-tools) for use cases, prerequisites, the distinction from WebMCP, and the frontend/backend sequence.
+
 ## Platform Knowledgebase Capability
 
 Agent middleware can use the platform knowledgebase runtime capability instead of calling knowledgebase controllers directly. The shared capability includes:
