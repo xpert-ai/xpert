@@ -1,0 +1,67 @@
+---
+title: 'Collaborative artifacts and Canvas'
+description: 'Organize canvases, workbooks, dashboards and reports in one Project, with shared editing and traceable sources.'
+---
+
+Collaborative artifacts connect whiteboard discussions, spreadsheet work, analysis and content delivery. People and Assistants work on resources with stable identities, permissions and versions. Converted artifacts retain their origins, while explicit updates preserve subsequent human edits.
+
+## Where to start
+
+Open Spaces or the relevant application view in an Assistant bound to a Project, or open a resource card from chat in the Workbench. The Project, resource and version identify the target; matching titles do not establish resource identity.
+
+| Task                                       | Entry point                 | Saved result                                                   |
+| ------------------------------------------ | --------------------------- | -------------------------------------------------------------- |
+| Explore questions, processes and actions   | Canvas                      | A collaboratively editable canvas                              |
+| Organize actions, budgets and calculations | Office Editor native Sheets | A workbook with an operation history                           |
+| Query data and publish charts              | Live Dashboard              | A draft and immutable published versions                       |
+| Preserve analysis and its supporting data  | Analysis evidence view      | A snapshot with sources, parameters, timestamps and a checksum |
+| Deliver reports, presentations and video   | Office Editor and Motion    | New artifacts derived from selected evidence                   |
+
+Administrators install the relevant plugins, configure Assistant capabilities, and grant Project and data access. A visible view does not establish that the Agent has editing tools or that the user can access the underlying data. Cloud and ChatKit hosts can open the same server resource; browser drafts remain separate for each host origin.
+
+## Collaborate on a canvas
+
+Canvas synchronizes through Yjs. Schema v2 maps record properties, arrays and supported text into shared structures, allowing people and an Agent to edit different parts of the same object. Existing schema v1 documents require an explicit upgrade. Upgrading preserves resource identity and content, ends old sessions, and prevents old clients from writing the new format.
+
+- Editors submit changes relative to their known base, preserving independent changes from others.
+- Incompatible text or array bases and stale Agent operations produce conflicts. Using Yjs does not guarantee lossless merging of every rich-text edit.
+- Reconnection synchronizes persisted collaboration state. Revoked Project access stops subsequent synchronization, reads and writes; an old session does not preserve access.
+- Agent and human edits follow the same resource scope, version and authorization rules. Read changed content again before forming a new edit intent.
+
+Project canvases use Project authorization. Legacy personal canvases without a Project remain creator-scoped; membership in the same organization does not automatically enable collaboration.
+
+## Convert canvas content
+
+1. Identify the content to organize and choose conversion to a workbook or document.
+2. Conversion reads the currently authorized source version, creates a new native target, and retains source resource, version and element references.
+3. Continue editing and saving in the target editor. Subsequent human changes belong to the target's own history.
+4. When the source changes, explicitly create an updated copy and decide which changes to adopt.
+
+Retrying the same conversion request returns the existing target; an outdated source version is rejected. Conversion does not establish two-way live synchronization or replace an edited target with newer canvas content. Canvas text is not injected into the workbook as executable formulas.
+
+## Work with an Assistant
+
+Select objects or cells in a supported editor and use the selection-reference action to provide context to the Assistant. The context identifies the resource, view instance, version and unsaved state. It locates the task; server authorization still controls reads and writes.
+
+Changing resources or closing a view clears that view's context. An Assistant should describe success from the returned save receipt. Starting a tool, generating a file or writing a reply does not establish that the resource was saved.
+
+For interactive MCP Apps that expose tools in the open view, configure [MCP App view tools](/en/guides/mcp-app-tools). Calls target the exact instance in the current chat and require confirmation. This capability is separate from the persistent Canvas and Sheets write protocols.
+
+## Saves, publication and origins
+
+| Action                                            | Result users can rely on                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Save a workbook or document                       | The editor's commit protocol saves content and returns its version or revision                                                 |
+| Save a dashboard draft                            | The published version and existing sharing target remain unchanged                                                             |
+| Publish a dashboard                               | Human confirmation creates a new immutable published version                                                                   |
+| Restore a historical dashboard version to a draft | The published version remains in place until the restored draft is reviewed and published                                      |
+| Generate artifacts from analysis evidence         | The selected snapshot and its data references remain fixed; refreshing the source does not silently rewrite existing artifacts |
+
+Source provenance remains subject to access control. Managed access to evidence-derived reports, presentations and videos rechecks the source. Removing a provenance label from the body cannot remove that check. Files already downloaded to a user's device cannot be remotely recalled.
+
+## Continue reading
+
+- [Sheets collaboration](./sheets): saves, conflicts, structural editing, local drafts and format support.
+- [Trusted data and artifact conversion](./trusted-data): certification, bounded result sharing, evidence snapshots and narrated video.
+- [Deployment and recovery](./operations): dependency combinations, migrations, backups and recovery boundaries.
+- [Spaces](/en/guides/spaces) and [Live Dashboard](/en/guides/artifacts-dashboard/overview): resource organization and dashboard authoring.

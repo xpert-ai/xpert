@@ -45,6 +45,17 @@ Local `mint dev` preview may not provide Git or deployment dates. In that case, 
 
 本地 `mint dev` 预览可能不提供 Git 或部署日期，此时即使开启配置也不会显示日期。可以用带 `lastUpdatedDate` 的临时页面验证渲染，验证后删除临时页面；自动日期仍需在部署站点确认。
 
+## Collaborative artifacts
+
+The feature guides describe supported behavior and operational boundaries. Keep the English and Chinese routes aligned; do not add execution logs or local acceptance records to these pages.
+
+| Topic                                         | English                                                                       | 中文                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Shared resources, Canvas and conversion       | [Collaborative artifacts](./en/guides/collaborative-artifacts/overview.mdx)   | [协作成果与白板](./zh-Hans/guides/collaborative-artifacts/overview.mdx)         |
+| Workbook edits, drafts, history and formats   | [Sheets collaboration](./en/guides/collaborative-artifacts/sheets.mdx)        | [Sheets 协作](./zh-Hans/guides/collaborative-artifacts/sheets.mdx)              |
+| Certification, delegation, evidence and media | [Trusted data](./en/guides/collaborative-artifacts/trusted-data.mdx)          | [可信数据与成果转换](./zh-Hans/guides/collaborative-artifacts/trusted-data.mdx) |
+| Migrations, backups and recovery              | [Deployment and recovery](./en/guides/collaborative-artifacts/operations.mdx) | [部署与恢复](./zh-Hans/guides/collaborative-artifacts/operations.mdx)           |
+
 ## Artifacts Dashboard functional documentation
 
 Current behavior is documented under `en/guides/artifacts-dashboard/` and

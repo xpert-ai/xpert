@@ -1,0 +1,82 @@
+---
+title: 'Sheets collaboration'
+description: 'Edit native workbooks together and handle conflicts, local drafts, structural changes, history and file exchange.'
+---
+
+Native Sheets uses Xpert's workbook model, operation protocol and version history. Univer provides the grid and formula calculation. People and Agents submit through the same server writer; collaboration does not require Univer Pro.
+
+## Open and save
+
+Create or open a native workbook from Project Spaces, or open an existing workbook from a chat resource card. An ordinary uploaded XLSX remains a file resource; editing that file does not automatically turn it into a native collaborative workbook.
+
+1. Edit values or formulas in the grid. Unsaved content belongs to the current draft.
+2. Select **Save** to submit the intent. The successful receipt identifies the server revision.
+3. Other members receive revision notifications and fetch committed changes. Their unsaved drafts are not directly overwritten.
+
+The server serializes commits per workbook and checks current permissions and the base revision. Each submission has a stable request ID: retrying the same intent does not create another revision, and a different intent cannot reuse that ID. Agent tools `office_excel_read` / `office_excel_edit` follow the same resource and commit rules.
+
+## Concurrent edits and conflicts
+
+| Situation                                                               | Behavior                                                                     |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Different cells edited from the same base                               | Merge within the supported history window, preserving each edit              |
+| Competing edits to one cell, including a change that was later reverted | Reject the stale submission and retain the draft                             |
+| Native editor structural commands, full replacement or history restore  | Establish a new structural base; old coordinates cannot be replayed directly |
+| Base more than 100 revisions behind                                     | Read the full current state; merging does not traverse unlimited history     |
+| Membership revoked                                                      | Deny subsequent reads, writes, history, synchronization and export           |
+
+On conflict, retain local content, read the latest revision and decide which edits to reapply. Do not treat every conflict as a network retry or create another workbook with the same title to bypass it.
+
+## Structure and formulas
+
+Use **Rows, columns and sheets** for controlled structural operations. The first successful submission upgrades the workbook's structural protocol while retaining readable history. Stable row and column identities allow supported stale cell edits to follow their original targets instead of writing to an adjacent location after insertion.
+
+Supported operations include row/column insertion and deletion, sheet rename, whole-row reordering/sorting, and merge/unmerge. Deleted targets, competing cell edits, concurrent structural changes and uncertain dependencies reject the entire operation.
+
+| Capability                       | Boundary                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Formula reference transformation | A1, absolute/mixed references, rectangular and whole-row/column ranges, and quoted Unicode sheet names                                     |
+| Whole-row sorting                | Sorts input values, with empty values always last; formula sort keys are rejected instead of using stale calculation caches                |
+| Disjoint ranges                  | Rejects references that cannot remain contiguous after reordering instead of including unrelated cells                                     |
+| Merging                          | Does not hide populated subordinate cells or overlap another merge                                                                         |
+| Unsupported dependencies         | Named ranges, structured/external/3-D references, INDIRECT, shared/array formulas and similar dependencies block structural transformation |
+| Other unsafe metadata            | Frozen panes or opaque engine resources can block transformation; they must not be silently discarded                                      |
+
+The reference transformer does not evaluate formulas. Univer calculates results; the server saves formula inputs without inventing cached values. Old clients cannot write an upgraded protocol.
+
+## Local drafts and offline saves
+
+The host stores drafts in browser IndexedDB, bound to the current user and resource scope. Plugins use a controlled bridge and cannot choose the storage namespace directly.
+
+- Ordinary editing retains a local draft. Only an explicit **Save** creates a queued submission.
+- Offline requests remain queued and retry after reconnection. A lost receipt is resolved using the original request before later edits are submitted.
+- Recover or delete drafts from **Local drafts**. Recovery requires online authorization; this recovers previously loaded sessions rather than providing a fully offline application.
+- Competing tabs compare revisions and fork conflicting drafts instead of replacing another tab's content.
+- Each host origin retains at most 20 drafts, 20 MiB per draft and 50 MiB total. Exceeding a quota preserves existing data and reports the problem. Clearing browser data or ending a private session can delete local copies.
+
+Cloud and other ChatKit hosts have separate browser storage. Save to the server before continuing in another host; export a local copy when saving is unavailable.
+
+## History, restore and selective undo
+
+History supports pagination, read-only previews, full restore, and undoing the current user's cell changes from a selected revision.
+
+A full restore creates a new commit and retains history; it does not move the current revision pointer backwards. Selective undo changes only the affected cells and preserves independent changes from others. It rejects subsequent changes to those cells, including ABA changes, and already-undone targets. Structural and legacy snapshot revisions require full restore rather than selective cell undo.
+
+## Selections and collaborators
+
+The selection-reference action separates inputs, formulas and calculated results, marking the base revision, local edit generation and unsaved state. The editor waits for current calculation to finish. Editing, switching resources or receiving a newer revision during that wait rejects the reference. Selections are bounded to 200 cells and 32 KB; truncation must be explicit.
+
+Remote cell ranges appear only when both clients use the same revision. Unsaved or structural drafts temporarily suppress coordinate publication while collaborator names remain visible. Browser calculation results are not business certification and are never written back as authoritative formula inputs.
+
+## Import, export and native backups
+
+Import creates a draft for review and explicit saving. Imports are limited to 25 MiB and 100,000 cells; this is not a promise to open arbitrary complex Excel files.
+
+| Format                 | Purpose and limits                                                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CSV                    | Exchanges table values without preserving complete workbook structure, formatting or collaboration history                                                                                  |
+| XLSX                   | Supports values, formulas, hidden sheets, merged ranges and number formats; preserves numeric dates/times in the 1900 system and rejects the 1904 system                                    |
+| Complex XLSX features  | Charts, images, macros, pivots, validation, named ranges, external links and complex styles are not guaranteed to survive; retain the source file                                           |
+| `.xpert-workbook.json` | Preserves the current committed model and opaque extensions, including source revision and checksum; restore accepts the same resource only and stages a draft before saving a new revision |
+
+A native backup does not contain complete database history or permissions, and its checksum is not an authorization credential. See [Deployment and recovery](./operations) for system backups and compatible rollback.

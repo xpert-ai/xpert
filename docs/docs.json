@@ -52,6 +52,15 @@
                 ]
               },
               {
+                "group": "Collaborative Artifacts",
+                "pages": [
+                  "en/guides/collaborative-artifacts/overview",
+                  "en/guides/collaborative-artifacts/sheets",
+                  "en/guides/collaborative-artifacts/trusted-data",
+                  "en/guides/collaborative-artifacts/operations"
+                ]
+              },
+              {
                 "group": "Artifacts Dashboard",
                 "pages": [
                   "en/guides/artifacts-dashboard/overview",
@@ -186,6 +195,15 @@
                   "zh-Hans/guides/project-pipelines/overview",
                   "zh-Hans/guides/project-pipelines/architecture",
                   "zh-Hans/guides/project-pipelines/operations"
+                ]
+              },
+              {
+                "group": "协作成果",
+                "pages": [
+                  "zh-Hans/guides/collaborative-artifacts/overview",
+                  "zh-Hans/guides/collaborative-artifacts/sheets",
+                  "zh-Hans/guides/collaborative-artifacts/trusted-data",
+                  "zh-Hans/guides/collaborative-artifacts/operations"
                 ]
               },
               {
