@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import {
   buildRemoteReactComponent,
   verifyRemoteReactComponent
-} from '../../../../server-ai/scripts/build-remote-react.mjs'
+} from '../../../../../tools/remote-components/build-remote-react.mjs'
 await (process.argv.includes('--check') ? verifyRemoteReactComponent : buildRemoteReactComponent)(
   dirname(fileURLToPath(import.meta.url))
 )

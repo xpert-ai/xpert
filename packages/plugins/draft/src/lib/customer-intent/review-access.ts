@@ -8,6 +8,7 @@ import {
 
 export const reviewFeature = 'customer-intent.review'
 export const reviewMiddleware = 'customer-intent-review'
+export const reviewViewKey = 'intent-review'
 
 export function canReviewProject(context: XpertResolvedViewHostContext): boolean {
   return Boolean(context.runtimeScope?.projectId && context.runtimeScope.projectAccess?.canManage)
@@ -15,9 +16,10 @@ export function canReviewProject(context: XpertResolvedViewHostContext): boolean
 
 export async function resolveProjectReviewApi(
   capabilities: RuntimeCapabilityRegistry,
-  context: XpertResolvedViewHostContext
+  context: XpertResolvedViewHostContext,
+  viewKey: string
 ) {
-  if (!canReviewProject(context)) throw new ForbiddenException()
+  if (viewKey !== reviewViewKey || !canReviewProject(context)) throw new ForbiddenException()
   const view = await capabilities.require(ViewMiddlewareRuntimeCapability).resolve({
     context,
     provider: reviewMiddleware,

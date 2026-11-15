@@ -55,6 +55,7 @@
                 "!{projectRoot}/src/**/remote-components/**/app.js",
                 "!{projectRoot}/src/**/remote-components/**/app.css",
                 "{projectRoot}/scripts/build-remote*.mjs",
+                "{workspaceRoot}/tools/remote-components/**/*",
                 "{projectRoot}/tsconfig*.json",
                 "{projectRoot}/package.json",
                 "{projectRoot}/src/chat-conversation/conversation-map/schema.ts",
@@ -109,6 +110,7 @@
         "default": [
             "{projectRoot}/**/*",
             "sharedGlobals",
+            "{workspaceRoot}/tools/remote-components/**/*",
             "!{projectRoot}/src/**/remote-components/**/app.js",
             "!{projectRoot}/src/**/remote-components/**/app.css"
         ]

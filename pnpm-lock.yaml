@@ -1152,6 +1152,12 @@ importers:
       multer-s3:
         specifier: ^2.9.0
         version: 2.10.0
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.2.0
+        version: 18.3.1(react@18.3.1)
       uuid:
         specifier: ^10.0.0
         version: 10.0.0
@@ -1161,6 +1167,10 @@ importers:
       zod:
         specifier: 3.25.67
         version: 3.25.67
+    devDependencies:
+      '@xpert-ai/shadcn-ui':
+        specifier: workspace:*
+        version: link:../../shadcn-ui
 
   packages/plugins/execution-observability:
     dependencies:
@@ -42648,7 +42658,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1)
+      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -49113,7 +49123,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1):
+  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 

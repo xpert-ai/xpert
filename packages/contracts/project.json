@@ -11,6 +11,8 @@
         "outputPath": "packages/contracts/dist",
         "project": "packages/contracts/package.json",
         "main": "packages/contracts/src/index.ts",
+        "additionalEntryPoints": ["packages/contracts/src/view-extension/context-event.ts"],
+        "generateExportsField": true,
         "tsConfig": "packages/contracts/tsconfig.lib.json",
         "assets": [
           {
