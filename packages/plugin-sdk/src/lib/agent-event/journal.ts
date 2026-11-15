@@ -124,22 +124,36 @@ export class PluginEventJournal {
   }
 
   async drain(db: AgentEventSql, ctx: AgentEventContext, publisher: AgentEventPublisher, limit: number) {
+    const scope = [ctx.bindingId, ctx.tenantId, ctx.organizationId, ctx.sourceBindingRef, ctx.bindingRevision]
+    // The current worker may reconcile older facts (including a lost receipt ACK), never a later revision.
+    const routeScope = 'r.binding=$1 AND r.tenant=$2 AND r.org=$3 AND r.ref=$4 AND r.revision=$5'
     const facts = await db.query<Fact[]>(
       `SELECT f.id,f.event FROM ${this.facts} f JOIN ${this.routes} r USING(binding)
-      WHERE r.binding=$1 AND r.tenant=$2 AND r.org=$3 AND r.ref=$4 AND f.receipt IS NULL AND f.error IS NULL
-      ORDER BY f.seq LIMIT $5`,
-      [ctx.bindingId, ctx.tenantId, ctx.organizationId, ctx.sourceBindingRef, limit]
+      WHERE ${routeScope} AND (f.event->>'bindingRevision')::numeric <= r.revision AND f.receipt IS NULL
+      AND (f.error IS NULL OR (f.error='binding_changed' AND f.event->>'bindingRevision'=r.revision::text))
+      ORDER BY f.seq LIMIT $6`,
+      [...scope, limit]
     )
     for (const fact of facts) {
       ctx.signal.throwIfAborted()
       const result = await publisher.publish(fact.event)
-      if (result.status === 'rejected')
-        await db.query(`UPDATE ${this.facts} SET error=$2 WHERE id=$1 AND receipt IS NULL`, [fact.id, result.code])
-      else
-        await db.query(`UPDATE ${this.facts} SET receipt=$2 WHERE id=$1 AND (receipt IS NULL OR receipt=$2)`, [
-          fact.id,
-          result.receiptId
-        ])
+      if (result.status === 'rejected') {
+        // The host may already have advanced or may still be enabling this revision.
+        if (result.code === 'binding_changed' && fact.event.bindingRevision === ctx.bindingRevision)
+          return { more: false }
+        await db.query(
+          `WITH current_route AS (SELECT r.binding FROM ${this.routes} r WHERE ${routeScope} FOR SHARE)
+          UPDATE ${this.facts} f SET error=$7 FROM current_route r
+          WHERE f.binding=r.binding AND f.id=$6 AND f.receipt IS NULL`,
+          [...scope, fact.id, result.code]
+        )
+      } else {
+        // A committed host receipt remains authoritative even if the route changed while awaiting its ACK.
+        await db.query(
+          `UPDATE ${this.facts} SET receipt=$2,error=NULL WHERE id=$1 AND binding=$3 AND (receipt IS NULL OR receipt=$2)`,
+          [fact.id, result.receiptId, ctx.bindingId]
+        )
+      }
     }
     return { more: facts.length === limit }
   }
