@@ -1413,6 +1413,13 @@
         "state_blocked": "Blocked"
       },
       "TargetDetail": {
+        "ReplaySlices": "Replay results by case group",
+        "LatestReplay": "Latest replay",
+        "CaseGroup": "Case group",
+        "SampleCount": "Sample count",
+        "BaselineAccuracy": "Baseline accuracy",
+        "CandidateAccuracy": "Candidate accuracy",
+        "NoSliceResults": "No replay results have been recorded for these groups.",
         "PointerRevision": "Pointer revision",
         "Title": "Target details",
         "Breadcrumb": "Breadcrumb",

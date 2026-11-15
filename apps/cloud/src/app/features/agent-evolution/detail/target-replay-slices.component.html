@@ -1,0 +1,42 @@
+<section aria-labelledby="replay-slices-heading" class="space-y-3">
+  <h2 id="replay-slices-heading" class="text-lg font-semibold">{{ p + 'ReplaySlices' | translate }}</h2>
+  @if (status() === 'loading') {
+    <p role="status">{{ 'XP.Common.Loading' | translate }}</p>
+  } @else if (status() === 'error') {
+    <p role="alert">
+      {{ 'XP.AgentEvolution.ResourceLoadFailed' | translate }}
+      <button z-button zType="outline" (click)="attempt.set(attempt() + 1)">{{ p + 'Retry' | translate }}</button>
+    </p>
+  } @else {
+    @if (run(); as result) {
+      <a class="break-all text-sm underline" [routerLink]="['/agent-evolution/evaluations', result.runId]"
+        >{{ p + 'LatestReplay' | translate }} · {{ result.runId }}</a
+      >
+    }
+    <div class="overflow-x-auto">
+      <table class="w-full text-start text-sm [&_td]:p-2 [&_th]:p-2 [&_th]:text-start">
+        <thead class="border-b border-border text-text-secondary">
+          <tr>
+            <th scope="col">{{ p + 'CaseGroup' | translate }}</th>
+            <th scope="col">{{ p + 'SampleCount' | translate }}</th>
+            <th scope="col">{{ p + 'BaselineAccuracy' | translate }}</th>
+            <th scope="col">{{ p + 'CandidateAccuracy' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.key) {
+            <tr class="tabular-nums">
+              <th scope="row" class="font-medium">{{ row.label }}</th>
+              <td>{{ row.samples ?? '—' }}</td>
+              <td>{{ row.baseline }}</td>
+              <td>{{ row.candidate }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (!run()?.sliceMetrics?.length) {
+      <p class="text-sm text-text-secondary">{{ p + 'NoSliceResults' | translate }}</p>
+    }
+  }
+</section>

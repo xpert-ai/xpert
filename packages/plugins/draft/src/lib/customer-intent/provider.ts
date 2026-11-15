@@ -22,6 +22,7 @@ import { changeError } from './errors'
 import { hashEvolutionValue } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod'
 import { corpusFeatures } from './dataset'
+import { intentReplaySlice, negatedRefundOrderStatus } from './negated-refund-order-status'
 import {
   addVocabulary,
   baselinePolicy,
@@ -48,6 +49,7 @@ export class CustomerIntentProvider implements EvolutionTargetProvider {
     supportedScopes: ['organization'],
     riskLevel: 'R2',
     metricSetId: 'assistant.customer_intent.v1',
+    replaySlices: [negatedRefundOrderStatus],
     strategies: [FEEDBACK_LEARNING_STRATEGY],
     status: 'active',
     capabilities: { candidateBuild: true, replay: true, install: true, shadow: true, canary: true, rollback: true },
@@ -195,7 +197,7 @@ export class CustomerIntentProvider implements EvolutionTargetProvider {
         metricKey: 'previously_correct_route_lost',
         value: Number(regressed),
         unit: 'count' as const,
-        slice: request.caseRevision.slice,
+        slice: intentReplaySlice(request),
         blocking: regressed
       }
     ]

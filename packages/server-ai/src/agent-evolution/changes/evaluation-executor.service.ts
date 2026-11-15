@@ -15,6 +15,7 @@ import { AgentEvolutionStore } from '../application/agent-evolution.store'
 import { AgentEvolutionQualityGovernanceService } from '../application/agent-evolution-quality-governance.service'
 import {
     aggregateMetrics,
+    aggregateReplaySlices,
     blockingMetricReasons,
     scoredReplayCase,
     sameScope
@@ -169,6 +170,9 @@ export class EvolutionEvaluationExecutor {
             caseResults,
             startedAt: now,
             completedAt: new Date().toISOString()
+        }
+        if (target.descriptor.replaySlices?.length) {
+            raw.sliceMetrics = aggregateReplaySlices(target.descriptor.replaySlices, caseResults)
         }
         await this.store.saveEvaluation(context, raw)
         // The common assessment has its own immutable record; replay evidence retains its native metrics.

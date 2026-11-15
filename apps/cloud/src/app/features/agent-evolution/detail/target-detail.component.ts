@@ -14,6 +14,7 @@ import { sameEvolutionScope } from '../agent-evolution.types'
 import { loadAllEvolutionPages } from '../shared/evolution-pagination'
 import { targetLabel } from '../targets/target-directory'
 import { EvolutionBaselinePanelComponent } from './evolution-baseline-panel.component'
+import { TargetReplaySlicesComponent } from './target-replay-slices.component'
 
 @Component({
   imports: [
@@ -22,7 +23,8 @@ import { EvolutionBaselinePanelComponent } from './evolution-baseline-panel.comp
     RouterLink,
     ZardButtonComponent,
     ...XpDialogFrameImports,
-    EvolutionBaselinePanelComponent
+    EvolutionBaselinePanelComponent,
+    TargetReplaySlicesComponent
   ],
   templateUrl: './target-detail.component.html',
   host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background text-foreground' }
