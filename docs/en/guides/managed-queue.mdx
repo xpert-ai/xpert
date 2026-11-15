@@ -229,6 +229,7 @@ In source development, the API can execute browser jobs through the built-in `lo
 
 - `MANAGED_QUEUE_CONCURRENCY`: platform physical worker concurrency.
 - `MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY`: browser-pool concurrency; defaults to one in the API process.
+- With `NODE_ENV=development`, each API uses a queue namespace based on its `PORT` (default `3000`). Set `MANAGED_QUEUE_PREFIX_BY_PORT=false` to use the shared prefix. Other environments use the shared prefix by default. A blank flag uses the environment default. Any nonblank value other than `true` or `false` (case-insensitive) causes startup to fail. An explicit `MANAGED_QUEUE_PREFIX` takes precedence in every environment. Give an API and its workers the same namespace. Drain pending jobs before switching namespaces.
 - `MANAGED_QUEUE_AUTORUN=false`: prevents worker autorun for tests or special deployments.
 
 Plugins should not configure BullMQ connections directly. Redis is provided by the platform.
