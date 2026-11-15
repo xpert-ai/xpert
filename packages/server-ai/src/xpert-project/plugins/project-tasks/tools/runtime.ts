@@ -8,7 +8,7 @@ import { CommandBus } from '@nestjs/cqrs'
 import {
     getToolCallFromConfig,
     projectTaskDispatchToolInputSchema,
-    projectTaskDecisionInputSchema,
+    projectTaskDecisionToolInputSchema,
     agentDeliveryRecoverySchema
 } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
@@ -17,7 +17,7 @@ import { v5 as uuidv5 } from 'uuid'
 import {
     UpdateProjectTaskPlanCommand,
     DispatchProjectTaskCommand,
-    DecideProjectTaskCommand,
+    DecideProjectTaskReferenceCommand,
     GetProjectRuntimeTaskCommand,
     RecoverProjectTaskDeliveryCommand,
     ListProjectRuntimeBindingsCommand
@@ -112,21 +112,21 @@ export function createProjectRuntimeTools(
                 await assertPermission('edit')
                 const actor = caller(config)
                 return commandBus.execute(
-                    new DecideProjectTaskCommand(
+                    new DecideProjectTaskReferenceCommand(
                         context.projectId,
-                        projectTaskDecisionInputSchema.parse({
+                        {
                             ...input,
                             requestId: requestId(context.projectId, ProjectToolEnum.DecideTask, actor)
-                        }),
+                        },
                         actor
                     )
                 )
             },
             {
                 name: ProjectToolEnum.DecideTask,
-                schema: projectTaskDecisionInputSchema.omit({ requestId: true }),
+                schema: projectTaskDecisionToolInputSchema,
                 description:
-                    'After project_get_task and checking actual evidence, explicitly accept or request rework for the latest implementation. Supply exact specificationDigest, implementationExecutionId and invocation_result revision from the detail, rationale and checks performed. Optional reviewExecutionId must be a matching independent review; read its Markdown report and make your own explicit decision. CLI success alone is insufficient. The platform manages operation identity and retry deduplication. If a previous call has an uncertain outcome, inspect project_get_task for the recorded decision before making a new call.'
+                    'After reading the candidate evidence and independent review Markdown, decide accept or rework. Copy decisionRef unchanged from project_get_task.decisionOptions, supply outcome and a concise rationale; checks are optional. Acceptance records task completion; no follow-up status or checklist completion update is needed. For grouped delivery read the summary task and use its reference to finish the summary and selected implementation together. Do not assemble IDs, versions, digests or evidence arrays. A stale reference requires rereading and reassessment, not guessing fields or restarting coding. The host validates identity, permissions and concurrency; you judge business quality. If a call outcome is uncertain, inspect the recorded decision before making a new call.'
             }
         ),
         tool(
@@ -163,7 +163,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.GetTask,
                 schema: z.object({ taskId: z.string().uuid() }).strict(),
                 description:
-                    'Read task requirements, revision, direct child task summaries, attempt history and authorized Runtime results. Child summaries contain IDs, titles, kinds, statuses and revisions; read a child by ID for its requirements and authorized execution evidence. Observes existing executions; never starts one or accepts a task.'
+                    'Read requirements, children, attempts and authorized results. decisionOptions supplies fixed decisionRef values for current candidates or specific blocking diagnostics. Read the referenced review task and its Markdown before deciding. A summary reference decides overall delivery; an implementation reference decides only that child. Review tasks are findings, not decision targets: read their parent/implementation task to decide. This read never starts execution or accepts a task.'
             }
         ),
         tool(

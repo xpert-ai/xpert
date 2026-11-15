@@ -2,6 +2,7 @@ import { ICommand } from '@nestjs/cqrs'
 import {
     ProjectTaskDispatchInput,
     ProjectTaskDecisionInput,
+    ProjectTaskDecisionToolInput,
     ProjectTaskGraphChange,
     AgentDeliveryRecovery
 } from '@xpert-ai/contracts'
@@ -21,6 +22,15 @@ export class DecideProjectTaskCommand implements ICommand {
         readonly projectId: string,
         readonly input: ProjectTaskDecisionInput,
         readonly caller?: ProjectTaskCaller
+    ) {}
+}
+
+/** Agent decision over an observed candidate; technical bindings are resolved by the host. */
+export class DecideProjectTaskReferenceCommand implements ICommand {
+    constructor(
+        readonly projectId: string,
+        readonly input: ProjectTaskDecisionToolInput & { requestId: string },
+        readonly caller: ProjectTaskCaller
     ) {}
 }
 

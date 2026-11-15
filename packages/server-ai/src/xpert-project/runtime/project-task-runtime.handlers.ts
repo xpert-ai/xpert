@@ -3,6 +3,7 @@ import {
     UpdateProjectTaskPlanCommand,
     DispatchProjectTaskCommand,
     DecideProjectTaskCommand,
+    DecideProjectTaskReferenceCommand,
     GetProjectRuntimeTaskCommand,
     RecoverProjectTaskDeliveryCommand,
     ListProjectRuntimeBindingsCommand
@@ -30,6 +31,14 @@ export class DecideProjectTaskHandler implements ICommandHandler<DecideProjectTa
     constructor(private readonly decisions: ProjectTaskDecisionService) {}
     execute(command: DecideProjectTaskCommand) {
         return this.decisions.decide(command.projectId, command.input, command.caller)
+    }
+}
+
+@CommandHandler(DecideProjectTaskReferenceCommand)
+export class DecideProjectTaskReferenceHandler implements ICommandHandler<DecideProjectTaskReferenceCommand> {
+    constructor(private readonly decisions: ProjectTaskDecisionService) {}
+    execute(command: DecideProjectTaskReferenceCommand) {
+        return this.decisions.decideReference(command.projectId, command.input, command.caller)
     }
 }
 
@@ -68,6 +77,7 @@ export const ProjectTaskRuntimeHandlers = [
     RecoverProjectTaskDeliveryHandler,
     UpdateProjectTaskPlanHandler,
     DecideProjectTaskHandler,
+    DecideProjectTaskReferenceHandler,
     DispatchProjectTaskHandler,
     GetProjectRuntimeTaskHandler,
     ListProjectRuntimeBindingsHandler

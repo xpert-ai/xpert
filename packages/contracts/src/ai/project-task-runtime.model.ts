@@ -243,6 +243,20 @@ export const projectTaskReviewReportSchema = z
   .strict()
 export type ProjectTaskReviewReport = z.output<typeof projectTaskReviewReportSchema>
 
+// Agent-facing references bind an observed candidate; authorization remains with the host.
+export const projectTaskDecisionToolInputSchema = z
+  .object({
+    decisionRef: z
+      .string()
+      .max(200)
+      .regex(/^pd1\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f]{64}$/),
+    outcome: z.enum(['accept', 'rework']),
+    rationale: z.string().trim().min(1).max(8000),
+    checks: z.array(z.string().trim().min(1).max(4000)).max(64).optional()
+  })
+  .strict()
+export type ProjectTaskDecisionToolInput = z.output<typeof projectTaskDecisionToolInputSchema>
+
 export const projectTaskDecisionInputSchema = z
   .object({
     requestId: z.string().uuid(),
@@ -254,7 +268,7 @@ export const projectTaskDecisionInputSchema = z
     reviewExecutionId: z.string().uuid().optional(),
     outcome: z.enum(['accept', 'rework']),
     rationale: z.string().trim().min(1).max(8000),
-    checks: z.array(z.string().trim().min(1).max(4000)).min(1).max(64)
+    checks: z.array(z.string().trim().min(1).max(4000)).max(64)
   })
   .strict()
 export type ProjectTaskDecisionInput = z.output<typeof projectTaskDecisionInputSchema>

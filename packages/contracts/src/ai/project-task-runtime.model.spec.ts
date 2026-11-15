@@ -114,7 +114,7 @@ describe('project task runtime contracts', () => {
     ).toBe(false)
   })
 
-  it('requires evidence and performed checks, and rejects model-supplied decision identity', () => {
+  it('requires bound evidence, allows omitted check descriptions and rejects model-supplied decision identity', () => {
     const decision = {
       requestId: id(1),
       taskId: id(2),
@@ -127,13 +127,8 @@ describe('project task runtime contracts', () => {
       checks: ['Inspected tests']
     }
     expect(projectTaskDecisionInputSchema.parse(decision)).toEqual(decision)
-    for (const extra of [
-      { actorId: id(9) },
-      { actorType: 'user' },
-      { taskRevision: 99 },
-      { evidence: [] },
-      { checks: [] }
-    ])
+    expect(projectTaskDecisionInputSchema.parse({ ...decision, checks: [] }).checks).toEqual([])
+    for (const extra of [{ actorId: id(9) }, { actorType: 'user' }, { taskRevision: 99 }, { evidence: [] }])
       expect(projectTaskDecisionInputSchema.safeParse({ ...decision, ...extra }).success).toBe(false)
   })
 

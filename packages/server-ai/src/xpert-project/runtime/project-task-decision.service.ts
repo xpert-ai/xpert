@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 import {
     ProjectTaskDecisionInput,
+    ProjectTaskDecisionToolInput,
     projectTaskDecisionInputSchema,
     projectTaskDecisionSchema
 } from '@xpert-ai/contracts'
@@ -31,6 +32,12 @@ import { implementationEvidence, reviewReport } from './project-task-evidence'
 import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
+import {
+    decisionBinding,
+    decisionRef,
+    parseDecisionRef,
+    ProjectTaskDecisionReferenceError
+} from './project-task-decision-reference'
 
 @Injectable()
 export class ProjectTaskDecisionService {
@@ -42,6 +49,60 @@ export class ProjectTaskDecisionService {
         private readonly reviews: ProjectReviewEnvironment
     ) {}
 
+    async decideReference(
+        projectId: string,
+        input: ProjectTaskDecisionToolInput & { requestId: string },
+        caller: ProjectTaskCaller
+    ) {
+        await this.access.assertCanEdit(projectId)
+        await this.context.resolve(projectId, caller)
+        const actor = this.context.actor()
+        const reference = parseDecisionRef(input.decisionRef)
+        const task = await this.tasks.findOne({
+            where: {
+                id: reference.taskId,
+                projectId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId
+            },
+            relations: ['steps']
+        })
+        if (!task) throw projectTaskRuntimeError('NotFound')
+        assertOrdinaryTask(task)
+        const previous = task.decisions?.find((item) => item.requestId === input.requestId)
+        if (previous) {
+            if (decisionRef(previous) !== input.decisionRef)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
+            // The original command owns replay authorization and rejects changed outcome/reason/checks.
+            return this.decide(
+                projectId,
+                {
+                    ...projectTaskDecisionInputSchema.strip().parse(previous),
+                    outcome: input.outcome,
+                    rationale: input.rationale,
+                    checks: input.checks ?? []
+                },
+                caller
+            )
+        }
+        const { binding } = await decisionBinding(this.tasks.manager, actor, task, reference.implementationExecutionId)
+        if (decisionRef(binding) !== input.decisionRef)
+            throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
+        const { reviewResult: _reviewResult, ...command } = binding
+        return this.decide(
+            projectId,
+            {
+                ...command,
+                requestId: input.requestId,
+                outcome: input.outcome,
+                rationale: input.rationale,
+                checks: input.checks ?? []
+            },
+            caller,
+            input.decisionRef
+        )
+    }
+
     /**
      * Record an authorized acceptance or rework decision together with the task status change.
      * Runtime inspection may reconcile execution state, so it runs before acquiring the Project lock.
@@ -51,7 +112,12 @@ export class ProjectTaskDecisionService {
      * A child decision does not finish its summary. A summary decision validates the pinned child
      * and commits both histories atomically; acceptance additionally requires completed siblings.
      */
-    async decide(projectId: string, input: ProjectTaskDecisionInput, caller?: ProjectTaskCaller) {
+    async decide(
+        projectId: string,
+        input: ProjectTaskDecisionInput,
+        caller?: ProjectTaskCaller,
+        observedReference?: string
+    ) {
         const actor = this.context.actor()
         // Even a replay must satisfy current project access and caller authorization.
         await this.access.assertCanEdit(projectId)
@@ -205,6 +271,8 @@ export class ProjectTaskDecisionService {
                     attempt.purpose?.type === 'review' &&
                     attempt.purpose.implementationExecutionId === input.implementationExecutionId
             )
+            if (observedReference && latestReview?.id !== input.reviewExecutionId)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
             const reviewer = latest.purpose?.type === 'implementation' ? latest.purpose.reviewer : undefined
             if (input.outcome === 'accept' && reviewer && !latestReview)
                 throw projectTaskRuntimeError('ReviewerRequired')
@@ -292,6 +360,8 @@ export class ProjectTaskDecisionService {
                         throw projectTaskRuntimeError('Busy')
                 }
             }
+            if (observedReference && decisionRef({ ...input, reviewResult }) !== observedReference)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
             const decision = projectTaskDecisionSchema.parse({
                 ...input,
                 actorId: actor.userId,
@@ -319,16 +389,14 @@ export class ProjectTaskDecisionService {
                     expectedRevision: implementation.revision,
                     taskRevision: implementation.revision + 1
                 })
-                const changed = await manager
-                    .getRepository(XpertProjectTask)
-                    .update(
-                        { ...where, id: implementation.id, revision: implementation.revision },
-                        {
-                            status: input.outcome === 'accept' ? 'done' : 'todo',
-                            revision: implementation.revision + 1,
-                            decisions: [...(implementation.decisions ?? []), childDecision]
-                        }
-                    )
+                const changed = await manager.getRepository(XpertProjectTask).update(
+                    { ...where, id: implementation.id, revision: implementation.revision },
+                    {
+                        status: input.outcome === 'accept' ? 'done' : 'todo',
+                        revision: implementation.revision + 1,
+                        decisions: [...(implementation.decisions ?? []), childDecision]
+                    }
+                )
                 if (changed.affected !== 1) throw projectTaskRuntimeError('Conflict')
             }
             return decision

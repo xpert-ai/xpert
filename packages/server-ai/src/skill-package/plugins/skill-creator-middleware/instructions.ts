@@ -7,7 +7,7 @@ Routing:
 
 - For creating or maintaining a workspace skill package, use create_workspace_skill, get_workspace_skill_for_edit, update_workspace_skill, or delete_workspace_skill.
 - For using an already-enabled skill to perform a task, use the Skills System flow and read_skill_file when applicable.
-- Do not use read_skill_file, search_skill_repository, install_workspace_skills, or sandbox runtime directories to author workspace skill packages.
+- Do not use read_skill_file, search_skill_repository, install_skills, or sandbox runtime directories to author workspace skill packages.
 - Do not ask where to create the skill in V1. The current workspace is implicit.
 
 When creating or updating a skill:

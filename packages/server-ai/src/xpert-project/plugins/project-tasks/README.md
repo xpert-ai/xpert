@@ -90,20 +90,20 @@ The graph edit endpoint also rejects parent or dependency changes for a bound re
 
 ## Independent review work items and coordination
 
-Implementation dispatch can assign `purpose.reviewer: { bindingId, mode: "evidence_only" }`. The binding must be authorized and support the existing confined review adapter. A subsequent implementation attempt cannot silently omit that assignment. Acceptance requires a valid passing report from the assigned binding and mode; runtime success alone is insufficient.
+Implementation dispatch can assign `purpose.reviewer: { bindingId, mode: "evidence_only" }`. The binding must be authorized and support the existing confined review adapter. A subsequent implementation attempt cannot silently omit that assignment. Acceptance requires a readable report from the assigned binding and mode and an explicit coordinator decision; runtime success alone is insufficient.
 
 Dispatch a review against the implementation task with `reviewAsSubtask: true`. Under the project lock, the host creates a bound ordinary review task: a sibling under the implementation's summary, or a child of a standalone implementation. The receipt names this review task. Retrying the same request returns the existing attempt; an intentional new review attempt for the same candidate reuses the review task. A new implementation execution gets a new review work item, preserving earlier findings. A cancelled review task cannot be silently reopened.
 
-A confirmed successful review with a valid report completes the review work item for all three verdicts: `pass`, `changes_required`, and `indeterminate`. It never accepts the implementation. Invalid reports block the review task; newer attempts and task revisions fence late observations. `project_get_task` exposes scoped `reviewTasks` references without inspecting their Invocations. This uses the persisted task binding and adds no authority fields to `ProjectTaskNode`.
+A confirmed successful review with readable Markdown completes the review work item, including when it identifies defects or limitations. It never accepts the implementation. Invalid reports block the review task; newer attempts and task revisions fence late observations. `project_get_task` exposes scoped `reviewTasks` references without inspecting their Invocations. This uses the persisted task binding and adds no authority fields to `ProjectTaskNode`.
 
-For a child under an ordinary summary, the host pins `purpose.coordination` to the parent's current specification; callers cannot supply it. Children may receive explicit acceptance or rework decisions independently, without completing the summary. To complete the summary, call `project_decide_task` with the summary ID and revision, the child implementation execution and specification digest, and its current evidence and review. Other non-review children must already be completed. The parent decision and referenced child's decision/status are saved atomically. Rework is allowed while siblings remain unfinished. Parent requirement changes or moving the implementation to another parent invalidate the old coordination evidence.
+For a child under an ordinary summary, the host pins `purpose.coordination` to the parent's current specification; callers cannot supply it. Children may receive explicit acceptance or rework decisions independently, without completing the summary. To complete the summary, read it with `project_get_task`, assess the referenced implementation and review, then call `project_decide_task` with its `decisionOptions[].decisionRef`, `outcome` and `rationale`. `checks` is optional; the Agent does not assemble execution IDs, digests or evidence arrays. Other non-review children must already be completed. The parent decision and referenced child's decision/status are saved atomically. Rework is allowed while siblings remain unfinished. Parent requirement changes or moving the implementation to another parent invalidate the old coordination evidence.
 
 Ordinary `outcome: "rework"` records feedback and resets the affected task(s) to `todo`; it does not start another execution. Execution-mode review requires a host environment integration. The shared dispatch/acceptance workflow delegates protocol instructions and candidate comparison to Runtime; the default OS Runtime rejects execution-review admission and both operations. Shared contracts or historical read projections alone do not enable execution or acceptance.
 
 ## Feedback-linked rework
 
 The independent reviewer submits ordinary Markdown. The coordinator reads it,
-records an explicit rework decision with `reviewExecutionId`, then dispatches
+records an explicit rework decision using the returned `decisionRef`, then dispatches
 `purpose.rework: {reviewExecutionId, feedback}`. Feedback is natural language;
 there are no model-generated finding IDs. The host validates the exact review
 subject and pins its result revision and digest. Rework receives that report and
@@ -113,8 +113,46 @@ If execution succeeded but report/artifact delivery failed, use
 `project_recover_task_delivery` with the current invocation revision. Recovery
 re-reads the original report path and/or selected files without another execution.
 Successful delivery parts remain unchanged. It creates a new result revision and
-records delivery history; it does not accept the task. Completed or cancelled task
-results cannot be edited through the task recovery tool.
+records delivery history; it does not accept the task. Cancelled task results cannot be edited through the task recovery tool; completed
+review tasks may still recover pending report or artifact delivery.
+
+## Decision references
+
+The Agent-facing `project_decide_task` has three required arguments:
+
+```json
+{
+    "decisionRef": "<copy from project_get_task.decisionOptions>",
+    "outcome": "accept",
+    "rationale": "The independent report covers the requested behavior and limitations."
+}
+```
+
+Read the referenced implementation/review results before deciding. A reference is
+an observation of the task revision, implementation specification/result evidence,
+and current review execution/report revision and hash. It is neither a permission
+nor a business verdict. The host resolves the references and rechecks project and
+caller access, candidate contents, pending work and task concurrency. A summary
+reference also records its selected implementation child's decision atomically;
+other implementation children must already be completed for acceptance. A child
+reference alone never accepts its parent. Successful acceptance already records
+completion; do not follow it with ordinary status or checklist completion updates.
+
+References are deterministic and require no database table, signing key, cache or
+background poll. They become stale when the bound data changes. `ContextChanged`
+requires rereading the task and reassessing evidence, not guessing new arguments
+or restarting development. Pending reviews, missing reports and inaccessible
+results return actionable diagnostics in `decisionOptions`; they do not synthesize
+acceptance. A recreated Computer may require a new review of the unchanged candidate
+because an old runtime receipt cannot verify a new environment generation.
+
+Host-generated request IDs retain replay semantics: a repeated recorded tool call
+returns its original decision, while changing the conclusion under that identity
+is rejected. A lost response does not justify a new acceptance call before reading
+the decision history. The lower-level service/REST decision contract remains for
+existing trusted callers; do not use it as the Agent tool schema. This changes the
+Agent tool schema: refresh its tools and skills when upgrading. Previously queued
+old-format tool arguments are not automatically translated.
 
 ## Result acceptance
 

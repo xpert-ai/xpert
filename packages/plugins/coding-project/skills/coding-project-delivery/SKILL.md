@@ -62,8 +62,16 @@ Read `cloud-project-delivery` for task delegation and independent execution revi
 Use program-specific environment/development skills; for Xpert plugins, use
 `xpert-plugin-development` and `xpert-platform-local-environment` in the existing Computer.
 The coordinator reads the delegation/review procedure and stage schema, then assigns
-the task. Put relevant program-specific skill paths in the CLI brief; let the CLI read
-implementation manuals as needed. On a technical retry, inspect and reuse existing
+the task. First call `list_skills`; search the accessible catalog with
+`search_skill_repository` and install missing program-specific skills through
+`install_skills`. Confirm the returned enabled state. Installation copies
+complete packages into this Project; it never replaces an existing same-path
+package, overwrites local edits or enables a disabled skill. Resolve such cases
+through explicit Project configuration rather than retrying installation.
+The host supplies exact execution-specific skill paths to the CLI and execution
+reviewer. Let them read relevant manuals there; names alone are not paths.
+Assistant coordination skills are not automatically CLI dependencies. For missing
+catalog entries report the concrete missing knowledge, not an invented path. On a technical retry, inspect and reuse existing
 tasks and evidence before creating another task. Do not mistake a Pipeline coordinator
 execution for a Computer task holding the workspace.
 When retrying under a new operation ID, update an unfinished task's manifest work identity
@@ -103,8 +111,12 @@ implementation child. The host returns the review task ID and reuses it for retr
 of the same candidate; a new implementation gets a new review task. Read the returned
 review task for its findings. A completed review can conclude `changes_required` or
 `indeterminate`; it does not complete the delivery. Do not arrange review-of-review.
-Make `project_decide_task` decisions on the summary with its current revision and
-the child implementation/review evidence. Submit that accepted summary task ID.
+Read the summary with `project_get_task`, read the referenced review report, then
+call `project_decide_task` with its `decisionOptions[].decisionRef`, `outcome` and
+a concise `rationale`. The host binds task/candidate versions and evidence; do not
+copy digests, build evidence arrays or append review artifacts. If the reference is
+stale, reread and reassess without restarting coding. A summary decision also records
+the selected child's decision; do not accept both separately. Submit the accepted summary task ID.
 Do not convert existing tasks or move historical executions into a new hierarchy.
 Preserve their original acceptance path when resuming an existing stage.
 

@@ -11,6 +11,7 @@ import type { Fixture } from './project-task-decision.cases'
 import { ProjectRuntimeObservationHandler } from '../project-runtime-observation.handler'
 import { ProjectRuntimeObservationCommand } from '../../../handoff/runtime-messaging/runtime-message.commands'
 import { projectTaskRuntimeError } from '../project-task-runtime.errors'
+import { taskDecisionOptions } from '../project-task-decision-reference'
 export function projectTaskCoordinationCases(fixture: () => Fixture) {
     describe('independent review task coordination', () => {
         let f: Fixture, decisions: ProjectTaskDecisionService
@@ -409,6 +410,38 @@ export function projectTaskCoordinationCases(fixture: () => Fixture) {
                 expect((await task(id)).decisions).toHaveLength(1)
             }
         })
+        it('finishes a summary through the compact reference API and replays the persisted decision', async () => {
+            const parent = await summaryParent(),
+                binding = await reviewer(),
+                input = await implemented()
+            const receipt = await review(input, binding)
+            const summary = await f.database.getRepository(XpertProjectTask).findOne({
+                where: { id: parent.id },
+                relations: ['steps']
+            })
+            const options = await taskDecisionOptions(f.database.manager, f.scope, summary)
+            expect(options).toHaveLength(1)
+            expect(options[0]).toMatchObject({
+                taskId: parent.id,
+                implementationTaskId: input.taskId,
+                reviewTaskId: receipt.projectTaskId,
+                reviewExecutionId: receipt.taskExecutionId
+            })
+            const request = {
+                decisionRef: options[0].decisionRef,
+                requestId: randomUUID(),
+                outcome: 'accept' as const,
+                rationale: 'The independent report supports the original requirement.'
+            }
+            const result = await decisions.decideReference(f.scope.projectId, request, f.caller)
+            expect(await decisions.decideReference(f.scope.projectId, request, f.caller)).toEqual(result)
+            for (const id of [parent.id, input.taskId]) {
+                expect((await task(id)).status).toBe('done')
+                expect((await task(id)).decisions).toHaveLength(1)
+            }
+            expect(result.evidence).toEqual(input.evidence)
+            expect(result.checks).toEqual([])
+        })
         it('accepts multiple implementation children without implicitly completing their summary', async () => {
             const parent = await summaryParent(),
                 binding = await reviewer(),
@@ -472,6 +505,9 @@ export function projectTaskCoordinationCases(fixture: () => Fixture) {
             ).rejects.toThrow()
             await repo.update({ id: parent.id }, { requirements: ['Changed goal'] })
             await expect(decisions.decide(f.scope.projectId, request, f.caller)).rejects.toThrow()
+            const options = await taskDecisionOptions(f.database.manager, f.scope, await task(parent.id))
+            expect(options[0]).toMatchObject({ diagnostic: { code: 'ContextChanged', taskId: parent.id } })
+            expect(options[0].decisionRef).toBeUndefined()
         })
         it('blocks premature summary acceptance but allows rework while another child is unfinished', async () => {
             const parent = await summaryParent(),

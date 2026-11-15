@@ -1,8 +1,10 @@
+import { prepareProjectSkillContext } from './project-skill-context'
+import { withWorkspaceLock } from '../../shared/volume/workspace-storage-lock'
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { TXpertProjectSkillFile, TXpertProjectSkills } from '@xpert-ai/contracts'
 import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { InjectRepository } from '@nestjs/typeorm'
-import { lstat, mkdtemp, open, readdir, realpath, rm } from 'fs/promises'
+import { lstat, mkdir, mkdtemp, open, readdir, realpath, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import path from 'path'
 import { Repository } from 'typeorm'
@@ -63,6 +65,12 @@ export class XpertProjectContentService {
         return { content: await volume.readFile('project.md') }
     }
 
+    async prepareTaskSkills(projectId: string, invocationId: string) {
+        const { project } = await this.accessService.assertCanRead(projectId)
+        const volume = await this.initialize(project)
+        return prepareProjectSkillContext(volume, projectId, invocationId, await this.listSkills(projectId))
+    }
+
     async readRuntimeInstructions(projectId: string) {
         return (await this.readInstructions(projectId)).content
     }
@@ -100,7 +108,11 @@ export class XpertProjectContentService {
         return { items, total: items.length }
     }
 
-    async installSkill(projectId: string, indexId: string) {
+    async installSkill(
+        projectId: string,
+        indexId: string,
+        options: { onlyIfMissing?: boolean; repositoryIds?: string[] } = {}
+    ) {
         const { project } = await this.accessService.assertCanEdit(projectId)
         const normalizedIndexId = indexId?.trim()
         if (!normalizedIndexId) {
@@ -122,13 +134,27 @@ export class XpertProjectContentService {
             )
         }
 
+        if (options.repositoryIds?.length && !options.repositoryIds.includes(index.repository.id)) {
+            throw new BadRequestException(
+                t('server-ai:Error.SkillRepositoryOutsideScope', {
+                    defaultValue: 'The selected skill is outside the configured repository scope.'
+                })
+            )
+        }
+
+        if (options.onlyIfMissing) {
+            const existing = (await this.listSkills(projectId)).items.find(
+                (item) => item.skillIndexId === normalizedIndexId
+            )
+            if (existing) return existing
+        }
         let stagingRoot: string | null = null
         try {
             stagingRoot = await mkdtemp(path.join(tmpdir(), 'project-skill-install-'))
             const provider = this.skillSourceProviderRegistry.get(index.repository.provider)
             const installedPath = await provider.installSkillPackage(index, stagingRoot)
             const id = normalizeInstalledProjectSkillId(stagingRoot, installedPath)
-            await copyStagedProjectSkill(volume, stagingRoot, installedPath, id)
+            await copyStagedProjectSkill(volume, stagingRoot, installedPath, id, options.onlyIfMissing)
             await this.assertInstalledSkillExists(volume.serverRoot, id)
             const entry: ProjectSkillManifestEntry = {
                 id,
@@ -154,7 +180,10 @@ export class XpertProjectContentService {
         }
     }
 
-    async uploadSkills(projectId: string, file: { buffer: Buffer; originalname?: string; mimetype?: string; size?: number }) {
+    async uploadSkills(
+        projectId: string,
+        file: { buffer: Buffer; originalname?: string; mimetype?: string; size?: number }
+    ) {
         const { project } = await this.accessService.assertCanEdit(projectId)
         if (!file?.buffer?.length) {
             throw new BadRequestException(
@@ -233,11 +262,17 @@ export class XpertProjectContentService {
         const skills = await this.listSkills(projectId)
         if (!skills.items.some((item) => item.id === id)) throwProjectSkillNotFound()
         await volume.deleteFile(`skills/${id}`)
-        const manifest = await readProjectSkillManifest(volume.serverRoot)
-        await this.writeManifest(volume, {
-            version: 1,
-            items: manifest.items.filter((item) => item.id !== id)
-        })
+        await withWorkspaceLock(
+            volume.path(PROJECT_SKILL_MANIFEST_PATH),
+            async () => {
+                const manifest = await readProjectSkillManifest(volume.serverRoot)
+                await this.writeManifest(volume, {
+                    version: 1,
+                    items: manifest.items.filter((item) => item.id !== id)
+                })
+            },
+            5000
+        )
     }
 
     async readSkillFile(projectId: string, filePath: string): Promise<TXpertProjectSkillFile> {
@@ -304,13 +339,19 @@ export class XpertProjectContentService {
     }
 
     private async upsertManifestEntries(volume: VolumeHandle, entries: ProjectSkillManifestEntry[]) {
-        const manifest = await readProjectSkillManifest(volume.serverRoot).catch((error) => {
-            if (error instanceof ProjectContentIntegrityError) throw new BadRequestException(error.message)
-            throw error
-        })
-        const byId = new Map(manifest.items.map((item) => [item.id, item]))
-        for (const entry of entries) byId.set(entry.id, entry)
-        await this.writeManifest(volume, { version: 1, items: [...byId.values()] })
+        await withWorkspaceLock(
+            volume.path(PROJECT_SKILL_MANIFEST_PATH),
+            async () => {
+                const manifest = await readProjectSkillManifest(volume.serverRoot).catch((error) => {
+                    if (error instanceof ProjectContentIntegrityError) throw new BadRequestException(error.message)
+                    throw error
+                })
+                const byId = new Map(manifest.items.map((item) => [item.id, item]))
+                for (const entry of entries) byId.set(entry.id, entry)
+                await this.writeManifest(volume, { version: 1, items: [...byId.values()] })
+            },
+            5000
+        )
     }
 
     private writeManifest(volume: VolumeHandle, manifest: ProjectSkillManifest) {
@@ -364,7 +405,8 @@ async function copyStagedProjectSkill(
     volume: VolumeHandle,
     stagingRoot: string,
     installedPath: string,
-    skillId: string
+    skillId: string,
+    onlyIfMissing = false
 ) {
     const canonicalStagingRoot = await realpath(stagingRoot)
     const sourceRoot = await realpath(path.resolve(stagingRoot, installedPath))
@@ -380,14 +422,30 @@ async function copyStagedProjectSkill(
     }
 
     const targetRoot = `skills/${skillId}`
-    await volume
-        .withRemovalBudget(() =>
-            VolumeHandle.removePath(volume.serverRoot, targetRoot, { boundaryRoot: volume.serverRoot })
-        )
-        .catch((error: unknown) => {
-            if (!isNodeError(error) || error.code !== 'ENOENT') throw error
-        })
-    await VolumeHandle.ensureDirectory(volume.serverRoot, targetRoot, volume.serverRoot)
+    if (onlyIfMissing) {
+        // Exclusive directory creation preserves same-name packages, local edits and concurrent installs.
+        await VolumeHandle.ensureDirectory(volume.serverRoot, path.posix.dirname(targetRoot), volume.serverRoot)
+        try {
+            await mkdir(volume.path(targetRoot))
+        } catch (error) {
+            if (!isNodeError(error) || error.code !== 'EEXIST') throw error
+            throw new BadRequestException(
+                t('server-ai:Error.ProjectSkillAlreadyExists', {
+                    defaultValue:
+                        'A skill already exists at this Project path. Inspect it; automatic installation cannot replace it.'
+                })
+            )
+        }
+    } else {
+        await volume
+            .withRemovalBudget(() =>
+                VolumeHandle.removePath(volume.serverRoot, targetRoot, { boundaryRoot: volume.serverRoot })
+            )
+            .catch((error: unknown) => {
+                if (!isNodeError(error) || error.code !== 'ENOENT') throw error
+            })
+        await VolumeHandle.ensureDirectory(volume.serverRoot, targetRoot, volume.serverRoot)
+    }
     for (const entry of entries) {
         const targetPath = path.posix.join(targetRoot, entry.relativePath)
         if (entry.type === 'directory') {

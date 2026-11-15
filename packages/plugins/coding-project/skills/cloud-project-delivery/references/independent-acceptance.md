@@ -24,9 +24,16 @@ new review tasks. Do not put the implementation task in the review's predecessor
 its candidate is ready before formal delivery acceptance, which is not a dependency
 on the implementation task being marked done.
 
-For grouped delivery, make the formal decision on the summary using its latest
-revision and the child execution evidence. For standalone tasks, continue
-deciding the implementation task. Do not manufacture a second task per command,
+For grouped delivery, read the summary with `project_get_task` and use its
+`decisionOptions[].decisionRef` after reading the referenced independent report.
+Call `project_decide_task` with that reference, `outcome` and concise `rationale`;
+`checks` is optional. Do not assemble IDs, versions, digests or evidence arrays.
+The host binds the observed candidate and review; a changed reference requires a
+fresh read and assessment, not a new coding execution. A summary decision also
+records the selected implementation child's decision; do not decide both separately.
+Acceptance already records completion; do not follow it with status or checklist
+completion updates merely to mark it done.
+For standalone tasks, read and decide the implementation task. Do not manufacture a second task per command,
 report edit or temporary runtime failure. A delivered review report
 completes the review work item; the main Assistant decides the next action. Review
 tasks cannot implement fixes or accept themselves. A report-only recovery must reuse
@@ -91,7 +98,7 @@ main Assistant reads the report, assesses it against the original requirements,
 and records accept or rework with `project_decide_task`. Report presence, CLI exit
 success and words such as "passed" do not decide acceptance.
 
-For rework, record the decision with `reviewExecutionId`, then dispatch an
+For rework, use the same `decisionRef` with outcome `rework`, then dispatch an
 implementation with `purpose.rework: {reviewExecutionId, feedback}`. Write concrete
 natural-language changes in `feedback`; do not invent finding IDs. The platform
 supplies the exact report bound to the decision. Preserve the assigned reviewer.

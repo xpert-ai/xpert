@@ -16,6 +16,7 @@ import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestRuntimeResultCheckCommand } from '../../handoff/runtime-messaging/runtime-result-check.handler'
+import { taskDecisionOptions } from './project-task-decision-reference'
 
 @Injectable()
 export class ProjectTaskRuntimeReadService {
@@ -161,6 +162,7 @@ export class ProjectTaskRuntimeReadService {
                 : []
         return {
             ...task,
+            decisionOptions: await taskDecisionOptions(this.tasks.manager, actor, task),
             childTasks: children.map((child) => ({
                 id: child.id,
                 title: child.title || child.name,

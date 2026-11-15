@@ -17,6 +17,8 @@ import { ProjectTaskRuntimeContextService } from './project-task-runtime-context
 import { ProjectTaskDecisionService } from './project-task-decision.service'
 import { taskSpecification } from './project-task-evidence'
 import type { ProjectTaskCaller } from './project-task-dispatch.schema'
+import { taskDecisionOptions } from './project-task-decision-reference'
+import type { Repository } from 'typeorm'
 
 async function fixture() {
     const scope: AgentInvocationScope = {
@@ -281,6 +283,99 @@ describe('Project task decision inspection boundaries', () => {
         result.invocation.result.text = '# Review\nInvoked the candidate; observed the expected response.'
         return result
     }
+
+    async function referenceInput() {
+        const repository = f.module.get<Repository<XpertProjectTask>>(getRepositoryToken(XpertProjectTask))
+        const options = await taskDecisionOptions(
+            repository.manager,
+            f.scope,
+            Object.assign(f.task, { executions: f.attempts })
+        )
+        const decisionRef = options[0]?.decisionRef
+        if (!decisionRef) throw new Error('Expected a ready decision reference')
+        return {
+            decisionRef,
+            requestId: f.input.requestId,
+            outcome: 'accept' as const,
+            rationale: 'Read the review and verified the result'
+        }
+    }
+
+    it('accepts a reference with no model-assembled versions/evidence and replays after a lost response', async () => {
+        executionReview()
+        const input = await referenceInput()
+        const result = await f.service.decideReference(f.scope.projectId, input, f.caller)
+        expect(result).toMatchObject({ outcome: 'accept', evidence: f.input.evidence, checks: [] })
+        const inspections = f.inspect.mock.calls.length
+        await expect(
+            f.service.decideReference(f.scope.projectId, input, { ...f.caller, executionId: randomUUID() })
+        ).resolves.toEqual(result)
+        expect(f.inspect).toHaveBeenCalledTimes(inspections)
+        await expect(
+            f.service.decideReference(f.scope.projectId, { ...input, outcome: 'rework' }, f.caller)
+        ).rejects.toThrow()
+    })
+
+    it.each(['task', 'review-version', 'review-content', 'candidate'] as const)(
+        'rejects changed %s instead of accepting latest data',
+        async (change) => {
+            const review = executionReview()
+            const input = await referenceInput()
+            if (change === 'task') f.task.revision++
+            if (change === 'review-version') review.invocation.revision++
+            if (change === 'review-content') review.invocation.result.text = '# Review\nNew findings'
+            if (change === 'candidate') f.invocation.revision++
+            await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).rejects.toThrow(
+                'ContextChanged'
+            )
+            expect(f.transaction).not.toHaveBeenCalled()
+            expect(f.task.decisions).toEqual([])
+        }
+    )
+
+    it('rechecks review contents under the transaction after reference resolution', async () => {
+        const review = executionReview()
+        const input = await referenceInput()
+        f.beforeTransaction(() => {
+            review.invocation.result.text = '# Changed report'
+        })
+        await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).rejects.toThrow('ContextChanged')
+        expect(f.task.decisions).toEqual([])
+    })
+
+    it('does not grant access with a valid reference after permission revocation', async () => {
+        executionReview()
+        const input = await referenceInput()
+        f.access.assertCanEdit.mockRejectedValue(new Error('Revoked'))
+        await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).rejects.toThrow('Revoked')
+        expect(f.inspect).not.toHaveBeenCalled()
+    })
+
+    it('returns an actionable blocked option while the independent review is running', async () => {
+        const review = executionReview()
+        review.invocation.status = 'running'
+        const repository = f.module.get<Repository<XpertProjectTask>>(getRepositoryToken(XpertProjectTask))
+        const options = await taskDecisionOptions(
+            repository.manager,
+            f.scope,
+            Object.assign(f.task, { executions: f.attempts })
+        )
+        expect(options[0]).toMatchObject({ diagnostic: { code: 'ReviewPending', taskId: f.task.id } })
+        expect(options[0].decisionRef).toBeUndefined()
+    })
+
+    it('keeps the human/Agent verdict independent of review wording', async () => {
+        executionReview()
+        const input = await referenceInput()
+        await expect(
+            f.service.decideReference(
+                f.scope.projectId,
+                { ...input, outcome: 'rework', rationale: 'A required scenario remains untested' },
+                f.caller
+            )
+        ).resolves.toMatchObject({ outcome: 'rework', rationale: 'A required scenario remains untested' })
+        expect(f.task.status).toBe('todo')
+    })
 
     it('verifies the completed execution review before taking the Project lock', async () => {
         const review = executionReview()

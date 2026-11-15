@@ -36,7 +36,7 @@ import { SkillsMiddleware } from './index'
 import { externalAssistantState } from '../../../shared/agent/external-assistant-state'
 
 describe('SkillsMiddleware Project Content', () => {
-    it('does not expose Workspace skill discovery or installation tools in a Project run', async () => {
+    it('exposes the same scope-bound discovery tools in a Project run', async () => {
         const middleware = new SkillsMiddleware(
             { find: jest.fn().mockResolvedValue([]) } as never,
             { assertCanRun: jest.fn() } as never,
@@ -61,7 +61,12 @@ describe('SkillsMiddleware Project Content', () => {
             }
         )
 
-        expect(instance.tools?.map((tool) => tool.name)).toEqual(['read_skill_file'])
+        expect(instance.tools?.map((tool) => tool.name)).toEqual([
+            'read_skill_file',
+            'list_skills',
+            'search_skill_repository',
+            'install_skills'
+        ])
     })
 
     it.each([false, true])(

@@ -39,7 +39,7 @@ describe('SkillCreatorMiddleware', () => {
         ])
         expect(toolNames).not.toContain('read_skill_file')
         expect(toolNames).not.toContain('search_skill_repository')
-        expect(toolNames).not.toContain('install_workspace_skills')
+        expect(toolNames).not.toContain('install_skills')
     })
 
     it('exposes tool schemas without workspace context but rejects authoring calls', async () => {

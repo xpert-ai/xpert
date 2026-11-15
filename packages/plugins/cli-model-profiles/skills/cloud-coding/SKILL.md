@@ -17,6 +17,17 @@ task dependencies, durable continuation and evidence-based acceptance. The Codin
 Runtime performs environment setup and service operations within its delegated task.
 The direct Shell CLI workflow below is for work without such a delegated Runtime.
 
+## Role and context boundary
+
+This is primarily a host Assistant's direct-Shell coordination skill. A Coding
+CLI already launched by a Project Runtime uses its own tools; it does not gain
+`sandbox_shell`, `sandbox_service_start` or `present_files` by reading this file.
+For delegated work, follow the host-prepared execution context and relevant
+Project skill copies. Resolve their paths from the stated original Project
+directory, even during review. Do not search historical Projects for missing
+knowledge or apply their service-owner notes to the current checkout. Report
+missing program skills to the coordinator for Project installation.
+
 ## 1. Establish the task and workspace
 
 Read the user's request and relevant project instructions. Check `pwd`, directory

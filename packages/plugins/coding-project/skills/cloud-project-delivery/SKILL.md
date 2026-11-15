@@ -46,7 +46,29 @@ decision or authority that materially prevents progress.
 
 ## Prepare discoverable context
 
-Read relevant selected skills using the advertised skill tools. Give delegated
+Read relevant selected skills using the advertised skill tools. In a Project,
+call `list_skills` before delegation, use `search_skill_repository` to find
+missing program-specific knowledge in the authorized catalog, then install it with
+`install_skills`. Verify that the returned installation is enabled. This
+operation reuses existing packages without replacing local edits or re-enabling
+disabled skills; resolve collisions through explicit Project configuration. The same
+skill tools bind to the current Project automatically; no Project/Workspace target
+parameter is needed. Installations remain available in later threads of this Project.
+Search accepts `query`; install accepts `indexIds` from the search results.
+If these tools are unavailable, use the installed context or report the missing
+capability; do not guess that a skill name is a readable path.
+
+The host may supply an execution-specific context manifest with exact paths,
+source metadata and content digests. That manifest identifies complete skill
+copies for the current execution. Pass the same Project to implementation,
+continuation and execution review. A new execution captures current enabled skills;
+an already running execution keeps its prepared copies. A continuation must use
+its newly supplied context entry; never carry a prior invocation's manifest path or
+digest forward as the current entry. Pass the Project and task objective; the host
+supplies the new execution context. Assistant Workspace skills
+used for coordination are not implicitly installed in the Project or inherited by
+the CLI. Install any required CLI package explicitly. Do not search other Projects
+for missing skills or promote old notes to current requirements. Give delegated
 tasks the exact accessible skill paths or runtime-supported skill references and
 their version/digest. Verify that the CLI can read them; a skill installed on the
 coordinator's desktop is not automatically present in the Computer.
@@ -71,15 +93,15 @@ modify container privileges, host resources or approval policy from the guest.
 
 Use the current tool schemas; the Project Tasks mappings are:
 
-| Purpose            | Tool / contract                                                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| Discover executors | `project_list_task_runtimes`; choose an authorized compatible binding                                                      |
-| Persist work       | Project task creation tools with objective, requirements and deliverables                                                  |
-| Dependencies       | `project_update_task_plan` using current revision and predecessor IDs                                                      |
-| Launch             | `project_dispatch_task` with latest revision and the selected binding                                                      |
-| Observe            | `project_get_task`; inspect actual attempts, invocation result and artifacts                                               |
-| Recover delivery   | `project_recover_task_delivery` with current invocation revision; collect report/files without another execution           |
-| Accept / rework    | `project_decide_task` with current specification digest, implementation execution, evidence revision, checks and rationale |
+| Purpose            | Tool / contract                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Discover executors | `project_list_task_runtimes`; choose an authorized compatible binding                                            |
+| Persist work       | Project task creation tools with objective, requirements and deliverables                                        |
+| Dependencies       | `project_update_task_plan` using current revision and predecessor IDs                                            |
+| Launch             | `project_dispatch_task` with latest revision and the selected binding                                            |
+| Observe            | `project_get_task`; inspect actual attempts, invocation result and artifacts                                     |
+| Recover delivery   | `project_recover_task_delivery` with current invocation revision; collect report/files without another execution |
+| Accept / rework    | `project_decide_task` with the current `decisionRef`, outcome and rationale; optional checks                     |
 
 Confirm these names and fields against the advertised schemas. A task dependency
 or a todo item does not launch an executor. The Runtime already launches its coding
