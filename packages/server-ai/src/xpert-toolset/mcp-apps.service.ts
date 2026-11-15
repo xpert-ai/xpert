@@ -1,4 +1,6 @@
 import { toolResultForHistoryResume } from '../mcp-app-runtime/mcp-app-history-visualization'
+import { MCP_APP_TOOL_AUTHORIZE } from '@xpert-ai/chatkit-types'
+import { authorizeMcpAppViewTool } from '../mcp-app-runtime/mcp-app-view-tools'
 import type { ActorTokenRuntimeFactory } from '@xpert-ai/plugin-sdk'
 import { ActorTokenRuntimeService } from '../actor-token/actor-token-runtime.service'
 import {
@@ -585,6 +587,9 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         try {
             const response = await (async () => {
                 switch (method) {
+                    case MCP_APP_TOOL_AUTHORIZE:
+                        risk = 'write'
+                        return authorizeMcpAppViewTool(instance, request, this.approvals)
                     case 'ping':
                         return jsonRpcResult(id, {})
                     case 'tools/call': {

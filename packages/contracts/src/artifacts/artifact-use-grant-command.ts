@@ -36,7 +36,7 @@ export type ArtifactUseGrantAuthoringRequest = {
           /** Whole-day duration, validated by the authoring adapter before computing expiresAt. */
           days: number
           /** Explicit proposed analysis scope; omission offers view-only use. */
-          analysis?: import('./resource-analysis.model').ResourceAnalysisPolicy
+          analysis?: import('../analytics/resource-analysis.model').ResourceAnalysisPolicy
         }
       /** Published version whose datasets and sharing eligibility should be described. */
       | { versionId: string }

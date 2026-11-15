@@ -1,3 +1,4 @@
+import { DelegatedResourceAnalysisService } from '../analysis/delegated-resource-analysis.service'
 import { ArtifactGroupContentService } from '../group-references/artifact-group-content.service'
 import { GroupResourceAnalysisService } from '../analysis/group-resource-analysis.service'
 import { AnalyticsRuntimeService } from '@xpert-ai/server-core'
@@ -224,6 +225,7 @@ postgres('Artifact use grants: PostgreSQL, registered CQRS and live group/Projec
                 ArtifactGroupViewService,
                 ArtifactGroupContentService,
                 GroupResourceAnalysisService,
+                DelegatedResourceAnalysisService,
                 { provide: AnalyticsRuntimeService, useValue: { queryGroupReference } },
                 ArtifactLibraryAccess,
                 ArtifactLibraryService,

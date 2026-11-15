@@ -1,7 +1,8 @@
 import { ScheduleTaskStatus, UserType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { instanceToPlain } from 'class-transformer'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { XpertProjectMembershipService } from './project-membership.service'
@@ -63,6 +64,47 @@ describe('XpertProjectMembershipService', () => {
             accessService as never,
             eventEmitter
         )
+    })
+
+    it('returns only public member identity and role fields, never authentication or internal user data', async () => {
+        accessService.assertCanRead.mockResolvedValue({ project })
+        const publicIdentity = {
+            id: 'owner-1',
+            email: 'owner@example.invalid',
+            firstName: 'Owner',
+            lastName: 'Example',
+            username: 'owner',
+            imageUrl: 'https://example.invalid/avatar.png'
+        }
+        const privateUser = {
+            ...publicIdentity,
+            hash: 'private-password-hash',
+            refreshToken: 'private-refresh-token',
+            internalField: 'private-internal',
+            role: { permissions: ['private-permission'] },
+            tenantId: 'private-tenant'
+        }
+        const joinedAt = new Date('2026-11-12T00:00:00Z')
+        userRepository.findOne.mockResolvedValue(privateUser)
+        membershipRepository.find.mockResolvedValue([
+            { id: 'membership-1', role: 'editor', joinedAt, user: { ...privateUser, id: 'editor-1' } }
+        ])
+        const result = await service.list(project.id)
+        const expected = [
+            { ...publicIdentity, projectRole: 'owner' },
+            { ...publicIdentity, id: 'editor-1', projectRole: 'editor', membershipId: 'membership-1', joinedAt }
+        ]
+        expect(result).toStrictEqual(expected)
+        // The response must stay safe with or without Nest's class-transformer serialization.
+        expect(instanceToPlain(result)).toStrictEqual(expected)
+        expect(JSON.parse(JSON.stringify(result))).toStrictEqual(JSON.parse(JSON.stringify(expected)))
+    })
+
+    it('does not load member identities before Project read access is granted', async () => {
+        accessService.assertCanRead.mockRejectedValueOnce(new ForbiddenException('Project access denied'))
+        await expect(service.list(project.id)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(userRepository.findOne).not.toHaveBeenCalled()
+        expect(membershipRepository.find).not.toHaveBeenCalled()
     })
 
     it('directly adds only an active same-Organization human user without sending notifications', async () => {

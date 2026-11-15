@@ -3,10 +3,13 @@ import type { AnalyticalDataset, AnalyticsField, AnalyticsParameter, AnalyticsVa
 /**
  * Explicit consent to disclose bounded query results to every member of the receiving group.
  * The source manager proposes this scope and the group owner independently accepts it.
- * Each query still uses the requesting human's upstream data permissions, never the source author's credentials.
+ * Existing grants use the requesting human's upstream permissions. Explicit delegated_results grants
+ * restore the issuing human's current identity per query and disclose only the accepted result scope.
  * Omit the policy entirely for view-only access; an empty dataset list is not a wildcard grant.
  */
 export interface ResourceAnalysisPolicy {
+  /** Omission preserves viewer permissions; delegation requires explicit source and audience consent. */
+  execution?: 'viewer_permissions' | 'delegated_results'
   /**
    * bindings permits declared parameter values and field projection over published binding results.
    * explore additionally permits query filters, grouping, aggregation and sorting within the same approved datasets.
@@ -21,6 +24,8 @@ export interface ResourceAnalysisPolicy {
     fields: string[]
     /** Immutable AND predicates on allowed fields, applied before aggregation and disclosure to the Agent. */
     filters: ResourceAnalysisFilter[]
+    /** Delegated queries may vary only these controls within these values; other controls retain published defaults. */
+    controlValues?: Record<string, AnalyticsValue[]>
   }>
   /**
    * Allows returning dataset rows without further aggregation. These may already be aggregated by the binding.

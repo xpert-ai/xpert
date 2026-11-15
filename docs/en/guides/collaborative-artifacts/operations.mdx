@@ -1,0 +1,71 @@
+---
+title: 'Deployment and recovery'
+description: 'Maintain dependencies, migrations, write ownership and recovery for collaborative artifacts.'
+---
+
+Collaborative artifacts depend on the platform, hosts, data services and plugins. Deploy compatible interfaces and formats together; updating an editor alone cannot supply server authorization, persistence protocols or the host draft bridge.
+
+## Components and deployment order
+
+| Component                           | Responsibility                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Xpert platform                      | Resource identity, Project authorization, collaboration sessions, Artifact versions and grant lifecycles |
+| ChatKit and hosts                   | View lifetimes, context, unsaved-change protection and controlled local draft storage                    |
+| Canvas / Office Editor              | Domain models, sole write services, editors and Agent adapters                                           |
+| Live Dashboard and source Providers | Query contracts, source authorization, result reuse and analysis evidence                                |
+| Data Xpert and RDF service          | Metric definitions, certification history, durable projection tasks and ontology projection              |
+| Motion and Sandbox Runtime          | Narration tasks, controlled rendering, exports and task settlement                                       |
+
+Use published SDK/ChatKit versions from consumer lockfiles. Build internal contracts and plugin-sdk for the target platform version. Temporary source links used to develop unpublished interfaces are not evidence of a deployable package combination.
+
+Prepare compatible server readers and migrations before updating writers, plugins and hosts. Existing workbooks remain readable and upgrade format through controlled structural operations; do not silently rewrite all user files. Server rendering also requires a matching Runtime Binding and worker queue. A running process alone does not establish execution-control support.
+
+## Migrations and file ownership
+
+Data Xpert certification migrations store definition proofs, certification events and a projection outbox. Metric changes, history and outbox entries commit in the same transaction. Failed projection continues through durable tasks without inventing human certification events.
+
+For native workbooks, database heads, snapshots and operation logs are authoritative. Project files are rebuildable projections. Content Catalog `writeOwnership: provider` prevents ordinary uploads, overwrites, deletion and recursive directory operations from bypassing the native writer.
+
+Backfill existing workbook catalog entries with Office Editor's packaged `migrations/20261112-workbook-write-ownership.sql`. Pause writes and back up first. The script uses a transaction, locks and explicit provider/model/Project/path checks, includes archived resources, and is repeatable. Invalid metadata aborts the batch; repair it through the Provider before continuing rather than inferring ownership from filenames.
+
+## What to back up
+
+- **Platform database:** workbook heads, snapshots, operation logs, resources and grants.
+- **Project files:** immutable projections, documents, attachments, evidence and exports, including paths, permission modes and checksums.
+- **Data Xpert database:** metrics, certification history, outbox entries and migration state.
+- **RDF dataset:** a consistent ontology export, not a copy of a running TDB2 directory presented as a transactional snapshot.
+
+Freeze relevant writes when creating a recovery point, let transactions and projections reach an understood state, and record component versions, backup times and checksums. If services cannot be frozen together, document their individual time boundaries and replayable events rather than claiming a cross-service atomic snapshot. Store backups privately outside source control.
+
+A native workbook archive contains model content only; it does not replace database, file, permission and history backups.
+
+## Recover from a failure
+
+1. Preserve failure records and stop affected writes and projection tasks. Prepare a recovery copy with separate instances, databases, volumes and networks.
+2. Restore databases, Project files and RDF. Check head-to-snapshot references, file checksums and request receipts before starting compatible services.
+3. If the database committed but a projection is missing, an authorized Provider rebuilds it from the authoritative snapshot. Damaged bytes are quarantined before checksum-based replacement. Repair creates no business revision.
+4. Retry the original request ID when the save outcome is uncertain. Failure before database commit preserves the old head; a lost receipt after commit returns the original commit without another revision.
+5. Reopen writes after normal authorization and managed reads work, retaining the previous recovery point and failure records.
+
+Do not replace a database head from an older file or bypass problems by deleting history/outbox records or expanding access.
+
+## Compatible rollback
+
+Once Canvas or a workbook writes a new schema, an old writer cannot take over directly. Prefer freezing new functionality while keeping a compatible reader. Data rollback requires a checked recovery point or an explicit compatible export. Features that cannot be converted safely remain read-only; do not strip identity metadata or opaque extensions.
+
+Certification down migrations refuse destructive removal when used revisions, certification evidence, history or outbox entries exist. Do not bypass this protection by clearing business tables.
+
+## Operational signals
+
+| Signal                                     | Response                                                                                                                    |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `409`, same-cell or structural conflict    | Retain the draft, read a new base and form a new intent                                                                     |
+| `503 office.workbook_busy`                 | Keep the original request and retry later; inspect load and transactions without expanding access                           |
+| Collaboration disconnect or queue overflow | Reconnect from persisted state; coalesced notifications do not discard committed operations                                 |
+| Projection checksum mismatch               | Quarantine the damaged copy and repair through a freshly authorized Provider                                                |
+| Invalid certification or `sourceChanged`   | Stop consuming the old source; explicitly capture new evidence after recertification                                        |
+| Failed narration or render task            | Act on the original task state; render retries reuse audio and do not automatically repeat synthesis with uncertain billing |
+
+Workbook writes queue before acquiring database connections: at most two active transactions per DataSource, serialized per document, with up to 64 waiting requests and 32 MiB of intent data. Database row locks and current authorization still arbitrate across processes. Collaboration connections coalesce ephemeral revision/presence notifications; durable Yjs update queues are limited to 64 messages and 2 MiB, disconnecting on overflow for resynchronization.
+
+These are implementation limits, not throughput or latency guarantees. See [Sheets collaboration](./sheets) for browser draft, history merge and format limits.

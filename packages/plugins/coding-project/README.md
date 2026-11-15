@@ -6,7 +6,7 @@ User workflow: [Coding Project delivery](../../../docs/en/guides/coding-project-
 [编码项目交付](../../../docs/zh-Hans/guides/coding-project-delivery.mdx).
 
 Owns the Coding Project type (two-hour task default), delivery Assistant, skills,
-four-stage Project Pipeline and its versioned release evidence. It consumes public
+local-acceptance and four-stage release Pipelines and their versioned evidence. It consumes public
 SDK capabilities; it does not import host server internals or run a second scheduler.
 
 The host retains generic Project tasks, CLI execution, independent review, formal
@@ -14,13 +14,27 @@ task decisions, Artifact storage, authorization and Pipeline durability. The pro
 type is `@xpert-ai/plugin-coding-project:coding` / `coding`. No legacy project-type
 alias or automatic migration is registered.
 
-Stages: development and independent acceptance → human release confirmation →
+The Project setting `deliveryMode` defaults to `local` for new deliveries:
+
+- **local**: develop, install and test inside the existing cloud Computer, perform an
+  independent execution review, formally accept and export local artifacts. No external
+  deployment target, repository, credentials or human release gate is required. The
+  native `coding_project.local@1.0.0` Pipeline ends at `locally_accepted`.
+- **release**: explicit full delivery. Existing persisted release instances keep their
+  original scope and approvals. A Project default change never changes an active delivery.
+
+`coding_delivery_targets` is a configuration preflight for the selected mode; `ready`
+does not assert CLI login or environment readiness. `coding_delivery_start` accepts an
+optional explicit `mode`. In local mode, external target/repository keys are rejected;
+host installation, external deployment and Git delivery APIs remain unavailable.
+
+Release stages: development and independent acceptance → human release confirmation →
 installation and independent acceptance on an authorized target → exact-commit Git
 delivery or PR. A stage result must be an immutable Artifact from the current formally
 accepted task, with independent execution review. Technical identity validation does
 not replace the review Agent's business judgment.
 
-To release a previously accepted task, pass `acceptedTaskId` to `coding_delivery_start`.
+To release a previously accepted task, pass `mode: "release"` and `acceptedTaskId` to `coding_delivery_start`.
 The host pins its formal decision, revision and independent review. The first stage
 only fills missing release metadata and immutable exports, preserving the original
 package bytes and reusing its business acceptance. It does not redevelop, rebuild or
@@ -29,7 +43,7 @@ deployment reviewer checks the same package on the newly authorized target. Expl
 business rework starts a new Round and may produce a new candidate. Revoking or changing
 the original acceptance invalidates the pinned source reference.
 
-Before use, an administrator configures `targets` and `repositories`, each with an
+Before release, an administrator configures `targets` and `repositories`, each with an
 explicit `projectIds` allowlist. Empty lists grant no destination. Configuration
 stores credential references only; actual secrets remain in the selected environment's
 secret store. This version supports development/acceptance targets. A reference is not
@@ -39,7 +53,7 @@ specific blocker if they are unavailable.
 Provision/select the Project and authorize its ID before its first delivery request.
 An automatically created Project does not inherit access to another Project's targets.
 Both destination URLs use credential-free HTTP(S). For `deployment: cli`, configure
-the CLI credential helper or target login separately. For `deployment: current-instance`,
+the CLI credential helper or target login separately. For `deployment: current-instance` (the host platform, not the inner Computer),
 the `coding_project.delivery@1.1.0` pipeline includes a native host installation node.
 The human gate freezes the package Artifact, hash and replace/restart permissions. The
 host reads that decision itself, installs the package and records immutable evidence;

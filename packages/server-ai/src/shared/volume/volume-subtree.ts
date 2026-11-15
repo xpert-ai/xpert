@@ -255,9 +255,10 @@ export class VolumeSubtreeClient {
 
             relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
             assertPublicWorkspacePath(relativeFilePath)
-            const volumePath = [subtreeRoot.filePath, relativeFilePath].filter(Boolean).join('/')
+            // Ownership checks and quota accounting share the volume-relative identity, never the server path.
+            const volumePath = [subtreeRoot.volumeRelativePath, relativeFilePath].filter(Boolean).join('/')
             await this.options?.beforeMutation?.(volumePath, false)
-            await this.volume.withWriteBudget(relative(this.volume.serverRoot, volumePath), file.buffer, () =>
+            await this.volume.withWriteBudget(volumePath, file.buffer, () =>
                 VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
                     boundaryRoot: this.volume.serverRoot,
                     beforeCommit: () => this.options?.beforeMutation?.(volumePath, false),
@@ -280,7 +281,10 @@ export class VolumeSubtreeClient {
                     t('server-ai:Error.VolumeSubtreeFilePathRequired', { defaultValue: 'File path is required' })
                 )
             }
-            await this.options?.beforeMutation?.([subtreeRoot.filePath, relativePath].filter(Boolean).join('/'), true)
+            await this.options?.beforeMutation?.(
+                [subtreeRoot.volumeRelativePath, relativePath].filter(Boolean).join('/'),
+                true
+            )
             await this.volume.withRemovalBudget(() =>
                 VolumeHandle.removePath(subtreeRoot.descriptorPath, relativePath, {
                     boundaryRoot: this.volume.serverRoot,

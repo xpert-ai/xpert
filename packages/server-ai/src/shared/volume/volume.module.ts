@@ -1,4 +1,5 @@
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { ContentResourceEntry } from '../../content-resource/catalog/content-entry.entity'
 import { ContentDocument } from '../../content-resource/documents/entities'
 import { ContentFileOwnershipService } from './content-file-ownership.service'
 import { Global, Module } from '@nestjs/common'
@@ -13,7 +14,7 @@ import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 @Global()
 @Module({
-    imports: [DiscoveryModule, CqrsModule, TypeOrmModule.forFeature([ContentDocument])],
+    imports: [DiscoveryModule, CqrsModule, TypeOrmModule.forFeature([ContentDocument, ContentResourceEntry])],
     providers: [
         ContentFileOwnershipService,
         {

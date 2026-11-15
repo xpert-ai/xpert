@@ -3,7 +3,7 @@
  * Validate the whole candidate before publishing claims; rejected modules must not
  * expose controllers, lifecycle hooks or a partial set of tool adapters.
  */
-import type { DynamicModule } from '@nestjs/common'
+import { BadRequestException, type DynamicModule } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { t } from 'i18next'
 import {
@@ -28,8 +28,21 @@ export interface PluginProviderClaims {
 	strategies: StrategyClaim[]
 }
 
+export const PLUGIN_PROVIDER_PREFLIGHT_ERROR_CODE = 'plugin-provider-registration-failed'
+
+/** Preserve preflight diagnostics without changing unrelated installation errors. */
+export function isPluginProviderPreflightRejection(error: unknown): error is BadRequestException {
+	if (!(error instanceof BadRequestException)) return false
+	const response = error.getResponse()
+	return (
+		typeof response === 'object' &&
+		'errorCode' in response &&
+		response.errorCode === PLUGIN_PROVIDER_PREFLIGHT_ERROR_CODE
+	)
+}
+
 export class PluginProviderPreflightError extends Error {
-	readonly code = 'plugin-provider-registration-failed'
+	readonly code = PLUGIN_PROVIDER_PREFLIGHT_ERROR_CODE
 	constructor(pluginName: string, cause: string) {
 		super(
 			t('server-ai:Error.PluginProviderPreflightFailed', {

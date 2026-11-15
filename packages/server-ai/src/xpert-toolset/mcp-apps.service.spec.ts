@@ -1,3 +1,4 @@
+import { MCP_APP_TOOL_AUTHORIZE } from '@xpert-ai/chatkit-types'
 import { RequestContext as ActorRequestContext } from '@xpert-ai/plugin-sdk'
 import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
 import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
@@ -194,6 +195,60 @@ describe('McpAppsService RPC approval orchestration', () => {
         })
         expect(assertAccess).toHaveBeenCalled()
         mockGetMcpAppInstance.mockReturnValue(instance)
+    })
+
+    it('authorizes view tools through RPC without executing the similarly named server tool', async () => {
+        const params = { viewId: 'view-1', name: 'edit', arguments: { text: 'report' } }
+        const approvalId = '11111111-1111-4111-8111-111111111111'
+        const pending = await service.handleRpc('app-1', { id: 1, method: MCP_APP_TOOL_AUTHORIZE, params })
+        expect(pending).toMatchObject({ error: { code: -32001 } })
+        expect(approvals.request).toHaveBeenCalledWith(
+            expect.objectContaining({
+                appInstanceId: 'app-1',
+                purpose: 'view-tool',
+                toolName: 'app:edit',
+                arguments: params,
+                risk: 'write'
+            })
+        )
+        const approved = await service.handleRpc('app-1', {
+            id: 2,
+            method: MCP_APP_TOOL_AUTHORIZE,
+            params: { ...params, approvalId }
+        })
+        expect(approved).toMatchObject({ result: {} })
+        expect(approvals.consume).toHaveBeenCalledWith({
+            approvalId,
+            appInstanceId: 'app-1',
+            purpose: 'view-tool',
+            toolName: 'app:edit',
+            arguments: params
+        })
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+        approvals.consume.mockRejectedValueOnce(new ForbiddenException())
+        expect(
+            await service.handleRpc('app-1', {
+                id: 3,
+                method: MCP_APP_TOOL_AUTHORIZE,
+                params: { ...params, approvalId }
+            })
+        ).toMatchObject({ error: { code: -32000 } })
+    })
+
+    it('checks App actor access before creating a view-tool approval', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+        const instance = mockGetMcpAppInstance('app-1')
+        if (!instance) throw new Error('Expected an App instance')
+        mockGetMcpAppInstance.mockReturnValueOnce({ ...instance, userId: 'user-1' })
+        await expect(
+            service.handleRpc('app-1', {
+                id: 1,
+                method: MCP_APP_TOOL_AUTHORIZE,
+                params: { viewId: 'view', name: 'edit', arguments: {} }
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(approvals.request).not.toHaveBeenCalled()
+        expect(approvals.consume).not.toHaveBeenCalled()
     })
 
     it('rejects an app instance bound to another user before invoking a tool', async () => {

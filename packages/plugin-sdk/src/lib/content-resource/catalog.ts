@@ -2,7 +2,8 @@ import type {
   ContentCatalogItem,
   ContentResourceSnapshot,
   ContentTypeImplementation,
-  ContentSearchProjection
+  ContentSearchProjection,
+  ContentTransferSnapshot
 } from '@xpert-ai/contracts'
 import type { ContentDocumentScope } from './document'
 import type { ContentResourceReference, ContentSourceInput } from './index'
@@ -16,12 +17,30 @@ export type ContentResourceMutation =
 /** Plugins retain their native model and ACL. Discovery is scoped and paginated, never a grant. */
 export interface ContentCatalogProvider {
   readonly types: ContentTypeImplementation[]
+  /** Explicit opt-in for target creation; omission disables content transfer into this provider. */
+  readonly acceptedTransferSchemas?: ReadonlyArray<ContentTransferSnapshot['schema']>
   discover(scope: ContentDocumentScope & { cursor?: string }): Promise<{ resourceIds: string[]; nextCursor?: string }>
   describe(input: ContentSourceInput): Promise<ContentResourceSnapshot>
   /** Optional safe text extractor. Must read the requested revision or reject a concurrent change. */
   extract?(input: ContentSourceInput & { expectedRevision: string }): Promise<ContentSearchProjection>
+  /** Export only the requested revision in a negotiated schema, without credentials or query payloads.
+   * The host validates the envelope and rechecks source access; the producer owns its native consistency rules. */
+  transfer?(
+    input: ContentSourceInput & {
+      expectedRevision: string
+      acceptedSchemas: ReadonlyArray<ContentTransferSnapshot['schema']>
+    }
+  ): Promise<ContentTransferSnapshot>
+  /** Idempotent by requestId. initialContent comes from host validation, never directly from browser input.
+   * Native creation retains its own ACL and persistence checks; transferred evidence is not a permission token. */
   create(
-    input: ContentDocumentScope & { implementationKey: string; requestId: string; title: string; templateId?: string }
+    input: ContentDocumentScope & {
+      implementationKey: string
+      requestId: string
+      title: string
+      templateId?: string
+      initialContent?: ContentTransferSnapshot
+    }
   ): Promise<ContentResourceReference>
   /** Idempotent repair of derived files only; must never overwrite newer native content. */
   reconcile?(input: ContentSourceInput): Promise<void>
@@ -58,6 +77,8 @@ export interface ContentCatalogApi {
       requestId: string
       title: string
       templateId?: string
+      /** The host reads this exact source revision; callers cannot supply source content. */
+      transferFrom?: { contentId: string; expectedRevision: string }
     }
   ): Promise<ContentCatalogItem>
   mutate(

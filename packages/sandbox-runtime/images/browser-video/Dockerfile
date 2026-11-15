@@ -1,5 +1,6 @@
 ARG NODE_BASE_IMAGE=node:22.17.1-bookworm-slim@sha256:2fa754a9ba4d7adbd2a51d182eaabbe355c82b673624035a38c0d42b08724854
-ARG PLAYWRIGHT_BASE_IMAGE=mcr.microsoft.com/playwright:v1.61.0-noble@sha256:111dde95859f2c659291cb60e698f9048a8fc30b35b4ddb7c90f9cb5b73062d9
+# Pin the multi-platform index so native ARM64 builds keep the verified AMD64 image unchanged.
+ARG PLAYWRIGHT_BASE_IMAGE=mcr.microsoft.com/playwright:v1.61.0-noble@sha256:57b65fdc9ceabe0ef613124c7bbe2babcf9362c4d85e382fe3b03604e84b428a
 
 FROM ${NODE_BASE_IMAGE} AS node-runtime
 FROM ${PLAYWRIGHT_BASE_IMAGE}

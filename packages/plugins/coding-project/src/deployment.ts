@@ -30,7 +30,11 @@ export class CodingDeploymentService {
     )
       throw conflict('CODING_EXECUTOR_SCOPE_MISMATCH')
     await this.store.assertActive(row, 'submit', c)
-    if (row.phase !== 'deployment' || row.requirement.target.deployment !== 'current-instance')
+    if (
+      row.phase !== 'deployment' ||
+      row.requirement.mode === 'local' ||
+      row.requirement.target.deployment !== 'current-instance'
+    )
       throw conflict('CODING_HOST_DEPLOYMENT_NOT_ALLOWED')
     const input = row.context.inputs.installation
     if (input?.kind !== 'evidence') throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')

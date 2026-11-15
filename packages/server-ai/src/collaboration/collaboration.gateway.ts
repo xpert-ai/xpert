@@ -1,4 +1,7 @@
-import { Logger, OnModuleDestroy } from '@nestjs/common'
+import { t } from 'i18next'
+import { sanitizeCellRange } from './collaboration-presence'
+import { CollaborationMailbox } from './collaboration-mailbox'
+import { OnModuleDestroy } from '@nestjs/common'
 import {
     ConnectedSocket,
     MessageBody,
@@ -13,13 +16,20 @@ import type { Server, Socket } from 'socket.io'
 import type { CollaborationBroadcast, CollaborationSession } from './collaboration.service'
 import { CollaborationService } from './collaboration.service'
 
-type ClientState = { session: CollaborationSession }
+type ClientState = {
+    session: CollaborationSession
+    mailbox: CollaborationMailbox
+    sending: boolean
+    syncing: boolean
+    presenceBusy: boolean
+    pendingPresence?: CollaborationPresencePatch
+    presenceTimer?: ReturnType<typeof setTimeout>
+}
 
 /** Fixed platform gateway shared by every plugin collaboration provider. */
 @WebSocketGateway({ namespace: '/api/collaboration', cors: { origin: '*' }, transports: ['websocket'] })
 export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy {
     @WebSocketServer() private readonly server: Server
-    private readonly logger = new Logger(CollaborationGateway.name)
     private readonly clients = new WeakMap<Socket, ClientState>()
     private readonly connected = new Set<Socket>()
     private readonly stopBroadcast: () => void
@@ -37,6 +47,7 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
 
     onModuleDestroy() {
         this.stopBroadcast()
+        for (const client of this.connected) this.close(client)
     }
 
     /** Authenticate the opaque session, join only its document room, and send initial state/presence. */
@@ -54,11 +65,21 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
             return
         }
         try {
-            const initial = await this.collaboration.getStateForSession(session)
-            this.clients.set(client, { session })
+            const initial =
+                session.engine === 'operations'
+                    ? await this.collaboration.getRevisionForSession(session)
+                    : await this.collaboration.getStateForSession(session)
+            if (client.disconnected) return
+            this.clients.set(client, {
+                session,
+                mailbox: new CollaborationMailbox(),
+                sending: false,
+                syncing: false,
+                presenceBusy: false
+            })
             this.connected.add(client)
             await client.join(room(session.documentId))
-            client.emit('sync', initial)
+            client.emit(session.engine === 'operations' ? 'revision' : 'sync', initial)
             client.emit('presence-snapshot', {
                 selfClientId: client.id,
                 items: await this.collaboration.listPresenceForSession(session)
@@ -71,9 +92,8 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     }
 
     async handleDisconnect(client: Socket) {
-        this.connected.delete(client)
         const state = this.clients.get(client)
-        this.clients.delete(client)
+        this.release(client)
         if (state) await this.collaboration.removePresenceForSession(state.session, client.id).catch(() => undefined)
     }
 
@@ -83,6 +103,10 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
         const state = this.clients.get(client)
         if (!state) return
         try {
+            if (state.session.engine === 'operations') {
+                client.emit('error', { message: t('server-ai:Error.CollaborationEngineMismatch') })
+                return
+            }
             const input = objectValue(data)
             const result = await this.collaboration.applyUpdateForSession(state.session, {
                 documentId: state.session.documentId,
@@ -97,50 +121,116 @@ export class CollaborationGateway implements OnGatewayConnection, OnGatewayDisco
     }
 
     @SubscribeMessage('sync-request')
-    /** Repair reconnect or packet loss with a state-vector-relative delta. */
+    /** Repair missed messages with a Yjs delta or the latest domain revision, according to engine. */
     async sync(@MessageBody() data: unknown, @ConnectedSocket() client: Socket) {
         const state = this.clients.get(client)
-        if (!state) return
+        if (!state || state.syncing) return
+        state.syncing = true
         const input = objectValue(data)
         try {
-            client.emit(
-                'sync',
-                await this.collaboration.getStateForSession(state.session, stringValue(input.stateVectorBase64))
-            )
+            const operations = state.session.engine === 'operations'
+            const result = operations
+                ? await this.collaboration.getRevisionForSession(state.session)
+                : await this.collaboration.getStateForSession(state.session, stringValue(input.stateVectorBase64))
+            if (this.clients.get(client) === state) client.emit(operations ? 'revision' : 'sync', result)
         } catch {
-            client.disconnect(true)
+            this.close(client)
+        } finally {
+            state.syncing = false
         }
     }
 
     @SubscribeMessage('presence')
-    /** Refresh ephemeral presence independently from document updates. */
-    async presence(@MessageBody() data: unknown, @ConnectedSocket() client: Socket) {
+    /** One in-flight write and one latest patch per client; pointer floods never queue work. */
+    presence(@MessageBody() data: unknown, @ConnectedSocket() client: Socket) {
         const state = this.clients.get(client)
         if (!state) return
+        state.pendingPresence = sanitizePatch(data)
+        this.schedulePresence(client, state)
+    }
+
+    private schedulePresence(client: Socket, state: ClientState) {
+        if (state.presenceTimer || state.presenceBusy || !state.pendingPresence) return
+        state.presenceTimer = setTimeout(() => {
+            state.presenceTimer = undefined
+            void this.flushPresence(client, state)
+        }, 120)
+    }
+
+    private async flushPresence(client: Socket, state: ClientState) {
+        const patch = state.pendingPresence
+        if (this.clients.get(client) !== state || !patch) return
+        state.pendingPresence = undefined
+        state.presenceBusy = true
         try {
-            await this.collaboration.upsertPresenceForSession(state.session, client.id, sanitizePatch(data))
-        } catch (error) {
-            client.emit('error', { message: errorMessage(error) })
+            await this.collaboration.upsertPresenceForSession(state.session, client.id, patch)
+        } catch {
+            this.close(client)
+        } finally {
+            state.presenceBusy = false
+            if (this.clients.get(client) === state) this.schedulePresence(client, state)
         }
     }
 
-    /** Fan out a local or cross-node event to clients of exactly one document. */
-    private async broadcast(event: CollaborationBroadcast) {
-        const eventName = event.type === 'presence-remove' ? 'presence-remove' : event.type
-        await Promise.all(
-            [...this.connected].map(async (client) => {
-                const state = this.clients.get(client)
-                if (!state || state.session.documentId !== event.documentId) return
-                try {
-                    await this.collaboration.assertSessionReadable(state.session)
-                    client.emit(eventName, event.payload)
-                } catch {
-                    this.connected.delete(client)
-                    this.clients.delete(client)
-                    client.disconnect(true)
+    /** Bounded per-recipient mailboxes also serialize live authorization checks. */
+    private broadcast(event: CollaborationBroadcast) {
+        for (const client of this.connected) {
+            const state = this.clients.get(client)
+            if (!state || state.session.documentId !== event.documentId) continue
+            if (!state.mailbox.push(event)) {
+                this.close(client)
+                continue
+            }
+            void this.drain(client, state)
+        }
+    }
+
+    private async drain(client: Socket, state: ClientState) {
+        if (state.sending) return
+        state.sending = true
+        try {
+            while (this.clients.get(client) === state && state.mailbox.pending) {
+                await this.collaboration.assertSessionReadable(state.session)
+                if (this.clients.get(client) !== state) return
+                // Take after authorization so notifications arriving during that await coalesce.
+                const event = state.mailbox.take()
+                if (!event) continue
+                if (event.type === 'update') {
+                    // Accepted updates are durable; a slow socket reconnects and requests its delta.
+                    if (client.conn?.transport?.writable === false) {
+                        this.close(client)
+                        return
+                    }
+                    client.emit(event.type, event.payload)
+                } else {
+                    // Revisions are repaired by sync-request; presence is ephemeral and expires.
+                    client.volatile.emit(event.type, event.payload)
                 }
-            })
-        )
+            }
+        } catch {
+            this.close(client)
+        } finally {
+            state.sending = false
+        }
+    }
+
+    private release(client: Socket) {
+        const state = this.clients.get(client)
+        if (state) {
+            clearTimeout(state.presenceTimer)
+            state.pendingPresence = undefined
+            state.mailbox.clear()
+        }
+        this.clients.delete(client)
+        this.connected.delete(client)
+    }
+
+    private close(client: Socket) {
+        // Capture the session before disconnect events run, and clean Redis presence exactly once.
+        const state = this.clients.get(client)
+        this.release(client)
+        client.disconnect(true)
+        if (state) void this.collaboration.removePresenceForSession(state.session, client.id).catch(() => undefined)
     }
 }
 
@@ -171,17 +261,21 @@ function sanitizePatch(value: unknown): CollaborationPresencePatch {
               }
             : null,
         selection:
-            selection.kind === 'text' || selection.kind === 'elements'
-                ? {
-                      kind: selection.kind,
-                      fieldKey: stringValue(selection.fieldKey ?? selection.textKey) ?? null,
-                      elementIds: Array.isArray(selection.elementIds)
-                          ? selection.elementIds.filter((item): item is string => typeof item === 'string')
-                          : null,
-                      anchorRelativeBase64: stringValue(selection.anchorRelativeBase64) ?? null,
-                      headRelativeBase64: stringValue(selection.headRelativeBase64) ?? null
-                  }
-                : null,
+            selection.kind === 'cells'
+                ? { kind: 'cells', cells: sanitizeCellRange(selection.cells) }
+                : selection.kind === 'text' || selection.kind === 'elements'
+                  ? {
+                        kind: selection.kind,
+                        fieldKey: stringValue(selection.fieldKey ?? selection.textKey) ?? null,
+                        elementIds: Array.isArray(selection.elementIds)
+                            ? selection.elementIds
+                                  .slice(0, 128)
+                                  .filter((item): item is string => typeof item === 'string')
+                            : null,
+                        anchorRelativeBase64: stringValue(selection.anchorRelativeBase64) ?? null,
+                        headRelativeBase64: stringValue(selection.headRelativeBase64) ?? null
+                    }
+                  : null,
         viewport:
             typeof viewport.zoom === 'number' &&
             typeof viewport.width === 'number' &&

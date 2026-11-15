@@ -8,7 +8,12 @@ import { InferInteropZodInput, interopParse } from '@langchain/core/utils/types'
 import { interrupt, isGraphInterrupt } from '@langchain/langgraph'
 import { Injectable } from '@nestjs/common'
 import { ChatMessageEventTypeEnum, ChatMessageStepCategory, TAgentMiddlewareMeta } from '@xpert-ai/contracts'
-import type { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
+import type {
+    ClientToolMessageInput,
+    ClientToolRequest,
+    ClientToolResponse,
+    IconDefinition
+} from '@xpert-ai/chatkit-types'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
@@ -52,6 +57,8 @@ const contextSchema = z.object({
 })
 
 export type ClientToolMiddlewareConfig = InferInteropZodInput<typeof contextSchema> & {
+    /** Trusted wrapper presentation; not part of the public middleware configuration. */
+    displayIcon?: IconDefinition
     transformToolMessage?: ClientToolMessageTransformer
     resolveClientToolMessage?: ClientToolMessageResolver
 }
@@ -245,6 +252,7 @@ function selectClientToolMessage(toolMessages: unknown, toolCall: ToolCall): Cli
 type ClientToolDisplayMessage = string | Record<string, string>
 
 type ClientToolDisplayConfig = {
+    displayIcon?: IconDefinition
     displayToolset?: string
     displayToolsetId?: string
     displayMessages?: Record<string, ClientToolDisplayMessage>
@@ -340,6 +348,7 @@ async function dispatchClientToolStepEvent({
         category: 'Tool',
         type: ChatMessageStepCategory.Program,
         toolset,
+        ...(displayConfig.displayIcon ? { icon: displayConfig.displayIcon } : {}),
         ...(toolsetId ? { toolset_id: toolsetId } : {}),
         tool: toolName,
         title,
@@ -509,6 +518,7 @@ export class ClientToolMiddleware implements IAgentMiddlewareStrategy {
                 const shouldEmitToolMessages = config.emitToolMessages === true
                 const createdAt = new Date()
                 const displayConfig: ClientToolDisplayConfig = {
+                    displayIcon: options.displayIcon,
                     displayToolset: config.displayToolset,
                     displayToolsetId: config.displayToolsetId,
                     displayMessages: normalizeDisplayMessages(config.displayMessages)

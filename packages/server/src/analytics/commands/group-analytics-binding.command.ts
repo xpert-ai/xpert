@@ -7,6 +7,10 @@ export class GroupAnalyticsBindingCommand extends Command<{
 	binding: AnalyticsBinding
 	/** Optional grant-authorized fixed source resolution; omission uses ordinary source ACL resolution. */
 	source?: AnalyticsResolvedSource
+	/** Host-owned execution boundary; restores an explicitly approved issuer only for delegated results. */
+	execute?: (
+		query: (actor: DataSourceActor, source?: AnalyticsResolvedSource) => Promise<AnalyticalDataset>
+	) => Promise<AnalyticalDataset>
 	/** Domain parameter defaults/constraints from the same fixed version; runtime parameter checks still apply. */
 	normalizeControls(controls: AnalyticsQueryRequest['controls']): Promise<AnalyticsQueryRequest['controls']>
 	/** Apply the accepted immutable row/field scope before passing normalized data to analysis consumers. */

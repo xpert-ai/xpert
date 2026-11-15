@@ -22,6 +22,12 @@ Agent Middleware 用于在不改动核心编排逻辑的前提下，为智能体
 | `wrapModelCall` | 包裹模型调用         | 重试、缓存、防护策略     |
 | `wrapToolCall`  | 包裹工具调用         | 鉴权、限流、后处理       |
 
+## MCP App 视图工具
+
+需要让 Assistant 操作当前聊天中已打开的 MCP App 时，可配置 `McpAppToolsMiddleware`（“当前应用视图工具”）。它暴露 `mcp_app_tools_list` 和 `mcp_app_tool_call`，复用 `ClientToolMiddleware` 的客户端执行与恢复机制，由 ChatKit 定位视图、取得审批并调用 iframe 内的工具。
+
+用途、启用条件、与 WebMCP 的区别及完整前后端时序见 [MCP App 视图工具](./mcp-app-tools)。
+
 ## 平台知识库能力
 
 Agent middleware 可以通过 runtime capability 使用平台知识库，而不是直接依赖知识库 controller。通用能力包括：

@@ -31,7 +31,7 @@ export interface ArtifactPresentationQuery {
 
 /** Authenticated Project reference viewing does not create or consume a public share. */
 export type ArtifactLibraryContent =
-  | { kind: 'conversation'; snapshot: import('./ai/conversation-share.model').ConversationShareSnapshot }
+  | { kind: 'conversation'; snapshot: import('../ai/conversation-share.model').ConversationShareSnapshot }
   | { kind: 'presentation'; presentation: ArtifactPresentation }
   | { kind: 'file'; fileName: string; mimeType: string; canDownload: boolean }
 export interface ArtifactLibraryView {

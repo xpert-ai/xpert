@@ -14,7 +14,7 @@ decision or authority that materially prevents progress.
 ## Ownership and scope
 
 - The coordinator defines acceptance outcomes, creates and delegates Project
-  tasks, manages long-lived services, reads evidence, requests rework and accepts
+  tasks, supplies environment and skill context, reads evidence, requests rework and accepts
   results. Choose the decomposition from the work, resource limits and receipts;
   there is no fixed number of tasks or mandatory task-name sequence.
 - The selected cloud Coding Runtime performs project code edits, environment
@@ -71,14 +71,14 @@ modify container privileges, host resources or approval policy from the guest.
 
 Use the current tool schemas; the Project Tasks mappings are:
 
-| Purpose | Tool / contract |
-| --- | --- |
-| Discover executors | `project_list_task_runtimes`; choose an authorized compatible binding |
-| Persist work | Project task creation tools with objective, requirements and deliverables |
-| Dependencies | `project_update_task_plan` using current revision and predecessor IDs |
-| Launch | `project_dispatch_task` with latest revision and the selected binding |
-| Observe | `project_get_task`; inspect actual attempts, invocation result and artifacts |
-| Accept / rework | `project_decide_task` with current specification digest, implementation execution, evidence revision, checks and rationale |
+| Purpose            | Tool / contract                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Discover executors | `project_list_task_runtimes`; choose an authorized compatible binding                                                      |
+| Persist work       | Project task creation tools with objective, requirements and deliverables                                                  |
+| Dependencies       | `project_update_task_plan` using current revision and predecessor IDs                                                      |
+| Launch             | `project_dispatch_task` with latest revision and the selected binding                                                      |
+| Observe            | `project_get_task`; inspect actual attempts, invocation result and artifacts                                               |
+| Accept / rework    | `project_decide_task` with current specification digest, implementation execution, evidence revision, checks and rationale |
 
 Confirm these names and fields against the advertised schemas. A task dependency
 or a todo item does not launch an executor. The Runtime already launches its coding
@@ -143,10 +143,19 @@ Cancellation is a request until termination is confirmed. Preserve the attempt
 and narrow the rework task using its concrete failure or missing deliverable;
 do not silently relaunch concurrent writers or implement the missing code yourself.
 
-Persistent development services belong to `sandbox_service_start`, not to a
-background child of a finite CLI task. The CLI may prepare the environment and
-return the required foreground service command; the coordinator starts that
-authorized service and delegates dependent work. Save its service receipt.
+The Coding CLI starts, checks and stops development services with the project's own
+commands. For Xpert, use `tools/local-environment/cli.py`, prepare with
+`--supervisor-mode detached`, then use start/status/logs/restart/stop. Give the CLI
+the checkout and skill paths. It may use ordinary background processes or its
+shell/session facilities while working; services need not outlive the task.
+Before independent review or a resumed attempt, check the original instance and
+start it again when needed, preserving its source, package, database and credentials.
+Save startup commands, paths, logs and test evidence; a stopped process after task
+completion is not by itself a failed candidate. Stop services when finished and
+respect cancellation cleanup. The host supplies Computer access and resource limits.
+`sandbox_service_start` is a host Assistant tool, not a CLI command or prerequisite
+for this flow. Do not change CLIs or seek a persistent host owner just to keep a
+development service alive between tasks.
 
 ## Recovery and evidence
 

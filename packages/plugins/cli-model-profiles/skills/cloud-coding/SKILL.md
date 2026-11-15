@@ -90,11 +90,19 @@ yourself and then claim the CLI did it.
    blindly repeat a mutating prompt. Managed CLI auth/config is per invocation;
    do not assume a CLI session ID can resume across shell calls. Send a bounded
    repair prompt with the observed state when recovery is needed.
-3. Start a preview through `sandbox_service_start` with the correct project
-   directory, port and readiness check. Use service status/logs to verify it.
-   Do not use `&`, `nohup`, `disown`, or leave an unmanaged dev server running.
-4. Use the returned preview URL. For visual acceptance, inspect it in the cloud
-   browser and capture a fresh screenshot before GUI input. Screenshots are not
+3. The Coding CLI manages development services with the project's own commands
+   and its available shell/session facilities. For Xpert, use
+   `tools/local-environment/cli.py`; prepare with `--supervisor-mode detached`
+   and use start/status/logs/stop. Background processes are allowed for testing
+   within the current task; record logs, startup commands and the project paths.
+   Services may stop when the task ends or is cancelled. A later task checks and
+   starts the same project instance again before testing. Stop services when done;
+   do not bypass executor cleanup or require a persistent host service.
+   `sandbox_service_start` is a host Assistant tool, not a CLI shell command.
+4. For local services, open the application's localhost URL and configured port
+   in the cloud browser; starting a local process does not create a preview URL.
+   Use a forwarded preview URL only when a host capability supplies one. For visual
+   acceptance, capture a fresh screenshot before GUI input. Screenshots are not
    required for catalog discovery, CLI invocation, compilation or file reads.
 5. Call `present_files` with verified workspace-relative deliverables. Report what
    the CLI changed, what was tested and any remaining failures. Never invent a

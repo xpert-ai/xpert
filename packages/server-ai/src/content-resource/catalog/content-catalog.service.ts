@@ -14,7 +14,7 @@ import {
     type ContentResourceReference,
     type ContentSourceInput
 } from '@xpert-ai/plugin-sdk'
-import type { ContentCatalogItem, ContentResourceSnapshot } from '@xpert-ai/contracts'
+import type { ContentCatalogItem, ContentResourceSnapshot, ContentTransferSnapshot } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { t } from 'i18next'
 import { ContentIdentityService } from '../content-identity.service'
@@ -22,6 +22,7 @@ import { ProjectAccessRuntimeService } from '../../xpert-project/services/projec
 import { ContentResourceEntry } from './content-entry.entity'
 import { contentSnapshotSchema, contentProjectionSchema } from './catalog.schema'
 import { ContentOperations } from './content-operations.service'
+import { contentTransferReferenceSchema, parseContentTransfer } from './content-transfer.schema'
 
 /** Invariants: directory IDs grant no rights; discovery and direct links reauthorize the live source.
  * A binding is unique within its Project. Plugin metadata never chooses the authenticated actor. */
@@ -135,7 +136,9 @@ export class ContentCatalogService implements ContentCatalogApi {
                     sourceLocation: snapshot.source,
                     sourceUpdatedAt: new Date(snapshot.updatedAt),
                     deleted: snapshot.deleted,
-                    offlineSnapshot: snapshot.offlineAccess === 'project' ? snapshot : null
+                    // Retain write restrictions even for private sources; get/list still require explicit offlineAccess.
+                    offlineSnapshot:
+                        snapshot.offlineAccess === 'project' || snapshot.writeOwnership === 'provider' ? snapshot : null
                 }
             )
             return {
@@ -210,9 +213,11 @@ export class ContentCatalogService implements ContentCatalogApi {
             throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
         const { catalog } = this.provider(item.resourceRef.providerKey, input)
         if (!catalog.extract) return null
-        const projection = contentProjectionSchema.parse(
+        const parsed = contentProjectionSchema.safeParse(
             await catalog.extract({ ...input, sourceResourceId: item.resourceRef.resourceId })
         )
+        if (!parsed.success) throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+        const projection = parsed.data
         const current = await this.get(input)
         if (
             projection.revision !== input.expectedRevision ||
@@ -221,12 +226,6 @@ export class ContentCatalogService implements ContentCatalogApi {
             current.bindingRevision !== item.bindingRevision
         )
             throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
-        if (
-            projection.sections.reduce((sum, section) => sum + section.text.length, 0) > 1_000_000 ||
-            new Set(projection.sections.map((section) => JSON.stringify(section.anchor))).size !==
-                projection.sections.length
-        )
-            throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
         return projection as import('@xpert-ai/contracts').ContentSearchProjection
     }
     async list(input: Parameters<ContentCatalogApi['list']>[0]) {
@@ -286,7 +285,35 @@ export class ContentCatalogService implements ContentCatalogApi {
             limit = Math.min(100, Math.max(1, input.limit ?? 50))
         return { items: items.slice(offset, offset + limit), hasMore: items.length > offset + limit }
     }
-    async create(input: Parameters<ContentCatalogApi['create']>[0]) {
+    async create(request: Parameters<ContentCatalogApi['create']>[0]) {
+        const transfer =
+            request.transferFrom === undefined
+                ? undefined
+                : contentTransferReferenceSchema.safeParse(request.transferFrom)
+        if (transfer && !transfer.success) throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+        // Persist only the create intent. Caller-supplied content and extra fields must not enter retries or providers.
+        const input: Parameters<ContentCatalogApi['create']>[0] = {
+            actor: {
+                tenantId: request.actor.tenantId,
+                organizationId: request.actor.organizationId,
+                userId: request.actor.userId
+            },
+            projectId: request.projectId,
+            assistantId: request.assistantId,
+            providerKey: request.providerKey,
+            implementationKey: request.implementationKey,
+            requestId: request.requestId,
+            title: request.title,
+            templateId: request.templateId,
+            ...(transfer?.success
+                ? {
+                      transferFrom: {
+                          contentId: transfer.data.contentId,
+                          expectedRevision: transfer.data.expectedRevision
+                      }
+                  }
+                : {})
+        }
         await this.check(input, true)
         const { catalog } = this.provider(input.providerKey, input)
         const implementation = catalog.types.find(
@@ -299,7 +326,79 @@ export class ContentCatalogService implements ContentCatalogApi {
             throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
         const operation = await this.operations.retain({ kind: 'create', input })
         try {
-            const source = await catalog.create(input)
+            let initialContent: ContentTransferSnapshot | undefined
+            let sourceBindingRevision: number | undefined
+            if (input.transferFrom) {
+                const sourceInput = {
+                    actor: input.actor,
+                    projectId: input.projectId,
+                    assistantId: input.assistantId,
+                    contentId: input.transferFrom.contentId,
+                    expectedRevision: input.transferFrom.expectedRevision
+                }
+                const item = await this.get(sourceInput)
+                if (item.deleted || item.revision !== sourceInput.expectedRevision)
+                    throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
+                // A catalog binding can move while the provider's opaque revision string stays unchanged.
+                sourceBindingRevision = item.bindingRevision
+                const origin = this.provider(item.resourceRef.providerKey, input).catalog
+                const acceptedSchemas = [...(catalog.acceptedTransferSchemas ?? [])]
+                if (!acceptedSchemas.length) throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+                if (origin.transfer) {
+                    initialContent = parseContentTransfer(
+                        await origin.transfer({
+                            ...sourceInput,
+                            sourceResourceId: item.resourceRef.resourceId,
+                            acceptedSchemas
+                        }),
+                        input.projectId
+                    )
+                } else {
+                    // Providers without a native exporter contribute only their authorized text projection.
+                    if (!acceptedSchemas.includes('xpert.content-transfer@1'))
+                        throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+                    const projection = await this.projectText(sourceInput)
+                    if (!projection) throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+                    initialContent = parseContentTransfer(
+                        {
+                            schema: 'xpert.content-transfer@1',
+                            source: { ...item.resourceRef, revision: projection.revision, title: item.title },
+                            sections: projection.sections
+                        },
+                        input.projectId
+                    )
+                }
+                if (
+                    !catalog.acceptedTransferSchemas?.includes(initialContent.schema) ||
+                    initialContent.source.providerKey !== item.resourceRef.providerKey ||
+                    initialContent.source.resourceId !== item.resourceRef.resourceId ||
+                    initialContent.source.revision !== item.revision
+                )
+                    throw new BadRequestException(t('server-ai:Error.ContentOperationInvalid'))
+                const current = await this.get(sourceInput)
+                if (
+                    current.deleted ||
+                    current.revision !== item.revision ||
+                    current.bindingRevision !== item.bindingRevision
+                )
+                    throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
+            }
+            // Extraction can outlive an edit grant or plugin instance. Recheck both immediately before writing.
+            await this.check(input, true)
+            if (this.provider(input.providerKey, input).catalog !== catalog)
+                throw new BadRequestException(t('server-ai:Error.ContentEditorUnavailable'))
+            const { transferFrom: _transferFrom, ...targetInput } = input
+            const source = await catalog.create({ ...targetInput, initialContent })
+            // A native write is not a cross-provider transaction; deny delivery if source access changed while it ran.
+            if (input.transferFrom) {
+                const current = await this.get({ ...input, contentId: input.transferFrom.contentId })
+                if (
+                    current.deleted ||
+                    current.revision !== input.transferFrom.expectedRevision ||
+                    current.bindingRevision !== sourceBindingRevision
+                )
+                    throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
+            }
             if (source.providerKey !== input.providerKey) throw this.denied()
             const item = await this.register({ ...input, source })
             await this.operations.finish(operation)

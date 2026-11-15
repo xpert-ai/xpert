@@ -1,5 +1,5 @@
-import type { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
-import type { ResourceAnalysisPolicy } from './resource-analysis.model'
+import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import type { ResourceAnalysisPolicy } from '../analytics/resource-analysis.model'
 
 /**
  * Persisted consent to use one published Artifact version in another group's Project in the same organization.

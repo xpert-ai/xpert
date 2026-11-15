@@ -1,7 +1,7 @@
 import { Column, Entity, Index } from 'typeorm'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 
-/** Stable identity and rebuildable search projection. No business body or authorization is cached. */
+/** Stable identity and rebuildable projection. Native read access is checked live. */
 @Entity('content_resource_entry')
 @Index('IDX_content_resource_project_type', ['tenantId', 'organizationId', 'projectId', 'typeId'])
 @Index('IDX_content_resource_binding', ['tenantId', 'organizationId', 'projectId', 'providerKey', 'resourceId'], {
@@ -20,5 +20,6 @@ export class ContentResourceEntry extends TenantOrganizationBaseEntity {
     @Column({ type: 'timestamptz', nullable: true }) sourceUpdatedAt?: Date
     @Column({ type: 'boolean', default: false }) deleted: boolean
     @Column({ type: 'int', default: 1 }) bindingRevision: number
+    /** Retained for offline display or write ownership; presence alone never grants offline reading. */
     @Column({ type: 'jsonb', nullable: true }) offlineSnapshot?: import('@xpert-ai/contracts').ContentResourceSnapshot
 }

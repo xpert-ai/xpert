@@ -1,3 +1,6 @@
+import { injectOrganization } from '@cloud/app/@core/state'
+import { matchesHost, matchesSubscription, createRemoteHostEvent } from './remote-host-event-filters'
+import { createLocalDraftBridge } from '@xpert-ai/xpert-sdk/workbench/browser'
 import { getAvailableFrameHeight } from './remote-frame-layout'
 import { remoteViewState } from './remote-view-state'
 import { remoteFileDataUrl } from './remote-file-data-url'
@@ -20,14 +23,15 @@ import { firstValueFrom, map, Subject, takeUntil, type Observable } from 'rxjs'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  WORKBENCH_CONTENT_DRAFT_COMMAND,
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
   XpertViewActionDefinition,
   XpertViewFileAccessPurpose,
   XpertViewFileAccessSessionResult,
-  XpertViewHostEventSubscription,
   XpertViewParameterDefinition,
   XpertViewQuery,
+  XpertViewHostEventSubscription,
   XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import { SafePipe } from '@xpert-ai/headless-ui'
@@ -39,7 +43,6 @@ import { ViewClientCommandRegistry } from '../view-client-command-registry.servi
 import {
   resolveViewRuntimeDataScopeKey,
   ViewHostEventBus,
-  type XpertRemoteViewHostEventMessage,
   type XpertViewHostEventMessage
 } from '../view-host-event-bus.service'
 
@@ -138,6 +141,7 @@ export class RemoteComponentRendererComponent {
   readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
   readonly runtimeUserId = input<string | null>(null)
 
+  readonly #organization = injectOrganization()
   readonly #api = injectViewExtensionApi()
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
@@ -171,6 +175,40 @@ export class RemoteComponentRendererComponent {
     this.#themeService.themeClass() === 'dark' ? 'dark' : 'light'
   )
 
+  // Each context owns its cached bindings; cancellation also guards asynchronous browser storage.
+  #draftAbort = new AbortController()
+  readonly #localDraft = computed(() => {
+    const hostType = this.hostType(),
+      hostId = this.hostId(),
+      viewKey = this.manifest().key
+    const scope = this.runtimeScope(),
+      identity = this.instanceId(),
+      userId = this.runtimeUserId(),
+      organizationId = this.#organization()?.id
+    return createLocalDraftBridge(
+      async (resourceId) => {
+        const binding = await this.untilDestroyed(
+          this.#api.getLocalDraftBinding(hostType, hostId, viewKey, resourceId, scope ?? undefined)
+        )
+        if (
+          identity !== this.instanceId() ||
+          userId !== this.runtimeUserId() ||
+          organizationId !== this.#organization()?.id ||
+          scope !== this.runtimeScope() ||
+          !this.contextReady()
+        )
+          throw new Error('Stale editor context.')
+        return binding
+      },
+      {
+        // Cloud owns browser budgets and offline editing policy; frames cannot override them.
+        storage: { maxDraftBytes: 20 * 1024 * 1024, maxTotalBytes: 50 * 1024 * 1024, maxDrafts: 20 },
+        allowCachedWrites: true,
+        maxCachedBindings: 16
+      }
+    )
+  })
+
   #entryRequestId = 0
   #loadedEntryIdentity: string | null = null
   #initializedInstanceId: string | null = null
@@ -197,6 +235,7 @@ export class RemoteComponentRendererComponent {
     window.addEventListener('scroll', onViewportChange, true)
     this.#destroyRef.onDestroy(() => {
       ++this.#entryRequestId
+      this.#draftAbort.abort()
       this.#contextCancelled.next()
       this.#contextCancelled.complete()
       hostEventSubscription.unsubscribe()
@@ -219,7 +258,14 @@ export class RemoteComponentRendererComponent {
         return
       }
 
-      const entryIdentity = JSON.stringify([hostType, hostId, manifest.key, this.runtimeUserId(), runtimeScope])
+      const entryIdentity = JSON.stringify([
+        hostType,
+        hostId,
+        manifest.key,
+        this.runtimeUserId(),
+        this.#organization()?.id,
+        runtimeScope
+      ])
       if (entryIdentity === this.#loadedEntryIdentity) {
         return
       }
@@ -228,6 +274,7 @@ export class RemoteComponentRendererComponent {
         hostId,
         manifest.key,
         this.runtimeUserId(),
+        this.#organization()?.id,
         manifest.source,
         manifest.view
       ])
@@ -280,6 +327,8 @@ export class RemoteComponentRendererComponent {
     preserveDocument = false
   ) {
     this.contextReady.set(false)
+    this.#draftAbort.abort()
+    this.#draftAbort = new AbortController()
     this.#contextCancelled.next()
     this.error.set(null)
     if (!preserveDocument) this.clearEntryUrl()
@@ -650,6 +699,8 @@ export class RemoteComponentRendererComponent {
       throw new Error(`Client command '${commandKey || ''}' is not available`)
     }
 
+    if (commandKey === WORKBENCH_CONTENT_DRAFT_COMMAND)
+      return this.#localDraft()(message.payload, this.#draftAbort.signal)
     return this.#clientCommands.execute(commandKey, message.payload, {
       instanceId: this.instanceId(),
       hostType: this.hostType(),
@@ -888,56 +939,6 @@ function isRemoteComponentMessage(value: unknown): value is RemoteComponentMessa
     (value as RemoteComponentMessage).channel === REMOTE_COMPONENT_CHANNEL &&
     (value as RemoteComponentMessage).protocolVersion === REMOTE_COMPONENT_PROTOCOL_VERSION
   )
-}
-
-function matchesHost(
-  event: XpertViewHostEventMessage,
-  hostType: string,
-  hostId: string,
-  dataScopeKey: string | undefined,
-  requiresDataScopeKey: boolean
-) {
-  const eventDataScopeKey = event.dataScopeKey?.trim() || undefined
-  if (requiresDataScopeKey) {
-    return Boolean(eventDataScopeKey && dataScopeKey && eventDataScopeKey === dataScopeKey)
-  }
-  if (eventDataScopeKey || dataScopeKey) {
-    return eventDataScopeKey === dataScopeKey
-  }
-  if (event.hostType && event.hostType !== hostType) {
-    return false
-  }
-  if (event.hostId && event.hostId !== hostId) {
-    return false
-  }
-  return true
-}
-
-function matchesSubscription(event: XpertViewHostEventMessage, subscription: XpertViewHostEventSubscription) {
-  if (event.type !== subscription.event) {
-    return false
-  }
-
-  const filter = subscription.filter
-  if (!filter) {
-    return true
-  }
-
-  return (
-    matchesOptionalFilter(filter.sources, event.source) &&
-    matchesOptionalFilter(filter.toolNames, event.toolName) &&
-    matchesOptionalFilter(filter.viewKeys, event.visualization?.viewKey) &&
-    matchesOptionalFilter(filter.visualizationTypes, event.visualization?.type)
-  )
-}
-
-function matchesOptionalFilter(values: string[] | undefined, actual: string | undefined) {
-  return !values?.length || (Boolean(actual) && values.includes(actual))
-}
-
-function createRemoteHostEvent(event: XpertViewHostEventMessage): XpertRemoteViewHostEventMessage {
-  const { hostType: _hostType, hostId: _hostId, dataScopeKey: _dataScopeKey, ...remoteEvent } = event
-  return remoteEvent
 }
 
 function toQuery(value: unknown): XpertViewQuery {

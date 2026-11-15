@@ -1,5 +1,5 @@
-import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
-import type { I18nObject } from './i18n.model'
+import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
+import type { I18nObject } from '../i18n.model'
 
 /**
  * Access policies supported by platform-managed Artifact links.

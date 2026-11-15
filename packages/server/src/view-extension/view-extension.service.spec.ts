@@ -64,6 +64,9 @@ describe('ViewExtensionService file actions', () => {
 			supports: jest.fn(async () => true),
 			getViewManifests: jest.fn(async (_context: XpertResolvedViewHostContext, _slot: string) => [manifest]),
 			getViewData: jest.fn(),
+			authorizeLocalDraftResource: jest.fn(
+				async (_context: XpertResolvedViewHostContext, _view: string, resourceId: string) => resourceId
+			),
 			executeViewAction: jest.fn(async () => ({ success: true })),
 			getViewParameterOptions: jest.fn(async () => ({ items: [] })),
 			resolveViewFile: jest.fn(async () => ({
@@ -125,6 +128,49 @@ describe('ViewExtensionService file actions', () => {
 		)
 		return { service, provider, hostDefinition, permissionService, cacheService }
 	}
+
+	it('reauthorizes local recovery and binds the namespace to current actor, organization, resource and host', async () => {
+		const { service, provider, permissionService } = createService()
+		provider.getViewManifests.mockResolvedValue([
+			{ ...manifest, clientCommands: [{ key: 'workbench.content.draft' }] }
+		])
+		const first = await service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')
+		expect(first).toEqual({
+			resourceId: 'resource',
+			scopeKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+			maxBytes: 20971520
+		})
+		expect(await service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')).toEqual(first)
+		jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
+		expect((await service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')).scopeKey).not.toBe(
+			first.scopeKey
+		)
+		jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-2')
+		expect((await service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')).scopeKey).not.toBe(
+			first.scopeKey
+		)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+		expect(
+			(await service.getLocalDraftBinding('agent', 'other-host', 'provider__review', 'resource')).scopeKey
+		).not.toBe(first.scopeKey)
+		expect(
+			(await service.getLocalDraftBinding('agent', 'host', 'provider__review', 'other-resource')).scopeKey
+		).not.toBe(first.scopeKey)
+		provider.authorizeLocalDraftResource.mockRejectedValue(new ForbiddenException())
+		await expect(service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')).rejects.toThrow(
+			ForbiddenException
+		)
+		expect(permissionService.assertHostReadable).toHaveBeenCalledTimes(7)
+	})
+
+	it('does not grant local storage to a view without an explicit command declaration', async () => {
+		const { service, provider } = createService()
+		await expect(service.getLocalDraftBinding('agent', 'host', 'provider__review', 'resource')).rejects.toThrow(
+			ForbiddenException
+		)
+		expect(provider.authorizeLocalDraftResource).not.toHaveBeenCalled()
+	})
 
 	it.each([true, false])('identifies validated views before loading data (cache enabled: %s)', async (cached) => {
 		const { service, provider, cacheService } = createService()

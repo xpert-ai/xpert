@@ -7,30 +7,40 @@ The built-in `@xpert-ai/plugin-coding-project` plugin coordinates software deliv
 
 The project type is `applicationKey: @xpert-ai/plugin-coding-project:coding` with `projectTypeKey: coding`. No legacy type alias or automatic migration is registered. See [Project type configuration](./project-application-types.mdx#type-configuration) for settings and [Project Tasks](./project-tasks.mdx) for execution and review semantics.
 
+## Choose local acceptance or full release
+
+Project configuration `deliveryMode` defaults to `local`: provision or reuse an isolated development instance inside the existing Computer, implement, install, run real functional tests, independently review and export artifacts. This workflow needs no external target, remote repository or release approval. It does not authorize host-platform installation, Git push or npm publication. A local commit, source archive or Git bundle is allowed.
+
+`release` selects full delivery and requires the destination configuration below. To publish a locally accepted result, pass `mode: release` and its `acceptedTaskId`; preserve the accepted package and business source. An existing delivery keeps its pinned mode when Project defaults change.
+
+The Assistant first calls `coding_delivery_targets` for the mode, `ready` and exact `blockers`. Empty destinations are normal in local mode. This preflight checks workflow configuration, not CLI authentication or environment readiness. Implementation and separate execution review still run inside the Computer.
+
+When release has multiple authorized choices, `CODING_DESTINATION_SELECTION_REQUIRED` means select `targetKey` and `repositoryKey` and preflight again, not missing administrator configuration. Follow the request and clarify ambiguous choices. Retries retain their original destinations and revalidate current authorization; changed destination policies require a new release round.
+
 ## Prepare a project and its destinations
 
 1. Load the plugin and select or create the Coding Project. Install its Assistant template and required skills, connect it to that Project, and publish the configured Assistant. Loading a plugin alone does not update or publish an installed Assistant.
-2. Configure the plugin's `targets` and `repositories`. Each destination has an explicit `projectIds` allowlist; empty lists authorize nothing. A newly created Project does not inherit another Project's destination access.
+2. For full release only, configure the plugin's `targets` and `repositories`. Each destination has an explicit `projectIds` allowlist; empty lists authorize nothing. A newly created Project does not inherit another Project's destination access.
 3. Select available, authorized execution and independent-review Runtimes. The plugin does not provide a computer or make an unsupported Runtime capable of executing reviews. In Pro, a Computer Coding Runtime can use a complete development instance inside the cloud computer.
 4. Configure authentication through the selected environment's credential helper or a host-authorized Connector. Credential references and repository URLs do not establish readiness. Keep secrets out of requirements, Project configuration values and exported evidence.
 
 Targets currently declare `environment: development` or `acceptance`. Their URLs are credential-free HTTP(S) origins; replacement and restart permissions default to disabled. Plugin configuration is an allowlist, not an administrative permission grant.
 
-| Target mode | Preparation |
-| --- | --- |
-| `deployment: cli` | Configure the target login or CLI credential helper; use the `coding_project.delivery@1.0.0` Pipeline configuration |
-| `deployment: current-instance` | Use `coding_project.delivery@1.1.0`, which includes the native host installation node; configure `computerBaseUrl` when the testing computer needs a different reachable origin |
+| Target mode                    | Preparation                                                                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deployment: cli`              | Configure the target login or CLI credential helper; use the `coding_project.delivery@1.0.0` Pipeline configuration                                                                                                                         |
+| `deployment: current-instance` | Targets the host platform, not the inner Computer instance. Use `coding_project.delivery@1.1.0`, which includes the native host installation node; configure `computerBaseUrl` when the testing computer needs a different reachable origin |
 
 For `delivery: github`, configure `connectorBindingId`, authorize the connection for the Project and repository, and explicitly select it in the Assistant's Connector node before publication. Repository and PR write permissions remain subject to the Connector's authorization.
 
-## Follow the delivery stages
+## Full release stages
 
-| Stage | Responsibility and completion evidence |
-| --- | --- |
-| Development and independent acceptance | The Assistant delegates implementation and testing, obtains a separate execution review and records a formal task decision. Source, package and reports are exported as immutable Artifacts |
-| Human release confirmation | A human reviews the exact candidate, destinations, package identity and replacement/restart scope. The Agent has no approval tool |
-| Target installation and independent acceptance | Install the approved package on the authorized target, verify its loaded identity and actual behavior, and obtain independent execution-review evidence |
-| Commit or PR delivery | Deliver the approved source commit to the allowed branch or create a PR for that commit. Creating a PR does not merge it |
+| Stage                                          | Responsibility and completion evidence                                                                                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Development and independent acceptance         | The Assistant delegates implementation and testing, obtains a separate execution review and records a formal task decision. Source, package and reports are exported as immutable Artifacts |
+| Human release confirmation                     | A human reviews the exact candidate, destinations, package identity and replacement/restart scope. The Agent has no approval tool                                                           |
+| Target installation and independent acceptance | Install the approved package on the authorized target, verify its loaded identity and actual behavior, and obtain independent execution-review evidence                                     |
+| Commit or PR delivery                          | Deliver the approved source commit to the allowed branch or create a PR for that commit. Creating a PR does not merge it                                                                    |
 
 The Assistant can start from one functional requirement. Development, deployment, testing and ordinary recovery belong to its assigned tasks; the user does not need to prompt each stage. The explicit human release gate remains part of this workflow.
 

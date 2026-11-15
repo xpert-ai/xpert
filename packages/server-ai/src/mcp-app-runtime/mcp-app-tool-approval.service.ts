@@ -24,6 +24,8 @@ return false
 `
 
 export type McpAppToolRisk = 'read' | 'write' | 'destructive'
+// A view-tool consent must never authorize a server tool with a colliding name and payload.
+export type McpAppToolApprovalPurpose = 'app-tool' | 'view-tool'
 
 interface PendingApproval {
     version: 1
@@ -33,6 +35,7 @@ interface PendingApproval {
     workspaceId?: string
     userId: string
     toolName: string
+    purpose: McpAppToolApprovalPurpose
     argumentsHash: string
     risk: Exclude<McpAppToolRisk, 'read'>
     approvedAt?: number
@@ -60,6 +63,7 @@ export class McpAppToolApprovalService {
         tenantId?: string
         workspaceId?: string
         toolName: string
+        purpose?: McpAppToolApprovalPurpose
         arguments: unknown
         risk: Exclude<McpAppToolRisk, 'read'>
     }) {
@@ -74,6 +78,7 @@ export class McpAppToolApprovalService {
             workspaceId: input.workspaceId,
             userId,
             toolName: input.toolName,
+            purpose: input.purpose ?? 'app-tool',
             argumentsHash: hashArguments(input.arguments),
             risk: input.risk,
             expiresAt: Date.now() + APPROVAL_TTL_MS
@@ -116,7 +121,13 @@ export class McpAppToolApprovalService {
         }
     }
 
-    async consume(input: { approvalId: string; appInstanceId: string; toolName: string; arguments: unknown }) {
+    async consume(input: {
+        approvalId: string
+        appInstanceId: string
+        toolName: string
+        arguments: unknown
+        purpose?: McpAppToolApprovalPurpose
+    }) {
         const raw = await this.redis.get(approvalKey(input.approvalId))
         const approval = parseStoredApproval(raw)
         const userId = RequestContext.currentUserId()
@@ -126,6 +137,7 @@ export class McpAppToolApprovalService {
             approval.expiresAt <= Date.now() ||
             approval.appInstanceId !== input.appInstanceId ||
             approval.toolName !== input.toolName ||
+            approval.purpose !== (input.purpose ?? 'app-tool') ||
             approval.argumentsHash !== hashArguments(input.arguments) ||
             !userId ||
             approval.userId !== userId
@@ -206,6 +218,8 @@ function parseApproval(value: unknown): PendingApproval | null {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
     const risk = Reflect.get(value, 'risk')
     const approvedAt = Reflect.get(value, 'approvedAt')
+    // Existing short-lived approvals predate view tools and remain valid only for the original path.
+    const purpose = Reflect.get(value, 'purpose') ?? 'app-tool'
     const approval: PendingApproval = {
         version: Reflect.get(value, 'version'),
         id: Reflect.get(value, 'id'),
@@ -214,6 +228,7 @@ function parseApproval(value: unknown): PendingApproval | null {
         workspaceId: Reflect.get(value, 'workspaceId'),
         userId: Reflect.get(value, 'userId'),
         toolName: Reflect.get(value, 'toolName'),
+        purpose,
         argumentsHash: Reflect.get(value, 'argumentsHash'),
         risk,
         expiresAt: Reflect.get(value, 'expiresAt'),
@@ -224,6 +239,7 @@ function parseApproval(value: unknown): PendingApproval | null {
         typeof approval.appInstanceId === 'string' &&
         typeof approval.userId === 'string' &&
         typeof approval.toolName === 'string' &&
+        (purpose === 'app-tool' || purpose === 'view-tool') &&
         typeof approval.argumentsHash === 'string' &&
         (risk === 'write' || risk === 'destructive') &&
         typeof approval.expiresAt === 'number'

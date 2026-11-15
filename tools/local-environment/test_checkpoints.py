@@ -204,7 +204,7 @@ class CheckpointTests(unittest.TestCase):
         (self.state / cp.PENDING).write_text('{}')
         for action in ('start', 'build', 'initialize'):
             with self.subTest(action=action):
-                args = SimpleNamespace(action=action, platform=str(self.platform), state=str(self.state))
+                args = SimpleNamespace(action=action, platform=str(self.platform), state=str(self.state), project_root=None)
                 with patch('cli.arguments', return_value=args), patch('cli.architecture'), \
                         patch('cli.load', return_value=self.config), patch('cli.infrastructure') as start:
                     with self.assertRaisesRegex(RuntimeError, 'Restore is incomplete'):

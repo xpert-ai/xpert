@@ -1,5 +1,5 @@
 import type { AnalyticsProviderDescriptor } from './analytics-query.model'
-import type { JSONValue } from './core.model'
+import type { JSONValue } from '../core.model'
 
 /** Configuration is owned by a provider; bindings contain only immutable source identities. */
 export type AnalyticsConfigurationEntry =
