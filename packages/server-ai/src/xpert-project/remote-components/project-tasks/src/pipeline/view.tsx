@@ -547,7 +547,9 @@ export function PipelineView({
                     <ExecutionTimeline graph={graph} locale={locale} t={t} lane={lane} now={now} onError={setError} />
                 )}
             </TabsContent>
-            <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t.pan}</p>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+                {mode === 'stage' && graph?.nodeWorkbench && projectId ? t.panWorkbench : t.pan}
+            </p>
             {graph && (
                 <LaneDetails
                     graph={graph}

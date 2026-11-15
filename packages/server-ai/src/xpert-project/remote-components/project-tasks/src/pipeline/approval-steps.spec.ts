@@ -20,6 +20,17 @@ it('folds declared services into their named approvals and keeps undeclared shar
     expect(original.nodes).toHaveLength(8)
     expect(original.edges).toHaveLength(10)
 })
+it('keeps undeclared steps visible even when a workbench supplies approval parents', () => {
+    const historical = {
+        ...fixture({}),
+        historical: true,
+        nodeWorkbench: { routeToExecutor: true, approvalParents: { u: 'a', v: 'a' } }
+    }
+    const stage = approvalStageMap(historical)
+    expect(stage.steps.size).toBe(0)
+    expect(stage.graph).toBe(historical)
+    expect(stage.graph.nodes.map((n) => n.id)).toEqual(expect.arrayContaining(['u', 'v']))
+})
 it('marks a folded route as selected only once its successor receives the handoff', () => {
     const original = fixture()
     original.edges.find((e) => e.to === 'v')!.selection = 'selected'

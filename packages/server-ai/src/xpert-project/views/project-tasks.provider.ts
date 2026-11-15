@@ -10,10 +10,7 @@ import type {
     XpertViewActionRequest,
     XpertViewQuery
 } from '@xpert-ai/contracts'
-import {
-    ViewExtensionProvider,
-    type IXpertViewExtensionProvider
-} from '@xpert-ai/plugin-sdk'
+import { ViewExtensionProvider, type IXpertViewExtensionProvider } from '@xpert-ai/plugin-sdk'
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
 import { ProjectTaskRuntimeReadService } from '../runtime/project-task-runtime-read.service'
 import { ProjectTaskDecisionService } from '../runtime/project-task-decision.service'
@@ -184,11 +181,15 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                 .parse(request.input)
             const { projectId } = this.context(context)
             // Resolve the registered business entry through live Project and Assistant authorization.
-            const entry = await this.workspaces.entry(this.context(context), {
-                ...input,
-                ...(context.hostType === 'agent' ? { xpertId: context.hostId } : {}),
-                ...(input.pipelineNodeId ? { pipelineNodeId: input.pipelineNodeId } : {})
-            })
+            const entry = await this.workspaces.entry(
+                this.context(context),
+                {
+                    ...input,
+                    ...(context.hostType === 'agent' ? { xpertId: context.hostId } : {})
+                },
+                'navigation'
+            )
+            if (entry.kind === 'node-navigation') return { success: true, data: entry.target }
             if (entry.kind !== 'assistant' || (context.hostType === 'agent' && entry.xpertId !== context.hostId))
                 throw Error(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
             return {

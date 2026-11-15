@@ -16,7 +16,7 @@ describe('Project application entry', () => {
     viewKey: 'neutral__case',
     selectionId: 'case'
   }
-  const api = { get: jest.fn(), typeEntry: jest.fn() }
+  const api = { get: jest.fn(), typeEntry: jest.fn(), nodeWorkbench: jest.fn() }
   const navigate = jest.fn(async () => true)
   let focus: BehaviorSubject<ReturnType<typeof convertToParamMap>>
   beforeEach(() => {
@@ -64,6 +64,23 @@ describe('Project application entry', () => {
       queryParams: expect.objectContaining({
         viewParameters: JSON.stringify({ tab: 'validation', itemId: 'automotive-part' })
       })
+    })
+  })
+  it('opens the bound Assistant and exact order using the server-resolved round and node', async () => {
+    const parameters = { pipelineInstanceId: 'instance', pipelineRoundId: 'round', pipelineNodeId: 'supply' }
+    focus.next(convertToParamMap(parameters))
+    api.nodeWorkbench.mockReturnValue(of({ ...entry, slug: 'purchasing', parameters }))
+    TestBed.createComponent(XpertProjectApplicationComponent)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(api.nodeWorkbench).toHaveBeenCalledWith('project', 'instance', 'round', 'supply')
+    expect(api.typeEntry).not.toHaveBeenCalled()
+    expect(navigate).toHaveBeenCalledWith(['/chat/x', 'purchasing', 'p', 'project', 'c'], {
+      queryParams: {
+        view: entry.viewKey,
+        viewSelection: entry.selectionId,
+        viewProject: 'project',
+        viewParameters: JSON.stringify(parameters)
+      }
     })
   })
   it('keeps a revoked or unavailable application visible as an error without falling back', async () => {

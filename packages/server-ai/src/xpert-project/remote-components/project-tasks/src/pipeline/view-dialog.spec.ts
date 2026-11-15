@@ -2,6 +2,7 @@
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { PipelineView } from './view'
+import { openProjectWorkspace } from './navigation'
 import { readPipeline, readPipelineRounds, listPipelines } from './bridge'
 import { getTaskViewState, type PipelineFocus } from '../bridge'
 import { restoreTaskView } from '../view-state'
@@ -63,7 +64,7 @@ jest.mock('@xpert-ai/shadcn-ui', () => {
         AccordionItem: box,
         AccordionTrigger: box,
         AccordionContent: box,
-        DialogTitle: box,
+        DialogTitle: ({ children }: { children: React.ReactNode }) => React.createElement('h2', null, children),
         DialogDescription: box,
         Select: ({
             value,
@@ -129,8 +130,8 @@ jest.mock('./pipeline-heading', () => ({
         )
 }))
 jest.mock('./swimlane', () => ({
-    Swimlane: ({ graph, lane, selectedLane, onLaneSelect }: React.ComponentProps<typeof Swimlane>) =>
-        graph.definition.lanes
+    Swimlane: ({ graph, lane, selectedLane, onLaneSelect, select }: React.ComponentProps<typeof Swimlane>) => [
+        ...graph.definition.lanes
             .filter(({ key }) => !lane || key === lane)
             .map(({ key, label }) =>
                 React.createElement(
@@ -138,9 +139,121 @@ jest.mock('./swimlane', () => ({
                     { key, 'aria-pressed': key === selectedLane, onClick: () => onLaneSelect(key) },
                     label
                 )
+            ),
+        ...graph.nodes.map((node) =>
+            React.createElement(
+                'button',
+                { key: node.id, 'data-node': node.id, onClick: () => select(node) },
+                node.projection.title
             )
+        )
+    ]
 }))
 jest.mock('./timeline', () => ({ ExecutionTimeline: () => null }))
+
+describe('node workbench navigation', () => {
+    const graph = approvalGraphFixture()
+    const entry = jest.mocked(openProjectWorkspace)
+    let container: HTMLDivElement
+    let root: ReturnType<typeof createRoot>
+
+    beforeEach(async () => {
+        jest.mocked(listPipelines).mockResolvedValue({ items: [], next: null })
+        jest.mocked(readPipelineRounds).mockResolvedValue({ items: [], next: null })
+        jest.mocked(readPipeline).mockResolvedValue({
+            ...graph,
+            nodeWorkbench: {},
+            cursor: 'rev',
+            instance: { ...graph.instance, id: 'order' },
+            roundId: 'round',
+            round: { ...graph.round, sequence: 1 },
+            tasks: { ...graph.tasks, executions: [], tasks: [] },
+            permissions: { canEdit: false, canManage: false },
+            attentions: []
+        })
+        entry.mockResolvedValue(undefined)
+        container = document.createElement('div')
+        root = createRoot(container)
+        await act(async () =>
+            root.render(
+                React.createElement(PipelineView, {
+                    locale: 'en-US',
+                    projectId: 'project',
+                    initialFocus: { pipelineInstanceId: 'order' },
+                    onTask: () => {}
+                })
+            )
+        )
+    })
+    afterEach(async () => {
+        await act(async () => root.unmount())
+        entry.mockReset()
+    })
+
+    const select = (id: string) =>
+        act(async () => container.querySelector<HTMLButtonElement>(`[data-node="${id}"]`)!.click())
+    const workspaceButton = () =>
+        [...container.querySelectorAll<HTMLButtonElement>('[data-dialog] button')].find(
+            (button) => button.textContent === 'Open node workspace'
+        )!
+    const title = () => container.querySelector('[data-dialog] h2')?.textContent
+
+    it('opens node details first and hands off the exact node and round only from the workspace button', async () => {
+        const [node] = graph.nodes
+        await select(node.id)
+        expect(title()).toBe(node.projection.title)
+        expect(entry).not.toHaveBeenCalled()
+        entry.mockRejectedValueOnce(Error('unavailable'))
+        await act(async () => workspaceButton().click())
+        expect(container.querySelector('[data-dialog] [role="alert"]')).not.toBeNull()
+        await act(async () => workspaceButton().click())
+        expect(entry).toHaveBeenCalledTimes(2)
+        expect(entry).toHaveBeenLastCalledWith(
+            'project',
+            'application',
+            expect.any(String),
+            node.id,
+            'order',
+            'round',
+            expect.any(AbortSignal)
+        )
+        expect(container.querySelector('[data-dialog] [role="alert"]')).toBeNull()
+    })
+
+    it('keeps B selected when A fails after B opens its workspace', async () => {
+        const [a, b] = graph.nodes
+        let rejectA!: (error: Error) => void
+        let resolveB!: () => void
+        entry.mockImplementationOnce(
+            () =>
+                new Promise<void>((_, reject) => {
+                    rejectA = reject
+                })
+        )
+        entry.mockImplementationOnce(
+            () =>
+                new Promise<void>((resolve) => {
+                    resolveB = resolve
+                })
+        )
+
+        await select(a.id)
+        await act(async () => workspaceButton().click())
+        const signalA = entry.mock.calls[0][6]
+        await select(b.id)
+        expect(signalA?.aborted).toBe(true)
+        expect(entry).toHaveBeenCalledTimes(1)
+        await act(async () => workspaceButton().click())
+        await act(async () => rejectA(Error('late failure')))
+
+        expect(title()).toBe(b.projection.title)
+        expect(workspaceButton().disabled).toBe(true)
+        expect(container.querySelector('[role="alert"]')).toBeNull()
+        await act(async () => resolveB())
+        expect(title()).toBe(b.projection.title)
+        expect(workspaceButton().disabled).toBe(false)
+    })
+})
 
 it('restores approval expansion, the service lane filter and its selection when reopened', async () => {
     const id = '00000000-0000-4000-8000-000000000001'

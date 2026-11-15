@@ -293,12 +293,14 @@ export function PipelineNodeDialog({
                             <Button variant="outline">{t.close}</Button>
                         </DialogClose>
                         {projectId &&
-                            !graph.historical &&
-                            node.projection.navigation?.kind === 'project_application' && (
+                            (graph.nodeWorkbench ||
+                                (!graph.historical && node.projection.navigation?.kind === 'project_application')) && (
                                 <PipelineNodeEntry
                                     key={`entry:${node.id}`}
                                     projectId={projectId}
                                     nodeId={node.id}
+                                    instanceId={graph.nodeWorkbench ? graph.instance.id : undefined}
+                                    roundId={graph.nodeWorkbench ? graph.roundId : undefined}
                                     t={t}
                                 />
                             )}

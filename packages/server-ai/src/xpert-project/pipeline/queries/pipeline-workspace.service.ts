@@ -31,6 +31,24 @@ const entrySchema = z
     })
     .strict()
 
+type WorkspaceFocus = {
+    instanceId?: string
+    roundId?: string
+    pipelineNodeId?: string
+    xpertId?: string
+    requireNodeWorkbench?: boolean
+}
+type NodeNavigation = {
+    kind: 'node-navigation'
+    target: {
+        target: 'project.application'
+        projectId: string
+        pipelineInstanceId: string
+        pipelineRoundId: string
+        pipelineNodeId: string
+    }
+}
+
 /** Resolve saved subjects through their registered adapter, never infer a business view from template names. */
 @Injectable()
 export class ProjectPipelineWorkspaceService {
@@ -43,17 +61,27 @@ export class ProjectPipelineWorkspaceService {
         private readonly adapters: ProjectPipelineRuntimeAdapterRegistry
     ) {}
 
+    async entry(context: ProjectPipelineContext, input: WorkspaceFocus): Promise<XpertProjectEntry>
     async entry(
         context: ProjectPipelineContext,
-        input: { instanceId?: string; roundId?: string; pipelineNodeId?: string; xpertId?: string }
-    ): Promise<XpertProjectEntry> {
+        input: WorkspaceFocus,
+        phase: 'navigation'
+    ): Promise<XpertProjectEntry | NodeNavigation>
+    async entry(
+        context: ProjectPipelineContext,
+        input: WorkspaceFocus,
+        phase?: 'navigation'
+    ): Promise<XpertProjectEntry | NodeNavigation> {
         if (!input.instanceId) return this.projectTypes.entryForProject(context.projectId, input)
         await this.access.assertCanRead(context.projectId)
         const scope = projectionScope(context)
         const instance = await this.instances.findOneBy({ ...scope, id: input.instanceId })
         const missing = () => new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
         if (!instance) throw missing()
-        if (instance.authority === 'provider') return this.projectTypes.entryForProject(context.projectId, input)
+        if (instance.authority === 'provider') {
+            if (input.requireNodeWorkbench) throw missing()
+            return this.projectTypes.entryForProject(context.projectId, input)
+        }
         const manager = this.instances.manager
         const selectedRoundId = input.roundId ?? instance.currentRoundId
         const round =
@@ -67,23 +95,59 @@ export class ProjectPipelineWorkspaceService {
         if (!run) throw missing()
         const saved = await manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: run.definitionId })
         if (!saved) throw missing()
-        if (
-            input.pipelineNodeId &&
-            !(await manager.findOneBy(ProjectPipelineNodeEntity, {
-                ...scope,
-                id: input.pipelineNodeId,
-                roundId: selectedRoundId
-            }))
-        )
-            throw missing()
+        const node = input.pipelineNodeId
+            ? await manager.findOneBy(ProjectPipelineNodeEntity, {
+                  ...scope,
+                  id: input.pipelineNodeId,
+                  roundId: selectedRoundId
+              })
+            : undefined
+        if (input.pipelineNodeId && !node) throw missing()
         const definition = projectPipelineDefinitionSchema.parse(saved.definition)
         if (definition.executionAuthority !== 'platform') throw missing()
         const subjects = z.array(projectPipelineSubjectVersionSchema).parse(round.subjectVersionSet)
         if (subjects.length !== 1 || subjects[0].resolverRef !== definition.subjectResolverRef) throw missing()
         const adapter = this.adapters.resolve('subject', definition.subjectResolverRef, context.actor)
         if (!adapter.resolveEntry) throw missing()
-        const entry = entrySchema.parse(await adapter.resolveEntry(context, subjects[0].objectKey))
-        if (input.xpertId && entry.xpertId !== input.xpertId) throw missing()
+        const routeToExecutor =
+            node &&
+            adapter.nodeWorkbenches?.some(
+                (item) =>
+                    item.definitionKey === definition.key && item.version === definition.version && item.routeToExecutor
+            )
+        if (input.requireNodeWorkbench && !routeToExecutor) throw missing()
+        let nodeTarget: { executorXpertId?: string } | undefined
+        if (routeToExecutor) {
+            const spec = definition.nodes.find((item) => item.key === node.nodeKey)
+            if (!spec) throw missing()
+            const executor =
+                spec.kind === 'work' ? run.bindingSnapshot?.executorBindings?.[spec.executorSlot] : undefined
+            if (spec.kind === 'work' && !executor) throw missing()
+            nodeTarget = executor?.kind === 'assistant' ? { executorXpertId: executor.selectionKey } : {}
+        }
+        const objectKey = subjects[0].objectKey
+        const entry = entrySchema.parse(
+            nodeTarget
+                ? await adapter.resolveEntry(context, objectKey, input.xpertId, nodeTarget)
+                : await adapter.resolveEntry(context, objectKey, input.xpertId)
+        )
+        const expected = nodeTarget ? nodeTarget.executorXpertId : input.xpertId
+        if (expected && entry.xpertId !== expected) throw missing()
+        // An Assistant-scoped view credential authorizes its own host. Crossing hosts returns
+        // only the saved focus. The Project route resolves the destination under the user's session.
+        if (phase === 'navigation' && nodeTarget && node && input.xpertId !== entry.xpertId) {
+            if (input.xpertId) await this.access.assertCanUseXpert(context.projectId, input.xpertId)
+            return {
+                kind: 'node-navigation',
+                target: {
+                    target: 'project.application',
+                    projectId: context.projectId,
+                    pipelineInstanceId: instance.id,
+                    pipelineRoundId: round.id,
+                    pipelineNodeId: node.id
+                }
+            }
+        }
         const assistant = await this.xperts.getAccessiblePublishedXpert(entry.xpertId)
         if ((assistant.organizationId ?? null) !== (context.actor.organizationId ?? null)) throw missing()
         await this.access.assertCanUseXpert(context.projectId, assistant.id)

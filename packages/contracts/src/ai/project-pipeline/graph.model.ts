@@ -14,11 +14,17 @@ export interface ProjectPipelineSummary {
   updatedAt: string
 }
 
+export interface ProjectPipelineNodeWorkbench {
+  /** Node entries belong to the executor bound to the selected run. */
+  routeToExecutor?: boolean
+}
+
 export interface ProjectPipelineGraph {
   projectId: string
   instance: ProjectPipelineSummary
   cursor: string
   definition: ProjectPipelineDefinition
+  nodeWorkbench?: ProjectPipelineNodeWorkbench
   runId: string
   runState: string
   roundId: string

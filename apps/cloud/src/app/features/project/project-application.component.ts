@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, type ParamMap } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { combineLatest, firstValueFrom } from 'rxjs'
@@ -41,13 +41,13 @@ export class XpertProjectApplicationComponent {
     combineLatest([this.route.paramMap, this.entryRoute.queryParamMap])
       .pipe(takeUntilDestroyed())
       .subscribe(([params, query]) => {
-        void this.open(params.get('id'), query.get('pipelineNodeId'))
+        void this.open(params.get('id'), query)
       })
   }
 
   async open(
     projectId = this.route.snapshot.paramMap.get('id'),
-    pipelineNodeId = this.entryRoute.snapshot.queryParamMap.get('pipelineNodeId')
+    query: ParamMap = this.entryRoute.snapshot.queryParamMap
   ) {
     // Capture the entire navigation intent before awaiting; newer focus invalidates older resolution.
     const generation = ++this.generation
@@ -55,24 +55,16 @@ export class XpertProjectApplicationComponent {
     this.busy.set(true)
     this.error.set(null)
     try {
-      const project = await firstValueFrom(this.api.get(projectId))
-      if (generation !== this.generation) return
-      if (project.id !== projectId) throw Error('PROJECT_APPLICATION_CONTEXT_CHANGED')
-      if (!project.applicationKey || !project.projectTypeKey) {
-        if (!(await this.router.navigate(['/project', projectId])))
-          throw Error('PROJECT_APPLICATION_NAVIGATION_CANCELLED')
-        return
-      }
-      const entry = await firstValueFrom(
-        this.api.typeEntry(
-          { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
-          {
-            projectId,
-            ...(pipelineNodeId ? { pipelineNodeId } : {})
-          }
-        )
-      )
-      if (generation !== this.generation) return
+      const instanceId = query.get('pipelineInstanceId')
+      const roundId = query.get('pipelineRoundId')
+      const pipelineNodeId = query.get('pipelineNodeId')
+      if ((instanceId || roundId) && !(instanceId && roundId && pipelineNodeId))
+        throw Error('PROJECT_APPLICATION_CONTEXT_CHANGED')
+      const entry =
+        instanceId && roundId && pipelineNodeId
+          ? await firstValueFrom(this.api.nodeWorkbench(projectId, instanceId, roundId, pipelineNodeId))
+          : await this.resolveProject(projectId, pipelineNodeId, generation)
+      if (!entry || generation !== this.generation) return
       if (entry.projectId !== projectId) throw Error('PROJECT_APPLICATION_CONTEXT_CHANGED')
       if (!(await navigateProjectEntry(this.router, entry))) throw Error('PROJECT_APPLICATION_NAVIGATION_CANCELLED')
     } catch (error) {
@@ -80,5 +72,22 @@ export class XpertProjectApplicationComponent {
     } finally {
       if (generation === this.generation) this.busy.set(false)
     }
+  }
+
+  private async resolveProject(projectId: string, pipelineNodeId: string | null, generation: number) {
+    const project = await firstValueFrom(this.api.get(projectId))
+    if (generation !== this.generation) return
+    if (project.id !== projectId) throw Error('PROJECT_APPLICATION_CONTEXT_CHANGED')
+    if (!project.applicationKey || !project.projectTypeKey) {
+      if (!(await this.router.navigate(['/project', projectId])))
+        throw Error('PROJECT_APPLICATION_NAVIGATION_CANCELLED')
+      return
+    }
+    return firstValueFrom(
+      this.api.typeEntry(
+        { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
+        { projectId, ...(pipelineNodeId ? { pipelineNodeId } : {}) }
+      )
+    )
   }
 }
