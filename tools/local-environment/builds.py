@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 
 from configuration import child_environment, load
 from runtime import atomic_json, digest, lock_file
+from progress import phase, emit
 
 VERSION = 1
 OUTPUTS = {
@@ -143,8 +144,10 @@ def check_build(config, service):
 def ensure_build(config, service):
     state = Path(config['state'])
     with lock_file(state / 'build.lock'):
-        valid, reason = check_build(config, service)
+        with phase('verify_build'):
+            valid, reason = check_build(config, service)
         if valid:
+            emit('build', 'reused')
             print(json.dumps({'build': service, 'status': 'reused', 'receipt': str(receipt_path(config, service))}), flush=True)
             return 'reused'
         receipt_path(config, service).unlink(missing_ok=True)
@@ -152,12 +155,18 @@ def ensure_build(config, service):
         print(json.dumps({'build': service, 'status': 'building', 'reason': reason}), flush=True)
         env = build_environment(config, service)
         if service == 'api':
-            commands = [[config['node'], 'tools/scripts/start-api.mjs', '--build-only']]
+            commands = [[config['node'], 'tools/scripts/start-api.mjs', '--build-only'],
+                        [config['corepack'], 'pnpm', 'nx', 'build', 'local-shell-sandbox']]
         else:
             commands = [[config['corepack'], 'pnpm', 'theme:check-hardcoded-colors'],
                         [config['corepack'], 'pnpm', 'nx', 'build', 'cloud', '--configuration=development-light']]
-        for command in commands:
-            subprocess.run(command, cwd=config['platform'], env=env, check=True)
+        with phase('build'):
+            for command in commands:
+                if 'local-shell-sandbox' in command:
+                    with phase('build_local_shell'):
+                        subprocess.run(command, cwd=config['platform'], env=env, check=True)
+                else:
+                    subprocess.run(command, cwd=config['platform'], env=env, check=True)
         outputs = output_fingerprint(config, service)
         if outputs is None or source_fingerprint(config, service) != inputs:
             raise RuntimeError('Build outputs are missing or inputs changed during compilation; no reusable receipt was saved')

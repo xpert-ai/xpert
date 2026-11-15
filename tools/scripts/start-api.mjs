@@ -71,34 +71,53 @@ export async function runApiWorkflow({
   if (preparedBuild && mode === 'build') throw new Error('Build-only cannot consume a prepared build')
   const api = path.join(workspaceRoot, 'dist/apps/api/main.js')
   const options = { cwd: workspaceRoot, env: { ...env, NODE_ENV: 'development' }, signal }
-  const stage = async (name, command, args) => {
+  const stage = async (phase, name, command, args) => {
     signal?.throwIfAborted()
+    const started = performance.now()
+    const report = (status) =>
+      log(
+        `XPERT_DEV_PHASE ${JSON.stringify({
+          phase,
+          status,
+          at: new Date().toISOString(),
+          elapsedMs: Math.round(performance.now() - started)
+        })}`
+      )
     log(`[start:api] ${name}`)
+    report('running')
     try {
       await run(command, args, options)
+      report('completed')
     } catch (error) {
+      report('failed')
       if (signal?.aborted) throw error
-      throw new Error(`${name} failed; API was not started. ${error.message}`, { cause: error })
+      const detail = phase === 'serve' ? `${name} failed` : `${name} failed; API was not started`
+      throw new Error(`${detail}. ${error.message}`, { cause: error })
     }
   }
   if (preparedBuild) {
-    await stage('Verify prepared build', 'python3', [
-      path.join(workspaceRoot, 'tools/local-environment/builds.py'), '--platform', workspaceRoot,
-      '--state', path.resolve(preparedBuild), '--verify', 'api'
+    await stage('verify_build', 'Verify prepared build', 'python3', [
+      path.join(workspaceRoot, 'tools/local-environment/builds.py'),
+      '--platform',
+      workspaceRoot,
+      '--state',
+      path.resolve(preparedBuild),
+      '--verify',
+      'api'
     ])
   } else {
-    await stage('Build libraries', 'corepack', ['pnpm', 'b:p:all'])
-    await stage('Build API and migration assets', 'corepack', [
-    'pnpm',
-    'nx',
-    'build',
-    'api',
-    '--configuration=development'
-  ])
+    await stage('build_libraries', 'Build libraries', 'corepack', ['pnpm', 'b:p:all'])
+    await stage('build_api', 'Build API and migration assets', 'corepack', [
+      'pnpm',
+      'nx',
+      'build',
+      'api',
+      '--configuration=development'
+    ])
   }
   if (mode === 'build') return
   if (mode === 'baseline') {
-    await stage('Adopt verified database baseline', process.execPath, [
+    await stage('schema_baseline', 'Adopt verified database baseline', process.execPath, [
       api,
       '--command',
       'schema-sync',
@@ -106,12 +125,24 @@ export async function runApiWorkflow({
       'baseline'
     ])
   }
-  await stage('Apply database changes', process.execPath, [api, '--command', 'schema-sync', '--action', 'apply'])
-  await stage('Verify database structure', process.execPath, [api, '--command', 'schema-sync', '--action', 'verify'])
+  await stage('schema_apply', 'Apply database changes', process.execPath, [
+    api,
+    '--command',
+    'schema-sync',
+    '--action',
+    'apply'
+  ])
+  await stage('schema_verify', 'Verify database structure', process.execPath, [
+    api,
+    '--command',
+    'schema-sync',
+    '--action',
+    'verify'
+  ])
   if (mode === 'serve') {
     signal?.throwIfAborted()
     log('[start:api] Database verified. Starting API.')
-    await run(process.execPath, [...(inspect ? ['--inspect=127.0.0.1:9229'] : []), api], options)
+    await stage('serve', 'Serve API', process.execPath, [...(inspect ? ['--inspect=127.0.0.1:9229'] : []), api])
   }
 }
 
@@ -128,7 +159,9 @@ async function main() {
     args.some((arg) => !['--schema-only', '--baseline', '--inspect', '--build-only'].includes(arg)) ||
     args.filter((arg) => ['--schema-only', '--baseline', '--build-only'].includes(arg)).length > 1
   ) {
-    throw new Error('Usage: start-api.mjs [--schema-only | --baseline | --build-only] [--inspect] [--prepared-build <state>]')
+    throw new Error(
+      'Usage: start-api.mjs [--schema-only | --baseline | --build-only] [--inspect] [--prepared-build <state>]'
+    )
   }
   const controller = new AbortController()
   const stop = (signal) => {
@@ -141,7 +174,13 @@ async function main() {
   process.on('SIGTERM', terminate)
   try {
     await runApiWorkflow({
-      mode: args.includes('--build-only') ? 'build' : args.includes('--baseline') ? 'baseline' : args.includes('--schema-only') ? 'schema' : 'serve',
+      mode: args.includes('--build-only')
+        ? 'build'
+        : args.includes('--baseline')
+          ? 'baseline'
+          : args.includes('--schema-only')
+            ? 'schema'
+            : 'serve',
       preparedBuild,
       inspect: args.includes('--inspect'),
       signal: controller.signal

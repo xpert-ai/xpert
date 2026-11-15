@@ -28,6 +28,20 @@ the requested behavior and the final deployment/review obligations intact.
 
 ## Repair and submit
 
+Keep one useful execution active through slow installation, compilation and live
+checks. A bounded shell/readiness wait is an observation window, not the task's
+execution deadline or proof of failure. Inspect the same process, recent logs and
+remaining budget; continue waiting while it progresses. Diagnose a concrete failure
+before restarting. At the real deadline or an unresolved blocker, return a precise
+checkpoint rather than repeating setup or claiming completion. The CLI decides
+these actions using the application's environment commands and selected skills.
+
+Reuse the selected checkout, verified dependencies, build outputs and exact candidate
+when resuming. Start only services needed by the requested check. A task limited to
+release materials or reports should reuse existing evidence and perform only the
+missing checks; it does not require a fresh full-stack build. A live deployment or
+independent execution review still needs actual runtime evidence for that candidate.
+
 Ordinary coding, packaging, deployment and environment failures belong to this
 execution. Keep a short hypothesis and perform the next discriminating check.
 Once the defect is identified, repair it and rerun the affected checks. Avoid
