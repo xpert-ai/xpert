@@ -29,7 +29,19 @@
               <th scope="row" class="font-medium">{{ row.label }}</th>
               <td>{{ row.samples ?? '—' }}</td>
               <td>{{ row.baseline }}</td>
-              <td>{{ row.candidate }}</td>
+              <td>
+                @if (row.samples && run(); as result) {
+                  <a
+                    class="text-primary underline underline-offset-2"
+                    [routerLink]="['/agent-evolution/evaluations', result.runId]"
+                    [queryParams]="{ slice: row.key }"
+                    [attr.aria-label]="row.label + ' · ' + (p + 'CandidateAccuracy' | translate) + ' ' + row.candidate"
+                    >{{ row.candidate }}</a
+                  >
+                } @else {
+                  {{ row.candidate }}
+                }
+              </td>
             </tr>
           }
         </tbody>

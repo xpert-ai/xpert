@@ -1654,6 +1654,7 @@
         "BackRuns": "Back to replay runs",
         "Raw": "Original run record",
         "RawOnly": "The original run record is available. Its associated candidate or structured results are unavailable.",
+        "sliceMissing": "This case group was not measured in this replay.",
         "missing": "This replay run was not found in the current scope.",
         "denied": "This account cannot read this evaluation in the current scope.",
         "failed": "The replay record could not be loaded. Try again.",

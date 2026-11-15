@@ -40,6 +40,7 @@ it('renders paired slice rates from one scoped run and distinguishes unmeasured 
   fixture.detectChanges()
   expect(cells()).toEqual(['Held-out cases', '6', '0%', '83.3%'])
   expect(element.querySelector('a')?.getAttribute('href')).toBe('/agent-evolution/evaluations/first')
+  expect(element.querySelector('td a')?.getAttribute('href')).toBe('/agent-evolution/evaluations/first?slice=sample')
   mockScope.set('second-org')
   fixture.detectChanges()
   first.next({ items: [run] })
@@ -47,6 +48,7 @@ it('renders paired slice rates from one scoped run and distinguishes unmeasured 
   second.next({ items: [{ targetId: 'router', runId: 'legacy' }] })
   fixture.detectChanges()
   expect(cells()).toEqual(['Held-out cases', '—', '—', '—'])
+  expect(element.querySelector('td a')).toBeNull()
   second.next({
     items: [
       { ...run, sliceMetrics: [{ slice: 'sample', totalCases: 0, baselineAccuracy: null, candidateAccuracy: null }] }
@@ -54,6 +56,7 @@ it('renders paired slice rates from one scoped run and distinguishes unmeasured 
   })
   fixture.detectChanges()
   expect(cells()).toEqual(['Held-out cases', '0', '—', '—'])
+  expect(element.querySelector('td a')).toBeNull()
   fixture.componentRef.setInput('target', { targetId: 'new', replaySlices: [{ key: 'slice-b', label: 'New group' }] })
   fixture.detectChanges()
   third.error(new Error('failed'))
