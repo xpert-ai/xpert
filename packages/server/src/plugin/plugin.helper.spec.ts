@@ -88,6 +88,53 @@ describe('plugin helper registerPluginsAsync', () => {
 		loadFailures.length = 0
 	})
 
+	it.each([false, true])(
+		'discovers built-ins independently of a migrated plugin store (override=%s)',
+		async (override) => {
+			const directory = mkdtempSync(join(tmpdir(), 'xpert-plugin-discovery-'))
+			const host = join(directory, 'current-host')
+			const oldHost = join(directory, 'old-host')
+			const explicitHost = join(directory, 'explicit-host')
+			const pluginName = '@test/host-builtin'
+			for (const root of [host, oldHost, explicitHost]) {
+				const plugin = join(root, 'packages/plugins/builtin')
+				mkdirSync(plugin, { recursive: true })
+				writeFileSync(join(plugin, 'package.json'), JSON.stringify({ name: pluginName, version: '1.0.0' }))
+			}
+			const storeRoot = join(oldHost, 'data/plugins/org-1')
+			const artifact = join(storeRoot, '@test__host-builtin')
+			const store = require('./organization-plugin.store')
+			const originalRoot = store.getOrganizationPluginRoot.getMockImplementation()
+			const originalPath = store.getOrganizationPluginPath.getMockImplementation()
+			const config = require('@xpert-ai/server-config')
+			const originalAssets = { ...config.getConfig().assetOptions }
+			config.setConfig({ assetOptions: { ...originalAssets, serverRoot: host } })
+			store.getOrganizationPluginRoot.mockReturnValue(storeRoot)
+			store.getOrganizationPluginPath.mockReturnValue(artifact)
+			try {
+				const result = await registerPluginsAsync({
+					organizationId: 'org-1',
+					...(override ? { baseDir: explicitHost } : {}),
+					plugins: [{ name: pluginName, source: 'code' }]
+				})
+				const workspacePath = join(override ? explicitHost : host, 'packages/plugins/builtin')
+				expect(result.errors).toEqual([])
+				expect(stageWorkspacePlugin).toHaveBeenCalledWith(
+					expect.objectContaining({ pluginName, workspacePath })
+				)
+				expect(loadPlugin).toHaveBeenCalledWith(
+					pluginName,
+					expect.objectContaining({ basedir: artifact, workspacePath, codeLoadMode: 'workspace-ts' })
+				)
+			} finally {
+				config.setConfig({ assetOptions: originalAssets })
+				store.getOrganizationPluginRoot.mockImplementation(originalRoot)
+				store.getOrganizationPluginPath.mockImplementation(originalPath)
+				rmSync(directory, { recursive: true, force: true })
+			}
+		}
+	)
+
 	it.each([
 		{ namespace: undefined, level: 'tenant', table: 'plugin_owned_history', expected: 'artifactNamespace' },
 		{
