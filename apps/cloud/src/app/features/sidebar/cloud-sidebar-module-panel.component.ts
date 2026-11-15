@@ -19,7 +19,7 @@ import { modulePanelLinks } from './cloud-sidebar-module-navigation'
   template: `
     @if (menu().data.panel === 'settings') {
       @for (group of settingsGroups(); track group.key) {
-        <h3 class="mb-1 mt-4 px-3 text-sm font-medium text-muted-foreground">
+        <h3 class="mb-1 mt-4 px-[12px] text-sm font-medium text-muted-foreground">
           {{ 'XP.SettingsShell.' + group.key | translate: { Default: group.label } }}
         </h3>
         <xp-sidebar-panel-links [items]="group.links" />

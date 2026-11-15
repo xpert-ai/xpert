@@ -13,7 +13,9 @@
     [context]="{ assistantId: xpertId(), conversationRoute: ['/chat/clawxpert/c'] }"
   />
 } @else if (panelMode()) {
-  <h3 class="mb-1 mt-5 px-3 text-sm font-medium text-muted-foreground">{{ 'XP.Sidebar.RecentTasks' | translate }}</h3>
+  <h3 class="mb-1 mt-5 px-[12px] text-sm font-medium text-muted-foreground">
+    {{ 'XP.Sidebar.RecentTasks' | translate }}
+  </h3>
   <ng-container [ngTemplateOutlet]="taskList" />
 } @else if (collapsed()) {
   <button

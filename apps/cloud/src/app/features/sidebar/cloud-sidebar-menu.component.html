@@ -21,7 +21,7 @@
           <ng-template #bosiPanel let-query>
             @for (item of group.items; track trackMenuItem($index, item)) {
               @if (visibleChildren(item).length) {
-                <h3 class="mb-1 mt-4 px-3 text-sm font-medium text-muted-foreground">
+                <h3 class="mb-1 mt-4 px-[12px] text-sm font-medium text-muted-foreground">
                   {{ 'XP.Sidebar.Resources' | translate }}
                 </h3>
                 @for (child of visibleChildren(item); track trackMenuItem($index, child)) {
@@ -113,7 +113,7 @@
 <ng-template #bosiItem let-item>
   <button
     type="button"
-    class="flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="flex sidebar-panel-row w-full items-center gap-2.5 rounded-lg text-left text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [class]="isActive(item) ? 'bg-components-list-option-active-bg font-medium text-text-primary!' : ''"
     [routerLink]="routerLinkFor(item)"
     [attr.data-onboarding-target]="item.data.onboardingTarget || null"
@@ -121,8 +121,8 @@
     (click)="onMenuClick($event, item)"
   >
     @if (item.icon) {
-      <span class="inline-flex size-[24px] shrink-0 items-center justify-center" aria-hidden="true">
-        <z-icon class="size-[20px] text-[20px] leading-none" [zType]="item.icon" />
+      <span class="sidebar-panel-icon" aria-hidden="true">
+        <z-icon [zType]="item.icon" />
       </span>
     }
     <span class="truncate">{{ menuTitleKey(item) | translate: { Default: item.title } }}</span>

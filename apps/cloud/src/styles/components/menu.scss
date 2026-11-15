@@ -1,5 +1,20 @@
 @reference "tailwindcss";
 
+// The overlay hosts both floating and pinned secondary navigation.
+xp-cloud-sidebar-hover-panel {
+  .sidebar-panel-row {
+    @apply min-h-[30px] px-[12px] py-[4px] text-[14px] leading-[20px] pointer-coarse:min-h-[44px];
+  }
+
+  .sidebar-panel-icon {
+    @apply inline-flex size-[20px] shrink-0 items-center justify-center text-[16px] leading-none;
+
+    > z-icon {
+      @apply size-[16px] text-[16px] leading-none;
+    }
+  }
+}
+
 .cdk-menu-trigger[aria-expanded='true'],
 [z-menu][data-state='open'] {
   @apply bg-components-list-option-active-bg text-text-secondary;

@@ -19,21 +19,17 @@ import { SidebarSearchContext, SidebarSearchPage, SidebarSearchSource } from './
       [attr.aria-busy]="loading()"
       [attr.data-search-source]="source()"
     >
-      <h3 class="px-3 py-2 text-sm font-medium text-muted-foreground">
+      <h3 class="px-[12px] py-2 text-sm font-medium text-muted-foreground">
         {{ 'XP.Sidebar.Search.' + source() | translate }}
       </h3>
       @for (item of page().items; track item.id) {
         <a
-          class="flex min-h-9 pointer-coarse:min-h-[44px] min-w-0 items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="flex sidebar-panel-row min-w-0 items-center gap-2.5 rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           [routerLink]="item.route"
           [queryParams]="item.queryParams"
           [title]="item.title"
         >
-          <i
-            class="inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-            [class]="item.icon"
-            aria-hidden="true"
-          ></i>
+          <i class="sidebar-panel-icon" [class]="item.icon" aria-hidden="true"></i>
           <span class="min-w-0 flex-1">
             <span class="block truncate">{{ item.title }}</span>
             @if (item.description) {
@@ -66,7 +62,7 @@ import { SidebarSearchContext, SidebarSearchPage, SidebarSearchSource } from './
       @if (!loading() && !error() && hasMore()) {
         <button
           type="button"
-          class="mx-3 min-h-9 rounded-lg px-3 py-1.5 pointer-coarse:min-h-[44px] text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary"
+          class="sidebar-panel-row rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary"
           (click)="loadMore()"
         >
           {{ 'XP.Sidebar.Search.More' | translate }}
