@@ -54,6 +54,7 @@ export interface EvolutionFeedbackProvider {
   readonly routeKey: string
   /** Discriminator of execution records this adapter can interpret. */
   readonly executionType: string
+  readonly workbench?: import('./execution-review').ExecutionReviewAdapter
   /** Validates untrusted review input against the scoped execution and returns the recorded learning event. */
   review(
     identity: { tenantId: string; organizationId: string },

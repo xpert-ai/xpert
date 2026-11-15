@@ -911,6 +911,13 @@
         "state_blocked": "已阻止"
       },
       "TargetDetail": {
+        "ReplaySlices": "分组回放结果",
+        "LatestReplay": "最近一次回放",
+        "CaseGroup": "评测分组",
+        "SampleCount": "样本数",
+        "BaselineAccuracy": "基线正确率",
+        "CandidateAccuracy": "候选正确率",
+        "NoSliceResults": "暂无这些分组的回放结果。",
         "PointerRevision": "指针修订号",
         "Title": "目标详情",
         "Breadcrumb": "面包屑",
@@ -1064,6 +1071,7 @@
         "BackRuns": "返回回放记录",
         "Raw": "原始运行记录",
         "RawOnly": "可查看本次运行的原始记录。关联的候选或结构化评测结果暂不可用。",
+        "sliceMissing": "本次回放没有评测该分组。",
         "missing": "在当前范围内没有找到这条回放记录。",
         "denied": "当前账号无权在此范围读取这条评测记录。",
         "failed": "读取回放记录失败，请重试。",

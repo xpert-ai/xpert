@@ -1,5 +1,6 @@
 import type { GoldenCaseRevision, LearningEvent } from '@xpert-ai/contracts'
 import { changeError } from './errors'
+import { heldOutOrderCases } from './negated-refund-order-status'
 import { fingerprint, intentFeatures, intentSchema, type ServiceIntent } from './policy'
 
 // The regression corpus is held constant across candidates. Reviewed examples are added once per input.
@@ -113,5 +114,5 @@ export function buildIntentCases(
   }
   for (const [key, event] of reviewed)
     add(key, intentSchema.parse(event.finalOutcomeSummary), `evolution-event:${event.eventId}`)
-  return [...cases.values()]
+  return [...cases.values(), ...heldOutOrderCases(cases)]
 }

@@ -96,6 +96,8 @@ export interface EvolutionTargetDescriptor {
   supportedScopes: EvolutionScopeType[]
   riskLevel: EvolutionRiskLevel
   metricSetId: string
+  /** Show paired accuracy for cases whose evaluator observations explicitly identify one of these slices. */
+  replaySlices?: Array<{ key: string; label: I18nText }>
   relatedTargetIds?: string[]
   /** Provider vocabulary for feedback emitted by this target, including previously recorded events. */
   feedbackVocabulary?: {

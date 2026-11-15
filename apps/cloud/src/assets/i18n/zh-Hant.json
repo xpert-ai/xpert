@@ -1215,6 +1215,13 @@
         "state_blocked": "已阻止"
       },
       "TargetDetail": {
+        "ReplaySlices": "分組回放結果",
+        "LatestReplay": "最近一次回放",
+        "CaseGroup": "評測分組",
+        "SampleCount": "樣本數",
+        "BaselineAccuracy": "基線正確率",
+        "CandidateAccuracy": "候選正確率",
+        "NoSliceResults": "暫無這些分組的回放結果。",
         "PointerRevision": "指標修訂號",
         "Title": "目標詳情",
         "Breadcrumb": "導覽路徑",
@@ -1368,6 +1375,7 @@
         "BackRuns": "返回回放紀錄",
         "Raw": "原始執行紀錄",
         "RawOnly": "可檢視本次執行的原始紀錄。關聯的候選或結構化評測結果暫不可用。",
+        "sliceMissing": "本次回放沒有評測該分組。",
         "missing": "目前範圍內找不到這筆回放紀錄。",
         "denied": "目前帳號無權在此範圍讀取這筆評測紀錄。",
         "failed": "讀取回放紀錄失敗，請重試。",

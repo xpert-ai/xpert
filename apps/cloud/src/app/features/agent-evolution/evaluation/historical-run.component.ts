@@ -4,19 +4,25 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import type { EvaluationRun } from '@xpert-ai/contracts'
+import type { DatasetSnapshot, EvaluationRun, EvolutionTargetDescriptor } from '@xpert-ai/contracts'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { catchError, map, of, startWith, switchMap } from 'rxjs'
+import { catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs'
 import { injectActiveScope } from '@cloud/app/@core/state'
 import { AgentEvolutionApiService } from '../agent-evolution-api.service'
 import { AgentEvolutionFacade } from '../agent-evolution.facade'
-import { findHistoricalRun } from '../evolution-resource-lookup'
+import { findEvolutionTarget, findHistoricalRun, findReplaySnapshot } from '../evolution-resource-lookup'
+import { ReplayResultComponent } from './replay-result.component'
 import { supportsHistoricalResult } from './replay-history'
 
-type Lookup = { status: 'loading' | 'found' | 'missing' | 'denied' | 'failed'; run?: EvaluationRun }
+type Lookup = {
+  status: 'loading' | 'found' | 'missing' | 'sliceMissing' | 'denied' | 'failed'
+  run?: EvaluationRun
+  target?: EvolutionTargetDescriptor
+  snapshot?: DatasetSnapshot
+}
 
 @Component({
-  imports: [JsonPipe, RouterLink, TranslateModule, ZardButtonComponent],
+  imports: [JsonPipe, RouterLink, TranslateModule, ZardButtonComponent, ReplayResultComponent],
   templateUrl: './historical-run.component.html',
   host: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto' }
 })
@@ -30,13 +36,37 @@ export class HistoricalRunComponent {
   private readonly params = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap })
   readonly query = toSignal(this.route.queryParamMap, { initialValue: this.route.snapshot.queryParamMap })
   readonly id = computed(() => this.params().get('resourceId') ?? '')
+  readonly slice = computed(() => this.query().get('slice'))
   readonly attempt = signal(0)
-  private readonly request = computed(() => ({ id: this.id(), scope: this.scope(), attempt: this.attempt() }))
+  private readonly request = computed(() => ({
+    id: this.id(),
+    scope: this.scope(),
+    slice: this.slice(),
+    attempt: this.attempt()
+  }))
   readonly state = toSignal(
     toObservable(this.request).pipe(
       switchMap((request) =>
         findHistoricalRun(this.api, request.id).pipe(
-          map((run): Lookup => (run ? { status: 'found', run } : { status: 'missing' })),
+          switchMap((run) => {
+            if (!run) return of<Lookup>({ status: 'missing' })
+            if (request.slice === null) return of<Lookup>({ status: 'found', run })
+            if (!run.targetId || !run.sliceMetrics?.some((group) => group.slice === request.slice))
+              return of<Lookup>({ status: 'sliceMissing' })
+            return forkJoin({
+              target: findEvolutionTarget(this.api, run.targetId),
+              snapshot: findReplaySnapshot(this.api, run)
+            }).pipe(
+              map(
+                ({ target, snapshot }): Lookup => ({
+                  status: 'found',
+                  run,
+                  target: target ?? undefined,
+                  snapshot: snapshot ?? undefined
+                })
+              )
+            )
+          }),
           catchError((err: unknown) =>
             of<Lookup>({
               status: err instanceof HttpErrorResponse && [401, 403].includes(err.status) ? 'denied' : 'failed'
@@ -48,7 +78,7 @@ export class HistoricalRunComponent {
       )
     )
   )
-  readonly lookup = computed(() => {
+  readonly lookup = computed<Lookup>(() => {
     const state = this.state()
     return state?.request === this.request() ? state.value : { status: 'loading' as const, run: undefined }
   })
@@ -61,7 +91,7 @@ export class HistoricalRunComponent {
   constructor() {
     effect(() => {
       const run = this.lookup().run
-      if (!run || !this.facade.loadedAt() || this.facade.loading()) return
+      if (this.slice() !== null || !run || !this.facade.loadedAt() || this.facade.loading()) return
       const candidate = this.facade.dashboard().candidates.find((c) => c.candidateId === run.candidateId)
       if (
         !candidate ||
@@ -85,6 +115,13 @@ export class HistoricalRunComponent {
           caseIndex: query.get('caseIndex')
         }
       })
+    })
+  }
+  setCase(selection: { id: string; index: number | null } | null) {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParamsHandling: 'merge',
+      queryParams: { caseId: selection?.id ?? null, caseIndex: selection?.index ?? null }
     })
   }
   retry() {

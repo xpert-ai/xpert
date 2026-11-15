@@ -1,4 +1,5 @@
 import type {
+  DatasetSnapshot,
   EvolutionCandidate,
   EvolutionPage,
   EvolutionTargetDescriptor,
@@ -7,6 +8,7 @@ import type {
   ReleaseDeployment
 } from '@xpert-ai/contracts'
 import { EMPTY, Observable, expand, last, map, of, take } from 'rxjs'
+import { sameEvolutionScope } from './agent-evolution.types'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 
 export type EvolutionDetailKind = 'target' | 'candidate' | 'evaluation' | 'deployment'
@@ -64,6 +66,19 @@ export function findHistoricalRun(api: AgentEvolutionApiService, runId: string):
   return exactResource(
     (page) => api.listEvaluations({ page, pageSize: 20, search: runId }),
     (item) => item.runId === runId
+  )
+}
+
+export function findReplaySnapshot(
+  api: AgentEvolutionApiService,
+  run: EvaluationRun
+): Observable<DatasetSnapshot | null> {
+  return exactResource(
+    (page) => api.listDatasets({ page, pageSize: 20, targetId: run.targetId }),
+    (snapshot) =>
+      snapshot.snapshotId === run.datasetSnapshotId &&
+      snapshot.targetId === run.targetId &&
+      sameEvolutionScope(snapshot.scope, run.scope)
   )
 }
 

@@ -3,7 +3,7 @@ team:
   title: 售后客服助手
   type: agent
   description: 解答订单查询、退款和其他售后问题。
-  version: '3'
+  version: '4'
   agent: { key: Agent_ServiceDesk }
   features:
     opener:
@@ -33,5 +33,14 @@ nodes:
         你只能提供咨询，无法代查订单或办理退款。引导用户在订单页或官方客服渠道操作。
         未获商家政策时不提供具体审核或到账时长。提供通用指引时无需索取手机号或账号。
         使用用户的语言简洁回答。
+  - type: workflow
+    key: Middleware_IntentReview
+    entity: { type: middleware, key: Middleware_IntentReview, title: 意图路由复核, provider: customer-intent-review }
 connections:
+  - {
+      type: workflow,
+      key: Agent_ServiceDesk/Middleware_IntentReview,
+      from: Agent_ServiceDesk,
+      to: Middleware_IntentReview
+    }
   - { type: edge, key: Intent_Route/Agent_ServiceDesk, from: Intent_Route, to: Agent_ServiceDesk }

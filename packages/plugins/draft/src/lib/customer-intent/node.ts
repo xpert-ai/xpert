@@ -31,7 +31,7 @@ export class CustomerIntentNode implements IWorkflowNodeStrategy {
   create({ node }: Parameters<IWorkflowNodeStrategy['create']>[0]) {
     return {
       ends: [],
-      graph: RunnableLambda.from(async (state: { input: string }, config) => {
+      graph: RunnableLambda.from(async (state: { input: string; inputIdentity?: { id: string } | null }, config) => {
         const run: TAgentRunnableConfigurable = config.configurable
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
@@ -86,6 +86,7 @@ export class CustomerIntentNode implements IWorkflowNodeStrategy {
                 : undefined
             const decision = {
               ...primary,
+              ...(state.inputIdentity?.id ? { sourceMessageId: state.inputIdentity.id } : {}),
               features,
               inputFingerprint: key,
               executionId: id,

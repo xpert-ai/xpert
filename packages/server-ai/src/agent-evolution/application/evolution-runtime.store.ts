@@ -8,7 +8,7 @@ import type {
 import { isStagedRelease } from '@xpert-ai/contracts'
 import { sameScope } from './evolution-governance.helpers'
 import { changeError } from '../changes/change.errors'
-import { DataSource } from 'typeorm'
+import { DataSource, type EntityManager } from 'typeorm'
 import {
     CapabilityVersionBundleEntity,
     ActiveCapabilityPointerEntity,
@@ -165,8 +165,12 @@ export class EvolutionRuntimeStore {
         })
     }
 
-    async saveRuntimeObservation(tenant: EvolutionTenantScope, observation: EvolutionRuntimeObservation) {
-        return this.dataSource.transaction(async (manager) => {
+    async saveRuntimeObservation(
+        tenant: EvolutionTenantScope,
+        observation: EvolutionRuntimeObservation,
+        transaction?: EntityManager
+    ) {
+        const persist = async (manager: EntityManager) => {
             const observationRepository = manager.getRepository(EvolutionRuntimeObservationEntity)
             const deploymentRepository = manager.getRepository(ReleaseDeploymentEntity)
             const releaseRepository = manager.getRepository(ReleasePackageEntity)
@@ -321,7 +325,8 @@ export class EvolutionRuntimeStore {
                 }
             }
             return saved.value
-        })
+        }
+        return transaction ? persist(transaction) : this.dataSource.transaction(persist)
     }
 
     async activatePointerCas(input: {

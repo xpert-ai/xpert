@@ -58,6 +58,7 @@ FROM build-dependencies AS build
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
+COPY --chown=node:node tools/remote-components ./tools/remote-components
 COPY --chown=node:node apps/api ./apps/api
 COPY --chown=node:node .deploy/api/build.mjs .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml .deploy/api/database-migrations.json ./.deploy/api/
 RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/nsjail-runner packages/plugins/local-shell-sandbox

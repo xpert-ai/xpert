@@ -3,6 +3,12 @@ import { createRuntimeCapability } from '../core'
 
 export const EVOLUTION_RUNTIME_SERVICE_TOKEN = 'XPERT_EVOLUTION_RUNTIME_SERVICE'
 
+export const ExecutionReviewRuntimeCapability = createRuntimeCapability<
+  import('@xpert-ai/contracts').ExecutionReviewApi
+>('platform.agent-evolution.execution-review', {
+  description: 'Human review of executions within the authorized project and Assistant.'
+})
+
 /** Capability for inspecting and publishing source baselines within an authorized organization. */
 export const EvolutionBaselineRuntimeCapability = createRuntimeCapability<EvolutionBaselineRuntimeApi>(
   'platform.agent-evolution.baselines',

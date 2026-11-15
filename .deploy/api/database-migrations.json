@@ -1,5 +1,6 @@
 {
   "managedTables": [
+    "agent_evolution_execution_review",
     "agent_invocation",
     "agent_invocation_activity_item",
     "agent_invocation_activity_state",
@@ -120,6 +121,8 @@
     "ai/xpert-project/migrations/checks/20261110000000-task-review-subtasks.sql",
     "core/password-reset/migrations/checks/20261110000200-bound-reset-tickets.sql",
     "ai/xpert-project/migrations/checks/20261110000300-project-purge-receipts.sql",
-    "ai/model-execution/migrations/checks/20261112160000-cli-native-authentication.sql"
+    "ai/model-execution/migrations/checks/20261112160000-cli-native-authentication.sql",
+    "ai/agent-evolution/migrations/checks/20261115010000-execution-review.sql",
+    "ai/agent-evolution/migrations/checks/20261115020000-execution-review-audit.sql"
   ]
 }

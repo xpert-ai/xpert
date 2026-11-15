@@ -1,8 +1,16 @@
 import { createRoot } from 'react-dom/client'
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
-import { Button, Tabs, TabsContent, TabsHeader, TabsList, TabsTrigger } from '@xpert-ai/shadcn-ui'
-import { connect } from '../../../../../view-extension/remote-components/shared/bridge'
+import {
+    applyRemoteComponentTheme,
+    Button,
+    Tabs,
+    TabsContent,
+    TabsHeader,
+    TabsList,
+    TabsTrigger
+} from '@xpert-ai/shadcn-ui'
+import { connect } from '@xpert-ai/plugin-sdk/remote-component'
 import { Library } from './library'
 import { Reviews } from './reviews'
 import { Dreams } from './dreams'
@@ -85,8 +93,9 @@ function App() {
         [scope, reset] = useState(0)
     useEffect(() => {
         const changed = () => reset((n) => n + 1)
-        return connect((v, newScope) => {
-            setLocale(v)
+        return connect(({ locale, theme }, newScope) => {
+            applyRemoteComponentTheme(locale, theme)
+            setLocale(locale)
             if (newScope) changed()
         }, changed)
     }, [])

@@ -39,7 +39,10 @@ async function verifyContentDocuments(source, bundle, migrate, root) {
   const id = await seedContentDocuments(source)
   const repository = source.getRepository(ContentDocument)
   const document = await repository.findOneByOrFail({ id })
-  const guard = new ContentFileOwnershipService(repository)
+  const { ContentResourceEntry } = require(
+    `${root}/packages/server-ai/src/content-resource/catalog/content-entry.entity`
+  )
+  const guard = new ContentFileOwnershipService(repository, source.getRepository(ContentResourceEntry))
   await guard.assertUnmanaged(document.tenantId, document.projectId, 'new-upload.pdf')
   await assert.rejects(() => guard.assertUnmanaged(document.tenantId, document.projectId, document.path))
   await assert.rejects(() => repository.insert({ ...document, id: randomUUID() }), /duplicate key/)

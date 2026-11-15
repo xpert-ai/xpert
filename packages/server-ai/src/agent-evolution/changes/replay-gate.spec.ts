@@ -1,4 +1,9 @@
-import { FEEDBACK_LEARNING_STRATEGY, type EvolutionChangeOperation, type EvaluationRun } from '@xpert-ai/contracts'
+import {
+    FEEDBACK_LEARNING_STRATEGY,
+    type EvolutionChangeOperation,
+    type EvaluationRun,
+    type EvolutionTargetDescriptor
+} from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { EntityManager } from 'typeorm'
 import { ConformanceFieldMappingProvider } from '../providers'
@@ -9,6 +14,11 @@ import { EvolutionEvaluationExecutor } from './evaluation-executor.service'
 
 it('retains per-case provider metrics and rejects a domain regression despite improved aggregate accuracy', async () => {
     const provider = new ConformanceFieldMappingProvider()
+    const descriptor: EvolutionTargetDescriptor = provider.descriptor
+    descriptor.replaySlices = [
+        { key: 'holdout', label: 'Holdout' },
+        { key: 'empty', label: 'Empty' }
+    ]
     const scope = { type: 'project' as const, key: 'A' }
     const cases = Array.from({ length: 50 }, (_, i) => ({ caseId: String(i), slice: 'affected', risk: 'high' }))
     const store = {
@@ -49,6 +59,8 @@ it('retains per-case provider metrics and rejects a domain regression despite im
     }))
     const metric = { metricKey: 'regression', value: 1, unit: 'count' as const, slice: 'affected', blocking: true }
     const evaluator = jest.spyOn(provider, 'evaluateResult').mockResolvedValue([metric])
+    const heldOut = { ...metric, slice: 'holdout', blocking: false }
+    evaluator.mockResolvedValueOnce([heldOut, heldOut]).mockResolvedValueOnce([heldOut])
     const step = FEEDBACK_LEARNING_STRATEGY.evaluations[0]
     const operation: EvolutionChangeOperation = {
         context: {
@@ -102,7 +114,11 @@ it('retains per-case provider metrics and rejects a domain regression despite im
         evaluatorVersion: 'eval-1'
     })
     expect(raw.metrics.accuracyDelta).toBe(1)
-    expect(raw.caseResults[0].observations).toEqual([metric])
+    expect(raw.caseResults[2].observations).toEqual([metric])
+    expect(raw.sliceMetrics).toEqual([
+        { slice: 'holdout', totalCases: 2, baselineAccuracy: 0, candidateAccuracy: 1 },
+        { slice: 'empty', totalCases: 0, baselineAccuracy: null, candidateAccuracy: null }
+    ])
     expect(raw.gate.blockingReasons).toEqual(['provider_metric:regression'])
     expect(result.passed).toBe(false)
     evaluator.mockResolvedValueOnce([{ ...metric, value: Number.NaN }])

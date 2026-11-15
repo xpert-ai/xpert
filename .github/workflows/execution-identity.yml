@@ -46,5 +46,5 @@ jobs:
           packages/server-ai/src/knowledgebase/embedding/knowledgebase-rebuild-embedding.job.spec.ts
           packages/server-ai/src/knowledge-document/questions/question-generation.job.spec.ts
           packages/server-ai/src/handoff/runtime-messaging/runtime-reconciliation.integration.spec.ts
-          packages/server-ai/src/chat-conversation/summary.job.spec.ts
+          packages/server-ai/src/plugins/file-memory/dream-review.job.spec.ts
           packages/server-ai/src/xpert-task/execution-identity/task-execution-identity.spec.ts
