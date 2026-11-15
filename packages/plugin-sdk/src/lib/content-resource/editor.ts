@@ -10,6 +10,7 @@ import { STRATEGY_META_KEY } from '../types'
 import { createRuntimeCapability } from '../core/runtime-capability'
 import type { ContentDocumentModel, ContentDocumentScope } from './document'
 import type { ContentResourceReference, ContentSourceInput } from './index'
+import type { CollaborationSessionDescriptor } from '../collaboration/types'
 export { supportsContentModel } from './editor-compatibility'
 
 /** File codecs expose no cells, blocks or plugin-specific edit operations to the platform. */
@@ -57,11 +58,16 @@ export interface ContentEditorFile {
 export interface ContentResourceEditor {
   describe(input: ContentSourceInput): Promise<ContentEditorFile>
   files?: {
-    read(input: ContentSourceInput): Promise<{ buffer: Buffer; revision: string }>
-    write(input: ContentSourceInput & { buffer: Buffer; expectedRevision: string }): Promise<{ revision: string }>
+    read(input: ContentSourceInput): Promise<{ buffer: Buffer; revision: string; sequence?: number }>
+    write(
+      input: ContentSourceInput & { buffer: Buffer; expectedRevision: string }
+    ): Promise<{ revision: string; sequence?: number }>
   }
+  /** Presence and revision notifications only; file bytes remain owned by the CAS writer above. */
+  createSession?(input: ContentSourceInput): Promise<CollaborationSessionDescriptor>
 }
 export type ContentEditorInput = ContentDocumentScope & { source: ContentResourceReference; editorKey?: string }
+export type ContentFileEditorInput = ContentDocumentScope & { path: string; editorKey?: string }
 export type ContentEditorPreferenceScope = 'resource' | 'project' | 'organization'
 export interface ContentEditorPreferenceState {
   scope: ContentEditorPreferenceScope
@@ -76,12 +82,20 @@ export interface ContentEditorResolution {
   canWrite: boolean
   viewKey: string
   selectionId?: string
-  parameters?: { contentProvider: string; contentId?: string; contentTitle?: string; contentEditor?: string }
+  parameters?: {
+    contentProvider: string
+    contentId?: string
+    contentTitle?: string
+    contentEditor?: string
+    filePath?: string
+  }
   editors?: ResourceContentEditorRegistration[]
 }
 /** Trusted scope only. Every operation checks Project, Assistant binding and resource permissions. */
 export interface ContentEditorsApi {
+  /** Read resource, Project and organization editor preferences, including permission to change each scope. */
   preferences(input: ContentDocumentScope & { contentId: string }): Promise<ContentEditorPreferenceState[]>
+  /** Set or clear a scoped preference using its exact revision; editorKey=null restores inherited selection. */
   setPreference(
     input: ContentDocumentScope & {
       contentId: string
@@ -90,14 +104,30 @@ export interface ContentEditorsApi {
       expectedRevision: number
     }
   ): Promise<ContentEditorPreferenceState>
+  /** List editors available in the authorized scope; discovery alone does not grant access to a resource. */
   list(scope: ContentDocumentScope): Promise<ContentEditorRegistration[]>
-  /** Prepare/validate bytes; does not create a resource or grant access to a destination. */
+  /** Validate supplied bytes or create a blank file with the selected codec; does not persist a resource. */
   prepare(
     scope: ContentDocumentScope & { editorKey: string; buffer?: Buffer }
   ): Promise<{ registration: FileContentEditorRegistration; buffer: Buffer }>
+  /** Resolve an authorized resource to a compatible editor and host navigation, honoring editor preferences. */
   resolve(input: ContentEditorInput): Promise<ContentEditorResolution>
-  read(input: ContentEditorInput): Promise<ContentEditorResolution & { buffer: Buffer; revision: string }>
-  write(input: ContentEditorInput & { buffer: Buffer; expectedRevision: string }): Promise<{ revision: string }>
+  /** Resolve a Project path through its live resource owner, falling back to a file codec only when unmanaged. */
+  resolveFile(input: ContentFileEditorInput): Promise<ContentEditorResolution>
+  /** Read and validate an unmanaged Project file; revision is its current hash. Owned files must use read(). */
+  readFile(input: ContentFileEditorInput): Promise<ContentEditorResolution & { buffer: Buffer; revision: string }>
+  /** Validate and atomically replace an unmanaged file at expectedRevision; reject owned paths and stale hashes. */
+  writeFile(input: ContentFileEditorInput & { buffer: Buffer; expectedRevision: string }): Promise<{ revision: string }>
+  /** Read a resource owner's current file and opaque revision; sequence and collaboration are optional owner capabilities. */
+  read(
+    input: ContentEditorInput
+  ): Promise<ContentEditorResolution & { buffer: Buffer; revision: string; sequence?: number; collaboration?: boolean }>
+  /** Validate bytes and publish through the owner using expectedRevision; the owner enforces atomic versions and history. */
+  write(
+    input: ContentEditorInput & { buffer: Buffer; expectedRevision: string }
+  ): Promise<{ revision: string; sequence?: number }>
+  /** Create an authorized presence/revision session when supported; file writes still use write(), not this channel. */
+  createSession(input: ContentEditorInput): Promise<CollaborationSessionDescriptor>
 }
 export const ContentEditorsRuntimeCapability = createRuntimeCapability<ContentEditorsApi>('platform.content.editors', {
   description:

@@ -13,6 +13,7 @@ import { ContentDocumentMaintenance } from './documents/document-maintenance.ser
 import { ContentDocumentHierarchy } from './documents/document-hierarchy.service'
 import { ContentDocumentLocations } from './documents/document-location.service'
 import { ContentEditorsService } from './content-editors.service'
+import { ContentFileEditors } from './content-file-editors.service'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -70,6 +71,7 @@ import { ContentResourceEntry } from './catalog/content-entry.entity'
         ContentDocumentLocations,
         ContentDocumentMaintenance,
         ContentEditorsService,
+        ContentFileEditors,
         ContentResourceProviderRegistry,
         ContentIdentityService,
         ContentResourceService,

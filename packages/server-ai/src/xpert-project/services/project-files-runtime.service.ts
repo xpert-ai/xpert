@@ -83,6 +83,16 @@ export class ProjectFilesRuntimeService implements ProjectFilesApi {
     /** Trusted native persistence: the host checks Project access and CAS, not provider-to-path ownership.
      * Adapters must authorize their resource; generic uploads/edits use the full ownership guard. */
     async write(input: ProjectFileScope & { path: string; buffer: Buffer; expectedHash: string | null }) {
+        return this.writeFile(input, false)
+    }
+    /** Generic file editors must never bypass a content owner's publication/versioning. */
+    async writeUnmanaged(input: ProjectFileScope & { path: string; buffer: Buffer; expectedHash: string }) {
+        return this.writeFile(input, true)
+    }
+    private async writeFile(
+        input: ProjectFileScope & { path: string; buffer: Buffer; expectedHash: string | null },
+        unmanaged: boolean
+    ) {
         const volume = await this.volume(input, true)
         const filePath = checkedWorkspacePath(input.path, true)
         if (input.buffer.length > 25 * 1024 * 1024)
@@ -92,7 +102,9 @@ export class ProjectFilesRuntimeService implements ProjectFilesApi {
             authorize: () => this.volume(input, true),
             // Native adapters enforce their own domain policy; ContentDocuments still require publication.
             assertUnmanaged: () =>
-                this.ownership?.assertUnmanagedDocument(input.actor.tenantId, input.projectId, filePath)
+                unmanaged
+                    ? this.ownership?.assertUnmanaged(input.actor.tenantId, input.projectId, filePath)
+                    : this.ownership?.assertUnmanagedDocument(input.actor.tenantId, input.projectId, filePath)
         })
     }
 

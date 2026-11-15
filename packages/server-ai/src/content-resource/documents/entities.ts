@@ -78,7 +78,15 @@ export class ContentProposal extends TenantOrganizationBaseEntity {
 export class ContentLocationChange extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid' }) projectId: string
     @Column({ type: 'jsonb' }) input: ContentLocationChangeInput
-    @Column({ type: 'jsonb' }) documents: Array<{ id: string; from: string; to: string; hash: string; epoch: number }>
+    // File entries fingerprint provider-owned binary resources, not ContentDocument rows.
+    @Column({ type: 'jsonb' }) documents: Array<{
+        id: string
+        from: string
+        to: string
+        hash: string
+        epoch: number
+        kind?: 'file'
+    }>
     @Column({ type: 'varchar', length: 16, default: 'prepared' }) status: 'prepared' | 'committed' | 'projected'
 }
 export const contentDocumentEntities = [

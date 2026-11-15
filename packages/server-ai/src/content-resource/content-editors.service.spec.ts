@@ -19,14 +19,12 @@ function fixture() {
         write: jest.fn().mockResolvedValue({ revision: 'r2' })
     }
     const source = {
-        describe: jest
-            .fn()
-            .mockResolvedValue({
-                projectId: 'project',
-                editorKey: descriptor.key,
-                path: 'content.custom',
-                title: 'Content'
-            }),
+        describe: jest.fn().mockResolvedValue({
+            projectId: 'project',
+            editorKey: descriptor.key,
+            path: 'content.custom',
+            title: 'Content'
+        }),
         files
     }
     const providers = { get: jest.fn().mockReturnValue({ editor: source }) }
@@ -42,7 +40,8 @@ function fixture() {
         resources as never,
         providers as never,
         access as never,
-        { keys: async () => [] } as never
+        { keys: async () => [] } as never,
+        {} as never
     )
     return { service, editor, registry, files, source, providers, resources, access }
 }

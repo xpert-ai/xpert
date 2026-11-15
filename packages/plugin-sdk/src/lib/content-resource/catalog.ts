@@ -16,7 +16,11 @@ export type ContentResourceMutation =
 
 /** Plugins retain their native model and ACL. Discovery is scoped and paginated, never a grant. */
 export interface ContentCatalogProvider {
+  /** Live path lookup for file owners before a rebuildable catalog entry exists. */
+  resolveFile?(input: ContentDocumentScope & { path: string }): Promise<string | null>
   readonly types: ContentTypeImplementation[]
+  /** Optional scoped implementations supplied by installed file codecs; never a permission grant. */
+  listTypes?(scope: ContentDocumentScope): Promise<ContentTypeImplementation[]>
   /** Explicit opt-in for target creation; omission disables content transfer into this provider. */
   readonly acceptedTransferSchemas?: ReadonlyArray<ContentTransferSnapshot['schema']>
   discover(scope: ContentDocumentScope & { cursor?: string }): Promise<{ resourceIds: string[]; nextCursor?: string }>

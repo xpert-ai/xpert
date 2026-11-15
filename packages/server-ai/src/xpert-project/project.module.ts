@@ -61,6 +61,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from '@nestjs/core'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectController } from './project.controller'
+import { ProjectContentFilesController } from './project-content-files.controller'
 import { XpertProjectService } from './project.service'
 import { XpertProjectTask } from './entities/project-task.entity'
 import { XpertProjectTaskStep } from './entities/project-task-step.entity'
@@ -227,6 +228,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineCatalogController,
         ProjectPipelineProviderActionsController,
         XpertProjectController,
+        ProjectContentFilesController,
         XpertProjectInvitationController,
         XpertProjectAdminController,
         ProjectTaskGraphController

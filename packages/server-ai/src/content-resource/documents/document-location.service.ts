@@ -64,7 +64,6 @@ export class ContentDocumentLocations {
                     order: { id: 'ASC' }
                 })
                 const documents = await this.selectDocuments(candidates, input)
-                if (!documents.length) this.documents.conflict()
                 await this.lockAll(documents, async () => {
                     // Reject common name collisions before retiring any live room. The file step rechecks
                     // the target under the workspace lease; a later external race remains recoverable.
@@ -78,6 +77,23 @@ export class ContentDocumentLocations {
                         documents: [],
                         status: 'prepared'
                     })
+                    // Binary resources use the provider's authorized location hooks, without
+                    // inventing a text document or retiring an unrelated CRDT room.
+                    if (!documents.length) {
+                        const file = await this.files.read({
+                            actor: input.actor,
+                            projectId: input.projectId,
+                            path: input.path
+                        })
+                        operation.documents.push({
+                            id: input.source.resourceId,
+                            from: input.path,
+                            to: input.destination,
+                            hash: file.sha256,
+                            epoch: 0,
+                            kind: 'file'
+                        })
+                    }
                     await this.changes.manager.transaction(async (manager) => {
                         for (const candidate of documents) {
                             const rows = manager.getRepository(ContentDocument),
@@ -205,7 +221,7 @@ export class ContentDocumentLocations {
                 if (file.sha256 !== document.hash) this.documents.conflict()
             }
             await this.changes.manager.transaction(async (manager) => {
-                for (const document of current.documents)
+                for (const document of current.documents.filter((document) => document.kind !== 'file'))
                     await manager.getRepository(ContentDocument).update(
                         { id: document.id, epoch: document.epoch, status: 'moving' },
                         {

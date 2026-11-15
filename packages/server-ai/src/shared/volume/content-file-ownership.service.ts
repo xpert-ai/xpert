@@ -15,6 +15,26 @@ export class ContentFileOwnershipService {
         @InjectRepository(ContentDocument) private readonly documents: Repository<ContentDocument>,
         @InjectRepository(ContentResourceEntry) private readonly entries: Repository<ContentResourceEntry>
     ) {}
+    /** Retained identity is only a routing hint. The caller must authorize the live resource. */
+    async findFileResource(tenantId: string, projectId: string, path: string) {
+        path = canonicalPath(path)
+        const entries = await this.entries.find({
+            where: { tenantId, projectId },
+            select: { offlineSnapshot: true, providerKey: true, resourceId: true }
+        })
+        for (const entry of entries) {
+            const parsed = contentSnapshotSchema.safeParse(entry.offlineSnapshot)
+            if (!parsed.success) continue
+            const snapshot = parsed.data
+            if (
+                snapshot.projectId === projectId &&
+                snapshot.source.kind === 'file' &&
+                canonicalPath(snapshot.source.path) === path
+            )
+                return { providerKey: entry.providerKey, resourceId: entry.resourceId }
+        }
+        return null
+    }
     async assertUnmanaged(tenantId: string, projectId: string | undefined, path: string, recursive = false) {
         if (!projectId) return
         path = canonicalPath(path)
