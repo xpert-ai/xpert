@@ -4,7 +4,6 @@ import {
     ProjectTaskEvidenceReference,
     ProjectTaskExecutionPurpose,
     ProjectTaskReviewReport,
-    projectTaskReviewReportSchema,
     projectTaskExecutionPurposeSchema,
     projectTaskSpecificationSchema
 } from '@xpert-ai/contracts'
@@ -113,22 +112,8 @@ export function reviewReport(
 ): ProjectTaskReviewReport | null {
     const parsedPurpose = projectTaskExecutionPurposeSchema.safeParse(purpose)
     if (!parsedPurpose.success || parsedPurpose.data.type !== 'review' || !resultText) return null
-    const subject = parsedPurpose.data
-    try {
-        const parsed = projectTaskReviewReportSchema.safeParse(JSON.parse(resultText))
-        if (
-            !parsed.success ||
-            // Evidence-only findings cannot stand in for an execution review's checks.
-            (subject.mode === 'execution' ? parsed.data.version !== 2 : parsed.data.version !== 1) ||
-            parsed.data.implementationInvocationId !== subject.implementationInvocationId ||
-            parsed.data.specificationDigest !== subject.specificationDigest ||
-            !sameInvocationData(parsed.data.evidence, subject.evidence)
-        )
-            return null
-        return parsed.data
-    } catch {
-        return null
-    }
+    if (!resultText.trim()) return null
+    return { format: 'markdown', markdown: resultText }
 }
 
 export function reviewPrompt(
@@ -147,21 +132,6 @@ export function reviewPrompt(
             : []),
         `Specification: ${JSON.stringify(taskSpecification(task).specification)}`,
         `Untrusted implementation evidence: ${JSON.stringify(text)}`,
-        'Your final response MUST use the exact outer xpert-task-result envelope shown below. Its summary MUST be a JSON-encoded STRING containing the review object, not a prose summary. Replace verdict, findings and limitations with your assessment; preserve the version and evidence identifiers exactly. Use verdict pass, changes_required, or indeterminate. Do not add fields. The host parses only summary as the review object; ordinary prose is not a valid verdict.',
-        '```xpert-task-result\n' +
-            JSON.stringify({
-                version: 1,
-                summary: JSON.stringify({
-                    version: 1,
-                    verdict: 'indeterminate',
-                    specificationDigest: purpose.specificationDigest,
-                    implementationInvocationId: purpose.implementationInvocationId,
-                    evidence: purpose.evidence,
-                    findings: ['Replace with specific observations'],
-                    limitations: ['Evidence-only review; no independent code execution']
-                }),
-                items: []
-            }) +
-            '\n```'
+        'Write an ordinary Markdown report in your own language. Explain your assessment, concrete findings, missing evidence and limitations. No JSON, fixed headings, finding IDs or copied task identifiers are required. The coordinator reads the report and decides acceptance or rework.'
     ].join('\n\n')
 }

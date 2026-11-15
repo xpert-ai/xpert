@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@xpert-ai/shadcn-ui'
 import { Minus, Plus, Scan } from 'lucide-react'
-import type { TrailGraph, TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailGraph, TrailStep } from '@xpert-ai/contracts'
 import { layoutTrail } from './trail-layout'
 import { fitTrailBounds, revealTrailPoint, type TrailBounds } from './trail-camera'
 import { ActivityGlyph } from './trail-glyph'

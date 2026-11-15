@@ -3,7 +3,9 @@ import {
     UpdateProjectTaskPlanCommand,
     DispatchProjectTaskCommand,
     DecideProjectTaskCommand,
+    DecideProjectTaskReferenceCommand,
     GetProjectRuntimeTaskCommand,
+    RecoverProjectTaskDeliveryCommand,
     ListProjectRuntimeBindingsCommand
 } from './project-task-dispatch.command'
 import { ProjectTaskDispatchService } from './project-task-dispatch.service'
@@ -32,6 +34,14 @@ export class DecideProjectTaskHandler implements ICommandHandler<DecideProjectTa
     }
 }
 
+@CommandHandler(DecideProjectTaskReferenceCommand)
+export class DecideProjectTaskReferenceHandler implements ICommandHandler<DecideProjectTaskReferenceCommand> {
+    constructor(private readonly decisions: ProjectTaskDecisionService) {}
+    execute(command: DecideProjectTaskReferenceCommand) {
+        return this.decisions.decideReference(command.projectId, command.input, command.caller)
+    }
+}
+
 @CommandHandler(DispatchProjectTaskCommand)
 export class DispatchProjectTaskHandler implements ICommandHandler<DispatchProjectTaskCommand> {
     constructor(private readonly dispatch: ProjectTaskDispatchService) {}
@@ -56,9 +66,18 @@ export class ListProjectRuntimeBindingsHandler implements ICommandHandler<ListPr
         return this.factory.listProjectBindings(await this.context.resolve(command.projectId, command.caller))
     }
 }
+@CommandHandler(RecoverProjectTaskDeliveryCommand)
+export class RecoverProjectTaskDeliveryHandler implements ICommandHandler<RecoverProjectTaskDeliveryCommand> {
+    constructor(private readonly read: ProjectTaskRuntimeReadService) {}
+    execute(command: RecoverProjectTaskDeliveryCommand) {
+        return this.read.recoverDelivery(command.projectId, command.taskId, command.executionId, command.input)
+    }
+}
 export const ProjectTaskRuntimeHandlers = [
+    RecoverProjectTaskDeliveryHandler,
     UpdateProjectTaskPlanHandler,
     DecideProjectTaskHandler,
+    DecideProjectTaskReferenceHandler,
     DispatchProjectTaskHandler,
     GetProjectRuntimeTaskHandler,
     ListProjectRuntimeBindingsHandler

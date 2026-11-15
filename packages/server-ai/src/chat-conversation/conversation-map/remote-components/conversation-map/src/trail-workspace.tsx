@@ -1,11 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowUpRight, PanelRight, RefreshCw } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
-import {
-    trailGraphSchema,
-    type TrailGraph,
-    type TrailStep
-} from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import { trailGraphSchema, type TrailGraph, type TrailStep } from '@xpert-ai/contracts'
 import type { MapNode } from '../../../schema'
 import { request, readOptions, type Prefs } from './bridge'
 import { ChoiceSelect, HistoryToggle } from './view-controls'

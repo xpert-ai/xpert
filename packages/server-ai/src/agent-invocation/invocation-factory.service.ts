@@ -423,6 +423,7 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 return (await api()).start(request)
             },
             inspect: async (id) => (await existingApi(id)).inspect(id),
+            recoverDelivery: async (id, input) => (await existingApi(id)).recoverDelivery(id, input),
             cancel: async (id) => (await existingApi(id)).cancel(id),
             respond: async (id, interaction, response) => (await existingApi(id)).respond(id, interaction, response)
         }

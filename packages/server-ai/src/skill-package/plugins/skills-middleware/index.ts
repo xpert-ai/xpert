@@ -4,396 +4,62 @@ import {
 } from '../../../agent-plugin/runtime-resource-context'
 import { readRuntimeResourceSkillFile } from '../../../agent-plugin/runtime-resource-skill-file'
 import { RegisteredSkillUsage, registerSkillUsages, skillReadResult } from './skill-usage'
-/**
-Middleware for loading and exposing agent skills to the system prompt.
-
-This middleware implements Anthropic's "Agent Skills" pattern with progressive disclosure:
-1. Parse YAML frontmatter from SKILL.md files at session start
-2. Inject skills metadata (name + description) into system prompt
-3. Agent reads full SKILL.md content when relevant to a task
-
-Skills directory structure (runtime working directory):
-Runtime-synced skills: {PWD}/.xpert/skills/
-CLI-installed skills: {PWD}/.agents/skills/
-
-Example structure:
-{PWD}/.xpert/skills/
-├── web-research/
-│   ├── SKILL.md        # Required: YAML frontmatter + instructions
-│   └── helper.py       # Optional: supporting files
-├── code-review/
-│   ├── SKILL.md
-│   └── checklist.md
-
-{PWD}/.xpert/skills/
-└── SKILL.md        # Runtime-specific skill
-*/
 import { SystemMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
-import {
-    ISkillRepositoryIndex,
-    parseRuntimeSkillCapabilityId,
-    TAgentMiddlewareMeta,
-    TRuntimeSkillSource
-} from '@xpert-ai/contracts'
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
-    SandboxBackendProtocol,
     resolveSandboxBackend
 } from '@xpert-ai/plugin-sdk'
-import { access, readFile, stat } from 'fs/promises'
-import { dirname, isAbsolute, join, relative, resolve } from 'path'
+import { isAbsolute, join, relative } from 'path'
 import { In, Repository } from 'typeorm'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
 import { SkillPackage } from '../../skill-package.entity'
 import { SkillPackageService } from '../../skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../../types'
-import { SandboxAcquireBackendCommand, SandboxCopyTreeCommand } from '../../../sandbox'
+import { SandboxCopyTreeCommand } from '../../../sandbox'
 import type { WorkspaceBinding } from '../../../shared'
-import {
-    findValidatedProjectSkillFiles,
-    readProjectSkillManifest,
-    resolveXpertDataVolumeScope,
-    VolumeClient
-} from '../../../shared/volume'
 import { SkillRepositoryIndexService } from '../../../skill-repository/repository-index/skill-repository-index.service'
 import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-workspace'
+import {
+    InstallProjectSkillCommand,
+    ListProjectSkillsCommand
+} from '../../../xpert-project/commands/project-skills.command'
+import { SkillMetadataLoader } from './skill-metadata'
+import { skillsMiddlewareMeta } from './skill-meta'
+import {
+    ISkillsMiddlewareOptions,
+    SkillPromptMetadata,
+    SkillSyncRecord,
+    FALLBACK_RUNTIME_ROOT_IN_CONTAINER,
+    RUNTIME_SKILLS_DIRECTORY,
+    MAX_AUTO_DISCOVERY_SEARCH_LIMIT,
+    AUTO_DISCOVERY_SYSTEM_PROMPT,
+    PROJECT_SKILL_PRIORITY_SYSTEM_PROMPT
+} from './skill-types'
+export type { ISkillsMiddlewareOptions } from './skill-types'
 
-export interface ISkillsMiddlewareOptions {
-    /** Validated portable resources, supplied only by the execution overlay. */
-    resourceOnly?: boolean
-    /**
-     * Optional manual allow-list for default skills. When omitted or empty, all
-     * workspace skills are loaded by default and can be filtered by runtime
-     * disabledSkillIds.
-     */
-    skills?: string[]
-    systemPrompt?: string
-    repositoryDefault?: {
-        repositoryId: string
-        disabledSkillIds: string[]
-    }
-    autoDiscovery?: {
-        enabled?: boolean
-        repositoryIds?: string[]
-        searchLimit?: number
-        maxInstallPerRun?: number
-    }
-}
-
-/**
- * Runtime skill-selection state (attached to middleware state).
- *
- * - `selectedSkillIds`: Runtime-selected skill package IDs.
- * - `disabledSkillIds`: Runtime blacklist for the effective workspace skill set.
- * - `selectedSkillWorkspaceId`: Workspace ID associated with runtime-selected skills. If provided,
- *   middleware verifies access and uses that workspace for runtime skill loading; otherwise it falls
- *   back to the current context workspace.
- * - `skillSelectionMode`: Optional explicit runtime override for how workspace skills are resolved.
- *
- * Merge behavior with config:
- * - Omitted or empty `options.skills` means all skills in the current context
- *   workspace are default-enabled.
- * - Non-empty `options.skills` is a manual allow-list for the current context workspace.
- * - Runtime `selectedSkillIds` are an explicit allow-list for the effective workspace
- *   (`selectedSkillWorkspaceId` after access check / fallback), replacing configured defaults.
- * - When `skillSelectionMode` is `workspace_blacklist`, the middleware ignores configured and
- *   runtime-selected skill IDs, loads the full effective workspace skill set, and filters it with
- *   `disabledSkillIds`.
- */
-type RuntimeSkillSelectionMode = 'workspace_blacklist'
-
-type RuntimeSkillSelectionState = {
-    selectedSkillIds?: string[]
-    disabledSkillIds?: string[]
-    selectedSkillWorkspaceId?: string
-    skillSelectionMode?: RuntimeSkillSelectionMode
-}
-
-type ConfigRepositoryDefaultSelection = {
-    repositoryId: string
-    disabledSkillIds: string[]
-}
-
-type ConfigAutoDiscoveryOptions = {
-    enabled: boolean
-    repositoryIds: string[]
-    searchLimit: number
-    maxInstallPerRun: number
-}
-
-type SkillPromptMetadata = {
-    id: string
-    name: string
-    description?: string
-    path?: string
-    source?: string
-    packagePath?: string
-    /** Namespaced relative path used inside the shared runtime skills directory. */
-    runtimePath?: string
-    runtimeSource?: TRuntimeSkillSource['type']
-    repositoryId?: string
-    workspaceId: string
-    version: string
-    /** Authoritative source directory for non-Workspace skills such as Project Content. */
-    localPath?: string
-}
-
-type SkillSyncRecord = {
-    containerPath: string
-    error?: Error
-    key: string
-    promise: Promise<void>
-    sandboxIdentity: string
-    skill: SkillPromptMetadata
-}
-
-type SkillPackageInstallMetadata = Partial<SkillPackage['metadata']> & {
-    skillMdPath?: string
-    skillPath?: string
-    source?: string
-}
-
-const FALLBACK_RUNTIME_ROOT_IN_CONTAINER = '/root'
-const RUNTIME_SKILLS_DIRECTORY = '.xpert/skills'
-const SKILL_FILE_NAME = 'SKILL.md'
-const MAX_SKILL_FILE_SIZE = 10 * 1024 * 1024
-const START_STATE_KEY = '__start__'
-const DEFAULT_AUTO_DISCOVERY_SEARCH_LIMIT = 5
-const MAX_AUTO_DISCOVERY_SEARCH_LIMIT = 20
-const DEFAULT_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN = 3
-const MAX_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN = 10
-const AUTO_DISCOVERY_SYSTEM_PROMPT = `
-## Skill Discovery
-
-Automatic skill discovery is enabled. If the installed skills above are not enough for the user's request:
-
-1. Use search_skill_repository to find relevant skills from the indexed skill repositories.
-2. Install only the most relevant skills with install_workspace_skills.
-3. After installation, read the installed skill's SKILL.md with read_skill_file and follow its instructions.
-4. You can also add skills yourself with \`npx skills add\`; it installs skills under the current working directory's \`.agents/skills\`. Read those SKILL.md files with read_skill_file using paths inside the current working directory.
-
-Search only when a new skill is likely to materially improve the answer. Do not install unrelated or speculative skills.
-
-This is a runtime skill flow. Do not use read_skill_file, repository search, repository install, npx skills add, or runtime skill directories to create or maintain workspace skill packages. Use dedicated workspace skill authoring tools when present.`
-const PROJECT_SKILL_PRIORITY_SYSTEM_PROMPT = `When no skill is explicitly selected, prefer a matching Project skill over a general Xpert skill. An explicitly selected skill always takes priority.`
-const SKILLS_SYSTEM_PROMPT = `
-## Skills System
-
-You have access to a skills library that provides specialized capabilities and domain knowledge.
-
-{skills_locations}
-
-**Available Skills:**
-
-{skills_list}
-
-**How to Use Skills (Progressive Disclosure):**
-
-Skills follow a **progressive disclosure** pattern - you know they exist (name + description above), but you only read the full instructions when needed:
-
-1. **Recognize when a skill applies**: Check if the user's task matches any skill's description
-2. **Read the skill's full instructions**: The skill list above shows the exact path to use with read_skill_file
-3. **Follow the skill's instructions**: SKILL.md contains step-by-step workflows, best practices, and examples
-4. **Access supporting files**: Skills may include Python scripts, configs, or reference docs - use absolute paths
-
-**When to Use Skills:**
-- When the user's request matches a skill's domain (e.g., "research X" → web-research skill)
-- When you need specialized knowledge or structured workflows
-- When a skill provides proven patterns for complex tasks
-
-**Skills are Self-Documenting:**
-- Each SKILL.md tells you exactly what the skill does and how to use it
-- The skill list above shows the full path for each skill's SKILL.md file
-
-**Executing Skill Scripts:**
-Skills may contain scripts or other executable files. Always use absolute paths from the skill list.
-
-**Example Workflow:**
-
-User: "Can you research the latest developments in quantum computing?"
-
-1. Check available skills above → See "web-research" skill with its full path
-2. Read the skill using the path shown in the list
-3. Follow the skill's research workflow (search → organize → synthesize)
-4. Use any helper scripts with absolute paths
-
-Remember: Skills are tools to make you more capable and consistent. When in doubt, check if a skill exists for the task.
-
-Use this runtime flow to apply existing skills, not to author workspace skill packages. If the user asks to create, update, or delete a skill package, use dedicated workspace skill authoring tools when present.`
-
-/**
- * Middleware for loading and exposing agent skills.
-
-    This middleware implements Anthropic's agent skills pattern:
-    - Loads skills metadata (name, description) from YAML frontmatter at session start
-    - Injects skills list into system prompt for discoverability
-    - Agent reads full SKILL.md content when a skill is relevant (progressive disclosure)
-
-    Supports runtime-scoped skills stored under the sandbox working directory:
-    - Runtime-synced skills: {PWD}/.xpert/skills/
-    - CLI-installed skills: {PWD}/.agents/skills/
-
-    Args:
-        skills_dir: Path to the runtime skills directory.
-        assistant_id: The agent identifier for path references in prompts.
- */
 @Injectable()
 @AgentMiddlewareStrategy(SKILLS_MIDDLEWARE_NAME)
-export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlewareOptions> {
-    readonly #logger = new Logger(SkillsMiddleware.name)
-
-    @Inject(CommandBus)
-    private readonly commandBus: CommandBus
-
+export class SkillsMiddleware
+    extends SkillMetadataLoader
+    implements IAgentMiddlewareStrategy<ISkillsMiddlewareOptions>
+{
     constructor(
-        @InjectRepository(SkillPackage)
-        private readonly skillPackageRepository: Repository<SkillPackage>,
-        private readonly workspaceAccessService: XpertWorkspaceAccessService,
+        @InjectRepository(SkillPackage) skillPackageRepository: Repository<SkillPackage>,
+        workspaceAccessService: XpertWorkspaceAccessService,
         private readonly skillPackageService: SkillPackageService,
         private readonly skillIndexService: SkillRepositoryIndexService
-    ) {}
-
-    readonly meta: TAgentMiddlewareMeta = {
-        name: SKILLS_MIDDLEWARE_NAME,
-        label: {
-            en_US: 'Skills Middleware',
-            zh_Hans: '技能中间件'
-        },
-        icon: {
-            type: 'svg',
-            value: `<svg class="svg-icon" style="fill: currentColor;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M448.512 479.232a54.272 54.272 0 1 1 56.32-55.296 55.296 55.296 0 0 1-56.32 55.296z m343.04 91.136l-73.728-110.592V450.56a245.76 245.76 0 0 0-244.736-245.76 225.28 225.28 0 0 0-58.368 7.168A244.736 244.736 0 0 0 228.352 450.56a224.256 224.256 0 0 0 36.864 130.048c43.008 61.44 71.68 110.592 54.272 177.152a47.104 47.104 0 0 0 9.216 43.008 45.056 45.056 0 0 0 36.864 18.432h200.704a48.128 48.128 0 0 0 48.128-38.912 51.2 51.2 0 0 0 2.048-12.288 24.576 24.576 0 0 1 24.576-20.48H655.36a48.128 48.128 0 0 0 48.128-34.816 422.912 422.912 0 0 0 15.36-98.304h52.224a28.672 28.672 0 0 0 22.528-16.384 29.696 29.696 0 0 0-2.048-27.648z m-202.752-86.016l-10.24 16.384a22.528 22.528 0 0 1-18.432 9.216 24.576 24.576 0 0 1-7.168-1.024l-26.624-10.24a118.784 118.784 0 0 1-39.936 22.528l-5.12 29.696a20.48 20.48 0 0 1-20.48 16.384h-20.48a20.48 20.48 0 0 1-20.48-16.384l-4.096-29.696a102.4 102.4 0 0 1-37.888-20.48l-28.672 10.24a24.576 24.576 0 0 1-8.192 1.024 21.504 21.504 0 0 1-17.408-10.24l-10.24-16.384a19.456 19.456 0 0 1 5.12-25.6l23.552-19.456a103.424 103.424 0 0 1-3.072-21.504 96.256 96.256 0 0 1 3.072-20.48l-23.552-20.48a19.456 19.456 0 0 1-5.12-25.6l10.24-17.408a20.48 20.48 0 0 1 18.432-10.24 24.576 24.576 0 0 1 7.168 2.048l28.672 10.24a117.76 117.76 0 0 1 37.888-21.504L419.84 286.72a19.456 19.456 0 0 1 20.48-16.384h20.48a19.456 19.456 0 0 1 20.48 15.36l5.12 29.696a115.712 115.712 0 0 1 37.888 20.48l28.672-10.24a24.576 24.576 0 0 1 7.168-2.048 21.504 21.504 0 0 1 18.432 10.24l10.24 16.384a20.48 20.48 0 0 1-5.12 26.624l-23.552 19.456a98.304 98.304 0 0 1 2.048 21.504 96.256 96.256 0 0 1-2.048 20.48l23.552 19.456a20.48 20.48 0 0 1 5.12 26.624z"  /></svg>`,
-            color: '#00d2e6'
-        },
-        description: {
-            en_US: 'A middleware that add skills to the agent. Requires the File toolset to be used together.',
-            zh_Hans: '一个中间件，允许向智能体添加技能。需要配合 File 工具集一起使用。'
-        },
-        features: ['sandbox'],
-        configSchema: {
-            type: 'object',
-            properties: {
-                skills: {
-                    type: 'array',
-                    title: {
-                        en_US: 'Default Skills',
-                        zh_Hans: '默认技能'
-                    },
-                    description: {
-                        en_US: 'Skills loaded by default. Users can turn them off from ChatKit runtime selection.',
-                        zh_Hans: '默认加载的技能。用户可以在 ChatKit 运行时选择中取消勾选。'
-                    },
-                    default: [],
-                    items: {
-                        type: 'string'
-                    },
-                    'x-ui': {
-                        component: 'skills-select',
-                        span: 2
-                    }
-                },
-                systemPrompt: {
-                    type: 'string',
-                    title: {
-                        en_US: 'System Prompt',
-                        zh_Hans: '系统提示'
-                    },
-                    description: {
-                        en_US: 'Custom system prompt to prepend to the default todo list middleware prompt.',
-                        zh_Hans: '自定义系统提示，添加到默认的待办事项中间件提示之前。'
-                    },
-                    'x-ui': {
-                        component: 'textarea',
-                        span: 2
-                    }
-                },
-                autoDiscovery: {
-                    type: 'object',
-                    title: {
-                        en_US: 'Auto Skill Discovery',
-                        zh_Hans: '自动发现技能'
-                    },
-                    description: {
-                        en_US: 'Let the agent search indexed skill repositories and install relevant skills into the current workspace.',
-                        zh_Hans: '允许智能体搜索已索引的技能仓库，并将相关技能安装到当前工作区。'
-                    },
-                    'x-ui': {
-                        cols: 2,
-                        span: 2
-                    },
-                    properties: {
-                        enabled: {
-                            type: 'boolean',
-                            default: false,
-                            title: {
-                                en_US: 'Enable Auto Discovery',
-                                zh_Hans: '启用自动发现'
-                            },
-                            description: {
-                                en_US: 'Disabled by default to preserve existing agent behavior.',
-                                zh_Hans: '默认关闭，以保持现有智能体行为不变。'
-                            }
-                        },
-                        repositoryIds: {
-                            type: 'array',
-                            items: {
-                                type: 'string'
-                            },
-                            title: {
-                                en_US: 'Repository Scope',
-                                zh_Hans: '仓库范围'
-                            },
-                            description: {
-                                en_US: 'Optional repository allowlist. Leave empty to search all visible indexed repositories.',
-                                zh_Hans: '可选仓库白名单。留空则搜索所有当前可见且已索引的仓库。'
-                            },
-                            'x-ui': {
-                                component: 'remoteSelect',
-                                selectUrl: '/api/skill-repository/select-options',
-                                multiple: true,
-                                span: 2
-                            }
-                        },
-                        searchLimit: {
-                            type: 'integer',
-                            default: DEFAULT_AUTO_DISCOVERY_SEARCH_LIMIT,
-                            minimum: 1,
-                            maximum: MAX_AUTO_DISCOVERY_SEARCH_LIMIT,
-                            title: {
-                                en_US: 'Search Limit',
-                                zh_Hans: '搜索数量'
-                            },
-                            description: {
-                                en_US: 'Maximum number of skills returned by each repository search.',
-                                zh_Hans: '每次技能仓库搜索最多返回的技能数量。'
-                            }
-                        },
-                        maxInstallPerRun: {
-                            type: 'integer',
-                            default: DEFAULT_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN,
-                            minimum: 1,
-                            maximum: MAX_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN,
-                            title: {
-                                en_US: 'Install Limit',
-                                zh_Hans: '安装上限'
-                            },
-                            description: {
-                                en_US: 'Maximum number of skills the agent can install in one tool call.',
-                                zh_Hans: '智能体单次工具调用最多可安装的技能数量。'
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    ) {
+        super(skillPackageRepository, workspaceAccessService)
     }
+
+    readonly meta = skillsMiddlewareMeta
 
     readonly stateSchema = z.object({
         selectedSkillIds: z.array(z.string()).optional(),
@@ -402,293 +68,6 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         skillSelectionMode: z.literal('workspace_blacklist').optional()
     })
 
-    private asRecord(value: unknown): Record<string, unknown> {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-            return {}
-        }
-        return value as Record<string, unknown>
-    }
-
-    private sanitizeSkillIds(value: unknown): string[] {
-        if (!Array.isArray(value)) {
-            return []
-        }
-
-        const deduped = new Set<string>()
-        for (const item of value) {
-            if (typeof item !== 'string') {
-                continue
-            }
-            const normalized = item.trim()
-            if (!normalized) {
-                continue
-            }
-            deduped.add(normalized)
-        }
-        return Array.from(deduped)
-    }
-
-    private resolveDisabledSkillIds(state: Record<string, unknown>): string[] {
-        const rootState = state as RuntimeSkillSelectionState
-        const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
-        const rootDisabledSkillIdsRaw = rootState.disabledSkillIds
-        const startDisabledSkillIdsRaw = startState.disabledSkillIds
-        const rootDisabledSkillIds = this.sanitizeSkillIds(rootDisabledSkillIdsRaw)
-        const startDisabledSkillIds = this.sanitizeSkillIds(startDisabledSkillIdsRaw)
-
-        if (Array.isArray(rootDisabledSkillIdsRaw)) {
-            return rootDisabledSkillIds
-        }
-
-        return startDisabledSkillIds
-    }
-
-    private sanitizeWorkspaceId(value: unknown): string {
-        return typeof value === 'string' ? value.trim() : ''
-    }
-
-    private resolveConfiguredRepositoryDefault(
-        options?: ISkillsMiddlewareOptions | null
-    ): ConfigRepositoryDefaultSelection | null {
-        const repositoryId = this.sanitizeWorkspaceId(options?.repositoryDefault?.repositoryId)
-        if (!repositoryId) {
-            return null
-        }
-
-        return {
-            repositoryId,
-            disabledSkillIds: this.sanitizeSkillIds(options?.repositoryDefault?.disabledSkillIds)
-        }
-    }
-
-    private normalizeInteger(value: unknown, fallback: number, min: number, max: number) {
-        const parsed =
-            typeof value === 'number'
-                ? value
-                : typeof value === 'string' && value.trim()
-                  ? Number(value.trim())
-                  : fallback
-        if (!Number.isInteger(parsed)) {
-            return fallback
-        }
-        return Math.min(Math.max(parsed, min), max)
-    }
-
-    private resolveAutoDiscoveryOptions(options?: ISkillsMiddlewareOptions | null): ConfigAutoDiscoveryOptions {
-        return {
-            enabled: options?.autoDiscovery?.enabled === true,
-            repositoryIds: this.sanitizeSkillIds(options?.autoDiscovery?.repositoryIds),
-            searchLimit: this.normalizeInteger(
-                options?.autoDiscovery?.searchLimit,
-                DEFAULT_AUTO_DISCOVERY_SEARCH_LIMIT,
-                1,
-                MAX_AUTO_DISCOVERY_SEARCH_LIMIT
-            ),
-            maxInstallPerRun: this.normalizeInteger(
-                options?.autoDiscovery?.maxInstallPerRun,
-                DEFAULT_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN,
-                1,
-                MAX_AUTO_DISCOVERY_MAX_INSTALL_PER_RUN
-            )
-        }
-    }
-
-    private resolveRuntimeSkillSelection(state: Record<string, unknown>): {
-        skillIds: string[]
-        workspaceId: string
-        hasRuntimeSelection: boolean
-    } {
-        const rootState = state as RuntimeSkillSelectionState
-        const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
-        const rootSkillIdsRaw = state.selectedSkillIds
-        const startSkillIdsRaw = startState.selectedSkillIds
-        const rootSkillIds = this.sanitizeSkillIds(rootSkillIdsRaw)
-        const startSkillIds = this.sanitizeSkillIds(startSkillIdsRaw)
-
-        const hasRuntimeSelection = Array.isArray(rootSkillIdsRaw) || Array.isArray(startSkillIdsRaw)
-
-        const skillIds = rootSkillIds.length > 0 ? rootSkillIds : startSkillIds
-
-        const workspaceId =
-            this.sanitizeWorkspaceId(rootState.selectedSkillWorkspaceId) ||
-            this.sanitizeWorkspaceId(startState.selectedSkillWorkspaceId)
-
-        return { skillIds, workspaceId, hasRuntimeSelection }
-    }
-
-    private resolveProjectRuntimeSkillSelection(skillIds: string[], xpertId: string | undefined, projectId: string) {
-        const xpertSkillIds = new Set<string>()
-        const projectSkillIds = new Set<string>()
-
-        for (const id of skillIds) {
-            const source = parseRuntimeSkillCapabilityId(id)
-            if (!source) {
-                // Backward compatibility with Project capabilities emitted before source-aware IDs.
-                projectSkillIds.add(id)
-                continue
-            }
-            if (source.type === 'xpert' && xpertId && source.ownerId === xpertId) {
-                xpertSkillIds.add(source.skillId)
-            } else if (source.type === 'project' && source.ownerId === projectId) {
-                projectSkillIds.add(source.skillId)
-            }
-        }
-
-        return {
-            xpertSkillIds: Array.from(xpertSkillIds),
-            projectSkillIds: Array.from(projectSkillIds)
-        }
-    }
-
-    private resolveRuntimeSkillSelectionMode(state: Record<string, unknown>): RuntimeSkillSelectionMode | null {
-        const rootState = state as RuntimeSkillSelectionState
-        const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
-
-        if (rootState.skillSelectionMode === 'workspace_blacklist') {
-            return rootState.skillSelectionMode
-        }
-
-        if (startState.skillSelectionMode === 'workspace_blacklist') {
-            return startState.skillSelectionMode
-        }
-
-        return null
-    }
-
-    private filterSkillMetadata(skills: SkillPromptMetadata[], disabledSkillIds: string[]) {
-        if (!disabledSkillIds.length) {
-            return skills
-        }
-
-        const disabledSkillIdSet = new Set(disabledSkillIds)
-        return skills.filter((skill) => !disabledSkillIdSet.has(skill.id))
-    }
-
-    private resolveSearchRepositoryIds(requestedRepositoryIds: string[], allowedRepositoryIds: string[]) {
-        if (!allowedRepositoryIds.length) {
-            return requestedRepositoryIds
-        }
-        if (!requestedRepositoryIds.length) {
-            return allowedRepositoryIds
-        }
-
-        const allowed = new Set(allowedRepositoryIds)
-        return requestedRepositoryIds.filter((repositoryId) => allowed.has(repositoryId))
-    }
-
-    private async findInstalledSkillIndexIds(workspaceId: string, skillIndexIds: string[]) {
-        if (!workspaceId || !skillIndexIds.length) {
-            return new Set<string>()
-        }
-
-        const installed = await this.skillPackageRepository.find({
-            where: {
-                workspaceId,
-                skillIndexId: In(skillIndexIds)
-            }
-        })
-
-        return new Set(
-            installed
-                .map((skillPackage) => skillPackage.skillIndexId)
-                .filter((skillIndexId): skillIndexId is string => typeof skillIndexId === 'string' && !!skillIndexId)
-        )
-    }
-
-    private formatSkillSearchResult(item: ISkillRepositoryIndex, installedSkillIndexIds: Set<string>) {
-        return {
-            indexId: item.id,
-            skillId: item.skillId,
-            name: item.name ?? item.skillId,
-            description: item.description ?? '',
-            tags: item.tags ?? [],
-            version: item.version ?? '',
-            link: item.link ?? '',
-            installed: installedSkillIndexIds.has(item.id),
-            repository: item.repository
-                ? {
-                      id: item.repository.id,
-                      name: item.repository.name,
-                      provider: item.repository.provider
-                  }
-                : {
-                      id: item.repositoryId
-                  }
-        }
-    }
-
-    private escapeForShell(value: string): string {
-        return `'${value.replace(/'/g, `'"'"'`)}'`
-    }
-
-    private getSandboxFromToolConfig(config: unknown): unknown {
-        const runtimeConfig = this.asRecord(config as Record<string, unknown>)
-        const configurable = this.asRecord(runtimeConfig.configurable)
-        return configurable.sandbox
-    }
-
-    private getSandboxWorkingDirectory(sandbox: unknown): string {
-        if (sandbox && typeof sandbox === 'object' && !Array.isArray(sandbox) && 'workingDirectory' in sandbox) {
-            const workingDirectory = (sandbox as { workingDirectory?: unknown }).workingDirectory
-            if (typeof workingDirectory === 'string' && workingDirectory.trim()) {
-                return workingDirectory.trim()
-            }
-        }
-
-        const backend = resolveSandboxBackend(sandbox)
-        if (typeof backend?.workingDirectory === 'string' && backend.workingDirectory.trim()) {
-            return backend.workingDirectory.trim()
-        }
-
-        return ''
-    }
-
-    private resolveSkillsRootInContainer(sandbox: unknown): string {
-        const workingDirectory = this.getSandboxWorkingDirectory(sandbox) || FALLBACK_RUNTIME_ROOT_IN_CONTAINER
-        return join(workingDirectory, RUNTIME_SKILLS_DIRECTORY)
-    }
-
-    private resolveRuntimeRootInContainer(sandbox: unknown): string {
-        return this.getSandboxWorkingDirectory(sandbox) || FALLBACK_RUNTIME_ROOT_IN_CONTAINER
-    }
-
-    private async acquireFallbackSandboxBackend(
-        tenantId: string,
-        userId: string,
-        projectId?: string | null,
-        xpertId?: string | null,
-        workspaceDataScope?: IAgentMiddlewareContext['workspaceDataScope'],
-        workingDirectory?: string
-    ): Promise<SandboxBackendProtocol> {
-        const volumeScope = projectId
-            ? {
-                  tenantId,
-                  catalog: 'projects' as const,
-                  projectId,
-                  userId
-              }
-            : xpertId
-              ? resolveXpertDataVolumeScope({ tenantId, xpertId, userId, workspaceDataScope })
-              : {
-                    tenantId,
-                    catalog: 'users' as const,
-                    userId
-                }
-        const sandbox = await this.commandBus.execute(
-            new SandboxAcquireBackendCommand({
-                tenantId,
-                workingDirectory,
-                volumeScope,
-                workFor: projectId ? { type: 'project', id: projectId } : { type: 'user', id: userId }
-            })
-        )
-        const candidate = resolveSandboxBackend(sandbox)
-        if (!candidate) {
-            throw new Error('Sandbox backend is not available.')
-        }
-        return candidate
-    }
-
     async createMiddleware(
         options: ISkillsMiddlewareOptions,
         context: IAgentMiddlewareContext
@@ -696,7 +75,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         const { tenantId, userId, workspaceId: contextWorkspaceId, projectId, xpertId, workspaceDataScope } = context
         const normalizedContextWorkspaceId = this.sanitizeWorkspaceId(contextWorkspaceId)
         const autoDiscoveryOptions = this.resolveAutoDiscoveryOptions(options)
-        this.#logger.debug(`SkillsMiddleware using context workspace: ${normalizedContextWorkspaceId}`)
+        const discoveryEnabled = autoDiscoveryOptions.enabled && !options?.resourceOnly
+        this.logger.debug(`SkillsMiddleware using context workspace: ${normalizedContextWorkspaceId}`)
         const resourceSources =
             (context as IAgentMiddlewareContext & RuntimeResourceMiddlewareContext)[RUNTIME_RESOURCE_SKILLS] ?? []
         let activeResourceSkills: SkillPromptMetadata[] = []
@@ -705,6 +85,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
         let runtimeSkillsRootInContainer = join(FALLBACK_RUNTIME_ROOT_IN_CONTAINER, RUNTIME_SKILLS_DIRECTORY)
         let runtimeWorkingDirectory = ''
         let lastEffectiveWorkspaceId = normalizedContextWorkspaceId
+        const autoInstalledProjectSkillIds = new Set<string>()
         const autoInstalledSkillSelections = new Map<string, Set<string>>()
         const inflightSyncs = new Map<string, SkillSyncRecord>()
         const skillSyncsByContainerPath = new Map<string, SkillSyncRecord>()
@@ -780,7 +161,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 skill.localPath ??
                 (await this.resolveLocalPackagePath(getWorkspaceRoot(tenantId, skill.workspaceId), packagePath))
             if (!localSkillPath) {
-                this.#logger.warn(
+                this.logger.warn(
                     `Skip syncing skill "${skill.name}" because package path "${packagePath}" is missing in workspace "${skill.workspaceId}".`
                 )
                 return
@@ -812,7 +193,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             const key = buildSkillSyncKey(sandbox, containerPath, String(skill.version))
             const existing = inflightSyncs.get(key)
             if (existing) {
-                this.#logger.log(
+                this.logger.log(
                     `Reuse inflight skill sync skill=${skill.name} containerPath=${containerPath} key=${key}`
                 )
                 return existing
@@ -822,13 +203,13 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             let record: SkillSyncRecord
             const promise = syncSkillToSandbox(sandbox, runtimeSkillsRoot, skill)
                 .then(() => {
-                    this.#logger.log(
+                    this.logger.log(
                         `Finished async skill sync skill=${skill.name} containerPath=${containerPath} key=${key} totalMs=${Date.now() - start}`
                     )
                 })
                 .catch((error) => {
                     record.error = error as Error
-                    this.#logger.error(
+                    this.logger.error(
                         `Failed async skill sync skill=${skill.name} containerPath=${containerPath} key=${key}: ${(error as Error).message}`
                     )
                 })
@@ -849,7 +230,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 
             inflightSyncs.set(key, record)
             skillSyncsByContainerPath.set(pathKey, record)
-            this.#logger.log(`Scheduled skill sync skill=${skill.name} containerPath=${containerPath} key=${key}`)
+            this.logger.log(`Scheduled skill sync skill=${skill.name} containerPath=${containerPath} key=${key}`)
             return record
         }
 
@@ -887,7 +268,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             if (!record) {
                 return
             }
-            this.#logger.log(`Waiting for skill sync before reading file skill=${record.skill.name} path=${fullPath}`)
+            this.logger.log(`Waiting for skill sync before reading file skill=${record.skill.name} path=${fullPath}`)
             await record.promise
             if (record.error) {
                 throw record.error
@@ -965,73 +346,37 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             }
         )
 
-        const skillShell = tool(
-            async ({ command }, config) => {
-                if (!command || typeof command !== 'string') {
-                    throw new Error('Skill shell tool expects a non-empty command string.')
-                }
-
-                const timeoutMs = 30_000
-                const maxOutputBytes = 64 * 1024
-
-                try {
-                    const fallbackBackend = await this.acquireFallbackSandboxBackend(
-                        tenantId,
-                        userId,
-                        projectId,
-                        xpertId,
-                        workspaceDataScope,
-                        runtimeWorkingDirectory || undefined
-                    )
-                    const result = await fallbackBackend.execute(command, {
-                        timeoutMs,
-                        maxOutputBytes
-                    })
-                    let output = result.output || '<no output>'
-                    if (result.timedOut) {
-                        output = `Error: Command timed out after ${(timeoutMs / 1000).toFixed(1)} seconds.`
-                    }
-                    if (result.exitCode !== 0 && !result.timedOut) {
-                        return {
-                            content: output,
-                            status: 'error'
-                        }
-                    }
-
-                    return {
-                        content: output
-                    }
-                } catch (err) {
-                    const e = err as Error
-                    const isTimeout =
-                        (e as any)?.code === 'ETIMEDOUT' ||
-                        (e as any)?.name === 'TimeoutError' ||
-                        /e?timed out/i.test(e.message)
-
-                    const output = isTimeout
-                        ? `Error: Command timed out after ${(timeoutMs / 1000).toFixed(1)} seconds.`
-                        : `Error: ${e.message}`
-
-                    return {
-                        content: output,
-                        status: 'error'
-                    }
+        const listSkills = tool(
+            async () => {
+                if (projectId) return this.commandBus.execute(new ListProjectSkillsCommand(projectId))
+                const items = await this.loadWorkspaceSkillMetadata(
+                    runtimeSkillsRootInContainer,
+                    lastEffectiveWorkspaceId
+                )
+                return {
+                    items: items.map(({ id, name, path, description, source }) => ({
+                        id,
+                        name,
+                        path,
+                        description,
+                        source
+                    })),
+                    total: items.length
                 }
             },
             {
-                name: 'skill_shell',
-                description: `Execute a shell command on the sandbox container.
-					Commands will run in the runtime skills directory under ${RUNTIME_SKILLS_DIRECTORY}.
-					Each command runs in a fresh shell environment with the current process's environment variables.
-					Commands may be truncated if they exceed the configured timeout or output limits.`,
-                schema: z.object({
-                    command: z.string().describe('The shell command to execute.')
-                })
+                name: 'list_skills',
+                description:
+                    'List installed skills in the current scope, including disabled Project skills. Project installations persist across threads. Scope is selected by the host; no target ID or directory is needed. Project paths are relative to the current workarea.',
+                schema: z.object({}).strict()
             }
         )
 
         const searchSkillRepository = tool(
             async ({ query, limit, repositoryIds }) => {
+                const projectSkills = projectId
+                    ? await this.commandBus.execute(new ListProjectSkillsCommand(projectId, 'edit'))
+                    : null
                 const search = typeof query === 'string' ? query.trim() : ''
                 const requestedLimit = this.normalizeInteger(
                     limit,
@@ -1068,15 +413,20 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     search
                 )
                 const skillIndexIds = items.map((item) => item.id).filter((id): id is string => typeof id === 'string')
-                const installedSkillIndexIds = await this.findInstalledSkillIndexIds(
-                    lastEffectiveWorkspaceId,
-                    skillIndexIds
-                )
+                const installedSkillIndexIds = projectSkills
+                    ? new Set(projectSkills.items.flatMap((item) => (item.skillIndexId ? [item.skillIndexId] : [])))
+                    : await this.findInstalledSkillIndexIds(lastEffectiveWorkspaceId, skillIndexIds)
 
                 return {
                     query: search,
-                    workspaceId: lastEffectiveWorkspaceId,
+                    ...(projectId ? { projectId } : { workspaceId: lastEffectiveWorkspaceId }),
                     total,
+                    ...(total
+                        ? {}
+                        : {
+                              guidance:
+                                  'No matching skill exists in the configured, accessible catalog. This is not a search of all GitHub repositories. After an exact-name search and one broader query without a match, report the missing catalog source; do not repeatedly guess or use another Project.'
+                          }),
                     items: items.map((item) => this.formatSkillSearchResult(item, installedSkillIndexIds))
                 }
             },
@@ -1084,20 +434,32 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 name: 'search_skill_repository',
                 description:
                     'Search indexed skill repositories for skills relevant to the user task. Use this before installing new skills when current installed skills are insufficient.',
-                schema: z.object({
-                    query: z.string().describe('Search query describing the skill capability needed.'),
-                    limit: z.number().int().positive().optional().describe('Optional result limit for this search.'),
-                    repositoryIds: z
-                        .array(z.string())
-                        .optional()
-                        .describe(
-                            'Optional repository IDs to narrow the search within the configured repository scope.'
-                        )
-                })
+                schema: z
+                    .object({
+                        query: z
+                            .string()
+                            .max(500)
+                            .describe(
+                                'An exact skill name or one short keyword. Catalog search uses literal text matching, not semantic search; do not combine many keywords into a sentence.'
+                            ),
+                        limit: z
+                            .number()
+                            .int()
+                            .positive()
+                            .optional()
+                            .describe('Optional result limit for this search.'),
+                        repositoryIds: z
+                            .array(z.string())
+                            .optional()
+                            .describe(
+                                'Optional repository IDs to narrow the search within the configured repository scope.'
+                            )
+                    })
+                    .strict()
             }
         )
 
-        const installWorkspaceSkills = tool(
+        const installSkills = tool(
             async ({ indexIds }) => {
                 const normalizedIndexIds = this.sanitizeSkillIds(indexIds)
                 if (!normalizedIndexIds.length) {
@@ -1108,12 +470,35 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                         `Too many skills requested. Install at most ${autoDiscoveryOptions.maxInstallPerRun} skills in one call.`
                     )
                 }
+                if (projectId) {
+                    const installed = []
+                    for (const indexId of normalizedIndexIds) {
+                        const skill = await this.commandBus.execute(
+                            new InstallProjectSkillCommand(projectId, indexId, autoDiscoveryOptions.repositoryIds)
+                        )
+                        installed.push(skill)
+                        if (skill.enabled) autoInstalledProjectSkillIds.add(skill.id)
+                    }
+                    // The next model call awaits projection before advertising enabled installations.
+                    // Canonical paths are already in the Project workarea and survive the current thread.
+                    return { projectId, installed }
+                }
                 if (!lastEffectiveWorkspaceId) {
                     throw new Error('Workspace context is required to install skills.')
                 }
 
                 const installedPackageIds: string[] = []
                 for (const indexId of normalizedIndexIds) {
+                    if (autoDiscoveryOptions.repositoryIds.length) {
+                        const index = await this.skillIndexService.findOneInOrganizationOrTenant(indexId)
+                        if (!autoDiscoveryOptions.repositoryIds.includes(index.repositoryId)) {
+                            throw new Error(
+                                t('server-ai:Error.SkillRepositoryOutsideScope', {
+                                    defaultValue: 'The selected skill is outside the configured repository scope.'
+                                })
+                            )
+                        }
+                    }
                     const skillPackage = await this.skillPackageService.ensureInstalledSkillPackage(
                         lastEffectiveWorkspaceId,
                         indexId
@@ -1146,15 +531,17 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 }
             },
             {
-                name: 'install_workspace_skills',
+                name: 'install_skills',
                 description:
-                    'Install selected skills from repository search results into the current workspace. After installing, read the returned SKILL.md paths with read_skill_file.',
-                schema: z.object({
-                    indexIds: z
-                        .array(z.string())
-                        .min(1)
-                        .describe('Skill repository index IDs returned by search_skill_repository.')
-                })
+                    'Install relevant missing skills from search_skill_repository results. The host persists complete packages in the current Project, or in the authoring Workspace outside a Project, for reuse in future threads. Existing Project skills are reused without overwriting edits or enabling disabled skills. Check enabled state, then read the returned SKILL.md path with read_skill_file (Project paths are relative to the workarea).',
+                schema: z
+                    .object({
+                        indexIds: z
+                            .array(z.string())
+                            .min(1)
+                            .describe('Skill repository index IDs returned by search_skill_repository.')
+                    })
+                    .strict()
             }
         )
 
@@ -1167,8 +554,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
             stateSchema: this.stateSchema,
             tools: [
                 readSkillFile,
-                ...(!projectId && autoDiscoveryOptions.enabled ? [searchSkillRepository, installWorkspaceSkills] : [])
-                /*skillShell*/
+                ...(!options?.resourceOnly ? [listSkills] : []),
+                ...(discoveryEnabled ? [searchSkillRepository, installSkills] : [])
             ],
             wrapModelCall: async (request, handler) => {
                 runtimeSandbox = request.runtime?.configurable?.sandbox ?? null
@@ -1233,7 +620,10 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                 const skills: SkillPromptMetadata[] = []
                 if (projectId) {
                     const selectedProjectSkillIds = hasRuntimeSelection
-                        ? new Set(projectRuntimeSelection?.projectSkillIds ?? [])
+                        ? new Set([
+                              ...(projectRuntimeSelection?.projectSkillIds ?? []),
+                              ...autoInstalledProjectSkillIds
+                          ])
                         : undefined
                     const projectSkills = await this.loadProjectSkillMetadata(
                         runtimeSkillsRootInContainer,
@@ -1392,7 +782,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     options?.systemPrompt,
                     skillsSection,
                     projectId ? PROJECT_SKILL_PRIORITY_SYSTEM_PROMPT : null,
-                    !projectId && autoDiscoveryOptions.enabled ? AUTO_DISCOVERY_SYSTEM_PROMPT : null
+                    discoveryEnabled ? AUTO_DISCOVERY_SYSTEM_PROMPT : null
                 ]
                     .filter(Boolean)
                     .join('\n\n')
@@ -1411,428 +801,6 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                     systemMessage: new SystemMessage(content)
                 })
             }
-        }
-    }
-
-    private appendWorkspaceSkills(target: Map<string, Set<string>>, workspaceId: string, skillIds: string[]) {
-        if (!workspaceId || skillIds.length === 0) {
-            return
-        }
-        const existing = target.get(workspaceId) ?? new Set<string>()
-        for (const id of skillIds) {
-            existing.add(id)
-        }
-        target.set(workspaceId, existing)
-    }
-
-    private buildSyncKey(skills: SkillPromptMetadata[]): string {
-        return skills
-            .map((skill) => `${skill.workspaceId}:${skill.id}:${skill.version}`)
-            .sort()
-            .join('|')
-    }
-
-    private async pathExists(path: string): Promise<boolean> {
-        try {
-            await access(path)
-            return true
-        } catch {
-            return false
-        }
-    }
-
-    private normalizePackagePath(packagePath: string): string {
-        return packagePath
-            .replace(/\\/g, '/')
-            .replace(/^\/+/, '')
-            .replace(/^\.\/+/, '')
-    }
-
-    private async resolveLocalPackagePath(workspaceRoot: string, packagePath: string): Promise<string | null> {
-        const normalized = this.normalizePackagePath(packagePath)
-        if (!normalized) {
-            return null
-        }
-
-        const primary = join(workspaceRoot, 'skills', normalized)
-        if (await this.pathExists(primary)) {
-            return primary
-        }
-
-        const legacyPrefixed = normalized.startsWith('skills/') ? normalized : `skills/${normalized}`
-        const legacy = join(workspaceRoot, 'skills', legacyPrefixed)
-        if (legacy !== primary && (await this.pathExists(legacy))) {
-            return legacy
-        }
-
-        return null
-    }
-
-    private async resolveEffectiveWorkspaceId(
-        tenantId: string,
-        userId: string,
-        contextWorkspaceId: string,
-        stateWorkspaceId: string
-    ): Promise<string> {
-        if (!stateWorkspaceId || stateWorkspaceId === contextWorkspaceId) {
-            return contextWorkspaceId
-        }
-
-        try {
-            const canAccess = await this.canAccessWorkspace(tenantId, userId, stateWorkspaceId)
-            if (canAccess) {
-                return stateWorkspaceId
-            }
-
-            this.#logger.warn(
-                `selectedSkillWorkspaceId "${stateWorkspaceId}" is not accessible for user "${userId}" in tenant "${tenantId}", fallback to "${contextWorkspaceId}".`
-            )
-            return contextWorkspaceId
-        } catch (error) {
-            this.#logger.warn(
-                `Failed to verify selectedSkillWorkspaceId "${stateWorkspaceId}" for user "${userId}" in tenant "${tenantId}": ${(error as Error).message}. Fallback to "${contextWorkspaceId}".`
-            )
-            return contextWorkspaceId
-        }
-    }
-
-    private async canAccessWorkspace(tenantId: string, userId: string, workspaceId: string): Promise<boolean> {
-        if (!tenantId || !userId || !workspaceId) {
-            return false
-        }
-
-        await this.workspaceAccessService.assertCanRun(workspaceId)
-        return true
-    }
-
-    private async loadProjectSkillMetadata(
-        runtimeSkillsRoot: string,
-        tenantId: string,
-        projectId: string,
-        allowedSkillIds?: ReadonlySet<string>
-    ): Promise<SkillPromptMetadata[]> {
-        const projectRoot = VolumeClient._getWorkspaceRoot(tenantId, 'projects', projectId)
-        const skillsRoot = join(projectRoot, 'skills')
-        const skillFiles = await findValidatedProjectSkillFiles(projectRoot).catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : String(error)
-            throw new Error(
-                t('server-ai:Error.ProjectSkillProjectionFailed', {
-                    defaultValue: 'Project skills could not be prepared for this run: {{message}}',
-                    message
-                })
-            )
-        })
-        const projectSkillManifest = await readProjectSkillManifest(projectRoot).catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : String(error)
-            throw new Error(
-                t('server-ai:Error.ProjectSkillProjectionFailed', {
-                    defaultValue: 'Project skills could not be prepared for this run: {{message}}',
-                    message
-                })
-            )
-        })
-        const disabledSkillIds = new Set(
-            projectSkillManifest.items.filter((item) => !item.enabled).map((item) => item.id)
-        )
-        const skills: SkillPromptMetadata[] = []
-        for (const skillMdPath of skillFiles) {
-            const parsed = await this.parseSkillMetadata(skillMdPath)
-            if (!parsed) continue
-            const relativeSkillDirectory = relative(skillsRoot, dirname(skillMdPath)).replace(/\\/g, '/') || '_root'
-            if (
-                disabledSkillIds.has(relativeSkillDirectory) ||
-                (allowedSkillIds && !allowedSkillIds.has(relativeSkillDirectory))
-            ) {
-                continue
-            }
-            const sourceStat = await stat(skillMdPath)
-            const runtimePath = join('project', relativeSkillDirectory)
-            skills.push({
-                id: relativeSkillDirectory,
-                name: parsed.name ?? relativeSkillDirectory,
-                description: parsed.description ?? '',
-                path: join(runtimeSkillsRoot, runtimePath, SKILL_FILE_NAME),
-                source: 'project',
-                packagePath: relativeSkillDirectory,
-                runtimePath,
-                runtimeSource: 'project',
-                workspaceId: `project:${projectId}`,
-                version: String(sourceStat.mtimeMs),
-                localPath: dirname(skillMdPath)
-            })
-        }
-        return skills
-    }
-
-    private async loadSkillMetadata(
-        workspacePath: string,
-        skillIds: string[],
-        workspaceId: string,
-        runtimeResourceOnly = false
-    ): Promise<SkillPromptMetadata[]> {
-        if (!workspaceId || skillIds.length === 0) {
-            return []
-        }
-
-        const skillPackages = await this.skillPackageRepository.find({
-            where: {
-                workspaceId,
-                runtimeResourceOnly,
-                id: In(skillIds)
-            },
-            relations: { skillIndex: { repository: true } }
-        })
-
-        const skills: SkillPromptMetadata[] = []
-        for (const skillPackage of skillPackages) {
-            const skill = await this.parseSkillPackage(workspacePath, skillPackage)
-            if (skill) {
-                skills.push(skill)
-            }
-        }
-
-        return skills
-    }
-
-    private async loadWorkspaceSkillMetadata(
-        workspacePath: string,
-        workspaceId: string
-    ): Promise<SkillPromptMetadata[]> {
-        if (!workspaceId) {
-            return []
-        }
-
-        const skillPackages = await this.skillPackageRepository.find({
-            where: {
-                workspaceId,
-                runtimeResourceOnly: false
-            },
-            relations: { skillIndex: { repository: true } }
-        })
-
-        const skills: SkillPromptMetadata[] = []
-        for (const skillPackage of skillPackages) {
-            const skill = await this.parseSkillPackage(workspacePath, skillPackage)
-            if (skill) {
-                skills.push(skill)
-            }
-        }
-
-        return skills
-    }
-
-    private async loadRepositoryWorkspaceSkillMetadata(
-        workspacePath: string,
-        workspaceId: string,
-        repositoryId: string
-    ): Promise<SkillPromptMetadata[]> {
-        if (!workspaceId || !repositoryId) {
-            return []
-        }
-
-        const workspaceSkills = await this.loadWorkspaceSkillMetadata(workspacePath, workspaceId)
-        return workspaceSkills.filter((skill) => skill.repositoryId === repositoryId)
-    }
-
-    private deduplicateSkillMetadata(skills: SkillPromptMetadata[]) {
-        const deduped = new Map<string, SkillPromptMetadata>()
-        for (const skill of skills) {
-            deduped.set(`${skill.workspaceId}:${skill.id}`, skill)
-        }
-        return Array.from(deduped.values())
-    }
-
-    private withRuntimeSkillNamespace(
-        runtimeSkillsRoot: string,
-        source: TRuntimeSkillSource['type'],
-        skill: SkillPromptMetadata
-    ): SkillPromptMetadata {
-        const packagePath = skill.packagePath?.trim()
-        if (!packagePath) {
-            return { ...skill, runtimeSource: source }
-        }
-        const runtimePath = join(source, packagePath)
-        return {
-            ...skill,
-            path: join(runtimeSkillsRoot, runtimePath, SKILL_FILE_NAME),
-            runtimePath,
-            runtimeSource: source
-        }
-    }
-
-    private async parseSkillPackage(
-        workspacePath: string,
-        skillPackage: SkillPackage
-    ): Promise<SkillPromptMetadata | null> {
-        const metadata = this.getPackageMetadata(skillPackage)
-        const skillIndex = skillPackage.skillIndex
-        const localSkillMdPath = this.resolveLocalSkillPath(workspacePath, skillPackage)
-
-        const repoOptions = skillIndex?.repository?.options as Record<string, any> | undefined
-        const repoUrl = repoOptions?.url
-        const skillPath = skillIndex?.skillPath ?? ''
-
-        const skillMdPath =
-            localSkillMdPath ?? (repoUrl ? this.resolveSkillPath(workspacePath, repoUrl, skillPath) : null)
-        const parsed = skillMdPath ? await this.parseSkillMetadata(skillMdPath) : null
-        const packagePath = this.normalizePackagePath(skillPackage.packagePath ?? '')
-        const promptSkillPath = packagePath ? join(workspacePath, packagePath, SKILL_FILE_NAME) : null
-
-        const packageDescription = this.extractDescription(skillPackage.metadata?.description)
-        const description = parsed?.description ?? packageDescription ?? skillIndex?.description ?? ''
-
-        return {
-            id: skillPackage.id,
-            name: parsed?.name ?? (skillPackage.name as string) ?? skillIndex?.name ?? skillIndex?.skillId ?? 'Skill',
-            description,
-            path: promptSkillPath ?? skillMdPath ?? parsed?.path ?? localSkillMdPath ?? undefined,
-            source: skillIndex?.repository?.provider ?? metadata?.source,
-            packagePath: packagePath || null,
-            repositoryId: skillIndex?.repositoryId ?? skillIndex?.repository?.id ?? undefined,
-            workspaceId: skillPackage.workspaceId,
-            version: skillPackage.updatedAt?.toISOString() ?? ''
-        }
-    }
-
-    private extractDescription(description?: unknown): string | undefined {
-        if (typeof description === 'string') {
-            return description
-        }
-        if (description && typeof description === 'object' && 'en_US' in description) {
-            return (description as any).en_US as string
-        }
-        return undefined
-    }
-
-    private resolveLocalSkillPath(workspacePath: string, skillPackage: SkillPackage) {
-        const metadata = this.getPackageMetadata(skillPackage)
-        if (!metadata) {
-            return null
-        }
-
-        const skillMdPath = metadata.skillMdPath
-        if (skillMdPath && this.isSafePath(skillMdPath, workspacePath)) {
-            return skillMdPath
-        }
-
-        const skillPath = metadata.skillPath
-        if (skillPath) {
-            const resolved = isAbsolute(skillPath) ? skillPath : join(workspacePath, skillPath, SKILL_FILE_NAME)
-            if (this.isSafePath(resolved, workspacePath)) {
-                return resolved
-            }
-        }
-
-        return null
-    }
-
-    private getPackageMetadata(skillPackage: SkillPackage): SkillPackageInstallMetadata | null {
-        return skillPackage.metadata as SkillPackageInstallMetadata | null
-    }
-
-    private resolveSkillPath(workspacePath: string, repoUrl: string, skillPath: string) {
-        try {
-            const url = new URL(repoUrl)
-            const [owner, repo] = url.pathname.replace(/^\/+/, '').split('/')
-            if (!owner || !repo) {
-                return null
-            }
-            const skillMdPath = join(workspacePath, owner, repo, skillPath, SKILL_FILE_NAME)
-            return this.isSafePath(skillMdPath, workspacePath) ? skillMdPath : null
-        } catch (error) {
-            this.#logger.warn(`Failed to resolve skill path from ${repoUrl}: ${(error as Error).message}`)
-            return null
-        }
-    }
-
-    private async parseSkillMetadata(
-        skillMdPath: string
-    ): Promise<{ name?: string; description?: string; path: string } | null> {
-        try {
-            const stats = await stat(skillMdPath)
-            if (stats.size > MAX_SKILL_FILE_SIZE) {
-                return null
-            }
-
-            const content = await readFile(skillMdPath, 'utf-8')
-            const match = /^---\s*\n(.*?)\n---\s*\n/s.exec(content)
-            if (!match) {
-                return null
-            }
-
-            const metadata: Record<string, string> = {}
-            for (const line of match[1].split('\n')) {
-                const kv = /^(\w+):\s*(.+)$/.exec(line.trim())
-                if (kv) {
-                    metadata[kv[1]] = kv[2].trim()
-                }
-            }
-
-            if (!metadata.name && !metadata.description) {
-                return null
-            }
-
-            return {
-                name: metadata.name ?? 'Skill',
-                description: metadata.description ?? '',
-                path: skillMdPath
-            }
-        } catch {
-            return null
-        }
-    }
-
-    private buildSkillsSection(workspace: string, skills: SkillPromptMetadata[]) {
-        const skillsLocations = this.formatSkillsLocations(workspace, skills)
-        const skillsList = this.formatSkillsList(skills)
-        return SKILLS_SYSTEM_PROMPT.replace('{skills_locations}', skillsLocations).replace('{skills_list}', skillsList)
-    }
-
-    private formatSkillsLocations(workspace: string, skills: SkillPromptMetadata[]) {
-        if (!skills?.length) {
-            return `Skills are installed under \`${workspace}\`. No skills are enabled yet.`
-        }
-        const dirs = Array.from(
-            new Set(
-                skills
-                    .map((skill) => (skill.path ? dirname(skill.path) : null))
-                    .filter((path): path is string => !!path)
-            )
-        )
-        return dirs.map((dir) => `**Installed Skills**: \`${dir}\``).join('\n')
-    }
-
-    private formatSkillsList(skills: SkillPromptMetadata[]) {
-        if (!skills?.length) {
-            return '(No skills available yet. Install skills to enable this middleware.)'
-        }
-        return skills
-            .map((skill) => {
-                const description = skill.description || 'No description provided.'
-                const path = skill.path || 'Skill path is unavailable.'
-                return `- **${skill.name}**: ${description}\n  → Read \`${path}\` for full instructions`
-            })
-            .join('\n')
-    }
-
-    private isSafePath(target: string, baseDir: string) {
-        try {
-            const resolvedPath = resolve(target)
-            const resolvedBase = resolve(baseDir)
-            const relativePath = relative(resolvedBase, resolvedPath)
-            return !relativePath.startsWith('..') && !isAbsolute(relativePath)
-        } catch {
-            return false
-        }
-    }
-
-    private resolvePathInsideBase(target: string, baseDir: string): string | null {
-        try {
-            const resolvedBase = resolve(baseDir)
-            const resolvedPath = isAbsolute(target) ? resolve(target) : resolve(resolvedBase, target)
-            return this.isSafePath(resolvedPath, resolvedBase) ? resolvedPath : null
-        } catch {
-            return null
         }
     }
 }

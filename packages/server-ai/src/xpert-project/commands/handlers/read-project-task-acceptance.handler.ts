@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 // Read one consistent snapshot of recorded acceptance. Never reconcile invocations,
 // schedule work, or impose a delivery plugin's required review mode or verdict.
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
@@ -22,9 +23,16 @@ export class ReadProjectTaskAcceptanceHandler implements ICommandHandler<ReadPro
         private readonly access: XpertProjectAccessService
     ) {}
 
-    async execute({ context: { actor, projectId }, taskId }: ReadProjectTaskAcceptanceCommand): Promise<ProjectTaskAcceptanceReceipt | null> {
-        if (!actor.organizationId || RequestContext.currentUserId() !== actor.userId ||
-            RequestContext.currentTenantId() !== actor.tenantId || RequestContext.getOrganizationId() !== actor.organizationId)
+    async execute({
+        context: { actor, projectId },
+        taskId
+    }: ReadProjectTaskAcceptanceCommand): Promise<ProjectTaskAcceptanceReceipt | null> {
+        if (
+            !actor.organizationId ||
+            RequestContext.currentUserId() !== actor.userId ||
+            RequestContext.currentTenantId() !== actor.tenantId ||
+            RequestContext.getOrganizationId() !== actor.organizationId
+        )
             throw projectTaskRuntimeError('Scope')
         await this.access.assertCanRead(projectId)
         return this.tasks.manager.transaction('REPEATABLE READ', async (manager) => {
@@ -39,29 +47,55 @@ export class ReadProjectTaskAcceptanceHandler implements ICommandHandler<ReadPro
             if (decision.taskId !== taskId) throw projectTaskRuntimeError('Evidence')
             if (decision.outcome !== 'accept' || decision.taskRevision !== task.revision) return null
 
-            const attempt = await executions.findOneBy({ ...scope, id: decision.implementationExecutionId, createdById: actor.userId })
+            const attempt = await executions.findOneBy({
+                ...scope,
+                id: decision.implementationExecutionId,
+                createdById: actor.userId
+            })
             if (!attempt || attempt.purpose?.type !== 'implementation') throw projectTaskRuntimeError('Evidence')
-            const implementation = attempt.taskId === task.id ? task :
-                await tasks.findOne({ where: { ...scope, id: attempt.taskId }, relations: ['steps'] })
+            const implementation =
+                attempt.taskId === task.id
+                    ? task
+                    : await tasks.findOne({ where: { ...scope, id: attempt.taskId }, relations: ['steps'] })
             if (!implementation) throw projectTaskRuntimeError('Evidence')
             assertOrdinaryTask(implementation)
-            if (implementation.id !== task.id && (task.kind !== 'summary' || implementation.parentTaskId !== task.id ||
-                attempt.purpose.coordination?.taskId !== task.id ||
-                attempt.purpose.coordination.specificationDigest !== taskSpecification(task).digest))
+            if (
+                implementation.id !== task.id &&
+                (task.kind !== 'summary' ||
+                    implementation.parentTaskId !== task.id ||
+                    attempt.purpose.coordination?.taskId !== task.id ||
+                    attempt.purpose.coordination.specificationDigest !== taskSpecification(task).digest)
+            )
                 throw projectTaskRuntimeError('Evidence')
-            const { invocation } = await implementationEvidence(manager, implementation,
+            const { invocation } = await implementationEvidence(
+                manager,
+                implementation,
                 { tenantId: actor.tenantId, organizationId: actor.organizationId, userId: actor.userId },
-                decision.implementationExecutionId, decision.specificationDigest, decision.evidence)
-            if (invocation.status !== 'succeeded' || !invocation.scope.conversationId) throw projectTaskRuntimeError('State')
+                decision.implementationExecutionId,
+                decision.specificationDigest,
+                decision.evidence
+            )
+            if (invocation.status !== 'succeeded' || !invocation.scope.conversationId)
+                throw projectTaskRuntimeError('State')
 
             let review: ProjectTaskAcceptanceReceipt['review'] = null
             if (decision.reviewExecutionId) {
-                const execution = await executions.findOneBy({ ...scope, id: decision.reviewExecutionId, createdById: actor.userId })
+                const execution = await executions.findOneBy({
+                    ...scope,
+                    id: decision.reviewExecutionId,
+                    createdById: actor.userId
+                })
                 const purpose = execution?.purpose
-                if (!execution?.invocationId || purpose?.type !== 'review' || execution.invocationId === invocation.id ||
-                    purpose.implementationExecutionId !== attempt.id || purpose.implementationInvocationId !== invocation.id ||
+                if (
+                    !execution?.invocationId ||
+                    purpose?.type !== 'review' ||
+                    execution.invocationId === invocation.id ||
+                    purpose.implementationExecutionId !== attempt.id ||
+                    purpose.implementationInvocationId !== invocation.id ||
                     purpose.specificationDigest !== decision.specificationDigest ||
-                    !sameInvocationData(purpose.evidence, decision.evidence)) throw projectTaskRuntimeError('Evidence')
+                    !sameInvocationData(purpose.evidence, decision.evidence)
+                )
+                    throw projectTaskRuntimeError('Evidence')
                 if (execution.taskId !== implementation.id && purpose.implementationTaskId !== implementation.id)
                     throw projectTaskRuntimeError('Evidence')
                 if (purpose.implementationTaskId && purpose.implementationTaskId !== implementation.id)
@@ -69,21 +103,44 @@ export class ReadProjectTaskAcceptanceHandler implements ICommandHandler<ReadPro
                 const reviewTask = await tasks.findOneBy({ ...scope, id: execution.taskId })
                 if (!reviewTask || reviewTask.status === 'cancelled') throw projectTaskRuntimeError('Evidence')
                 const row = await manager.getRepository(AgentInvocationEntity).findOneBy({
-                    tenantId: actor.tenantId, organizationId: actor.organizationId, id: execution.invocationId, ownerId: actor.userId
+                    tenantId: actor.tenantId,
+                    organizationId: actor.organizationId,
+                    id: execution.invocationId,
+                    ownerId: actor.userId
                 })
                 const reference = row?.invocation.request.dispatch?.projectTask
                 const report = reviewReport(purpose, row?.invocation.result?.text)
-                if (!row || row.invocation.status !== 'succeeded' || row.invocation.scope.projectId !== projectId ||
-                    reference?.projectId !== projectId || reference.projectTaskId !== execution.taskId ||
-                    reference.taskExecutionId !== execution.id || !sameInvocationData(reference.purpose, purpose) ||
-                    !report || ((purpose.mode === 'execution') !== (report.version === 2))) throw projectTaskRuntimeError('Evidence')
-                review = { executionId: execution.id, mode: purpose.mode ?? 'evidence_only', verdict: report.verdict }
+                if (
+                    !row ||
+                    row.invocation.status !== 'succeeded' ||
+                    row.invocation.scope.projectId !== projectId ||
+                    reference?.projectId !== projectId ||
+                    reference.projectTaskId !== execution.taskId ||
+                    reference.taskExecutionId !== execution.id ||
+                    !sameInvocationData(reference.purpose, purpose) ||
+                    !report ||
+                    !decision.reviewResult ||
+                    decision.reviewResult.invocationId !== row.id ||
+                    decision.reviewResult.revision !== row.invocation.revision ||
+                    decision.reviewResult.sha256 !== createHash('sha256').update(report.markdown).digest('hex')
+                )
+                    throw projectTaskRuntimeError('Evidence')
+                review = {
+                    executionId: execution.id,
+                    mode: purpose.mode ?? 'evidence_only',
+                    reportDigest: createHash('sha256').update(report.markdown).digest('hex')
+                }
             }
             return {
-                projectId, taskId, taskRevision: task.revision, conversationId: invocation.scope.conversationId,
-                decisionId: decision.requestId, review,
-                artifacts: decision.evidence.flatMap((item) => item.type === 'artifact'
-                    ? [{ artifactId: item.artifactId, versionId: item.versionId }] : [])
+                projectId,
+                taskId,
+                taskRevision: task.revision,
+                conversationId: invocation.scope.conversationId,
+                decisionId: decision.requestId,
+                review,
+                artifacts: decision.evidence.flatMap((item) =>
+                    item.type === 'artifact' ? [{ artifactId: item.artifactId, versionId: item.versionId }] : []
+                )
             }
         })
     }

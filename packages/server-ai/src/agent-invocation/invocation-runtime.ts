@@ -1,3 +1,4 @@
+import { hasPendingInvocationDelivery, recoverInvocationDelivery } from './invocation-delivery-recovery'
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
@@ -16,6 +17,9 @@ import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
+    AgentExecutionRunnerCapability,
+    agentDeliveryRecoverySchema,
+    AgentDeliveryRecovery,
     projectPipelineInvocationScopeSchema,
     agentOutputDeliverySchema,
     agentInvocationDispatchContextSchema,
@@ -132,9 +136,46 @@ export class AgentInvocationRuntime {
         return {
             start: (request) => this.start(request, context),
             inspect: (id) => this.control(id, context, 'inspect'),
+            recoverDelivery: (id, input) => this.recoverDelivery(id, context, input),
             cancel: (id) => this.control(id, context, 'cancel'),
             respond: (id, interactionId, response) => this.control(id, context, 'respond', { interactionId, response })
         }
+    }
+
+    private async recoverDelivery(id: string, access: AgentInvocationAccess, input: AgentDeliveryRecovery) {
+        const parsed = agentDeliveryRecoverySchema.safeParse(input)
+        if (!parsed.success) throw invocationError('InvalidRequest')
+        access = await this.stableAccess(access)
+        const record = await this.store.read(id, access.scope)
+        if (!record) throw invocationError('NotFound')
+        this.assertScope(record, access.scope)
+        await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        this.pinned(record)
+        if (
+            !invocationCanRelease(record.invocation) ||
+            record.invocation.status !== 'succeeded' ||
+            !record.invocation.result
+        )
+            throw invocationError('InvalidRequest')
+        if (record.invocation.revision !== parsed.data.expectedRevision) throw invocationError('ConcurrentUpdate')
+        if (!hasPendingInvocationDelivery(record.invocation)) return record.invocation
+        if (!record.invocation.handle?.runner) throw invocationError('DeliveryRecoveryUnavailable')
+        const runner = access.capabilities.get(AgentExecutionRunnerCapability)
+        if (!runner) throw invocationError('DeliveryRecoveryUnavailable')
+        const result = await recoverInvocationDelivery(record.invocation, runner, parsed.data)
+        // Revalidate current access after I/O and commit against the inspected revision.
+        await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        const next = {
+            ...record,
+            invocation: {
+                ...record.invocation,
+                result,
+                revision: record.invocation.revision + 1,
+                updatedAt: new Date().toISOString()
+            }
+        }
+        if (!(await this.store.replace(next, record.invocation.revision))) throw invocationError('ConcurrentUpdate')
+        return next.invocation
     }
 
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {

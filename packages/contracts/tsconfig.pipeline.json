@@ -10,6 +10,7 @@
   },
   "include": [],
   "files": [
+    "src/ai/execution-activity.model.ts",
     "src/ai/project-pipeline/native-source.schema.ts",
     "src/ai/project-pipeline/compatibility.ts",
     "src/ai/project-pipeline/resources.schema.ts",

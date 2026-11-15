@@ -94,7 +94,9 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             })
             // This fixture isolates durable delivery; unexpected identity resolution must fail closed.
             const identityCommands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, {
-                execute: jest.fn(async () => { throw new Error('Unexpected identity resolution in delivery fixture') })
+                execute: jest.fn(async () => {
+                    throw new Error('Unexpected identity resolution in delivery fixture')
+                })
             })
             access = Object.assign(new RuntimeMessageAccessService(database, factory, identityCommands), {
                 withActor: async <T>(_scope: AgentInvocationScope, work: (user: User) => Promise<T>) =>
@@ -455,6 +457,11 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             expect(stored.state).toBe('processed')
             expect(run).toHaveBeenCalledTimes(1)
             expect(stored.claim.consumer.executionId).not.toBe(scope.parentExecutionId)
+            expect(
+                await database
+                    .getRepository(XpertAgentExecution)
+                    .findOneByOrFail({ id: stored.claim.consumer.executionId })
+            ).toMatchObject({ metadata: { runtimeContinuation: { inboxId: stored.id } } })
             expect(run.mock.calls[0][0].request.action).toBe('send')
             expect(run.mock.calls[0][0].options.messageEnvelope.correlation.invocationId).toBe(row.invocationId)
         })

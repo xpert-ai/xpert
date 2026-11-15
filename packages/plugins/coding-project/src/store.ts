@@ -61,8 +61,7 @@ export class CodingDeliveryStore {
     if (!accepted) throw conflict('CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED')
     if (accepted.projectId !== c.projectId || accepted.taskId !== taskId)
       throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
-    if (!accepted.review || accepted.review.mode !== 'execution' || accepted.review.verdict !== 'pass')
-      throw conflict('CODING_EXECUTION_REVIEW_REQUIRED')
+    if (!accepted.review || accepted.review.mode !== 'execution') throw conflict('CODING_EXECUTION_REVIEW_REQUIRED')
     return { ...accepted, review: accepted.review }
   }
   async get(c: ProjectPipelineContext, id: string) {

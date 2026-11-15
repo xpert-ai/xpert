@@ -48,6 +48,27 @@ To release an already accepted result, pass `acceptedTaskId` to `coding_delivery
 
 The native [Pipeline view](./project-pipelines/overview.mdx) presents nodes, evidence and decisions. Successful CLI execution, a completed review task and formal acceptance of the implementation are separate facts.
 
+## Submission with built-in material checks
+
+After implementation exports its files, call `coding_delivery_submit` with the
+implementation child `taskId`. The host automatically checks the actual exported
+materials before formal acceptance. For example, `fileName` must be `plugin.tgz`,
+not `dist/plugin.tgz`.
+
+- `materials_invalid`, `submitted: false`: repair the reported fields and export again.
+- `awaiting_acceptance`, `submitted: false`: materials passed; independent review and
+  formal acceptance are still required. This is not successful delivery.
+- `submitted`, `submitted: true`: formally accepted evidence has been checked and sealed.
+
+After review, use the current `decisionRef` to record acceptance, then call the
+same tool with the accepted summary `taskId`. There is no separate validation tool
+or required `mode`. The host derives file versions and rechecks authorization,
+state and bytes. Legacy same-task acceptance and explicit operation/manifest
+selectors remain supported. Repeated calls never accept tasks or approve releases.
+The cloud CLI receives diagnostics from the host Assistant, not host tool access.
+Material-only repairs require review of the new materials; unchanged business-test
+evidence may be reused within its verified coverage.
+
 ## Verify the approved candidate
 
 For current-instance delivery, the host installation node reads the human decision and immutable package itself. It validates identity and authorized replacement/restart scope before installation. Publisher credentials remain on the host; the delivery plugin does not receive an unrestricted installation API.

@@ -14,6 +14,34 @@ task decisions, Artifact storage, authorization and Pipeline durability. The pro
 type is `@xpert-ai/plugin-coding-project:coding` / `coding`. No legacy project-type
 alias or automatic migration is registered.
 
+## Submission with built-in material checks
+
+The host Assistant uses one tool, `coding_delivery_submit({ taskId })`. Before
+formal acceptance, pass the completed implementation child. The host resolves the
+stage, unique `delivery-manifest.json` and immutable file versions, then checks the
+manifest, referenced basenames and SHA-256 values, work identity and approved
+candidate/target constraints. `fileName` is `plugin.tgz`, not `dist/plugin.tgz`.
+
+| Status                                    | Meaning                                                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `materials_invalid`, `submitted: false`   | Nothing sealed. Repair the field-level issues and export the updated files.                                    |
+| `awaiting_acceptance`, `submitted: false` | Materials passed, but formal acceptance is missing. Arrange independent review and decide using `decisionRef`. |
+| `submitted`, `submitted: true`            | Current formal acceptance and immutable bytes passed the checks; evidence is sealed.                           |
+
+After review and acceptance, call the same tool with the accepted summary task ID
+(or the original task for legacy same-task acceptance). No `mode` is required.
+Optional `operationId` and `manifestArtifactId` remain explicit selectors; versions
+and evidence arrays are host-owned. Submission rechecks all current guards. Repeated
+calls never accept tasks, approve a release or schedule work. The first two statuses
+are preparation results, not successful delivery or permission to bypass review.
+
+The host's generic `ProjectTasksApi.readCandidate` only reads a completed ordinary
+implementation and its exact exported versions in the caller's scope. It neither
+reconciles work nor introduces coding-specific acceptance rules. The tool belongs
+to the host Assistant, not the cloud CLI. Relay diagnostics to the CLI for repair.
+For material-only changes, review new materials and verified unchanged hashes;
+reuse business-test evidence only within its demonstrated coverage.
+
 The Project setting `deliveryMode` defaults to `local` for new deliveries:
 
 - **local**: develop, install and test inside the existing cloud Computer, perform an
@@ -134,5 +162,5 @@ this ledger today. Consequently this ceiling is not a project-wide total token o
 cost cap. Full delegated-budget attribution remains a known infrastructure gap.
 
 The host must provide `ProjectTasksApi.readAcceptance` through `platform.project.tasks`.
-This plugin requires its accepted task to have a passing independent execution review. Fixture tests, plugin loading and real
+This plugin requires formal coordinator acceptance that references an independent execution-review report. The coordinator reads the Markdown report and records the decision; the plugin does not infer a verdict from report wording. Fixture tests, plugin loading and real
 cross-instance delivery are distinct verification layers.

@@ -125,7 +125,7 @@ describe('SkillsMiddleware', () => {
 
         const instance = await middleware.createMiddleware({}, createContext())
 
-        expect(instance.tools?.map((item) => item.name)).toEqual(['read_skill_file'])
+        expect(instance.tools?.map((item) => item.name)).toEqual(['read_skill_file', 'list_skills'])
     })
 
     it('adds search and install tools when auto discovery is enabled without duplicating read_skill_file', async () => {
@@ -142,7 +142,7 @@ describe('SkillsMiddleware', () => {
 
         const toolNames = instance.tools?.map((item) => item.name) ?? []
         expect(toolNames.filter((name) => name === 'read_skill_file')).toHaveLength(1)
-        expect(toolNames).toEqual(['read_skill_file', 'search_skill_repository', 'install_workspace_skills'])
+        expect(toolNames).toEqual(['read_skill_file', 'list_skills', 'search_skill_repository', 'install_skills'])
     })
 
     it('allows read_skill_file inside the current working directory, including .agents skills', async () => {
@@ -367,7 +367,7 @@ describe('SkillsMiddleware', () => {
             handler
         )
 
-        const installTool = getTool(instance, 'install_workspace_skills')
+        const installTool = getTool(instance, 'install_skills')
         const installResult = (await installTool.invoke({
             indexIds: ['index-weather', 'index-calendar']
         })) as InstallToolResult
@@ -425,7 +425,7 @@ describe('SkillsMiddleware', () => {
             createContext()
         )
 
-        const installTool = getTool(instance, 'install_workspace_skills')
+        const installTool = getTool(instance, 'install_skills')
 
         await expect(
             installTool.invoke({
@@ -1058,7 +1058,7 @@ describe('SkillsMiddleware', () => {
         } as any
 
         await instance.wrapModelCall(request, handler)
-        const installTool = getTool(instance, 'install_workspace_skills')
+        const installTool = getTool(instance, 'install_skills')
         await installTool.invoke({
             indexIds: ['index-skill-a']
         })

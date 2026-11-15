@@ -39,6 +39,11 @@ const messages: Record<string, string> = {
   CODING_HUMAN_FEEDBACK_REQUIRED: 'A current human rework decision is required.',
   CODING_INPUT_EVIDENCE_REQUIRED: 'Required evidence from the preceding stage is missing.',
   CODING_MANIFEST_NOT_ACCEPTED: 'The manifest must be an artifact of the accepted task.',
+  CODING_MANIFEST_INVALID: 'Correct the reported delivery material fields and export the updated files.',
+  CODING_MANIFEST_SELECTION_REQUIRED:
+    'Export exactly one delivery-manifest.json, or select manifestArtifactId from this task output.',
+  CODING_CANDIDATE_READ_UNAVAILABLE:
+    'This host needs the Project task candidate-read capability for material preflight.',
   CODING_MANIFEST_TOO_LARGE: 'The delivery manifest exceeds 64 KiB.',
   CODING_MANIFEST_WORK_MISMATCH: 'The manifest belongs to a different stage operation.',
   CODING_NEW_ROUND_REQUIRED: 'Record the feedback and start a new delivery round.',

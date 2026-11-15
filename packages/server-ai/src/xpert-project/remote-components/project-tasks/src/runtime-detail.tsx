@@ -96,7 +96,7 @@ const zh = {
     checks: '已执行的检查（每行一项）',
     accept: '确认完成',
     rework: '要求返工',
-    unknown: '无可验证的结构化验收结论',
+    unknown: '尚无独立验收意见。可直接回复意见；若已指定报告文件且支持读取，可恢复该文件交付。',
     restricted: '此运行的结果访问受限',
     saved: '决定已记录',
     error: '操作失败',
@@ -170,7 +170,8 @@ const en: typeof zh = {
     checks: 'Checks performed (one per line)',
     accept: 'Accept task',
     rework: 'Request rework',
-    unknown: 'No verifiable structured review verdict',
+    unknown:
+        'Independent assessment is missing. A final reply is sufficient; recover a selected report file only if the runtime supports reading it.',
     restricted: 'Runtime result access is restricted',
     saved: 'Decision recorded',
     error: 'Action failed',
@@ -335,19 +336,34 @@ export function RuntimeDetail({
                                 provider={attempt.runtimeProvider}
                                 decorative
                             />
-                            #{attempt.attempt} · {attempt.purpose?.type === 'review'
-                                ? attempt.purpose.mode === 'execution' ? t.executionReview : t.review
-                                : t.implementation} ·{' '}
-                            {executionProviderLabel(attempt)}
-                            {attempt.executionBudget && <span className="text-xs font-normal text-muted-foreground"
-                                title={`${t.deadline}: ${new Date(attempt.executionBudget.deadline).toLocaleString(locale)}`}>
-                                · {t.duration} {Number((attempt.executionBudget.maxDurationSeconds / 3600).toFixed(2))} h
-                            </span>}
+                            #{attempt.attempt} ·{' '}
+                            {attempt.purpose?.type === 'review'
+                                ? attempt.purpose.mode === 'execution'
+                                    ? t.executionReview
+                                    : t.review
+                                : t.implementation}{' '}
+                            · {executionProviderLabel(attempt)}
+                            {attempt.executionBudget && (
+                                <span
+                                    className="text-xs font-normal text-muted-foreground"
+                                    title={`${t.deadline}: ${new Date(attempt.executionBudget.deadline).toLocaleString(locale)}`}
+                                >
+                                    · {t.duration}{' '}
+                                    {Number((attempt.executionBudget.maxDurationSeconds / 3600).toFixed(2))} h
+                                </span>
+                            )}
                         </h4>
-                        {attempt.purpose?.type === 'implementation' && attempt.purpose.reviewer &&
-                            <p className="text-xs text-muted-foreground">{t.reviewer} · {attempt.purpose.reviewer.mode === 'execution' ? t.executionMode : t.evidenceMode}</p>}
-                        {attempt.purpose?.type === 'implementation' && attempt.purpose.rework &&
-                            <p className="break-words text-xs">{t.reworkFindings}: {attempt.purpose.rework.findingIds.join(', ')}</p>}
+                        {attempt.purpose?.type === 'implementation' && attempt.purpose.reviewer && (
+                            <p className="text-xs text-muted-foreground">
+                                {t.reviewer} ·{' '}
+                                {attempt.purpose.reviewer.mode === 'execution' ? t.executionMode : t.evidenceMode}
+                            </p>
+                        )}
+                        {attempt.purpose?.type === 'implementation' && attempt.purpose.rework && (
+                            <p className="break-words text-xs">
+                                {t.reworkFindings}: {attempt.purpose.rework.feedback}
+                            </p>
+                        )}
                         <p className="text-xs">
                             {attempt.invocationStatus === 'unknown'
                                 ? t.statusUnknown
@@ -414,35 +430,7 @@ export function RuntimeDetail({
                         {attempt.error && <p className="break-words text-sm text-destructive">{attempt.error}</p>}
                         {attempt.reviewReport && (
                             <div className="space-y-2 break-words text-sm">
-                                <strong>{t[attempt.reviewReport.verdict]}</strong>
-                                {attempt.reviewReport.version === 1
-                                    ? attempt.reviewReport.findings.map((item, index) => <p key={index}>{item}</p>)
-                                    : <>
-                                        <p>{attempt.reviewReport.summary}</p>
-                                        <strong className="text-xs">{t.reviewChecks}</strong>
-                                        {attempt.reviewReport.checks.map((check, index) => (
-                                            <div key={index} className="space-y-1">
-                                                <p>{check.description} · {t[check.outcome]}</p>
-                                                {check.command && <p className="whitespace-pre-wrap text-xs">{t.command}: <code>{check.command}</code></p>}
-                                                {check.expected && <p className="whitespace-pre-wrap text-xs">{t.expected}: {check.expected}</p>}
-                                                <p className="whitespace-pre-wrap text-xs">{t.actual}: {check.actual}</p>
-                                                {!!check.evidencePaths?.length && <p className="text-xs">{t.evidencePaths}: {check.evidencePaths.join(', ')}</p>}
-                                            </div>
-                                        ))}
-                                        <strong className="text-xs">{t.findings}</strong>
-                                        {attempt.reviewReport.findings.map((finding) => (
-                                            <div key={finding.id} className="space-y-1">
-                                                <p>{finding.id} · {t[finding.kind]} · {finding.blocking ? t.blocking : t.nonBlocking}: {finding.description}</p>
-                                                {finding.requirement && <p className="whitespace-pre-wrap text-xs">{t.relatedRequirement}: {finding.requirement}</p>}
-                                                {finding.reproduction && <p className="whitespace-pre-wrap text-xs">{t.reproduction}: {finding.reproduction}</p>}
-                                                {finding.expected && <p className="whitespace-pre-wrap text-xs">{t.expected}: {finding.expected}</p>}
-                                                {finding.actual && <p className="whitespace-pre-wrap text-xs">{t.actual}: {finding.actual}</p>}
-                                            </div>
-                                        ))}
-                                    </>}
-                                <p className="text-xs text-muted-foreground">
-                                    {t.limitations}: {attempt.reviewReport.limitations.join('; ')}
-                                </p>
+                                <div className="whitespace-pre-wrap">{attempt.reviewReport.markdown}</div>
                             </div>
                         )}
                         {attempt.purpose?.type === 'review' &&
@@ -504,9 +492,7 @@ export function RuntimeDetail({
                                     !rationale.trim() ||
                                     !checks.trim() ||
                                     implementation.invocationStatus !== 'succeeded' ||
-                                    (!!review &&
-                                        (review.invocationStatus !== 'succeeded' ||
-                                            review.reviewReport?.verdict !== 'pass'))
+                                    (!!review && (review.invocationStatus !== 'succeeded' || !review.reviewReport))
                                 }
                                 onClick={() => decide('accept')}
                             >

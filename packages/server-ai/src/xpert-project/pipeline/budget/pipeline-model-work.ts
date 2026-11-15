@@ -2,12 +2,20 @@
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { IsNull, type EntityManager } from 'typeorm'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
-import { ProjectPipelineInstanceEntity, ProjectPipelineOperationEntity } from '../persistence/pipeline.entity'
+import { ChatConversationThread } from '../../../chat-conversation/conversation-thread.entity'
+import { runtimeExecutionOrigin } from '../../../handoff/runtime-messaging/runtime-execution-origin'
+import {
+    ProjectPipelineInstanceEntity,
+    ProjectPipelineOperationEntity,
+    ProjectPipelineRunEntity,
+    ProjectPipelineRoundEntity
+} from '../persistence/pipeline.entity'
 import { pipelineAssistantIntentSchema } from '../runtime/pipeline-assistant-intent.schema'
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
 import type { PipelineModelBudgetCall } from './pipeline-model-budget.command'
 
-type ModelWork = { kind: 'managed'; record: ProjectPipelineOperationEntity }
+type Continuation = NonNullable<Awaited<ReturnType<typeof runtimeExecutionOrigin>>>
+type ModelWork = { kind: 'managed'; record: ProjectPipelineOperationEntity; continuation?: Continuation }
 
 export async function resolvePipelineModelWork(
     manager: EntityManager,
@@ -15,6 +23,7 @@ export async function resolvePipelineModelWork(
 ): Promise<ModelWork | null> {
     const scope = { tenantId: call.actor.tenantId, organizationId: call.actor.organizationId ?? IsNull() }
     let executionId: string | null = call.executionId
+    let continuation: Continuation | undefined
     const visited = new Set<string>()
     while (executionId) {
         if (visited.has(executionId) || visited.size >= 64)
@@ -22,9 +31,12 @@ export async function resolvePipelineModelWork(
         visited.add(executionId)
         const execution = await manager.findOne(XpertAgentExecution, {
             where: { ...scope, id: executionId },
-            select: ['id', 'parentId', 'xpertId']
+            select: ['id', 'parentId', 'xpertId', 'metadata', 'createdById', 'threadId', 'agentKey', 'type', 'status']
         })
-        if (!execution) return null
+        if (!execution) {
+            if (continuation) throw pipelineProjectionConflict('MODEL_EXECUTION_ANCESTRY_INVALID')
+            return null
+        }
         const operation = await manager
             .getRepository(ProjectPipelineOperationEntity)
             .createQueryBuilder('operation')
@@ -36,9 +48,15 @@ export async function resolvePipelineModelWork(
             const intent = pipelineAssistantIntentSchema.parse(operation.assistantIntent)
             if (intent.executionId !== execution.id || operation.context.actor.userId !== call.actor.userId)
                 throw pipelineProjectionConflict('MODEL_EXECUTION_SCOPE_MISMATCH')
-            return { kind: 'managed', record: operation }
+            if (continuation && continuation.projectId !== operation.projectId)
+                throw pipelineProjectionConflict('MODEL_EXECUTION_SCOPE_MISMATCH')
+            return { kind: 'managed', record: operation, ...(continuation ? { continuation } : {}) }
         }
-        executionId = execution.parentId ?? null
+        const origin = await runtimeExecutionOrigin(manager, execution, call.actor)
+        if (origin) {
+            continuation ??= origin
+            executionId = origin.sourceExecutionId
+        } else executionId = execution.parentId ?? null
     }
     return null
 }
@@ -74,11 +92,36 @@ export async function assertPipelineModelWorkOpen(
         if (
             operation.deletedAt ||
             operation.cancelRequestedAt ||
-            operation.terminalObservedAt ||
             !operation.dispatchStartedAt ||
-            !['dispatching', 'pending', 'unknown'].includes(operation.state)
+            (work.continuation
+                ? !['dispatching', 'pending', 'unknown', 'succeeded'].includes(operation.state)
+                : operation.terminalObservedAt || !['dispatching', 'pending', 'unknown'].includes(operation.state))
         )
             closed()
+        if (work.continuation) {
+            // An already-authorized final result may still need its summary after successful completion.
+            // Cancellation or supersession never grants a new turn.
+            const { inbox, execution } = work.continuation
+            const run = await manager.findOneBy(ProjectPipelineRunEntity, { ...scope, id: instance.currentRunId })
+            const round = await manager.findOneBy(ProjectPipelineRoundEntity, { ...scope, id: instance.currentRoundId })
+            const thread = await manager.findOneBy(ChatConversationThread, {
+                tenantId: instance.tenantId,
+                organizationId: instance.organizationId ?? IsNull(),
+                threadId: execution.threadId
+            })
+            if (
+                inbox.state !== 'processing' ||
+                inbox.phase !== 'started' ||
+                execution.status !== XpertAgentExecutionStatusEnum.RUNNING ||
+                thread?.runControl?.executionId !== execution.id ||
+                thread.runControl.state !== 'running' ||
+                !run ||
+                !['active', 'waiting', 'completed'].includes(run.state) ||
+                !round ||
+                !['active', 'completed'].includes(round.state)
+            )
+                closed()
+        }
         return
     }
 }

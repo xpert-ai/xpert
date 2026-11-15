@@ -1,4 +1,12 @@
 {
+    "TaskDecision": {
+        "InvalidReference": "Invalid decision reference. Read project_get_task and copy a returned decisionRef unchanged.",
+        "ContextChanged": "The task, candidate or review has changed. Read project_get_task again, reassess its evidence and use the new decisionRef.",
+        "CandidatePending": "The implementation is still executing or its stop is unconfirmed. Wait for its result before deciding.",
+        "ReviewPending": "The selected independent review has not completed successfully. Inspect the review task; do not restart implementation for report delivery alone.",
+        "ReportMissing": "The independent review has no readable report. Inspect the review task and recover its report delivery before deciding.",
+        "Restricted": "The current actor cannot access this execution result. Use an authorized task owner; the reference grants no access."
+    },
     "ProjectTask": { "IndependentReview": "Independent review: {{title}}" },
     "AssistantDependency": {
         "UpdateAvailable": "Assistant update available",
@@ -64,25 +72,9 @@
         "ReportInstruction": "This is a scheduled check. Inspect the source and call report_schedule_differences with stable subject identifiers and exact before/after values. Report an empty array if unchanged. If the source is unavailable, explain the failure instead."
     },
     "ReviewReportDiagnostic": {
-        "UnexpectedField": "Unexpected field; remove it from the delivered report.",
-        "ExpectedType": "Expected {{expected}}; received {{received}}.",
-        "ExpectedLiteral": "Expected {{expected}}.",
-        "ExpectedEnum": "Expected one of: {{options}}.",
-        "Maximum": "Exceeds maximum {{maximum}}.",
-        "Minimum": "Requires minimum {{minimum}}.",
-        "Consistency": "Violates report consistency rules (unique finding IDs; no blocking finding with pass).",
-        "InvalidValue": "Invalid value ({{code}}).",
-        "ImplementationMismatch": "Must equal purpose.implementationInvocationId for the pinned implementation.",
-        "SpecificationMismatch": "Must equal purpose.specificationDigest, not the candidate file snapshot digest.",
-        "EvidenceOrderMismatch": "Evidence references match, but their order differs. Preserve the current purpose.evidence array order exactly.",
-        "EvidenceMismatch": "Evidence references differ from purpose.evidence. Preserve the pinned IDs, revisions, versions and array order exactly.",
         "InvalidSubject": "The pinned review purpose is invalid.",
-        "MissingReport": "The invocation has no delivered review report.",
-        "InvalidJson": "Expected JSON report text after the runner unwraps the outer summary string.",
-        "EncodedSummary": "Must be a JSON-encoded STRING containing the review report.",
-        "UnparsedEnvelope": "The outer envelope was not unwrapped by the runner; it is not the delivered inner report.",
-        "ContractMismatch": "The result does not match the pinned review contract.",
-        "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
+        "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}",
+        "MissingMarkdown": "Independent review needs an assessment in the final reply or an explicitly selected report file. Recover delivery only if that file exists and the runtime supports reading it."
     },
     "Error": {
         "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
@@ -90,6 +82,7 @@
         "CollaborationInvalidRevision": "The collaboration resource revision is invalid.",
         "CollaborationSchemaChanged": "The collaboration document changed or was upgraded. Reload before retrying.",
         "CollaborationMigrationInvalid": "This collaboration schema migration is not supported.",
+        "ProjectSkillAlreadyExists": "A skill already exists at this Project path. Inspect it; automatic installation cannot replace it.",
         "ScheduleReportMissing": "The check did not submit a difference report.",
         "ScheduleRunInProgress": "This task is running. Change its destination when the check finishes.",
         "AmbiguousTaskName": "Multiple tasks match this name. Provide the task ID.",
@@ -261,7 +254,7 @@
         "ProjectTaskRuntimeScope": "The task delegation caller or project scope is not authorized.",
         "ProjectTaskRuntimeConflict": "The task revision or delegation request has changed. Reuse the original request only for the same delegation.",
         "ProjectTaskRuntimeBusy": "The Project already has an active or unverified execution. Inspect or cancel it before another delegation.",
-        "ProjectTaskRuntimeDependencies": "Task dependencies must be completed before delegation.",
+        "ProjectTaskRuntimeDependencies": "Required predecessor tasks or sibling implementation tasks are unfinished. Read predecessorIds and childTasks, then finish the required work before dispatch or summary acceptance.",
         "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
         "ProjectTaskRuntimeReviewReport": "The selected review report is missing, malformed, or does not match the pinned implementation evidence. Use the diagnostic code and field paths to correct report delivery while preserving the actual findings and exact pinned subject and evidence. A formatting error alone does not require repeating business tests.",
@@ -269,7 +262,7 @@
         "ProjectTaskRuntimeReviewFeedback": "Rework must reference the latest recorded rework decision and existing finding IDs from its execution review.",
         "ProjectTaskRuntimeReviewCandidateChanged": "The reviewed candidate has changed. Create a new implementation or review the current candidate before accepting.",
         "ProjectTaskRuntimeEvidence": "Evidence or review is unavailable, stale, or this runtime does not support evidence-only review",
-        "ProjectTaskRuntimeDecisionRequired": "Delegated tasks require an explicit decision with implementation evidence and checks",
+        "ProjectTaskRuntimeDecisionRequired": "Runtime-backed task completion is recorded by project_decide_task using a decisionRef from project_get_task. Ordinary status or step updates cannot record acceptance. If the task is already accepted, completion is recorded; do not repeat the decision or completion updates just to check off steps.",
         "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",
         "RuntimeMessageInvalid": "Invalid runtime message reference.",
         "RuntimeMessageAccess": "The runtime reply target is no longer accessible.",
@@ -432,6 +425,7 @@
         "AgentInvocationDispatchUnknown": "The Agent execution outcome is unknown; reconcile it before retrying.",
         "AgentInvocationNotFound": "Agent invocation was not found in this execution scope.",
         "AgentInvocationUnsupported": "This Agent runtime does not support the requested operation.",
+        "AgentInvocationDeliveryRecoveryUnavailable": "The runtime cannot reread the selected report or files from the original execution. Delivery recovery does not run the task again.",
         "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
         "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
         "AgentInvocationConcurrentUpdate": "The Agent invocation changed concurrently. Reload its current state.",
@@ -619,6 +613,7 @@
         "ProjectSkillPackageInvalid": "The installed package does not contain a valid SKILL.md file.",
         "ProjectSkillPathInvalid": "Project skill path must be inside the skills directory.",
         "ProjectSkillProjectionFailed": "Project skills could not be prepared for this run: {{message}}",
+        "SkillRepositoryOutsideScope": "The selected skill is outside the configured repository scope.",
         "ProjectSkillRepositoryUnavailable": "The selected skill repository is unavailable.",
         "ProjectSkillUploadFailed": "Failed to upload the Project skill package: {{message}}",
         "VolumeScopeIdentifierInvalid": "Volume scope identifier {{field}} must be a single path segment.",
@@ -1593,15 +1588,11 @@
         "EXPIRED_COMMAND": "The command expired before it could start."
     },
     "ProjectTaskCard": {
+        "ReportDelivered": "Review report delivered",
+        "ReportUnavailable": "Review report unavailable",
         "Implementation": "Implementation",
         "Review": "Independent review",
         "Attempt": "Run #{{count}}",
-        "ReviewVerdict": {
-            "pass": "Review passed",
-            "changes_required": "Changes required",
-            "indeterminate": "Insufficient evidence",
-            "unavailable": "Review finished; verdict unavailable"
-        },
         "Status": {
             "todo": "To do",
             "in_progress": "In progress",

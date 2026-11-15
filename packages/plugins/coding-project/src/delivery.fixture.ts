@@ -200,6 +200,14 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   }
   capabilities.register(ProjectTasksRuntimeCapability, {
     readAcceptance,
+    readCandidate: async () => ({
+      projectId,
+      taskId: accepted.taskId,
+      taskRevision: accepted.taskRevision,
+      conversationId: accepted.conversationId,
+      executionId: context.executor.executionId,
+      artifacts: accepted.artifacts
+    }),
     graph: unusedTaskApi,
     refresh: unusedTaskApi,
     change: unusedTaskApi,
@@ -248,7 +256,7 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
       taskRevision: 4,
       conversationId: c.executor.conversationId,
       decisionId: randomUUID(),
-      review: { executionId: reviewExecutionId, mode: 'execution', verdict: 'pass' },
+      review: { executionId: reviewExecutionId, mode: 'execution', reportDigest: 'a'.repeat(64) },
       artifacts: files.map(({ artifactId, versionId }) => ({ artifactId, versionId }))
     }
     return accepted

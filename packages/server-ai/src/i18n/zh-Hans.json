@@ -1,4 +1,12 @@
 {
+    "TaskDecision": {
+        "InvalidReference": "决定引用无效。请调用 project_get_task，原样使用返回的 decisionRef。",
+        "ContextChanged": "任务、候选或评审已变化。请重新调用 project_get_task，查看新证据后使用新的 decisionRef，不要猜测版本或重启编码。",
+        "CandidatePending": "实现仍在执行，或尚未确认停止。请等待执行结果后再作决定。",
+        "ReviewPending": "对应的独立评审尚未成功完成。请查看评审任务；仅报告交付问题不应重启实现。",
+        "ReportMissing": "独立评审没有可读取的报告。请查看评审任务，恢复报告交付后再作决定。",
+        "Restricted": "当前用户无权读取这次执行结果。请由有权限的任务负责人操作，决定引用不授予访问权限。"
+    },
     "ProjectTask": { "IndependentReview": "独立评审：{{title}}" },
     "AssistantDependency": {
         "UpdateAvailable": "助理有可用更新",
@@ -64,25 +72,9 @@
         "ReportInstruction": "这是一个定时检查。请核对来源数据并调用 report_schedule_differences，提供稳定的对象标识和准确的前后值。无变化时提交空数组，数据无法取得时说明失败。"
     },
     "ReviewReportDiagnostic": {
-        "UnexpectedField": "存在多余字段；请从交付报告中移除。",
-        "ExpectedType": "应为 {{expected}}，实际类型为 {{received}}。",
-        "ExpectedLiteral": "应为 {{expected}}。",
-        "ExpectedEnum": "应为以下值之一：{{options}}。",
-        "Maximum": "超过上限 {{maximum}}。",
-        "Minimum": "未达到下限 {{minimum}}。",
-        "Consistency": "违反报告一致性规则（finding ID 必须唯一，pass 不得包含阻塞性问题）。",
-        "InvalidValue": "值无效（{{code}}）。",
-        "ImplementationMismatch": "必须与固定验收对象的 purpose.implementationInvocationId 相同。",
-        "SpecificationMismatch": "必须与 purpose.specificationDigest 相同，而非候选文件快照的摘要。",
-        "EvidenceOrderMismatch": "证据引用相同，但顺序不同。请严格保留当前 purpose.evidence 数组的顺序。",
-        "EvidenceMismatch": "证据引用与 purpose.evidence 不同。请严格保留固定的 ID、revision、version 和数组顺序。",
         "InvalidSubject": "固定的验收 purpose 无效。",
-        "MissingReport": "本次调用尚未交付验收报告。",
-        "InvalidJson": "执行器解包外层 summary 字符串后，应交付 JSON 格式的报告文本。",
-        "EncodedSummary": "必须是包含验收报告的 JSON 编码字符串（JSON-encoded STRING）。",
-        "UnparsedEnvelope": "执行器尚未解包外层信封；它不是已交付的内层报告。",
-        "ContractMismatch": "结果不符合固定的验收报告契约。",
-        "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}"
+        "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}",
+        "MissingMarkdown": "独立验收需要最终回复中的验收意见，或明确指定的报告文件。仅在文件已存在且运行器支持读取时恢复交付。"
     },
     "Error": {
         "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
@@ -90,6 +82,7 @@
         "CollaborationInvalidRevision": "协作资源版本无效。",
         "CollaborationSchemaChanged": "协作文档已升级或修改，请重新加载后重试。",
         "CollaborationMigrationInvalid": "不支持此协作协议升级。",
+        "ProjectSkillAlreadyExists": "此项目路径已有技能。请先检查现有内容，自动安装不会覆盖它。",
         "ScheduleReportMissing": "检查未提交有效的差异报告。",
         "ScheduleRunInProgress": "任务正在运行，检查完成后可更改运行位置。",
         "AmbiguousTaskName": "有多个同名任务，请指定任务 ID。",
@@ -261,7 +254,7 @@
         "ProjectTaskRuntimeScope": "任务委托调用方或项目上下文未获授权。",
         "ProjectTaskRuntimeConflict": "任务版本或委托请求已改变。仅同一次委托可以复用原请求。",
         "ProjectTaskRuntimeBusy": "项目已有活动执行或待核实执行。请先查询或取消，再安排新的委托。",
-        "ProjectTaskRuntimeDependencies": "任务的前置依赖必须完成后才能委托。",
+        "ProjectTaskRuntimeDependencies": "必要的前置任务或同级实现任务尚未完成。请查看 predecessorIds 和 childTasks，完成必要工作后再派发或接受汇总任务。",
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
         "ProjectTaskRuntimeReviewReport": "所选验收报告缺失、格式错误，或与固定的实现证据不匹配。请根据诊断代码和字段路径修正报告交付格式，保留实际发现以及准确的验收对象和证据引用。仅有格式错误无需重复业务测试。",
@@ -269,7 +262,7 @@
         "ProjectTaskRuntimeReviewFeedback": "返工必须关联最近记录的返工决定，并使用该次执行验收中已有的反馈项 ID。",
         "ProjectTaskRuntimeReviewCandidateChanged": "被验收的候选已变化。请提交新实现或重新验收当前候选，再确认完成。",
         "ProjectTaskRuntimeEvidence": "证据或验收结论不可用、已过期，或此执行器不支持仅证据验收",
-        "ProjectTaskRuntimeDecisionRequired": "受托任务必须通过确认结果操作完成，并提供具体实现版本和检查依据",
+        "ProjectTaskRuntimeDecisionRequired": "运行任务通过 project_decide_task 正式完成，请从 project_get_task 取得 decisionRef；普通状态或步骤更新不能代替验收。若任务已经接受，完成状态已记录，不要为了补勾步骤重复提交决定或完成更新。",
         "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",
         "RuntimeMessageInvalid": "运行时消息引用无效。",
         "RuntimeMessageAccess": "当前身份无法访问运行时回复目标。",
@@ -432,6 +425,7 @@
         "AgentInvocationDispatchUnknown": "智能体执行结果未知，请先核对状态再重试。",
         "AgentInvocationNotFound": "当前执行范围内未找到此智能体调用。",
         "AgentInvocationUnsupported": "该智能体执行器不支持此操作。",
+        "AgentInvocationDeliveryRecoveryUnavailable": "运行器无法从原执行中重新读取所选报告或文件。恢复交付不会重新执行任务。",
         "AgentInvocationInteractionConflict": "此智能体交互已不再等待回复。",
         "AgentInvocationMissingResult": "智能体执行器未返回有效结果。",
         "AgentInvocationConcurrentUpdate": "智能体调用已被并发更新，请重新读取状态。",
@@ -619,6 +613,7 @@
         "ProjectSkillPackageInvalid": "安装包中没有有效的 SKILL.md 文件。",
         "ProjectSkillPathInvalid": "项目技能路径必须位于 skills 目录内。",
         "ProjectSkillProjectionFailed": "无法为本次运行准备项目技能：{{message}}",
+        "SkillRepositoryOutsideScope": "所选技能不在配置允许的仓库范围内。",
         "ProjectSkillRepositoryUnavailable": "所选技能仓库当前不可用。",
         "ProjectSkillUploadFailed": "项目技能包上传失败：{{message}}",
         "VolumeScopeIdentifierInvalid": "Volume 作用域标识 {{field}} 必须是单个路径段。",
@@ -1593,15 +1588,11 @@
         "EXPIRED_COMMAND": "命令启动前已过期。"
     },
     "ProjectTaskCard": {
+        "ReportDelivered": "评审报告已交付",
+        "ReportUnavailable": "评审报告未交付",
         "Implementation": "实现",
         "Review": "独立验收",
         "Attempt": "执行 #{{count}}",
-        "ReviewVerdict": {
-            "pass": "审查通过",
-            "changes_required": "需要返工",
-            "indeterminate": "证据不足",
-            "unavailable": "审查完成，结论不可用"
-        },
         "Status": {
             "todo": "待处理",
             "in_progress": "进行中",

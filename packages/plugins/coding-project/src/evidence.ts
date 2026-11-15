@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { createHash } from 'node:crypto'
 import {
   ArtifactsRuntimeCapability,
+  ProjectTasksRuntimeCapability,
   type ProjectPipelineContext,
   type ProjectPipelineEvidenceResolver,
   type ProjectPipelineOperationContext
@@ -9,8 +10,14 @@ import {
 import type { ProjectPipelineEvidenceRef } from '@xpert-ai/contracts'
 import { IsNull } from 'typeorm'
 import { CodingDeliveryStore, scopeWhere, conflict } from './store'
-import { artifactRefSchema, evidenceSchema, manifestSchema, type DeliveryEvidence } from './schemas'
+import { artifactRefSchema, evidenceSchema, type DeliveryEvidence } from './schemas'
 import { canonical, digest, refs, deliveryBranch } from './constants'
+import {
+  MaterialValidationError,
+  materialIssue,
+  parseMaterialManifest,
+  type MaterialIssue
+} from './material-validation'
 
 export function evidenceRef(evidence: DeliveryEvidence): ProjectPipelineEvidenceRef {
   return {
@@ -51,7 +58,7 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     conversationId: string,
     operationId: string,
     taskId: string,
-    manifestArtifactId: string
+    manifestArtifactId?: string
   ) {
     const row = await this.store.operation(c, operationId)
     if (
@@ -60,7 +67,10 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     )
       throw conflict('CODING_EXECUTOR_SCOPE_MISMATCH')
     if (row.evidence) {
-      if (row.evidence.taskId !== taskId || row.evidence.artifacts[0].artifactId !== manifestArtifactId)
+      if (
+        row.evidence.taskId !== taskId ||
+        (manifestArtifactId && row.evidence.artifacts[0].artifactId !== manifestArtifactId)
+      )
         throw conflict('CODING_EVIDENCE_ALREADY_SEALED')
       // A lost tool response may be retried after this operation has completed.
       // Replaying the sealed receipt performs no execution or state transition.
@@ -69,10 +79,113 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     await this.store.assertActive(row, 'submit', c)
     const accepted = await this.store.acceptedTask(c, taskId)
     if (accepted.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
-    const manifestRef = accepted.artifacts.find((item) => item.artifactId === manifestArtifactId)
-    if (!manifestRef) throw conflict('CODING_MANIFEST_NOT_ACCEPTED')
+    const { manifest, artifacts } = await this.validateMaterials(c, row, accepted.artifacts, manifestArtifactId)
+    const evidence = evidenceSchema.parse({
+      version: 1,
+      deliveryId: row.deliveryId,
+      requirementVersion: row.requirementVersion,
+      phase: row.phase,
+      work: row.context.work,
+      taskId,
+      taskRevision: accepted.taskRevision,
+      decisionId: accepted.decisionId,
+      reviewExecutionId: accepted.review.executionId,
+      manifest,
+      artifacts,
+      releaseScope: await this.store.get(c, row.deliveryId).then(({ requirement }) =>
+        requirement.mode === 'local'
+          ? { mode: 'local' as const }
+          : {
+              target: requirement.target,
+              repository: requirement.repository,
+              branch: deliveryBranch(row.deliveryId, row.requirementVersion)
+            }
+      )
+    })
+    await this.store.assertActive(row, 'submit', c)
+    const result = await this.store.works.update({ ...scopeWhere(c), id: row.id, evidence: IsNull() }, { evidence })
+    if (result.affected !== 1) {
+      const replay = await this.store.operation(c, row.id)
+      if (!replay.evidence || canonical(replay.evidence) !== canonical(evidence))
+        throw conflict('CODING_EVIDENCE_ALREADY_SEALED')
+    }
+    return evidenceRef(evidence)
+  }
+
+  async resolveOperation(c: ProjectPipelineContext, conversationId: string, operationId?: string) {
+    const id = operationId ?? (await this.store.stageForConversation(c, conversationId))?.id
+    if (!id) throw conflict('CODING_OPERATION_NOT_FOUND')
+    const row = await this.store.operation(c, id)
+    if (
+      row.context.executor.conversationId !== conversationId ||
+      (row.context.executor.userId ?? row.context.actor.userId) !== c.actor.userId
+    )
+      throw conflict('CODING_EXECUTOR_SCOPE_MISMATCH')
+    return row
+  }
+
+  async submitTask(
+    c: ProjectPipelineContext,
+    conversationId: string,
+    taskId: string,
+    operationId?: string,
+    manifestArtifactId?: string
+  ) {
+    const row = await this.resolveOperation(c, conversationId, operationId)
+    const seal = async () => ({
+      status: 'submitted' as const,
+      submitted: true as const,
+      evidence: await this.submit(c, conversationId, row.id, taskId, manifestArtifactId)
+    })
+    // Preserve sealed replay even after the stage is terminal. Missing acceptance never seals output.
+    if (row.evidence) return seal()
+    await this.store.assertActive(row, 'submit', c)
+    const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    try {
+      const accepted = await tasks.readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
+      // The strict submit path re-reads acceptance and all current guards; a stale receipt grants nothing.
+      if (accepted) return await seal()
+      if (!tasks.readCandidate) throw conflict('CODING_CANDIDATE_READ_UNAVAILABLE')
+      const candidate = await tasks.readCandidate({ actor: c.actor, projectId: c.projectId }, taskId)
+      if (candidate.projectId !== c.projectId || candidate.taskId !== taskId)
+        throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
+      if (candidate.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
+      const checked = await this.validateMaterials(c, row, candidate.artifacts, manifestArtifactId)
+      return {
+        status: 'awaiting_acceptance' as const,
+        submitted: false as const,
+        valid: true as const,
+        saved: false as const,
+        operationId: row.id,
+        taskId,
+        taskRevision: candidate.taskRevision,
+        executionId: candidate.executionId,
+        manifestArtifactId: checked.artifacts[0].artifactId,
+        artifacts: checked.artifacts,
+        acceptance: 'required' as const
+      }
+    } catch (error) {
+      if (error instanceof MaterialValidationError)
+        return {
+          ...error.diagnostic,
+          status: 'materials_invalid' as const,
+          submitted: false as const,
+          operationId: row.id,
+          taskId
+        }
+      throw error
+    }
+  }
+
+  private async validateMaterials(
+    c: ProjectPipelineContext,
+    row: Awaited<ReturnType<CodingDeliveryStore['operation']>>,
+    fileRefs: Array<{ artifactId: string; versionId: string }>,
+    manifestArtifactId?: string
+  ) {
     const api = this.store.capabilities.require(ArtifactsRuntimeCapability)
-    const read = async (ref: { artifactId: string; versionId: string }) => {
+    const cache = new Map<string, Awaited<ReturnType<typeof load>>>()
+    const load = async (ref: { artifactId: string; versionId: string }) => {
       const result = await api.readArtifactVersion({
         artifactId: ref.artifactId,
         artifactVersionId: ref.versionId,
@@ -94,11 +207,37 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
         })
       }
     }
+    const read = async (ref: { artifactId: string; versionId: string }) => {
+      const key = `${ref.artifactId}/${ref.versionId}`
+      const result = cache.get(key) ?? (await load(ref))
+      cache.set(key, result)
+      return result
+    }
+    let manifestRef = manifestArtifactId ? fileRefs.find((file) => file.artifactId === manifestArtifactId) : undefined
+    if (manifestArtifactId && !manifestRef) throw conflict('CODING_MANIFEST_NOT_ACCEPTED')
+    if (!manifestRef) {
+      const matches: typeof fileRefs = []
+      for (const file of fileRefs) if ((await read(file)).fileName === 'delivery-manifest.json') matches.push(file)
+      if (matches.length !== 1)
+        throw new MaterialValidationError('CODING_MANIFEST_SELECTION_REQUIRED', [
+          materialIssue(
+            'manifest',
+            'manifest_selection',
+            'Export exactly one delivery-manifest.json with the implementation files. If multiple manifests are intentional, select its manifestArtifactId from the task output.'
+          )
+        ])
+      manifestRef = matches[0]
+    }
     const content = await read(manifestRef)
-    if (content.buffer.length > 64 * 1024) throw conflict('CODING_MANIFEST_TOO_LARGE')
-    const manifest = manifestSchema.parse(JSON.parse(content.buffer.toString('utf8')))
+    const manifest = parseMaterialManifest(content.buffer, row.phase)
     if (manifest.phase !== row.phase || canonical(manifest.work) !== canonical(row.context.work))
-      throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+      throw new MaterialValidationError('CODING_MANIFEST_WORK_MISMATCH', [
+        materialIssue(
+          'work',
+          'work_identity',
+          'Copy the current work object from coding_delivery_context. Do not reuse an earlier operation identity.'
+        )
+      ])
     if (row.requirement.mode === 'local' && manifest.phase !== 'development')
       throw conflict('CODING_LOCAL_RELEASE_FORBIDDEN')
     const artifacts = [content.reference]
@@ -109,10 +248,11 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
         : manifest.phase === 'deployment'
           ? [manifest.report, manifest.installationReceipt]
           : [manifest.source, manifest.report]
+    const issues: MaterialIssue[] = []
     for (const file of files) {
       let found = false
-      for (const ref of accepted.artifacts) {
-        if (ref.artifactId === manifestArtifactId) continue
+      for (const ref of fileRefs) {
+        if (ref.artifactId === manifestRef.artifactId) continue
         const reference = references.get(ref.versionId) ?? (await read(ref)).reference
         references.set(ref.versionId, reference)
         if (reference.fileName === file.fileName && reference.sha256 === file.sha256) {
@@ -121,8 +261,18 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
           break
         }
       }
-      if (!found) throw conflict('CODING_FILE_NOT_IN_ACCEPTED_ARTIFACTS')
+      if (!found) {
+        const field = Object.entries(manifest).find(([, value]) => value === file)?.[0] ?? 'files'
+        issues.push(
+          materialIssue(
+            field,
+            'exported_file',
+            'Export the referenced file in this implementation result with the exact basename and SHA-256. Recompute its hash from the exported bytes.'
+          )
+        )
+      }
     }
+    if (issues.length) throw new MaterialValidationError('CODING_FILE_NOT_IN_ACCEPTED_ARTIFACTS', issues)
     if (manifest.phase !== 'development') {
       const candidate = await this.input({ ...row.context, actor: c.actor }, 'candidate')
       const delivery = await this.store.get(c, row.deliveryId)
@@ -154,35 +304,6 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
           throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')
       }
     }
-    const evidence = evidenceSchema.parse({
-      version: 1,
-      deliveryId: row.deliveryId,
-      requirementVersion: row.requirementVersion,
-      phase: row.phase,
-      work: row.context.work,
-      taskId,
-      taskRevision: accepted.taskRevision,
-      decisionId: accepted.decisionId,
-      reviewExecutionId: accepted.review.executionId,
-      manifest,
-      artifacts,
-      releaseScope: await this.store.get(c, row.deliveryId).then(({ requirement }) =>
-        requirement.mode === 'local'
-          ? { mode: 'local' as const }
-          : {
-              target: requirement.target,
-              repository: requirement.repository,
-              branch: deliveryBranch(row.deliveryId, row.requirementVersion)
-            }
-      )
-    })
-    await this.store.assertActive(row, 'submit', c)
-    const result = await this.store.works.update({ ...scopeWhere(c), id: row.id, evidence: IsNull() }, { evidence })
-    if (result.affected !== 1) {
-      const replay = await this.store.operation(c, row.id)
-      if (!replay.evidence || canonical(replay.evidence) !== canonical(evidence))
-        throw conflict('CODING_EVIDENCE_ALREADY_SEALED')
-    }
-    return evidenceRef(evidence)
+    return { manifest, artifacts }
   }
 }

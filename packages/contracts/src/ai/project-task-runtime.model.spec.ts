@@ -29,72 +29,92 @@ const context = {
 
 describe('project task runtime contracts', () => {
   const subject = {
-    type: 'review', implementationExecutionId: id(5), implementationInvocationId: id(6),
+    type: 'review',
+    implementationExecutionId: id(5),
+    implementationInvocationId: id(6),
     specificationDigest: context.specification.digest,
     evidence: [{ type: 'invocation_result', invocationId: id(6), revision: 2 }]
   }
   it('supports evidence-only reviews and requires a safe explicit execution candidate', () => {
     expect(projectTaskExecutionPurposeSchema.parse(subject)).toEqual(subject)
-    expect(projectTaskExecutionPurposeSchema.parse({ ...subject, mode: 'execution', candidatePaths: ['plugin'] }))
-      .toHaveProperty('mode', 'execution')
+    expect(
+      projectTaskExecutionPurposeSchema.parse({ ...subject, mode: 'execution', candidatePaths: ['plugin'] })
+    ).toHaveProperty('mode', 'execution')
     for (const patch of [
-      { mode: 'execution' }, { candidatePaths: ['plugin'] },
+      { mode: 'execution' },
+      { candidatePaths: ['plugin'] },
       { mode: 'execution', candidatePaths: ['../plugin'] },
       { mode: 'execution', candidatePaths: ['plugin', 'plugin'] }
-    ]) expect(projectTaskExecutionPurposeSchema.safeParse({ ...subject, ...patch }).success).toBe(false)
+    ])
+      expect(projectTaskExecutionPurposeSchema.safeParse({ ...subject, ...patch }).success).toBe(false)
   })
 
   it('applies the same review candidate rules to Agent tool input', () => {
     const input = { taskId: id(1), expectedRevision: 1, bindingId: id(2) }
     expect(projectTaskDispatchToolInputSchema.safeParse({ ...input, purpose: subject }).success).toBe(true)
-    expect(projectTaskDispatchToolInputSchema.safeParse({ ...input,
-      purpose: { ...subject, mode: 'execution', candidatePaths: ['plugin'] } }).success).toBe(true)
+    expect(
+      projectTaskDispatchToolInputSchema.safeParse({
+        ...input,
+        purpose: { ...subject, mode: 'execution', candidatePaths: ['plugin'] }
+      }).success
+    ).toBe(true)
     for (const patch of [
-      { mode: 'execution' }, { candidatePaths: ['plugin'] },
+      { mode: 'execution' },
+      { candidatePaths: ['plugin'] },
       { mode: 'evidence_only', candidatePaths: ['plugin'] },
       { mode: 'execution', candidatePaths: ['plugin', 'plugin'] },
-      ...['/plugin', 'C:/plugin', '../plugin', 'plugin/../secret',
-        'plugin//a', 'plugin\\a', 'plugin\nlog'].map((path) => ({ mode: 'execution', candidatePaths: [path] }))
-    ]) expect(projectTaskDispatchToolInputSchema.safeParse({ ...input, purpose: { ...subject, ...patch } }).success).toBe(false)
+      ...['/plugin', 'C:/plugin', '../plugin', 'plugin/../secret', 'plugin//a', 'plugin\\a', 'plugin\nlog'].map(
+        (path) => ({ mode: 'execution', candidatePaths: [path] })
+      )
+    ])
+      expect(
+        projectTaskDispatchToolInputSchema.safeParse({ ...input, purpose: { ...subject, ...patch } }).success
+      ).toBe(false)
   })
 
   it('leaves candidate exclusions to the runtime and permits build and coverage report paths', () => {
-    for (const path of ['plugin/dist/index.js', 'coverage/report.json', '.cache/check.log', 'plugin/node_modules/pkg', 'plugin/.git/config']) {
+    for (const path of [
+      'plugin/dist/index.js',
+      'coverage/report.json',
+      '.cache/check.log',
+      'plugin/node_modules/pkg',
+      'plugin/.git/config'
+    ]) {
       expect(projectTaskCandidatePathSchema.safeParse(path).success).toBe(true)
       expect(projectTaskEvidencePathSchema.safeParse(path).success).toBe(true)
     }
-    for (const path of ['/tmp/report.json', 'C:/report.json', '../secret', 'output/../secret', 'output//report', 'output\\report', 'output\nreport']) {
+    for (const path of [
+      '/tmp/report.json',
+      'C:/report.json',
+      '../secret',
+      'output/../secret',
+      'output//report',
+      'output\\report',
+      'output\nreport'
+    ]) {
       expect(projectTaskCandidatePathSchema.safeParse(path).success).toBe(false)
       expect(projectTaskEvidencePathSchema.safeParse(path).success).toBe(false)
     }
-    expect(projectTaskReviewReportSchema.safeParse({ version: 2, mode: 'execution', verdict: 'pass',
-      specificationDigest: subject.specificationDigest, implementationInvocationId: subject.implementationInvocationId,
-      evidence: subject.evidence, summary: 'Build and coverage checked', findings: [], limitations: [],
-      checks: [{ description: 'Build', outcome: 'passed', actual: 'Build succeeds',
-        evidencePaths: ['output/work/dist/build.log', 'output/coverage/report.json'] }] }).success).toBe(true)
   })
 
   it('pins reviewer and feedback references without accepting caller identity or arbitrary policy overrides', () => {
-    const purpose = { type: 'implementation', reviewer: { bindingId: id(8), mode: 'execution' },
-      rework: { reviewExecutionId: id(9), findingIds: ['F-01'] } }
+    const purpose = {
+      type: 'implementation',
+      reviewer: { bindingId: id(8), mode: 'execution' },
+      rework: { reviewExecutionId: id(9), feedback: 'Run a live tool call and record the observed response' }
+    }
     expect(projectTaskExecutionPurposeSchema.parse(purpose)).toEqual(purpose)
-    expect(projectTaskExecutionPurposeSchema.safeParse({ ...purpose, reviewer: { ...purpose.reviewer, userId: id(1) } }).success).toBe(false)
-    expect(projectTaskExecutionPurposeSchema.safeParse({ ...purpose, rework: { reviewExecutionId: id(9), findingIds: [] } }).success).toBe(false)
+    expect(
+      projectTaskExecutionPurposeSchema.safeParse({ ...purpose, reviewer: { ...purpose.reviewer, userId: id(1) } })
+        .success
+    ).toBe(false)
+    expect(
+      projectTaskExecutionPurposeSchema.safeParse({ ...purpose, rework: { reviewExecutionId: id(9), feedback: '' } })
+        .success
+    ).toBe(false)
   })
 
-  it('keeps execution feedback actionable and rejects conflicting verdicts and duplicate finding identities', () => {
-    const finding = { id: 'F-01', kind: 'environment', blocking: true, description: 'Test service unavailable',
-      reproduction: 'Call the selected development API', expected: 'Service responds', actual: 'Connection refused' }
-    const report = { version: 2, mode: 'execution', verdict: 'indeterminate',
-      specificationDigest: subject.specificationDigest, implementationInvocationId: subject.implementationInvocationId,
-      evidence: subject.evidence, summary: 'Could not verify the feature',
-      checks: [{ description: 'Live call', outcome: 'blocked', actual: 'Connection refused' }],
-      findings: [finding], limitations: ['No feature behavior observed'] }
-    expect(projectTaskReviewReportSchema.parse(report)).toEqual(report)
-    expect(projectTaskReviewReportSchema.safeParse({ ...report, verdict: 'pass' }).success).toBe(false)
-    expect(projectTaskReviewReportSchema.safeParse({ ...report, findings: [finding, finding] }).success).toBe(false)
-  })
-  it('requires evidence and performed checks, and rejects model-supplied decision identity', () => {
+  it('requires bound evidence, allows omitted check descriptions and rejects model-supplied decision identity', () => {
     const decision = {
       requestId: id(1),
       taskId: id(2),
@@ -107,36 +127,19 @@ describe('project task runtime contracts', () => {
       checks: ['Inspected tests']
     }
     expect(projectTaskDecisionInputSchema.parse(decision)).toEqual(decision)
-    for (const extra of [
-      { actorId: id(9) },
-      { actorType: 'user' },
-      { taskRevision: 99 },
-      { evidence: [] },
-      { checks: [] }
-    ])
+    expect(projectTaskDecisionInputSchema.parse({ ...decision, checks: [] }).checks).toEqual([])
+    for (const extra of [{ actorId: id(9) }, { actorType: 'user' }, { taskRevision: 99 }, { evidence: [] }])
       expect(projectTaskDecisionInputSchema.safeParse({ ...decision, ...extra }).success).toBe(false)
   })
 
-  it('accepts only structured review verdicts with pinned evidence and explicit limitations', () => {
-    const report = {
-      version: 1,
-      verdict: 'pass',
-      specificationDigest: context.specification.digest,
-      implementationInvocationId: id(4),
-      evidence: [{ type: 'invocation_result', invocationId: id(4), revision: 2 }],
-      findings: ['The supplied tests cover the stated requirements'],
-      limitations: ['Tests were not independently executed']
-    }
-    expect(projectTaskReviewReportSchema.parse(report)).toEqual(report)
-    expect(projectTaskReviewReportSchema.safeParse('All tests passed').success).toBe(false)
-    for (const extra of [
-      { verdict: 'done' },
-      { findings: [] },
-      { evidence: [] },
-      { limitations: undefined },
-      { acceptTask: true }
-    ])
-      expect(projectTaskReviewReportSchema.safeParse({ ...report, ...extra }).success).toBe(false)
+  it('projects ordinary Markdown without imposing a verdict, findings or heading format', () => {
+    const markdown = '# Findings\n部署尚未验证。\n```json\n{"arbitrary":"example"}\n```'
+    expect(projectTaskReviewReportSchema.parse({ format: 'markdown', markdown })).toEqual({
+      format: 'markdown',
+      markdown
+    })
+    expect(projectTaskReviewReportSchema.safeParse({ format: 'markdown', markdown: '' }).success).toBe(false)
+    expect(projectTaskReviewReportSchema.safeParse({ version: 1, verdict: 'pass' }).success).toBe(false)
   })
 
   it('keeps business task, attempt and invocation identities separate without imposing a coding domain', () => {
@@ -227,16 +230,38 @@ describe('project task runtime contracts', () => {
 })
 
 it('exposes review subtask choice without asking the model for host-owned associations', () => {
-  const input = { taskId: id(1), expectedRevision: 1, bindingId: id(2), reviewAsSubtask: true,
-    purpose: { type: 'review', mode: 'execution', candidatePaths: ['plugin'], implementationExecutionId: id(3),
-      implementationInvocationId: id(4), specificationDigest: `sha256:${'a'.repeat(64)}`,
-      evidence: [{ type: 'invocation_result', invocationId: id(4), revision: 1 }] } }
+  const input = {
+    taskId: id(1),
+    expectedRevision: 1,
+    bindingId: id(2),
+    reviewAsSubtask: true,
+    purpose: {
+      type: 'review',
+      mode: 'execution',
+      candidatePaths: ['plugin'],
+      implementationExecutionId: id(3),
+      implementationInvocationId: id(4),
+      specificationDigest: `sha256:${'a'.repeat(64)}`,
+      evidence: [{ type: 'invocation_result', invocationId: id(4), revision: 1 }]
+    }
+  }
   expect(projectTaskDispatchToolInputSchema.safeParse(input).success).toBe(true)
-  expect(projectTaskDispatchToolInputSchema.safeParse({ ...input,
-    purpose: { ...input.purpose, implementationTaskId: id(5) } }).success).toBe(false)
+  expect(
+    projectTaskDispatchToolInputSchema.safeParse({
+      ...input,
+      purpose: { ...input.purpose, implementationTaskId: id(5) }
+    }).success
+  ).toBe(false)
 })
 it('keeps summary requirement identity host-owned during implementation dispatch', () => {
-  const input = { taskId: id(1), expectedRevision: 1, bindingId: id(2),
-    purpose: { type: 'implementation', coordination: { taskId: id(3), specificationDigest: `sha256:${'a'.repeat(64)}` } } }
+  const input = {
+    taskId: id(1),
+    expectedRevision: 1,
+    bindingId: id(2),
+    purpose: {
+      type: 'implementation',
+      coordination: { taskId: id(3), specificationDigest: `sha256:${'a'.repeat(64)}` }
+    }
+  }
   expect(projectTaskDispatchToolInputSchema.safeParse(input).success).toBe(false)
 })

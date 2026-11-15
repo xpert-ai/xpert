@@ -62,8 +62,16 @@ Read `cloud-project-delivery` for task delegation and independent execution revi
 Use program-specific environment/development skills; for Xpert plugins, use
 `xpert-plugin-development` and `xpert-platform-local-environment` in the existing Computer.
 The coordinator reads the delegation/review procedure and stage schema, then assigns
-the task. Put relevant program-specific skill paths in the CLI brief; let the CLI read
-implementation manuals as needed. On a technical retry, inspect and reuse existing
+the task. First call `list_skills`; search the accessible catalog with
+`search_skill_repository` and install missing program-specific skills through
+`install_skills`. Confirm the returned enabled state. Installation copies
+complete packages into this Project; it never replaces an existing same-path
+package, overwrites local edits or enables a disabled skill. Resolve such cases
+through explicit Project configuration rather than retrying installation.
+The host supplies exact execution-specific skill paths to the CLI and execution
+reviewer. Let them read relevant manuals there; names alone are not paths.
+Assistant coordination skills are not automatically CLI dependencies. For missing
+catalog entries report the concrete missing knowledge, not an invented path. On a technical retry, inspect and reuse existing
 tasks and evidence before creating another task. Do not mistake a Pipeline coordinator
 execution for a Computer task holding the workspace.
 When retrying under a new operation ID, update an unfinished task's manifest work identity
@@ -103,17 +111,36 @@ implementation child. The host returns the review task ID and reuses it for retr
 of the same candidate; a new implementation gets a new review task. Read the returned
 review task for its findings. A completed review can conclude `changes_required` or
 `indeterminate`; it does not complete the delivery. Do not arrange review-of-review.
-Make `project_decide_task` decisions on the summary with its current revision and
-the child implementation/review evidence. Submit that accepted summary task ID.
+Read the summary with `project_get_task`, read the referenced review report, then
+call `project_decide_task` with its `decisionOptions[].decisionRef`, `outcome` and
+a concise `rationale`. The host binds task/candidate versions and evidence; do not
+copy digests, build evidence arrays or append review artifacts. If the reference is
+stale, reread and reassess without restarting coding. A summary decision also records
+the selected child's decision; do not accept both separately. Submit the accepted summary task ID.
 Do not convert existing tasks or move historical executions into a new hierarchy.
 Preserve their original acceptance path when resuming an existing stage.
 
-Each work stage exports a `delivery-manifest.json` matching its supplied schema and
-all referenced files through file delivery. Manifest file references contain the exact
-file name and SHA-256; Artifact IDs are assigned by the host after export. Include all
-those Artifact references in the formal task acceptance. Submit the accepted task and
-manifest Artifact ID with `coding_delivery_submit`. The host checks current operation,
-task acceptance, independent review and immutable bytes.
+Each work stage exports `delivery-manifest.json` and every referenced file. `fileName`
+is the exact exported basename (for example `plugin.tgz`, not `dist/plugin.tgz`);
+compute SHA-256 from the actual file bytes. Artifact IDs and versions are host-owned.
+Call `coding_delivery_submit` with the completed implementation child `taskId`.
+The host resolves the stage, unique manifest and immutable file versions. It returns:
+
+- `materials_invalid`, `submitted: false`: fix the listed fields and export the updated files.
+- `awaiting_acceptance`, `submitted: false`: materials passed; arrange independent review
+  of the current candidate and record formal acceptance using `decisionRef`.
+- `submitted`, `submitted: true`: formally accepted evidence was checked and sealed.
+
+After formal acceptance, call the same tool with the accepted summary `taskId`
+(the original task for a legacy workflow). No `mode` parameter or separate validation
+tool is needed. Repeated calls before acceptance do not accept tasks or advance work.
+Optional `operationId` and `manifestArtifactId` remain explicit selectors; never invent
+versions or build acceptance evidence arrays. Submission rechecks current authorization,
+state and bytes; an earlier materials-passed result is not an access grant.
+This is a host Assistant tool, not a cloud CLI command. Forward field diagnostics to
+the CLI for repair. JSON Schema or a self-written checker does not cover all host checks.
+If only materials changed, arrange a focused review of the new candidate and reuse
+unchanged business-test evidence only within its verified coverage.
 
 Development fixes a local source commit before final packaging/acceptance, and exports
 a recoverable source archive or Git bundle, installable package, concise report and

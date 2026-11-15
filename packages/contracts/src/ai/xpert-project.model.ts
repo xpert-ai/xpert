@@ -296,7 +296,7 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
-  reviewVerdict?: 'pass' | 'changes_required' | 'indeterminate' | null
+  reviewReportAvailable?: boolean
   /** Runtime-owned attempt. Distinct from a native Agent execution ID. */
   invocationId?: string | null
   invocationStatus?: AgentInvocationStatus | null

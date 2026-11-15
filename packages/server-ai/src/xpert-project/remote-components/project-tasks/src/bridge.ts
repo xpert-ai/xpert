@@ -190,7 +190,7 @@ export const graphSchema = z.object({
             executorName: z.string().nullish(),
             attempt: z.number(),
             purpose: projectTaskExecutionPurposeSchema.nullish(),
-            reviewVerdict: z.enum(['pass', 'changes_required', 'indeterminate']).nullish(),
+            reviewReportAvailable: z.boolean().optional(),
             status: z.string(),
             invocationId: z.string().nullish(),
             invocationStatus: z

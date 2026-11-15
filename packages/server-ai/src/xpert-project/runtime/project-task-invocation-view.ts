@@ -13,7 +13,7 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
     invocation?: AgentInvocation,
     pipelineLink?: Pick<ProjectPipelineTaskLinkEntity, 'projectId' | 'taskId' | 'nodeInstanceId'>
 ): T {
-    if (!attempt.invocationId) return { ...attempt, reviewVerdict: null }
+    if (!attempt.invocationId) return { ...attempt, reviewReportAvailable: false }
     const reference = invocation?.request.dispatch?.projectTask
     const pipeline =
         invocation?.scope.callerType === 'project_pipeline'
@@ -32,21 +32,27 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
         reference.projectTaskId === attempt.taskId &&
         reference.projectId === attempt.projectId
     if (!invocation || invocation.id !== attempt.invocationId || !(pipeline ? pipelineMatches : dispatchMatches))
-        return { ...attempt, reviewVerdict: null, invocationStatus: attempt.dispatchState === 'pending' ? 'queued' : 'unknown' }
+        return {
+            ...attempt,
+            reviewReportAvailable: false,
+            invocationStatus: attempt.dispatchState === 'pending' ? 'queued' : 'unknown'
+        }
     const released = invocationCanRelease(invocation)
     const status = released ? invocation.status : invocation.handle ? 'running' : 'queued'
-    // Runtime success is not approval. Only a settled review of this exact pinned candidate has a verdict.
+    // Runtime success is not approval. Only a settled review of this exact pinned candidate exposes a report.
     const report =
-        attempt.purpose?.type === 'review' && status === 'succeeded' && dispatchMatches &&
-        invocation.scope.projectId === attempt.projectId && sameInvocationData(reference.purpose, attempt.purpose)
+        attempt.purpose?.type === 'review' &&
+        status === 'succeeded' &&
+        dispatchMatches &&
+        invocation.scope.projectId === attempt.projectId &&
+        sameInvocationData(reference.purpose, attempt.purpose)
             ? reviewReport(attempt.purpose, invocation.result?.text)
             : null
     return {
         ...attempt,
-        reviewVerdict: report?.verdict ?? null,
+        reviewReportAvailable: Boolean(report),
         status,
-        invocationStatus:
-            invocation.status === 'cancelled' && !released ? 'cancelling' : invocation.status,
+        invocationStatus: invocation.status === 'cancelled' && !released ? 'cancelling' : invocation.status,
         runtimeProvider: invocation.request.target.provider,
         runtimeToolId: invocation.handle?.runner?.tool.id,
         runtimeStartedAt: invocation.progress?.startedAt ?? null,

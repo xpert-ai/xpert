@@ -86,7 +86,7 @@ export class ProjectRuntimeObservationHandler implements ICommandHandler<Project
                 task.reviewSubject.implementationExecutionId === attempt.purpose.implementationExecutionId &&
                 task.reviewSubject.specificationDigest === attempt.purpose.specificationDigest
             ) {
-                // A negative verdict finishes the review, while the implementation still needs a decision.
+                // A delivered report finishes the review work item; implementation acceptance still needs a decision.
                 const reviewStatus =
                     invocation.status === 'succeeded' && invocationCanRelease(invocation)
                         ? reviewReport(attempt.purpose, invocation.result?.text)

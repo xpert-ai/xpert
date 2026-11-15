@@ -92,7 +92,13 @@ export interface AgentInvocationInput {
 
 /** Output or in-progress receipt. Check invocation status before treating it as final. */
 export interface AgentInvocationResult {
+  /** Optional reply content, preserved without imposing a report format; may be empty. */
   text: string
+  /** The reply exceeded the transport limit; no partial text is presented as complete evidence. */
+  textTruncated?: boolean
+  /** Present only when a report file was explicitly selected. */
+  report?: import('./results').AgentReportDelivery
+  deliveryHistory?: Array<{ at: string; report?: import('./results').AgentReportDelivery; export?: AgentOutputExport }>
   /** Explicit adapter-normalized findings; display kind is never inferred from prose or titles. */
   items?: AgentResultItem[]
   /** Separate delivery outcome; task success does not imply that files were exported. */

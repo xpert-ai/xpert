@@ -4,8 +4,13 @@ import { ConflictException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
-import { GENERAL_PROJECT_TYPE, type ProjectConfigurationUpdate, type XpertProjectConfigurationView,
-    type ProjectTaskDurationConfiguration, type XpertProjectTypeRef } from '@xpert-ai/contracts'
+import {
+    GENERAL_PROJECT_TYPE,
+    type ProjectConfigurationUpdate,
+    type XpertProjectConfigurationView,
+    type ProjectTaskDurationConfiguration,
+    type XpertProjectTypeRef
+} from '@xpert-ai/contracts'
 import { RequestContext, type ProjectAccessActor } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionPolicyService } from '../../model-execution/execution-policy'
 import { resolveExecutionDuration } from '../../model-execution/execution-duration'
@@ -19,7 +24,8 @@ import { configurationInvalid, effectiveProjectConfiguration } from './project-c
 @Injectable()
 export class ProjectConfigurationService {
     constructor(
-        @InjectRepository(XpertProjectConfiguration) private readonly configurations: Repository<XpertProjectConfiguration>,
+        @InjectRepository(XpertProjectConfiguration)
+        private readonly configurations: Repository<XpertProjectConfiguration>,
         private readonly access: XpertProjectAccessService,
         private readonly runtimeAccess: ProjectAccessRuntimeService,
         private readonly types: XpertProjectTypeService,
@@ -28,7 +34,8 @@ export class ProjectConfigurationService {
 
     private ref(project: { applicationKey?: string | null; projectTypeKey?: string | null }): XpertProjectTypeRef {
         return project.applicationKey && project.projectTypeKey
-            ? { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey } : GENERAL_PROJECT_TYPE
+            ? { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey }
+            : GENERAL_PROJECT_TYPE
     }
 
     private where(projectId: string, actor: { tenantId?: string; organizationId?: string | null }) {
@@ -46,7 +53,11 @@ export class ProjectConfigurationService {
         const maxDurationSeconds = typeof configured === 'number' ? configured : undefined
         const policy = await this.policies.require(project.tenantId)
         return {
-            projectType, revision: row?.revision ?? 0, schema, values: row?.values ?? {}, effectiveValues,
+            projectType,
+            revision: row?.revision ?? 0,
+            schema,
+            values: row?.values ?? {},
+            effectiveValues,
             canEdit: project.status !== 'archived' && ['owner', 'manager'].includes(role),
             taskExecution: {
                 configuredMaxDurationSeconds: maxDurationSeconds,
@@ -59,12 +70,20 @@ export class ProjectConfigurationService {
 
     async update(projectId: string, input: ProjectConfigurationUpdate) {
         const { project } = await this.access.assertCanManage(projectId)
-        const actor = { tenantId: project.tenantId, organizationId: project.organizationId, userId: RequestContext.currentUserId() }
+        const actor = {
+            tenantId: project.tenantId,
+            organizationId: project.organizationId,
+            userId: RequestContext.currentUserId()
+        }
         effectiveProjectConfiguration(this.types.resolve(this.ref(project)).configuration?.schema, input.values)
         await this.configurations.manager.transaction(async (manager) => {
             // Serialize initial creation too, without locking another repository or calling external services.
             await manager.findOneOrFail(XpertProject, {
-                where: { id: projectId, tenantId: project.tenantId, organizationId: project.organizationId ?? IsNull() },
+                where: {
+                    id: projectId,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId ?? IsNull()
+                },
                 lock: { mode: 'pessimistic_write' }
             })
             await this.runtimeAccess.assertHumanManageWithinTransaction({ actor, projectId }, manager)
@@ -73,10 +92,16 @@ export class ProjectConfigurationService {
             const row = await repository.findOneBy(where)
             if ((row?.revision ?? 0) !== input.revision)
                 throw new ConflictException(t('server-ai:Error.ProjectConfigurationConflict'))
-            await repository.save(repository.create({
-                ...(row ?? {}), projectId, tenantId: project.tenantId, organizationId: project.organizationId,
-                values: input.values, revision: input.revision + 1
-            }))
+            await repository.save(
+                repository.create({
+                    ...(row ?? {}),
+                    projectId,
+                    tenantId: project.tenantId,
+                    organizationId: project.organizationId,
+                    values: input.values,
+                    revision: input.revision + 1
+                })
+            )
         })
         return this.get(projectId)
     }
@@ -85,9 +110,18 @@ export class ProjectConfigurationService {
         const access = await this.runtimeAccess.assertEdit({ actor, projectId })
         const projectType = this.ref(access)
         const row = await this.configurations.findOneBy(this.where(projectId, actor))
-        const values = effectiveProjectConfiguration(this.types.resolve(projectType).configuration?.schema, row?.values ?? {})
-        return { projectType, configurationRevision: row?.revision ?? 0,
-            maxDurationSeconds: typeof values.taskExecutionMaxDurationSeconds === 'number'
-                ? values.taskExecutionMaxDurationSeconds : undefined }
+        const values = effectiveProjectConfiguration(
+            this.types.resolve(projectType).configuration?.schema,
+            row?.values ?? {}
+        )
+        // This configuration is pinned into a runner receipt and round-trips through JSONB.
+        // An absent override must stay absent so persisted and in-memory receipts agree.
+        return {
+            projectType,
+            configurationRevision: row?.revision ?? 0,
+            ...(typeof values.taskExecutionMaxDurationSeconds === 'number'
+                ? { maxDurationSeconds: values.taskExecutionMaxDurationSeconds }
+                : {})
+        }
     }
 }
