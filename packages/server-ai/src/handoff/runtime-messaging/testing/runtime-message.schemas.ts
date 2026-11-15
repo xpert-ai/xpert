@@ -95,7 +95,8 @@ export const runtimeMessageTestSchemas = [
             xpertId: { ...uuid, nullable: true },
             type: nullableText,
             status: nullableText,
-            error: nullableText
+            error: nullableText,
+            metadata: json
         }
     })
 ]

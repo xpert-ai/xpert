@@ -130,6 +130,8 @@ export enum XpertAgentExecutionStatusEnum {
 }
 
 export type TAgentExecutionMetadata = {
+  /** Host-created result continuation; its inbox claim proves the originating execution. */
+  runtimeContinuation?: { inboxId: string }
   /** Written atomically with root checkpoints, not by message/execution finalizers. */
   recovery?: import('./chat-recovery.model').TChatExecutionRecovery
   templateSource?: import('../agent-plugin').TemplateAgentSource

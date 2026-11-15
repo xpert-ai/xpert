@@ -218,6 +218,7 @@ export class RuntimeMessageContinuationService {
                     agentKey: target.agentKey,
                     xpertId: target.type === 'project_agent' ? null : target.xpertId,
                     type: target.type === 'project_agent' ? 'project_agent' : 'agent',
+                    metadata: { runtimeContinuation: { inboxId: inbox.id } },
                     status: XpertAgentExecutionStatusEnum.PENDING
                 })
                 .orIgnore()

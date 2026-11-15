@@ -227,6 +227,8 @@ export class AgentMiddlewareModelRuntimeService {
                           }
                         : undefined,
                 handleLLMTokens: async (input) => {
+                    // Capture the same host execution used by admission before awaiting usage callbacks.
+                    const originExecutionId = resolveAgentExecutionScope(scope).executionId
                     if (purpose === 'observe') {
                         return
                     }
@@ -263,6 +265,7 @@ export class AgentMiddlewareModelRuntimeService {
                                 ...omit(input, 'usage'),
                                 tenantId,
                                 requestId: input.requestId ?? randomUUID(),
+                                originExecutionId,
                                 organizationId,
                                 userId,
                                 xpertId,

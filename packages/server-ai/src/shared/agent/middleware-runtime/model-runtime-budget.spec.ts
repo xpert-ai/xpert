@@ -1,4 +1,5 @@
 jest.mock('../../../copilot-model/utils/context-size', () => ({ ensureCopilotModelContextSize: jest.fn() }))
+import { CopilotTokenRecordCommand } from '../../../copilot-user/commands/token-record.command'
 import { randomUUID } from 'node:crypto'
 import { CommandBus } from '@nestjs/cqrs'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
@@ -107,5 +108,24 @@ describe('middleware-created native LLM budget wiring', () => {
         expect(f.execute).toHaveBeenCalledWith(
             new SettlePipelineModelCallCommand({ ...admitted.input, actualTokens: 25 })
         )
+        const records = () =>
+            f.execute.mock.calls.flatMap(([command]) =>
+                command instanceof CopilotTokenRecordCommand ? [command.input] : []
+            )
+        expect(records()).toEqual([
+            expect.objectContaining({
+                requestId: admitted.input.requestId,
+                originExecutionId: admitted.input.executionId,
+                tokenUsed: 25
+            })
+        ])
+        // Reusing a model on a later turn must not bill the execution captured at model construction.
+        const resumedExecutionId = randomUUID()
+        f.scope.executionId = resumedExecutionId
+        await f.model.invoke('Resumed request', { callbacks: [report] })
+        expect(records().map((record) => record.originExecutionId)).toEqual([
+            admitted.input.executionId,
+            resumedExecutionId
+        ])
     })
 })
