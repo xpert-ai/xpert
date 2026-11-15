@@ -45,6 +45,11 @@
           },
           {
             "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/plugins/file-memory/remote-components",
+            "output": "remote-components"
+          },
+          {
+            "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/xpert-task/remote-components",
             "output": "remote-components"
           },

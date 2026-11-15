@@ -115,13 +115,11 @@ describe('XpertService command facade', () => {
         const service = new XpertService(
             repository as unknown as ConstructorParameters<typeof XpertService>[0],
             workspaceAccessService as unknown as ConstructorParameters<typeof XpertService>[1],
-            storeService as unknown as ConstructorParameters<typeof XpertService>[2],
-            commandBus as unknown as ConstructorParameters<typeof XpertService>[3],
-            queryBus as unknown as ConstructorParameters<typeof XpertService>[4],
-            eventEmitter as unknown as ConstructorParameters<typeof XpertService>[5],
-            triggerRegistry as unknown as ConstructorParameters<typeof XpertService>[6],
-            sandboxService as unknown as ConstructorParameters<typeof XpertService>[7],
-            { resolve: jest.fn() } as unknown as ConstructorParameters<typeof XpertService>[8],
+            commandBus as unknown as ConstructorParameters<typeof XpertService>[2],
+            queryBus as unknown as ConstructorParameters<typeof XpertService>[3],
+            eventEmitter as unknown as ConstructorParameters<typeof XpertService>[4],
+            triggerRegistry as unknown as ConstructorParameters<typeof XpertService>[5],
+            sandboxService as unknown as ConstructorParameters<typeof XpertService>[6],
             sharing as never
         )
 

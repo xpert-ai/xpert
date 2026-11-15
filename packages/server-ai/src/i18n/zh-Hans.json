@@ -1649,6 +1649,9 @@
         "NarrowRange": "匹配记录超过 20,000 条，请缩小时间段或筛选助手、工作区。",
         "NotFound": "未找到执行记录。"
     },
+    "MemoryReply": {
+        "StructuredOutputConflict": "请关闭智能体“{{agent}}”的标准问答，或将输出格式切回默认文本。同一智能体不能同时启用标准问答和结构化输出。"
+    },
     "UserInput": {
         "InvalidResponse": "用户输入无效，请重新提交所需字段。",
         "UnsupportedMode": "当前运行时暂不支持非阻塞式用户输入。",

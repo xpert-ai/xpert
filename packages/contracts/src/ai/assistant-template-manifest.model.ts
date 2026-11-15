@@ -79,10 +79,6 @@ export const templateManifestV1Schema = z
   .object({
     schemaVersion: z.literal(1),
     version: text,
-    memory: z
-      .object({ seed: z.boolean(), preferences: z.array(key).max(50).default([]) })
-      .strict()
-      .optional(),
     skills: z
       .array(z.object({ pluginName: text.optional(), componentKey: key }).strict())
       .max(100)
@@ -138,7 +134,7 @@ export const templateManifestV1Schema = z
 
 /** V2 keeps only initialization and requirements that the DSL cannot express. */
 export const assistantTemplateManifestSchema = templateManifestV1Schema
-  .omit({ memory: true, skills: true, execution: true })
+  .omit({ skills: true, execution: true })
   .extend({
     schemaVersion: z.literal(2),
     execution: templateManifestV1Schema.shape.execution.unwrap().omit({ sandbox: true }).optional()

@@ -30,11 +30,7 @@ export function preserveTemplateInstanceBindings(
         ...incoming.team.options,
         modelSelection: structuredClone(team.options?.modelSelection)
     }
-    for (const path of [
-        'memory.copilotModel',
-        'features.textToSpeech.copilotModel',
-        'features.speechToText.copilotModel'
-    ]) {
+    for (const path of ['features.textToSpeech.copilotModel', 'features.speechToText.copilotModel']) {
         const value = get(team, path)
         if (value !== undefined) set(incoming.team, path, structuredClone(value))
         else unset(incoming.team, path)

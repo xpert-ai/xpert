@@ -111,6 +111,10 @@
                 ]
               },
               {
+                "group": "Memory",
+                "pages": ["en/guides/file-memory-dream-refactor"]
+              },
+              {
                 "group": "Knowledgebases",
                 "pages": [
                   "en/guides/knowledgebase/document-parsing",

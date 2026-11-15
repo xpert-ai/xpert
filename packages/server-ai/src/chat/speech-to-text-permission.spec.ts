@@ -152,7 +152,7 @@ describe('Speech-to-text Assistant authority integration', () => {
             manager: { createQueryBuilder: () => runQuery }
         } as unknown as Repository<XpertWorkspace>)
         const published = new PublishedXpertAccessService(repository, access)
-        xperts = new XpertService(repository, access, null, null, null, null, null, null, null, null)
+        xperts = new XpertService(repository, access, null, null, null, null, null, null)
         module = await Test.createTestingModule({
             imports: [CqrsModule],
             providers: [

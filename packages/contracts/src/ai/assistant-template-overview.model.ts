@@ -10,7 +10,6 @@ export interface AssistantTemplateOverview {
   publisher: string
   version?: string
   instructions: string
-  memories: { title: string; content?: string }[]
   skills: AssistantCapabilitySummary['skills']
   agents: AssistantCapabilitySummary['agents']
   onboarding?: Required<NonNullable<AssistantTemplateManifest['onboarding']>>

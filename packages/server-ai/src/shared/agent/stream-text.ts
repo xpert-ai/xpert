@@ -1,4 +1,5 @@
-import { type MessageContent, type MessageContentComplex } from '@langchain/core/messages'
+import { isAIMessage, isBaseMessage, type MessageContent, type MessageContentComplex } from '@langchain/core/messages'
+import { RunnableLambda, type RunnableConfig } from '@langchain/core/runnables'
 import { TMessageContentText } from '@xpert-ai/contracts'
 
 type TTextMessageContentPart = MessageContentComplex & {
@@ -49,6 +50,18 @@ export function extractTextFromMessageContent(content: MessageContent | null | u
         .filter(isTextMessageContentPart)
         .map((item) => item.text)
         .join('')
+}
+
+/**
+ * When middleware answers directly, emit its AI reply as a single chunk on the current run's stream.
+ * Only replies with content and no tool calls are eligible.
+ */
+export async function streamMiddlewareReply(message: unknown, config?: RunnableConfig): Promise<void> {
+    if (!isBaseMessage(message) || !isAIMessage(message) || !message.content || message.tool_calls?.length) return
+
+    // Draining the runnable emits the reply through LangChain's normal stream callbacks.
+    const stream = await RunnableLambda.from(() => message).stream(null, config)
+    await stream.pipeTo(new WritableStream())
 }
 
 export function createTextChunk(

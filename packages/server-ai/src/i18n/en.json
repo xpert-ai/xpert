@@ -1649,6 +1649,9 @@
         "NarrowRange": "More than 20,000 records match. Narrow the time range or filter an Assistant/workspace.",
         "NotFound": "Execution not found."
     },
+    "MemoryReply": {
+        "StructuredOutputConflict": "Turn off Standard replies or select the default text output for agent \"{{agent}}\". Standard replies and structured output cannot be used together on the same agent."
+    },
     "UserInput": {
         "InvalidResponse": "The user input response is invalid. Please submit the requested fields again.",
         "UnsupportedMode": "Non-blocking user input is not supported by this runtime.",

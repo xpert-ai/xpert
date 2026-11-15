@@ -141,8 +141,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             id: templateId,
             filePath,
             exportedAt: new Date().toISOString(),
-            isDraft: input.isDraft,
-            includeMemory: input.includeMemory
+            isDraft: input.isDraft
         }
     }
 

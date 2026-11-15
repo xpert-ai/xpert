@@ -91,14 +91,6 @@ export type TXpertFeatures = {
   attachment?: TXpertAttachment
 
   /**
-   * Reply with memory(Q&A)
-   */
-  memoryReply?: {
-    enabled: boolean
-    scoreThreshold?: number
-  }
-
-  /**
    * Sandbox feature
    */
   sandbox?: TXpertSandboxFeature
@@ -116,7 +108,6 @@ export type TXpertExportedTemplate = {
   filePath: string
   exportedAt: string
   isDraft: boolean
-  includeMemory: boolean
 }
 
 export type XpertFrequentQuestionsRequest = {
@@ -203,10 +194,6 @@ export type TXpert = {
    * Config of summarize past conversations
    */
   summarize?: TSummarize
-  /**
-   * @deprecated use memory middlewares
-   */
-  memory?: TLongTermMemory
 
   features?: TXpertFeatures
   commandProfile?: TXpertCommandProfile
@@ -572,31 +559,6 @@ export type TSummarize = {
    * Number of retained messages
    */
   retainMessages?: number
-}
-
-export enum LongTermMemoryTypeEnum {
-  PROFILE = 'profile',
-  QA = 'qa'
-}
-
-export type TLongTermMemoryConfig = {
-  enabled?: boolean
-  /**
-   * System prompt guide how to remember the key points of the conversation
-   */
-  prompt?: string
-}
-/**
- * Config of long-term memory
- */
-export type TLongTermMemory = {
-  enabled?: boolean
-  // type?: LongTermMemoryTypeEnum
-  copilotModel?: TCopilotModel
-  profile?: TLongTermMemoryConfig & {
-    afterSeconds?: number
-  }
-  qa?: TLongTermMemoryConfig
 }
 
 export type TXpertAttachmentType = 'document' | 'image' | 'audio' | 'video' | 'others'

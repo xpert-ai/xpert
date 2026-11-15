@@ -14,6 +14,8 @@ export interface IAgentMiddlewareContext {
   workspaceId?: string
   projectId?: string
   conversationId?: string
+  /** Persisted input message for this turn, when available. */
+  inputMessageId?: string
   executionId?: string
   /** Omitted for legacy Assistant hosts. Project general agents must explicitly use project_agent. */
   callerType?: AgentInvocationScope['callerType']

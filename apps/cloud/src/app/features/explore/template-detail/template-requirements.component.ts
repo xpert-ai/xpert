@@ -39,7 +39,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
             @for (skill of capabilities.skills; track $index) {
               <div>Skill · {{ skill.componentKey }}</div>
             }
-            <div>{{ 'XP.Installation.SeedMemoryCount' | translate: { count: capabilities.seedMemoryCount } }}</div>
             @if (capabilities.sandbox) {
               <div>{{ 'XP.Installation.ServerSandbox' | translate }}</div>
             }

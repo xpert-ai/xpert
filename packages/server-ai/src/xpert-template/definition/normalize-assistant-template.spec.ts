@@ -80,32 +80,29 @@ describe('portable Assistant definition', () => {
             })
         ).toThrow()
     })
-    it('derives skills once, seed memories and sandbox from their owning structures', () => {
+    it('derives skills and sandbox from their owning structures', () => {
         const normalized = normalizeAssistantTemplate({ export_data: stringify({ ...graph, template: metadata }) })
         const summary = summarizeAssistantDefinition(normalized.definition)
-        expect(summary).toMatchObject({ seedMemoryCount: 1, sandbox: true, skills: [{ componentKey: 'office' }] })
+        expect(summary).toMatchObject({ sandbox: true, skills: [{ componentKey: 'office' }] })
         expect(summary.skills).toHaveLength(1)
         expect(summary.agents[0].middleware).toEqual([{ provider: 'Files', toolNames: ['read'] }])
         expect(JSON.stringify(summary)).not.toContain('initial')
     })
-    it('preserves initialization, dependencies and memories through ordinary DTO export/reimport', () => {
+    it('preserves initialization, dependencies through ordinary DTO export/reimport', () => {
         const definition = normalizeAssistantTemplate({
             export_data: stringify({ ...graph, template: metadata })
         }).definition
         const serialized = stringify(instanceToPlain(new XpertDraftDslDTO(definition)))
         const again = normalizeAssistantTemplate({ export_data: serialized })
         expect(again.definition.template).toEqual(definition.template)
-        expect(again.definition.memories).toEqual(graph.memories)
+        expect(again.definition).not.toHaveProperty('memories')
     })
     it('rejects duplicate v2 inputs and conflicting v1 declarations', () => {
         for (const extra of [{ skills: [] }, { memory: { seed: true } }, { execution: { sandbox: 'server' } }])
             expect(templateManifestSchema.safeParse({ schemaVersion: 2, version: '1', ...extra }).success).toBe(false)
-        expect(() =>
-            normalizeAssistantTemplate({
-                export_data: stringify(graph),
-                manifest: { schemaVersion: 1, version: '1', memory: { seed: false, preferences: [] } }
-            })
-        ).toThrow()
+        expect(
+            templateManifestSchema.safeParse({ schemaVersion: 1, version: '1', memory: { seed: false } }).success
+        ).toBe(false)
         expect(() =>
             normalizeAssistantTemplate({
                 export_data: stringify({ ...graph, team: { features: { sandbox: { enabled: false } } } }),

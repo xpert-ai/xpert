@@ -20,9 +20,6 @@ jest.mock('@xpert-ai/contracts', () => ({
     ModelFeature: {
         VISION: 'vision'
     },
-    LongTermMemoryTypeEnum: {
-        QA: 'qa'
-    },
     WorkflowNodeTypeEnum: {
         MIDDLEWARE: 'middleware',
         KNOWLEDGE_BASE: 'knowledge-base'

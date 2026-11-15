@@ -1,11 +1,5 @@
-import { Embeddings } from '@langchain/core/embeddings'
-import { DefaultModelRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { TXpertTeamDraft } from '@xpert-ai/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
-import { CopilotGetOneQuery } from '../copilot/queries/get-one.query'
-import { ResolveDefaultModelQuery } from '../copilot/queries/resolve-default-model.query'
-import { CopilotModelGetEmbeddingsQuery } from '../copilot-model/queries/get-embeddings.query'
-import { CopilotNotFoundException } from '../core/errors'
 
 export const EventNameXpertValidate = 'xpert.validate'
 export const EventName_XpertPublished = 'xpert.published'
@@ -26,48 +20,4 @@ export class XpertNameInvalidException extends HttpException {
     constructor(message: string) {
         super(message, HttpStatus.BAD_REQUEST)
     }
-}
-
-/**
- * Create embeddings for long-term memory
- * @returns Embeddings
- */
-export async function createMemoryEmbeddings(
-    memory: TLongTermMemory,
-    queryBus: QueryBus,
-    params: { tenantId: string; organizationId: string; xpertId?: string }
-) {
-    const { tenantId, organizationId, xpertId } = params
-    let copilot: ICopilot = null
-    if (memory.copilotModel?.copilotId) {
-        copilot = await queryBus.execute(
-            new CopilotGetOneQuery(tenantId, memory.copilotModel.copilotId, ['copilotModel', 'modelProvider'])
-        )
-    } else {
-        copilot = await queryBus.execute(
-            new ResolveDefaultModelQuery(tenantId, organizationId, DefaultModelRole.Embedding, [
-                'copilotModel',
-                'modelProvider'
-            ])
-        )
-    }
-
-    if (!copilot?.enabled) {
-        throw new CopilotNotFoundException(`Not found the embeddinga role copilot`)
-    }
-
-    let embeddings: Embeddings = null
-    const copilotModel = memory.copilotModel ?? copilot.copilotModel
-    if (copilotModel && copilot?.modelProvider) {
-        embeddings = await queryBus.execute<CopilotModelGetEmbeddingsQuery, Embeddings>(
-            new CopilotModelGetEmbeddingsQuery(copilot, copilotModel, {
-                xpertId,
-                tokenCallback: (token) => {
-                    // execution.embedTokens += token ?? 0
-                }
-            })
-        )
-    }
-
-    return embeddings
 }

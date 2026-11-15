@@ -1,8 +1,22 @@
+import { FileInterceptor } from '@nestjs/platform-express'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from '@xpert-ai/server-core'
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common'
+import {
+    Body,
+    Controller,
+    Delete,
+    Query,
+    UploadedFile as NestUploadedFile,
+    UseInterceptors,
+    Get,
+    Param,
+    Post,
+    Put,
+    UseGuards
+} from '@nestjs/common'
 import { UUIDValidationPipe } from '@xpert-ai/server-core'
 import { XpertGuard } from '../xpert/guards/xpert.guard'
+import type { FileMemoryDreamConfig } from '../plugins/file-memory/types'
 import { FileMemoryFacade } from './file-memory.facade'
 
 @UseGuards(XpertGuard)
@@ -10,6 +24,47 @@ import { FileMemoryFacade } from './file-memory.facade'
 @Permissions(AIPermissionsEnum.CHAT_VIEW)
 export class FileMemoryController {
     constructor(private readonly facade: FileMemoryFacade) {}
+
+    @Get('files')
+    async getMemoryFiles(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('deepth') deepth: number,
+        @Query('path') path: string
+    ) {
+        return await this.facade.getMemoryFiles(id, path, deepth)
+    }
+
+    @Get('file')
+    async getMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return await this.facade.getMemoryFile(id, path)
+    }
+
+    @Put('file')
+    async saveMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body()
+        body: {
+            path: string
+            content: string
+        }
+    ) {
+        return await this.facade.saveMemoryFile(id, body?.path, body?.content ?? '')
+    }
+
+    @Post('file/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body('path') path: string,
+        @NestUploadedFile() file: Express.Multer.File
+    ) {
+        return await this.facade.uploadMemoryFile(id, path, file)
+    }
+
+    @Delete('file')
+    async deleteMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        return await this.facade.deleteMemoryFile(id, path)
+    }
 
     @Post('dream')
     async triggerMemoryDream(
@@ -31,10 +86,7 @@ export class FileMemoryController {
     async saveMemoryDreamConfig(
         @Param('id', UUIDValidationPipe) id: string,
         @Body()
-        body: {
-            dreamerXpertId?: string
-            dreamerAgentKey?: string
-        }
+        body: FileMemoryDreamConfig
     ) {
         return await this.facade.saveFileMemoryDreamConfig(id, body ?? {})
     }

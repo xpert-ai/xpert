@@ -15,7 +15,6 @@ import {
     TChatTaskSummaryContribution,
     TMessageContent,
     TMessageContentReasoning,
-    TSummaryJob,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
@@ -126,11 +125,8 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @Column({ nullable: true })
     error: string
 
-    @ApiPropertyOptional({ type: () => Object })
-    @IsJSON()
-    @IsOptional()
-    @Column({ type: 'json', nullable: true })
-    summaryJob: TSummaryJob
+    @Column({ name: 'summaryJob', type: 'json', nullable: true, select: false, insert: false, update: false })
+    private legacySummaryJob?: unknown
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

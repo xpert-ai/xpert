@@ -94,7 +94,10 @@ export function createInputGraphFixture(
         toolsetIds: [],
         knowledgebaseIds: [],
         promptTemplates: options.promptTemplates,
-        options: { fileUnderstanding: { enabled: false }, disableMessageHistory: options.disableMessageHistory },
+        options: {
+            fileUnderstanding: { enabled: false },
+            disableMessageHistory: options.disableMessageHistory
+        },
         team: {
             id: 'xpert-1',
             tenantId: 'tenant',

@@ -5,7 +5,7 @@ import { ExecutionControlStore } from '../../../execution-control/execution-cont
 import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { dependencyUpdateEvent } from '../../../plugin-resource/template-installation/dependency-update-event'
 import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
-import { isAIMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
+import { isAIMessage, isBaseMessage, ToolMessage } from '@langchain/core/messages'
 import { Command, CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
 import {
     channelName,
@@ -30,6 +30,7 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TInterruptCommand,
+    TMessageContentComplex,
     TSandboxConfigurable,
     TXpertAgentConfig,
     XpertAgentExecutionStatusEnum,
@@ -133,9 +134,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         return pendingMessages.map((message) => message.id).filter((id): id is string => Boolean(id))
     }
 
-    public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
+    public async execute(command: XpertAgentInvokeCommand): Promise<Observable<string | TMessageContentComplex>> {
         const { state, agentKeyOrName, xpert, options } = command
-        const { execution, subscriber, memories } = options
+        const { execution, subscriber } = options
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
@@ -476,8 +477,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         ...state[STATE_VARIABLE_HUMAN],
                         ...(planMode ? { planMode: true } : {})
                     },
-                    inputIdentity: { id: options.inputMessageId ?? execution.id },
-                    memories
+                    inputIdentity: { id: options.inputMessageId ?? execution.id }
                 }
             }
         }
@@ -536,6 +536,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
         const controlTask = await this.executionControls.tasks.execution(execution.id)
         const source = () => graph.streamEvents(graphInput, { ...runConfig, context: getExecutionContext() })
+        const showStructuredDebugResult =
+            options.from === 'debugger' &&
+            agent.options?.structuredOutputMethod &&
+            unmutes.some((tags) => tags.includes(agent.key) && tags.includes(team.id))
+        let streamedAnswer = false
         const contentStream = defer(() =>
             controlTask
                 ? taskControlledStream(
@@ -552,6 +557,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     language: languageCode
                 })
             ),
+            tap((content) => {
+                if (showStructuredDebugResult && content?.type === 'text' && content.text) streamedAnswer = true
+            }),
             catchError((err) =>
                 from(
                     (async () => {
@@ -663,6 +671,13 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         })
                     )
                     await this.downgradePendingSteerFollowUpsToQueue(options.conversationId, execution?.id)
+                    // Function-calling models can put the entire structured answer in state without a text delta.
+                    if (showStructuredDebugResult && !streamedAnswer) {
+                        const reply = state.values[channelName(agent.key)]?.messages?.at(-1)
+                        if (isBaseMessage(reply) && isAIMessage(reply) && typeof reply.content === 'string') {
+                            return reply.content || null
+                        }
+                    }
                     return null
                 })
             )

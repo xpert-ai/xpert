@@ -1,15 +1,10 @@
 import type { AssistantSharingState, AssistantSharingUser, AssistantSharingGroup } from '@xpert-ai/contracts'
 import { computed, inject, Injectable } from '@angular/core'
-import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
   injectXpertPreferences,
   LanguagesEnum,
-  LongTermMemoryTypeEnum,
   PaginationParams,
-  TCopilotStore,
   timeRangeToParams,
-  TMemoryQA,
-  TMemoryUserProfile,
   toHttpParams,
   TSandboxProviderMeta,
   TWorkflowTriggerMeta
@@ -25,7 +20,6 @@ import {
   IChatConversation,
   IChatMessageFeedback,
   ICopilotUsageOverview,
-  ICopilotStore,
   IIntegration,
   ITagXpertUsage,
   TFile,
@@ -42,7 +36,6 @@ import {
   TChatConversationLog,
   TChatOptions,
   TChatRequest,
-  TDeleteResult,
   TXpertExportedTemplate,
   TXpertCommandProfile,
   TXpertPublishMarketplaceInput,
@@ -405,11 +398,11 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     })
   }
 
-  exportDSL(id: string, params: { isDraft: boolean; includeMemory?: boolean }) {
+  exportDSL(id: string, params: { isDraft: boolean }) {
     return this.httpClient.get<{ data: string }>(this.apiBaseUrl + `/${id}/export`, { params })
   }
 
-  exportDSLAsTemplate(id: string, params: { isDraft: boolean; includeMemory?: boolean }) {
+  exportDSLAsTemplate(id: string, params: { isDraft: boolean }) {
     return this.httpClient
       .post<TXpertExportedTemplate>(this.apiBaseUrl + `/${id}/export/template`, {}, { params })
       .pipe(tap(() => this.refresh()))
@@ -436,37 +429,6 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
 
   duplicate(id: string, options: { basic: Partial<IXpert>; isDraft: boolean }) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/duplicate`, options)
-  }
-
-  getAllMemory(id: string, types: string[]) {
-    return this.httpClient.get<{ items: ICopilotStore[] }>(this.apiBaseUrl + `/${id}/memory`, {
-      params: {
-        types: types?.join(':')
-      }
-    })
-  }
-
-  addMemory(id: string, memory: { type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile }) {
-    return this.httpClient.post<TCopilotStore>(this.apiBaseUrl + `/${id}/memory`, memory)
-  }
-  bulkCreateMemories(id: string, body: { type: LongTermMemoryTypeEnum; memories: (TMemoryQA | TMemoryUserProfile)[] }) {
-    return this.httpClient.post(this.apiBaseUrl + `/${id}/memory/bulk`, body)
-  }
-  uploadAndParseCsv(id: string, type: LongTermMemoryTypeEnum, file: File) {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('type', type)
-    return this.httpClient.post<Array<TMemoryQA | TMemoryUserProfile>>(
-      `${this.apiBaseUrl}/${id}/memory/bulk/upload`,
-      formData
-    )
-  }
-  searchMemory(id: string, body: { type: LongTermMemoryTypeEnum; text: string; isDraft: boolean }) {
-    return this.httpClient.post<SearchItem[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
-  }
-
-  clearMemory(id: string) {
-    return this.httpClient.delete<TDeleteResult>(this.apiBaseUrl + `/${id}/memory`)
   }
 
   /**

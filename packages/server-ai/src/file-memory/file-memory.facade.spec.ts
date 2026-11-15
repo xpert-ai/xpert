@@ -64,7 +64,10 @@ describe('FileMemoryFacade memory files', () => {
 
         facade = new FileMemoryFacade(
             scopeResolver as any,
-            { writeMemory: mockWriteMemory } as any,
+            {
+                writeMemory: mockWriteMemory,
+                withTopicWriteLock: (_scope: unknown, action: () => Promise<unknown>) => action()
+            } as never,
             {} as any,
             volumeClient as any
         )
@@ -83,7 +86,10 @@ describe('FileMemoryFacade memory files', () => {
             xpertId: 'xpert-1',
             isolateByUser: false
         })
-        expect(VolumeSubtreeClient).toHaveBeenCalledWith(volumeHandle, { allowRootWorkspace: true })
+        expect(VolumeSubtreeClient).toHaveBeenCalledWith(volumeHandle, {
+            allowRootWorkspace: true,
+            beforeMutation: expect.any(Function)
+        })
         expect(mockList).toHaveBeenCalledWith('.xpert/memory', {
             path: 'docs',
             deepth: 2

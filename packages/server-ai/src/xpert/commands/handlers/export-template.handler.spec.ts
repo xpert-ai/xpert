@@ -25,8 +25,7 @@ describe('XpertExportTemplateHandler', () => {
             id: 'xpert-xpert-1',
             filePath: 'templates/xpert-xpert-1.yaml',
             exportedAt: '2026-04-30T00:00:00.000Z',
-            isDraft: true,
-            includeMemory: true
+            isDraft: true
         }
         const xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert),
@@ -50,7 +49,7 @@ describe('XpertExportTemplateHandler', () => {
             commandBus as unknown as CommandBus
         )
 
-        await expect(handler.execute(new XpertExportTemplateCommand('xpert-1', true, true))).resolves.toEqual(
+        await expect(handler.execute(new XpertExportTemplateCommand('xpert-1', true))).resolves.toEqual(
             exportedTemplate
         )
 
@@ -59,8 +58,7 @@ describe('XpertExportTemplateHandler', () => {
             expect.objectContaining({
                 xpert,
                 dslYaml: expect.stringContaining('team:'),
-                isDraft: true,
-                includeMemory: true
+                isDraft: true
             })
         )
         expect(xpertService.updateXpert).toHaveBeenCalledWith('xpert-1', { exportedTemplate })

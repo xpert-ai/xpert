@@ -173,20 +173,6 @@
       <div class="grow"></div>
 
       <div class="flex items-center">
-        <button
-          type="button"
-          class="btn flex items-center h-8 rounded-lg"
-          [class.text-primary-500]="view() === 'memory' && enabledMemory()"
-          [disabled]="!enabledMemory()"
-          (click)="toggleView('memory')"
-        >
-          <i class="ri-settings-5-line text-lg"></i>
-          <div class="ml-1 leading-[18px] text-sm font-medium">
-            {{ 'XP.Xpert.Settings' | translate: { Default: 'Settings' } }}
-          </div>
-        </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
-
         <z-switch
           [ngModel]="enabledMemory()"
           (ngModelChange)="toggleMemory($event)"
@@ -195,48 +181,6 @@
         />
       </div>
     </div>
-
-    @if (view() === 'memory' && enabledMemory()) {
-      <xpert-studio-features-memory class="w-full px-3 mt-2 overflow-hidden" @heightChangeAnimation />
-    }
-  </div>
-
-  <div
-    class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2"
-  >
-    <div class="mb-2 flex items-center gap-2">
-      <div class="shrink-0 w-6 h-6 flex justify-center items-center">
-        <i class="ri-chat-quote-fill shrink-0 text-lg text-lime-600"></i>
-      </div>
-      <div
-        class="font-semibold flex grow items-center"
-        [ngClass]="{ 'text-text-primary': memoryReply_enabled(), 'text-text-secondary': !memoryReply_enabled() }"
-      >
-        {{ 'XP.Xpert.MemoryReply' | translate: { Default: 'Memory Reply' } }}
-      </div>
-
-      <div class="flex items-center">
-        <button
-          type="button"
-          class="btn flex items-center h-8 rounded-lg"
-          [class.text-primary-500]="view() === 'memoryReply' && memoryReply_enabled()"
-          [disabled]="!memoryReply_enabled()"
-          (click)="toggleView('memoryReply')"
-        >
-          <i class="ri-settings-5-line text-lg"></i>
-          <div class="ml-1 leading-[18px] text-sm font-medium">
-            {{ 'XP.Xpert.Settings' | translate: { Default: 'Settings' } }}
-          </div>
-        </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
-
-        <z-switch [(ngModel)]="memoryReply_enabled" labelPosition="before" zSize="sm" />
-      </div>
-    </div>
-
-    @if (view() === 'memoryReply' && memoryReply_enabled()) {
-      <xpert-studio-features-memory-reply @heightChangeAnimation class="mt-4" />
-    }
   </div>
 
   <xpert-studio-features-title

@@ -53,7 +53,7 @@ export const documentsSql = `${boundModelsSql}, documents AS (
         d.field, d.document
     FROM xpert a CROSS JOIN LATERAL (VALUES
         ('draft', a.draft::jsonb), ('graph', a.graph::jsonb), ('options', a.options::jsonb),
-        ('agentConfig', a."agentConfig"::jsonb), ('memory', a.memory::jsonb),
+        ('agentConfig', a."agentConfig"::jsonb),
         ('summarize', a.summarize::jsonb), ('features', a.features::jsonb),
         ('exportedTemplate', a."exportedTemplate"::jsonb)
     ) d(field, document) WHERE a."tenantId" = $1

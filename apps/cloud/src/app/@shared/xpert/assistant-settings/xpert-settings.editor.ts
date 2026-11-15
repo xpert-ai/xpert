@@ -1,3 +1,4 @@
+import { isFileMemoryEnabled } from './settings-middleware.utils'
 import { DIALOG_DATA } from '@angular/cdk/dialog'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -19,7 +20,7 @@ export class XpertSettingsEditor {
   readonly data = inject<XpertSettingsDialogData>(DIALOG_DATA)
   readonly source = this.data.source
   readonly draftOnly = this.data.saveMode === 'draft'
-  readonly form = createXpertSettingsForm(this.source.draft().team)
+  readonly form = createXpertSettingsForm(this.source.draft().team, isFileMemoryEnabled(this.source.draft()))
   readonly section = signal<XpertSettingsSection>(this.data.section === 'runtime' ? 'capabilities' : this.data.section)
   readonly revision = signal(0)
   readonly closing = signal(false)
@@ -61,6 +62,14 @@ export class XpertSettingsEditor {
 
   select(section: XpertSettingsSection) {
     const next = section === 'runtime' ? 'capabilities' : section
+    if (next === 'memory') {
+      const enabled = isFileMemoryEnabled(this.source.draft())
+      const control = this.form.controls.memory.controls.enabled
+      if (control.value === this.applied.memory.enabled && control.value !== enabled) {
+        control.setValue(enabled, { emitEvent: false })
+        this.applied = { ...this.applied, memory: { ...this.applied.memory, enabled } }
+      }
+    }
     this.section.set(next)
     this.data.selectSection(next)
     this.confirmDiscard.set(false)

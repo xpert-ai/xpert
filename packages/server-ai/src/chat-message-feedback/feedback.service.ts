@@ -1,6 +1,6 @@
-import { ChatMessageFeedbackRatingEnum, LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common'
+import { ChatMessageFeedbackRatingEnum } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { ForbiddenException, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindManyOptions, Repository } from 'typeorm'
@@ -18,8 +18,6 @@ export type ChatMessageFeedbackMutation = {
 
 @Injectable()
 export class ChatMessageFeedbackService extends TenantOrganizationAwareCrudService<ChatMessageFeedback> {
-    private readonly logger = new Logger(ChatMessageFeedbackService.name)
-
     constructor(
         @InjectRepository(ChatMessageFeedback)
         repository: Repository<ChatMessageFeedback>,
@@ -100,25 +98,6 @@ export class ChatMessageFeedbackService extends TenantOrganizationAwareCrudServi
     async deleteAuthorized(id: string) {
         await this.findOneAuthorized(id, { operation: 'contribute' })
         return this.delete(id)
-    }
-
-    async triggerSummary(id: string) {
-        const feedback = await this.findOneAuthorized(id, { operation: 'contribute' })
-        await this.conversationService.triggerSummary(
-            feedback.conversationId,
-            LongTermMemoryTypeEnum.QA,
-            RequestContext.currentUserId(),
-            feedback.messageId
-        )
-    }
-
-    async deleteSummary(id: string) {
-        const feedback = await this.findOneAuthorized(id, { operation: 'contribute' })
-        await this.conversationService.deleteSummary(
-            feedback.conversationId,
-            feedback.messageId,
-            LongTermMemoryTypeEnum.QA
-        )
     }
 
     private async assertTargetAccess(

@@ -118,8 +118,6 @@ async function fixture(intent: TaskControlIntent = 'terminated') {
         undefined,
         undefined,
         undefined,
-        undefined,
-        undefined,
         undefined
     )
     const workflow = new GetXpertWorkflowHandler(service, undefined, undefined)

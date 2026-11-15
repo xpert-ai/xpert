@@ -203,7 +203,6 @@ export class KnowledgebaseComponent {
     this.#loading.set(true)
     this.exportXpertDsl(id, {
       isDraft: false,
-      includeMemory: false,
       slug: this.knowledgebase().name
     }).subscribe({
       next: () => {

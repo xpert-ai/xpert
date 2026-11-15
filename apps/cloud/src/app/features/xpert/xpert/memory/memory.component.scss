@@ -1,8 +1,0 @@
-@reference "../../../../../styles/tailwind-reference.css";
-:host {
-  @apply relative flex flex-col justify-start items-stretch h-full w-full bg-components-panel-bg;
-}
-
-.tab.active {
-  @apply cursor-default text-text-primary;
-}

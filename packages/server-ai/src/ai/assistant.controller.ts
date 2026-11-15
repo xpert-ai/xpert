@@ -161,7 +161,7 @@ function transformAssistant(xpert: IXpert) {
         {
             ...(usesRuntimePresentation()
                 ? { options: appUserRuntimeAssistant(xpert).options }
-                : pick(xpert, 'agentConfig', 'options', 'summarize', 'memory', 'features')),
+                : pick(xpert, 'agentConfig', 'options', 'summarize', 'features')),
             configurable: Object.keys(configurable).length ? configurable : undefined
         },
         isNil

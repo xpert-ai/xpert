@@ -44,7 +44,6 @@ export function summarizeAssistantDefinition(definition: AssistantTemplateDefini
             ...skill,
             pluginName: skill.pluginName ?? ''
         })),
-        seedMemoryCount: definition.memories?.length ?? 0,
         sandbox: definition.team.features?.sandbox?.enabled === true
     }
 }

@@ -1,4 +1,6 @@
 import {
+  genXpertMiddlewareKey,
+  XPERT_FILE_MEMORY_MIDDLEWARE_NAME,
   IWFNMiddleware,
   NodeOf,
   SKILLS_MIDDLEWARE_NAME,
@@ -128,4 +130,54 @@ export function removeMiddleware(draft: TXpertTeamDraft, agentKey: string, key: 
       .map((node) => node.key)
   )
   return next
+}
+
+function primaryMemoryAssignment(draft: TXpertTeamDraft) {
+  const agentKey = draft.team.agent?.key ?? delegationAgents(draft).find((node) => !node.entity.leaderKey)?.key
+  const nodes = assignedMiddlewares(draft, agentKey).filter(
+    (node) => node.entity.provider === XPERT_FILE_MEMORY_MIDDLEWARE_NAME
+  )
+  return { agentKey, nodes }
+}
+
+export function isFileMemoryEnabled(draft?: TXpertTeamDraft): boolean {
+  return !!draft && primaryMemoryAssignment(draft).nodes.length > 0
+}
+
+export function setFileMemoryEnabled(draft: TXpertTeamDraft, enabled: boolean): TXpertTeamDraft {
+  const { agentKey, nodes } = primaryMemoryAssignment(draft)
+  if (!agentKey || enabled === !!nodes.length) return draft
+
+  // Keep configured nodes on the canvas so switching memory back on restores their options.
+  if (!enabled) {
+    const keys = new Set(nodes.map((node) => node.key))
+    return {
+      ...draft,
+      connections: draft.connections.filter(
+        (edge) => !(edge.type === 'workflow' && nodeKey(edge.from) === agentKey && keys.has(nodeKey(edge.to)))
+      )
+    }
+  }
+  const primary = delegationAgents(draft).find((node) => node.key === agentKey)
+  const order = primary?.entity.options?.middlewares?.order ?? draft.team.agent?.options?.middlewares?.order ?? []
+  const candidates = draft.nodes
+    .filter(isSettingsMiddleware)
+    .filter((node) => node.entity.provider === XPERT_FILE_MEMORY_MIDDLEWARE_NAME)
+  const available =
+    order.map((key) => candidates.find((node) => node.key === key)).find(Boolean) ??
+    candidates.find((node) => !draft.connections.some((edge) => nodeKey(edge.to) === node.key))
+  if (available) {
+    return {
+      ...draft,
+      connections: [
+        ...draft.connections,
+        { type: 'workflow', key: `${agentKey}/${available.key}`, from: agentKey, to: available.key }
+      ]
+    }
+  }
+  return saveMiddleware(draft, agentKey, genXpertMiddlewareKey(), {
+    title: 'Xpert Memory',
+    provider: XPERT_FILE_MEMORY_MIDDLEWARE_NAME,
+    required: true
+  })
 }

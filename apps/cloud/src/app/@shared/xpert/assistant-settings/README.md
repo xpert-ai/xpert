@@ -47,7 +47,7 @@ For manual `Dialog.open`, import `XpertSettingsDialogComponent` and provide `Xpe
 | Workbench & layout | Agent Settings                    | first layout and default extension view                                                                    |
 | File uploads       | Features                          | enabled, file types, upload count; hidden source mode is preserved                                         |
 | Speech             | Features                          | TTS and speech recognition models                                                                          |
-| Memory & context   | Features                          | summary, profile/Q&A memory, memory replies; link to existing memory management                            |
+| Memory & context   | Features                          | conversation summary and file memory; enable Standard replies in Capabilities                              |
 | External experts   | Agent canvas external Xpert nodes | Search and assign a published workspace expert to an agent; inspect or remove assignment                   |
 | Sub-agents         | Agent canvas internal Agent nodes | Add/edit title, description, prompt, model, parent, independent context and always-available setting       |
 | Capabilities       | Agent Settings + Features         | optional capabilities, concurrency, recursion limit and sandbox provider                                   |

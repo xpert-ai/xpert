@@ -261,7 +261,10 @@
   </div>
 </div>
 
-<div class="flex-1 relative flex overflow-hidden">
+<div
+  class="relative flex flex-1 overflow-hidden border-divider-regular"
+  [class.border-l]="o.isActivated && o.activatedRoute.snapshot.routeConfig?.path !== 'agents'"
+>
   <div class="flex-1 overflow-auto">
     <router-outlet #o="outlet"></router-outlet>
   </div>

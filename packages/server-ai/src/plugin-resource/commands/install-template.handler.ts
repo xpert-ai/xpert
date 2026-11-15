@@ -30,7 +30,10 @@ import { XpertTemplateService } from '../../xpert-template/xpert-template.servic
 import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
 import { capabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
-import { PluginResourceInstallResult, PluginResourceInstallerService } from '../installation/plugin-resource-installer.service'
+import {
+    PluginResourceInstallResult,
+    PluginResourceInstallerService
+} from '../installation/plugin-resource-installer.service'
 import { PluginTemplateInstallCommand, PluginTemplateInstallBasic } from './install-template.command'
 import {
     InstallationSourceChangedError,
@@ -248,7 +251,6 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         const teamValue = Reflect.get(value, 'team')
         const nodesValue = Reflect.get(value, 'nodes')
         const connectionsValue = Reflect.get(value, 'connections')
-        const memoriesValue = Reflect.get(value, 'memories')
         if (!Array.isArray(nodesValue) || !Array.isArray(connectionsValue)) {
             throw new BadRequestException('Template draft must include nodes and connections')
         }
@@ -270,9 +272,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 workspaceId
             },
             nodes: nodesValue as TXpertTeamNode[],
-            connections: connectionsValue as TXpertTeamConnection[],
-            // The import handler persists seed memories under the newly created Assistant.
-            ...(Array.isArray(memoriesValue) ? { memories: memoriesValue } : {})
+            connections: connectionsValue as TXpertTeamConnection[]
         })
     }
 

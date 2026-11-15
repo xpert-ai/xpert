@@ -1,5 +1,12 @@
 import { SKILLS_MIDDLEWARE_NAME, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { assignedMiddlewares, MiddlewareSettings, removeMiddleware, saveMiddleware } from './settings-middleware.utils'
+import {
+  assignedMiddlewares,
+  isFileMemoryEnabled,
+  setFileMemoryEnabled,
+  MiddlewareSettings,
+  removeMiddleware,
+  saveMiddleware
+} from './settings-middleware.utils'
 
 const fixture = (): TXpertTeamDraft => ({
   team: { id: 'assistant', agent: { key: 'primary', options: { disableMessageHistory: true } } },
@@ -102,5 +109,21 @@ describe('settings middleware graph edits', () => {
     const removed = removeMiddleware(added, 'primary', 'one')
     expect(removed.team.agent.options.middlewares.order).toEqual(['two', 'skills'])
     expect(removeMiddleware(removed, 'primary', 'child')).toBe(removed)
+  })
+})
+
+describe('primary agent memory switch', () => {
+  it('preserves a shared node and its configuration across a disable/enable cycle', () => {
+    const on = setFileMemoryEnabled(fixture(), true)
+    const [memory] = assignedMiddlewares(on, 'primary')
+    memory.entity.options = { writeback: { prompt: 'Preserve this prompt' } }
+    on.connections.push({ type: 'workflow', key: `child/${memory.key}`, from: 'child', to: memory.key })
+    const off = setFileMemoryEnabled(on, false)
+    expect(isFileMemoryEnabled(off)).toBe(false)
+    expect(assignedMiddlewares(off, 'child')).toEqual([memory])
+    const restored = setFileMemoryEnabled(off, true)
+    expect(assignedMiddlewares(restored, 'primary')).toEqual([memory])
+    expect(restored.nodes).toEqual(on.nodes)
+    expect(setFileMemoryEnabled(restored, true)).toBe(restored)
   })
 })

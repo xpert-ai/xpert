@@ -48,7 +48,6 @@ function executionSettings(team: Partial<IXpert>): object {
             ? { copilotId: model.copilotId, modelType: model.modelType, model: model.model, options: model.options }
             : null,
         agentConfig: team.agentConfig ?? null,
-        memory: team.memory ?? null,
         summarize: team.summarize ?? null,
         features: team.features ?? null,
         commandProfile: team.commandProfile ?? null,

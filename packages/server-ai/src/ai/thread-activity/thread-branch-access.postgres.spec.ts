@@ -154,7 +154,6 @@ integration('child-thread HTTP access and activity error semantics', () => {
             undefined,
             undefined,
             undefined,
-            undefined,
             threads
         )
         const module = await Test.createTestingModule({

@@ -23,8 +23,7 @@ import {
     isAIMessage,
     isBaseMessage,
     isBaseMessageChunk,
-    RemoveMessage,
-    ToolMessage
+    RemoveMessage
 } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
 import { createStageAgentInputNode, prepareAgentInput } from '../../agent-input'
@@ -32,15 +31,7 @@ import { RunnableConfig, RunnableLambda, RunnableLike } from '@langchain/core/ru
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import {
-    Annotation,
-    END,
-    LangGraphRunnableConfig,
-    MessagesAnnotation,
-    Send,
-    START,
-    StateGraph
-} from '@langchain/langgraph'
+import { Annotation, END, MessagesAnnotation, Send, START, StateGraph } from '@langchain/langgraph'
 import {
     agentLabel,
     agentUniqueName,
@@ -53,23 +44,18 @@ import {
     GRAPH_NODE_SUMMARIZE_CONVERSATION,
     isAgentWorkflowNode,
     isAgentWorkflowNodeType,
-    IWFNMiddleware,
     IXpert,
     IXpertAgent,
-    IXpertAgentExecution,
     KnowledgebaseChannel,
     mapTranslationLanguage,
-    STATE_VARIABLE_HUMAN,
     stringifyMessageContent,
-    TAgentRunnableConfigurable,
     TStateVariable,
     TSummarize,
     TXpertGraph,
     TXpertParameter,
     TXpertTeamNode,
     WorkflowNodeTypeEnum,
-    XpertTypeEnum,
-    XpertAgentExecutionStatusEnum
+    XpertTypeEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, Inject, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
@@ -91,18 +77,17 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { get, isNil, omitBy, uniq } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { Subscriber } from 'rxjs'
 import { t } from 'i18next'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { exposeModelProfile, prepareModelCall } from '../../../shared/agent/model-call'
 import { withModelRequirements } from '../../../shared/agent/model-requirements'
+import { streamMiddlewareReply } from '../../../shared/agent/stream-text'
 import {
     createExecutionModelUsageRecorder,
     type TExecutionUsageRecord,
     XpertAgentExecutionRecordUsageCommand,
-    XpertAgentExecutionService,
-    XpertAgentExecutionUpsertCommand
+    XpertAgentExecutionService
 } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
 import { GetXpertChatModelQuery } from '../../../xpert/queries'
@@ -111,12 +96,10 @@ import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stag
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
 import { ToolNode } from './tool_node'
 import { installAgentToolSnapshots } from './agent-tool-snapshots'
-import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
 import { CopilotGetOneQuery } from '../../../copilot'
 import { createKnowledgeRetriever } from '../../../knowledgebase/retrieval/retriever'
 import { XpertConfigException } from '../../../core/errors'
-import { getChannelState, messageEvent, TAgentSubgraphParams, TAgentSubgraphResult } from '../../agent'
-import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
+import { getChannelState, messageEvent, TAgentSubgraphResult } from '../../agent'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
 import {
@@ -127,7 +110,6 @@ import {
     translate,
     stateVariable,
     TGraphTool,
-    TSubAgent,
     TWorkflowGraphNode,
     TStateChannel,
     hasMultipleInputs,
@@ -509,23 +491,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             additionalTools.forEach((tool) => {
                 tools.push({ toolset: { provider: '', title: '' }, caller: agent.key, tool })
             })
-        }
-
-        // Memory tools
-        if (team.memory?.enabled && team.memory?.qa?.enabled) {
-            tools.push(
-                ...initializeMemoryTools(
-                    options.store,
-                    options.executionDefinition?.memoryNamespace ?? runtimeXpert.id
-                ).map((tool) => ({
-                    toolset: {
-                        provider: 'memories',
-                        title: translate({ en_US: 'Memory', zh_Hans: '记忆' })
-                    },
-                    caller: agent.key,
-                    tool
-                }))
-            )
         }
 
         this.#logger.debug(
@@ -919,6 +884,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             workspaceId: runtimeXpert.workspaceId,
             projectId: options.projectId,
             conversationId: options.conversationId,
+            inputMessageId: options.inputMessageId,
             threadId: thread_id,
             xpertId: runtimeXpert.id,
             workspaceDataScope: runtimeXpert.workspaceDataScope,
@@ -1337,15 +1303,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         const stateModifier = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
-            const { memories } = state
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
             let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || runtimeXpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
             if (state.sys.project_instruction?.trim()) {
                 systemTemplate += `\n\n<ProjectInstructions>\n${state.sys.project_instruction}\n</ProjectInstructions>`
-            }
-            if (memories?.length) {
-                systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
             }
             if (summary) {
                 systemTemplate += `\nSummary of conversation earlier: \n${summary}`
@@ -1416,7 +1378,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 runtime: config
             }
             let systemMessageContent = systemMessage.content
+            let invokedModel = false
             const defaultModelHandler: WrapModelCallHandler = async (request) => {
+                invokedModel = true
                 const {
                     model,
                     messages: finalMessages,
@@ -1471,6 +1435,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             }, defaultModelHandler)
             try {
                 const message: AIMessage | object = await wrappedModelHandler(baseRequest)
+                if (!invokedModel) await streamMiddlewareReply(message, config)
 
                 const nState: Record<string, any> = {
                     [GRAPH_JUMP_TO_STATE_KEY]: null,
@@ -1779,11 +1744,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             const unknownToolNode = `${agentKey}__unknown_tool`
             subgraphBuilder.addNode(unknownToolNode, new ToolNode([], { caller: agent.key, toolName: 'Tool' }))
             subgraphBuilder.addEdge(unknownToolNode, agentLoopEntryNode)
-            const baseDecisionPathMap = afterAgentEntryNode
-                ? [...pathMap, afterAgentEntryNode]
-                : nextNodeKey.length
-                  ? pathMap
-                  : [...pathMap, END]
+            const baseDecisionPathMap = afterAgentEntryNode ? [...pathMap, afterAgentEntryNode, END] : [...pathMap, END]
             const decisionPathMap = buildAgentDecisionPathMap(baseDecisionPathMap, modelLoopEntryNode, [
                 ...toolNames,
                 unknownToolNode

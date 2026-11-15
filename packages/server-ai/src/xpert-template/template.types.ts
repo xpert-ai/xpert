@@ -68,7 +68,6 @@ export type TExportXpertTemplateInput = {
     xpert: Pick<IXpert, 'id' | 'name' | 'title' | 'description' | 'avatar' | 'type'>
     dslYaml: string
     isDraft: boolean
-    includeMemory: boolean
 }
 
 export type TXpertTemplateQuery = {

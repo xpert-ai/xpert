@@ -29,7 +29,7 @@ export function createOpenerQuestionForm(question: TXpertOpenerQuestion = '') {
   return new FormGroup({ label: text(typeof question === 'string' ? '' : value.label), prompt: text(value.prompt) })
 }
 
-export function createXpertSettingsForm(team: Partial<IXpert>) {
+export function createXpertSettingsForm(team: Partial<IXpert>, fileMemoryEnabled = false) {
   const features = team.features
   const general = new FormGroup({
     avatar: new FormControl<TAvatar | null>(team.avatar ?? null),
@@ -91,21 +91,7 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
       ? { summaryRange: true }
       : null
   })
-  const memory = new FormGroup({
-    summary,
-    longTerm: new FormGroup({
-      enabled: toggle(team.memory?.enabled),
-      profileEnabled: toggle(team.memory?.profile?.enabled),
-      profilePrompt: text(team.memory?.profile?.prompt),
-      afterSeconds: number(team.memory?.profile?.afterSeconds ?? 10, 0, 100),
-      qaEnabled: toggle(team.memory?.qa?.enabled),
-      qaPrompt: text(team.memory?.qa?.prompt)
-    }),
-    reply: new FormGroup({
-      enabled: toggle(features?.memoryReply?.enabled),
-      scoreThreshold: number(features?.memoryReply?.scoreThreshold ?? 0.8, 0.8, 1)
-    })
-  })
+  const memory = new FormGroup({ summary, enabled: toggle(fileMemoryEnabled) })
   const files = new FormGroup({
     enabled: toggle(features?.attachment?.enabled),
     maxNum: number(features?.attachment?.maxNum ?? 3, 1, 10),
@@ -132,8 +118,6 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
     )
   })
   runtime.controls.recursionLimit.addValidators([Validators.required, integerValidator])
-  memory.controls.reply.controls.scoreThreshold.addValidators(Validators.required)
-  memory.controls.longTerm.controls.afterSeconds.addValidators([Validators.required, integerValidator])
 
   const form = new FormGroup({ general, models, conversation, workbench, files, speech, memory, runtime })
   validateTree(form)

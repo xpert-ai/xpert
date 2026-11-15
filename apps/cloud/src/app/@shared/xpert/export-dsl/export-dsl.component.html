@@ -31,23 +31,6 @@
           }
         </div>
       </div>
-      <div class="flex flex-col">
-        <z-switch [(ngModel)]="includeMemory">{{
-          'XP.Xpert.IncludeMemory' | translate: { Default: 'Include Memory' }
-        }}</z-switch>
-
-        <div class="relative my-3 text-text-secondary">
-          @if (includeMemory()) {
-            <div>
-              {{ 'XP.Xpert.IncludeMemoryTooltip' | translate: { Default: 'Include memories in export' } }}
-            </div>
-          } @else {
-            <div>
-              {{ 'XP.Xpert.NotIncludeMemoryTooltip' | translate: { Default: 'Do not include memories in export' } }}
-            </div>
-          }
-        </div>
-      </div>
     </div>
   </div>
   <footer xpDialogFooter>

@@ -17,15 +17,14 @@ export class XpertExportTemplateHandler implements ICommandHandler<XpertExportTe
 
     public async execute(command: XpertExportTemplateCommand): Promise<TXpertExportedTemplate> {
         const exportedDsl = await this.commandBus.execute<XpertExportCommand, object>(
-            new XpertExportCommand(command.id, command.isDraft, command.includeMemory)
+            new XpertExportCommand(command.id, command.isDraft)
         )
         const dslYaml = yaml.stringify(instanceToPlain(exportedDsl))
         const xpert = await this.xpertService.findOne(command.id)
         const exportedTemplate = await this.xpertTemplateService.saveExportedXpertTemplate({
             xpert,
             dslYaml,
-            isDraft: command.isDraft,
-            includeMemory: !!command.includeMemory
+            isDraft: command.isDraft
         })
 
         await this.xpertService.updateXpert(command.id, { exportedTemplate })

@@ -9,13 +9,13 @@ import {
 function middleware(node: TXpertTeamNode): node is TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware } {
   return node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE
 }
-export function hasAssistantMiddleware(draft: TXpertTeamDraft, provider: string) {
+export function hasAssistantMiddleware(draft: TXpertTeamDraft, provider: string, agentKey = draft.team.agent?.key) {
   return draft.nodes.some(
     (node) =>
       middleware(node) &&
       node.entity.provider === provider &&
       draft.connections.some(
-        (edge) => edge.type === 'workflow' && edge.from === draft.team.agent?.key && edge.to.split('/')[0] === node.key
+        (edge) => edge.type === 'workflow' && edge.from === agentKey && edge.to.split('/')[0] === node.key
       )
   )
 }
@@ -23,7 +23,7 @@ export function hasAssistantMiddleware(draft: TXpertTeamDraft, provider: string)
  * No Project, permission, external resource or implicit replacement is created here. */
 export function applyAssistantMiddleware(
   draft: TXpertTeamDraft,
-  input: { provider: string; key: string; title: string; instructions: string }
+  input: { provider: string; key: string; title: string; instructions: string; preserveToolConcurrency?: boolean }
 ) {
   const agent = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
   if (agent?.type !== 'agent') throw new BadRequestException('assistant.invalid_draft')
@@ -49,7 +49,7 @@ export function applyAssistantMiddleware(
     draft.connections.push({ key: `${agent.key}/${key}`, type: 'workflow', from: agent.key, to: key, required: true })
     agent.entity.options = {
       ...agent.entity.options,
-      parallelToolCalls: false,
+      ...(input.preserveToolConcurrency ? {} : { parallelToolCalls: false }),
       middlewares: {
         ...agent.entity.options?.middlewares,
         order: [...(agent.entity.options?.middlewares?.order ?? []), key]

@@ -16,7 +16,6 @@ import type { RuntimeResourceSkillSource } from '../../agent-plugin/runtime-reso
 
 export interface AgentExecutionDefinition {
     source: TemplateAgentSource
-    memoryNamespace: string
     ownerId: string
     draft: TXpertTeamDraft
     skills: { [agentKey: string]: RuntimeResourceSkillSource[] }

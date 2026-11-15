@@ -27,8 +27,7 @@ export function normalizeAssistantTemplateDefinition(template: TemplateInput) {
     const raw: unknown = parse(template.export_data)
     const envelope = z
         .object({
-            template: assistantTemplateMetadataSchema.optional(),
-            memories: z.array(z.object({ prefix: z.string().min(1), value: z.unknown() }).passthrough()).optional()
+            template: assistantTemplateMetadataSchema.optional()
         })
         .passthrough()
         .parse(raw)
@@ -48,9 +47,7 @@ export function normalizeAssistantTemplateDefinition(template: TemplateInput) {
     const legacy = inputManifest?.schemaVersion !== 2 && !envelope.template
     let manifest: AssistantTemplateMetadata['manifest']
     if (inputManifest?.schemaVersion === 1) {
-        const { memory, skills, execution, ...rest } = inputManifest
-        if (memory && memory.seed !== !!envelope.memories?.length) conflict('memory.seed')
-        if (memory?.preferences.length) conflict('memory.preferences')
+        const { skills, execution, ...rest } = inputManifest
         if (skills?.length) {
             if (
                 dependencies.skills &&
@@ -103,8 +100,9 @@ export function normalizeAssistantTemplateDefinition(template: TemplateInput) {
     }
     const metadata: AssistantTemplateMetadata = { schemaVersion: 2, dependencies, ...(manifest ? { manifest } : {}) }
     const definition: AssistantTemplateDefinition = {
-        ...draft,
-        ...(envelope.memories ? { memories: envelope.memories.map(({ prefix, value }) => ({ prefix, value })) } : {}),
+        team: draft.team,
+        nodes: draft.nodes,
+        connections: draft.connections,
         template: metadata
     }
     return { definition, manifest, dependencies, legacy }

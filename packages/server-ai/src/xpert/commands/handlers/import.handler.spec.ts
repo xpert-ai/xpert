@@ -2,14 +2,8 @@ import {
     buildHandler,
     BadRequestException,
     XpertImportCommand,
-    CopilotOneByRoleQuery,
-    FindCopilotModelsQuery,
-    AiModelTypeEnum,
-    AiProviderRole,
-    WorkflowNodeTypeEnum,
     XpertTypeEnum,
-    type XpertDraftDslDTO,
-    type IWFNMiddleware
+    type XpertDraftDslDTO
 } from './import-handler.test-fixture'
 
 describe('XpertImportHandler', () => {
@@ -64,19 +58,11 @@ describe('XpertImportHandler', () => {
                 })
             })
         )
-        expect(xpertService.createBulkMemories).toHaveBeenCalledWith('new-xpert', {
-            type: 'qa',
-            memories: [
-                {
-                    question: 'Hello?',
-                    answer: 'Hi!'
-                }
-            ]
-        })
+        expect(xpertService.createBulkMemories).not.toHaveBeenCalled()
         expect(result.id).toBe('new-xpert')
     })
 
-    it('recovers a reserved import after a seed write failure without creating a second Assistant', async () => {
+    it('recovers a reserved import after a draft save failure without creating a second Assistant', async () => {
         const { handler, xpertService } = buildHandler()
         const reserved = 'reserved-assistant'
         const source = { templateId: 'template', templateKey: 'template' }
@@ -93,7 +79,7 @@ describe('XpertImportHandler', () => {
         }
         xpertService.repository.findOne.mockResolvedValueOnce(null).mockResolvedValue(created)
         xpertService.create.mockResolvedValue(created)
-        xpertService.createBulkMemories.mockRejectedValueOnce(new Error('seed interrupted'))
+        xpertService.saveDraft.mockRejectedValueOnce(new Error('save interrupted'))
         const draft: Partial<XpertDraftDslDTO> = {
             team: {
                 name: 'Imported Expert',
@@ -109,27 +95,14 @@ describe('XpertImportHandler', () => {
                     entity: { key: 'primary', name: 'Imported Expert' }
                 }
             ],
-            connections: [],
-            memories: [{ prefix: 'memory:qa', value: { question: 'q', answer: 'a' } }]
+            connections: []
         }
         const command = () =>
             new XpertImportCommand(structuredClone(draft), { newXpertId: reserved, templateSource: source })
-        await expect(handler.execute(command())).rejects.toThrow('seed interrupted')
+        await expect(handler.execute(command())).rejects.toThrow('save interrupted')
         expect((await handler.execute(command())).id).toBe(reserved)
         expect(xpertService.create).toHaveBeenCalledTimes(1)
         expect(xpertService.create).toHaveBeenCalledWith(expect.objectContaining({ id: reserved }))
-        expect(xpertService.createBulkMemories).toHaveBeenNthCalledWith(
-            1,
-            reserved,
-            { type: 'qa', memories: [{ question: 'q', answer: 'a' }] },
-            [`template-seed-${reserved}-0`]
-        )
-        expect(xpertService.createBulkMemories).toHaveBeenNthCalledWith(
-            2,
-            reserved,
-            { type: 'qa', memories: [{ question: 'q', answer: 'a' }] },
-            [`template-seed-${reserved}-0`]
-        )
     })
 
     it('uses only the local creation option to select user-isolated workspace data', async () => {

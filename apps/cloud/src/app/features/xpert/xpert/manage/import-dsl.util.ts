@@ -1,31 +1,19 @@
 import {
   IXpert,
   IXpertAgent,
-  LongTermMemoryTypeEnum,
   omitXpertRelations,
   replaceAgentInDraft,
   TAgentOutputVariable,
   TAgentPromptTemplate,
-  TMemoryQA,
-  TMemoryUserProfile,
   TXpertParameter,
   XpertParameterTypeEnum,
   TXpertTeamDraft
 } from '../../../../@core'
 
-type TImportedDslMemory = {
-  prefix: string
-  value: TMemoryQA | TMemoryUserProfile
-}
-
 type TImportedAgentOptions = NonNullable<IXpertAgent['options']>
 type TImportedCopilotModel = NonNullable<IXpertAgent['copilotModel']>
 
-export type TImportedXpertDsl = TXpertTeamDraft & {
-  memories?: TImportedDslMemory[]
-}
-
-export type TGroupedDslMemories = Partial<Record<LongTermMemoryTypeEnum, Array<TMemoryQA | TMemoryUserProfile>>>
+export type TImportedXpertDsl = TXpertTeamDraft
 
 const OVERWRITABLE_TEAM_FIELDS = [
   'title',
@@ -36,7 +24,6 @@ const OVERWRITABLE_TEAM_FIELDS = [
   'tags',
   'copilotModel',
   'agentConfig',
-  'memory',
   'summarize',
   'features',
   'options'
@@ -122,9 +109,7 @@ function normalizeImportedSandboxFeatures(
     return features
   }
 
-  const providerTypes = Array.from(
-    new Set(sandboxProviders.map(({ type }) => type.trim()).filter((type) => !!type))
-  )
+  const providerTypes = Array.from(new Set(sandboxProviders.map(({ type }) => type.trim()).filter((type) => !!type)))
   const provider = sandbox.provider?.trim()
   if (provider && providerTypes.includes(provider)) {
     return features
@@ -342,33 +327,4 @@ function hasProperty<K extends string>(value: object, key: K): value is object &
 
 function hasStringProperty<K extends string>(value: unknown, key: K): value is object & { [P in K]: string } {
   return isObject(value) && key in value && typeof Reflect.get(value, key) === 'string'
-}
-
-export function groupImportedDslMemories(memories?: TImportedDslMemory[]): TGroupedDslMemories | null {
-  if (!memories?.length) {
-    return null
-  }
-
-  const grouped: TGroupedDslMemories = {}
-  for (const memory of memories) {
-    const segments =
-      memory.prefix
-        ?.split(':')
-        .map((segment) => segment.trim())
-        .filter(Boolean) ?? []
-    const type = segments[segments.length - 1] as LongTermMemoryTypeEnum | undefined
-
-    if (!type || !isLongTermMemoryType(type)) {
-      throw new Error(`Unsupported memory type in prefix: ${memory.prefix}`)
-    }
-
-    grouped[type] ??= []
-    grouped[type].push(memory.value)
-  }
-
-  return grouped
-}
-
-function isLongTermMemoryType(type: string): type is LongTermMemoryTypeEnum {
-  return Object.values(LongTermMemoryTypeEnum).includes(type as LongTermMemoryTypeEnum)
 }

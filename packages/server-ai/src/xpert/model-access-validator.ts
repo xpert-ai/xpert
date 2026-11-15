@@ -38,10 +38,13 @@ export class XpertModelAccessValidator {
         }
         const maintenance = currentServiceOperation()
         // A scoped delivery publishes on behalf of its beneficiary; the technical creator has no trial balance.
-        const userId = maintenance && context.creatorId === maintenance.actorId &&
-            context.tenantId === maintenance.tenantId && context.organizationId === maintenance.organizationId
-            ? maintenance.subjectId
-            : context.creatorId ?? RequestContext.currentUserId()
+        const userId =
+            maintenance &&
+            context.creatorId === maintenance.actorId &&
+            context.tenantId === maintenance.tenantId &&
+            context.organizationId === maintenance.organizationId
+                ? maintenance.subjectId
+                : (context.creatorId ?? RequestContext.currentUserId())
         if (!userId) {
             return []
         }
@@ -113,7 +116,6 @@ export function collectDraftModelReferences(
     for (const [index, model] of (draft.team?.options?.modelSelection?.allowedModels ?? []).entries()) {
         append(`team.options.modelSelection.allowedModels.${index}`, model)
     }
-    append('team.memory.copilotModel', draft.team?.memory?.copilotModel)
     if (draft.team?.features?.textToSpeech?.enabled) {
         append('team.features.textToSpeech.copilotModel', draft.team.features.textToSpeech.copilotModel)
     }

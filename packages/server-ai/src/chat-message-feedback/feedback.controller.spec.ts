@@ -7,10 +7,8 @@ describe('ChatMessageFeedbackController authorization boundary', () => {
     let service: {
         createAuthorized: jest.Mock
         deleteAuthorized: jest.Mock
-        deleteSummary: jest.Mock
         findAllAuthorized: jest.Mock
         findOneAuthorized: jest.Mock
-        triggerSummary: jest.Mock
         updateAuthorized: jest.Mock
     }
     let controller: ChatMessageFeedbackController
@@ -19,10 +17,8 @@ describe('ChatMessageFeedbackController authorization boundary', () => {
         service = {
             createAuthorized: jest.fn(),
             deleteAuthorized: jest.fn(),
-            deleteSummary: jest.fn(),
             findAllAuthorized: jest.fn(),
             findOneAuthorized: jest.fn(),
-            triggerSummary: jest.fn().mockResolvedValue(undefined),
             updateAuthorized: jest.fn()
         }
         controller = new ChatMessageFeedbackController(service as never)
@@ -78,7 +74,7 @@ describe('ChatMessageFeedbackController authorization boundary', () => {
         })
     })
 
-    it('does not trigger summary work when target authorization rejects create', async () => {
+    it('rejects unauthorized feedback creation', async () => {
         service.createAuthorized.mockRejectedValue(new ForbiddenException())
 
         await expect(
@@ -88,15 +84,13 @@ describe('ChatMessageFeedbackController authorization boundary', () => {
                 rating: ChatMessageFeedbackRatingEnum.LIKE
             })
         ).rejects.toBeInstanceOf(ForbiddenException)
-
-        expect(service.triggerSummary).not.toHaveBeenCalled()
     })
 
-    it('authorizes summary cleanup before deleting feedback', async () => {
-        service.deleteSummary.mockRejectedValue(new ForbiddenException())
+    it('rejects unauthorized feedback deletion', async () => {
+        service.deleteAuthorized.mockRejectedValue(new ForbiddenException())
 
         await expect(controller.delete('victim-feedback')).rejects.toBeInstanceOf(ForbiddenException)
 
-        expect(service.deleteAuthorized).not.toHaveBeenCalled()
+        expect(service.deleteAuthorized).toHaveBeenCalledWith('victim-feedback')
     })
 })

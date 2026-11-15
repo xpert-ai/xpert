@@ -7,7 +7,7 @@ import {
     getBufferString
 } from '@langchain/core/messages'
 import { Annotation, CompiledStateGraph, messagesStateReducer, BaseChannel } from '@langchain/langgraph'
-import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
+import { BaseStore } from '@langchain/langgraph-checkpoint'
 import {
     channelName,
     IAssistantBindingToolPreferences,
@@ -149,13 +149,6 @@ export const AgentStateAnnotation = Annotation.Root({
      * Summarizing past conversations if it's too long
      */
     summary: Annotation<string>({
-        reducer: (a, b) => b ?? a,
-        default: () => null
-    }),
-    /**
-     * Long term memory retrieved
-     */
-    memories: Annotation<SearchItem[]>({
         reducer: (a, b) => b ?? a,
         default: () => null
     })

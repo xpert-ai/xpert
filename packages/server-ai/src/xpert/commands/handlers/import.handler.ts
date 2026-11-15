@@ -10,7 +10,6 @@ import {
     convertToUrlPath,
     IXpert,
     IXpertAgent,
-    LongTermMemoryTypeEnum,
     mapTranslationLanguage,
     omitXpertRelations,
     resolveI18nText,
@@ -23,7 +22,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
-import { groupBy, omit } from 'lodash'
+import { omit } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
 import { FindCopilotModelsQuery } from '../../../copilot/queries'
 import { AvailableLlmCopilot, findAvailableLlmSelection, findDefaultLlmSelection } from '../../../copilot/llm-selection'
@@ -173,7 +172,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
     /**
      * Creates a new xpert from the DSL, after optional model normalization, and
-     * persists the normalized draft and imported long-term memories.
+     * persists the normalized draft.
      */
     private async importAsNewXpert(
         draft: XpertDraftDslDTO,
@@ -225,34 +224,6 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             ...omit(nextDraft, 'memories', 'template'),
             team: xpert
         })
-
-        if (draft.memories?.length) {
-            const items = groupBy(
-                draft.memories.map((item, index) => {
-                    const namespace = item.prefix.split(':')
-                    return {
-                        type: namespace[namespace.length - 1] as LongTermMemoryTypeEnum,
-                        value: item.value,
-                        key: newXpertId ? `template-seed-${newXpertId}-${index}` : undefined
-                    }
-                }),
-                'type'
-            )
-            await Promise.all(
-                Object.keys(items)
-                    .filter((name) => !!name && items[name].length)
-                    .map((type: LongTermMemoryTypeEnum) => {
-                        const memories = items[type].map((_) => _.value)
-                        return newXpertId
-                            ? this.xpertService.createBulkMemories(
-                                  xpert.id,
-                                  { type, memories },
-                                  items[type].map((item) => item.key)
-                              )
-                            : this.xpertService.createBulkMemories(xpert.id, { type, memories })
-                    })
-            )
-        }
 
         return xpert
     }

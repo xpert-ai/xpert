@@ -1,17 +1,21 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { getXpertFileMemoryVolumeScope } from './adapters/xpert-memory-volume'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
+import { EventNameXpertValidate, type XpertDraftValidateEvent } from '../xpert/types'
+import { validateStandardReplyDraft } from '../plugins/file-memory/standard-reply.capability'
 import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
-import { FileMemoryDreamService } from './dream.service'
+import { FileMemoryDreamService } from '../plugins/file-memory/dream.service'
 import {
     FileMemoryGetInput,
     FileMemorySearchInput,
     FileMemoryService,
     FileMemoryWriteInput
-} from './file-memory.service'
-import { getXpertFileMemoryVolumeScope, getXpertFileMemoryWorkspacePath } from './paths'
-import { FileMemoryXpertScopeResolver } from './ports'
-import { FileMemoryDreamConfig, FileMemoryDreamRequest } from './types'
+} from '../plugins/file-memory/file-memory.service'
+import { getXpertFileMemoryWorkspacePath } from '../plugins/file-memory/paths'
+import { FileMemoryXpertScopeResolver } from '../plugins/file-memory/ports'
+import { FileMemoryDreamConfig, FileMemoryDreamRequest } from '../plugins/file-memory/types'
 
 @Injectable()
 export class FileMemoryFacade {
@@ -22,6 +26,11 @@ export class FileMemoryFacade {
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {}
+
+    @OnEvent(EventNameXpertValidate, { suppressErrors: false })
+    validateDraft({ draft }: XpertDraftValidateEvent) {
+        validateStandardReplyDraft(draft)
+    }
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.scopeResolver.resolve(id)
@@ -38,10 +47,12 @@ export class FileMemoryFacade {
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert).saveFile(
-            getXpertFileMemoryWorkspacePath(xpert.id),
-            filePath,
-            content
+        return this.fileMemoryService.withTopicWriteLock(xpert, () =>
+            this.createWorkspaceVolumeClient(xpert).saveFile(
+                getXpertFileMemoryWorkspacePath(xpert.id),
+                filePath,
+                content
+            )
         )
     }
 
@@ -51,16 +62,20 @@ export class FileMemoryFacade {
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
         const xpert = await this.scopeResolver.resolve(id)
-        return this.createWorkspaceVolumeClient(xpert).uploadFile(
-            getXpertFileMemoryWorkspacePath(xpert.id),
-            folderPath,
-            file
+        return this.fileMemoryService.withTopicWriteLock(xpert, () =>
+            this.createWorkspaceVolumeClient(xpert).uploadFile(
+                getXpertFileMemoryWorkspacePath(xpert.id),
+                folderPath,
+                file
+            )
         )
     }
 
     async deleteMemoryFile(id: string, filePath: string): Promise<void> {
         const xpert = await this.scopeResolver.resolve(id)
-        await this.createWorkspaceVolumeClient(xpert).deleteFile(getXpertFileMemoryWorkspacePath(xpert.id), filePath)
+        await this.fileMemoryService.withTopicWriteLock(xpert, () =>
+            this.createWorkspaceVolumeClient(xpert).deleteFile(getXpertFileMemoryWorkspacePath(xpert.id), filePath)
+        )
     }
 
     async writeFileMemory(id: string, input: FileMemoryWriteInput) {
@@ -118,7 +133,15 @@ export class FileMemoryFacade {
                     xpert.workspaceDataScope
                 )
             ),
-            { allowRootWorkspace: true }
+            {
+                allowRootWorkspace: true,
+                beforeMutation: async (target) => {
+                    const segments = target.replace(/\\/g, '/').split('/')
+                    if (segments.includes('.dream') || segments.at(-1)?.toLowerCase() === 'memory.md') {
+                        throw new ForbiddenException('Managed memory files are read-only')
+                    }
+                }
+            }
         )
     }
 }

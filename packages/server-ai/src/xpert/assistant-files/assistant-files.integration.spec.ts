@@ -139,7 +139,7 @@ describe('Assistant file authority integration', () => {
         } as unknown as Repository<XpertWorkspace>
         workspaceAccess = new XpertWorkspaceAccessService(workspaceRepository)
         published = new PublishedXpertAccessService(repository, workspaceAccess)
-        xperts = new XpertService(repository, workspaceAccess, null, null, null, null, null, null, null, null)
+        xperts = new XpertService(repository, workspaceAccess, null, null, null, null, null, null)
         module = await Test.createTestingModule({
             imports: [CqrsModule],
             providers: [

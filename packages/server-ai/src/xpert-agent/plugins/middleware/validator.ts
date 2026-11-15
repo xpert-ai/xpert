@@ -21,7 +21,6 @@ const XPERT_FEATURE_KEYS = new Set<string>([
     'textToSpeech',
     'speechToText',
     'attachment',
-    'memoryReply',
     'sandbox',
     'title'
 ])

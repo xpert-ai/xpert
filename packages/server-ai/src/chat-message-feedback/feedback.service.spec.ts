@@ -5,9 +5,7 @@ import { ChatMessageFeedbackService } from './feedback.service'
 describe('ChatMessageFeedbackService authorization', () => {
     const createService = () => {
         const conversationService = {
-            assertAccess: jest.fn(),
-            triggerSummary: jest.fn(),
-            deleteSummary: jest.fn()
+            assertAccess: jest.fn()
         }
         const messageService = {
             findOneInOrganizationOrTenant: jest.fn()

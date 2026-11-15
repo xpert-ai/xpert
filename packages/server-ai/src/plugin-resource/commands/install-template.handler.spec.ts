@@ -1,10 +1,10 @@
 import { normalizeAssistantTemplate } from '../../xpert-template/definition/normalize-assistant-template'
 import { AssistantTemplateToolsetBinder } from './assistant-template-toolset-binder.service'
+import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 jest.mock('../template-installation/template-dependency-installer.service', () => ({
     TemplateDependencyInstaller: class {}
 }))
 jest.mock('../template-installation/template-readiness.service', () => ({ TemplateReadinessService: class {} }))
-import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 jest.mock('@nestjs/typeorm', () => ({
     InjectRepository: () => () => undefined,
     TypeOrmModule: {
@@ -63,13 +63,7 @@ jest.mock('../installation/plugin-resource-installer.service', () => ({
 }))
 
 import { blankAssistantTemplate } from '../../xpert-template/capabilities/blank-assistant-template'
-import {
-    AiModelTypeEnum,
-    AiProviderRole,
-    LanguagesEnum,
-    XpertToolsetCategoryEnum,
-    TemplateManifest
-} from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum, TemplateManifest } from '@xpert-ai/contracts'
 import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
@@ -182,7 +176,7 @@ describe('PluginTemplateInstallHandler', () => {
         expect(imported?.draft.team.name).toBe(name)
     })
 
-    it.each([false, true])('preserves template memories when publish is %s', async (publish) => {
+    it.each([false, true])('drops legacy template memories when publish is %s', async (publish) => {
         const memories = [
             {
                 prefix: 'memory:qa',
@@ -208,7 +202,7 @@ describe('PluginTemplateInstallHandler', () => {
             .map(([command]) => command)
             .filter((command): command is XpertImportCommand => command instanceof XpertImportCommand)
         expect(imports).toHaveLength(1)
-        expect(imports[0].draft.memories).toEqual(memories)
+        expect(imports[0].draft).not.toHaveProperty('memories')
         expect(imports[0].draft.team.workspaceId).toBe('workspace-1')
     })
 
@@ -228,7 +222,7 @@ describe('PluginTemplateInstallHandler', () => {
                 .map(([command]) => command)
                 .find((command): command is XpertImportCommand => command instanceof XpertImportCommand)
             expect(imported).toBeDefined()
-            expect(imported?.draft.memories).toEqual(memories)
+            expect(imported?.draft).not.toHaveProperty('memories')
         }
     )
 

@@ -3,14 +3,13 @@ import {
     createAgentConnections,
     createXpertNodes,
     IXpert,
-    LongTermMemoryTypeEnum,
     TXpertTeamConnection,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { MemoryDslDTO, XpertDraftDslDTO } from '../../dto'
+import { XpertDraftDslDTO } from '../../dto'
 import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
 
@@ -28,7 +27,7 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
     ) {}
 
     public async execute(command: XpertExportCommand): Promise<Record<string, any>> {
-        const { id, isDraft, includeMemory } = command
+        const { id, isDraft } = command
 
         const relations = isDraft
             ? ['agent', 'agent.copilotModel', 'copilotModel']
@@ -60,10 +59,6 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
         delete dto.team.options.templateDefinition
         delete dto.team.options.templateDependencyLocks
         delete dto.team.options.templateSource
-        if (includeMemory) {
-            const result = await this.xpertService.findAllMemory(id, [LongTermMemoryTypeEnum.QA])
-            dto.memories = result.items.map((memory) => new MemoryDslDTO(memory))
-        }
 
         return dto
     }

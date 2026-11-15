@@ -9,12 +9,10 @@ import {
     IUserGroup,
     IXpert,
     IXpertAgent,
-    IXpertTable,
     IXpertToolset,
     TAvatar,
     TChatApi,
     TChatApp,
-    TLongTermMemory,
     TSummarize,
     TXpertAgentConfig,
     TXpertExportedTemplate,
@@ -44,14 +42,7 @@ import {
     RelationId
 } from 'typeorm'
 import { WorkspaceBaseEntity } from '../core/entities/base.entity'
-import {
-    CopilotModel,
-    Environment,
-    Knowledgebase,
-    XpertAgent,
-    XpertTable,
-    XpertToolset
-} from '../core/entities/internal'
+import { CopilotModel, Environment, Knowledgebase, XpertAgent, XpertToolset } from '../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../knowledgebase/dto'
 
 @Entity('xpert')
@@ -132,11 +123,9 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     @Column({ type: 'json', nullable: true })
     summarize?: TSummarize
 
-    @ApiPropertyOptional({ type: () => Object })
-    @IsJSON()
-    @IsOptional()
-    @Column({ type: 'json', nullable: true })
-    memory?: TLongTermMemory
+    // Preserve historical data when synchronizing the local schema.
+    @Column({ name: 'memory', type: 'json', nullable: true, select: false, insert: false, update: false })
+    private legacyMemory?: unknown
 
     @ApiPropertyOptional({ type: () => Object })
     @IsObject()

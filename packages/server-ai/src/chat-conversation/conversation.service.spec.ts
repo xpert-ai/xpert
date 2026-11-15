@@ -59,7 +59,6 @@ import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ResolveAuthorizedFileAssetQuery } from '../file-understanding/queries'
@@ -285,7 +284,6 @@ describe('ChatConversationService workspace files', () => {
             messageService as unknown as ChatMessageService,
             commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
-            {} as Queue,
             volumeClient,
             projectAccessService as unknown as XpertProjectAccessService,
             conversationThreadService as unknown as ChatConversationThreadService

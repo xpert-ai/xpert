@@ -954,7 +954,6 @@ function isBlankStructuredFeatureKey(feature: TXpertFeatureKey | string): featur
     feature === 'textToSpeech' ||
     feature === 'speechToText' ||
     feature === 'attachment' ||
-    feature === 'memoryReply' ||
     feature === 'sandbox' ||
     feature === 'title'
   )

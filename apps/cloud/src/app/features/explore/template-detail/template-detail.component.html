@@ -43,34 +43,13 @@
       [zTabsPosition]="wide()?.matches ? 'left' : 'top'"
       [preserveContent]="true"
     >
-      <z-tab [label]="'TemplateOverview.Memories' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
-        <ng-template zTabLabel
-          ><span class="text-left"
-            ><strong class="block">{{ 'TemplateOverview.Memories' | translate }}</strong
-            ><span class="text-xs text-muted-foreground">{{ 'TemplateOverview.MemoriesHint' | translate }}</span></span
-          ></ng-template
-        >
-        <section class="space-y-7" aria-label="Memories">
+      <z-tab [label]="'TemplateOverview.Instructions' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        <section class="space-y-7">
           <div>
             <h2 class="text-xl font-semibold">{{ 'TemplateOverview.Instructions' | translate }}</h2>
             <p class="mt-3 whitespace-pre-wrap break-words leading-7 text-muted-foreground">
               {{ value.instructions || value.description }}
             </p>
-          </div>
-          <div class="space-y-4">
-            <h3 class="font-semibold">
-              {{ 'TemplateOverview.SeedMemories' | translate }} · {{ value.memories.length }}
-            </h3>
-            @for (memory of value.memories; track $index) {
-              <div class="border-b border-border pb-4">
-                <h4 class="font-medium">{{ memory.title }}</h4>
-                <p class="mt-2 whitespace-pre-wrap break-words leading-6 text-muted-foreground">
-                  {{ memory.content || ('TemplateOverview.StructuredMemory' | translate) }}
-                </p>
-              </div>
-            } @empty {
-              <p class="text-muted-foreground">{{ 'TemplateOverview.NoMemories' | translate }}</p>
-            }
           </div>
           @if (value.onboarding; as setup) {
             <div class="space-y-3">

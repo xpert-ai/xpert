@@ -9,13 +9,10 @@ import {
     IXpert,
     LanguagesEnum,
     LanguagesMap,
-    LongTermMemoryTypeEnum,
     PermissionsEnum,
     TChatApi,
     TChatApp,
     TChatOptions,
-    TMemoryQA,
-    TMemoryUserProfile,
     TChatRequest,
     TXpertCommandProfile,
     TXpertTemplateSyncResult,
@@ -69,18 +66,12 @@ import {
     UploadedFile as NestUploadedFile
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { UploadedFile } from '@xpert-ai/contracts'
-import { FileStorage, UploadedFileStorage } from '@xpert-ai/server-core'
-import path from 'path'
-import iconv from 'iconv-lite'
-import * as XLSX from 'xlsx'
-import fsPromises from 'fs/promises'
 import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
-import { Between, DeleteResult, In, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
+import { Between, DeleteResult, In, IsNull, LessThanOrEqual, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { randomBytes } from 'crypto'
@@ -103,7 +94,6 @@ import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
 import { WorkspaceAuthoringGuard } from '../xpert-workspace/'
 import {
-    SearchXpertMemoryQuery,
     StatisticsXpertConversationsQuery,
     StatisticsXpertIntegrationsQuery,
     StatisticsXpertMessagesQuery,
@@ -353,13 +343,10 @@ export class XpertController extends CrudController<Xpert> {
     async exportDSL(
         @Param('id') xpertId: string,
         @Query('isDraft') isDraft: string,
-        @Query('includeMemory') includeMemory: string,
         @Query('data', ParseJsonPipe) params: PaginationParams<Xpert>
     ) {
         try {
-            const xpert = await this.commandBus.execute(
-                new XpertExportCommand(xpertId, isDraft === 'true', includeMemory === 'true')
-            )
+            const xpert = await this.commandBus.execute(new XpertExportCommand(xpertId, isDraft === 'true'))
             return {
                 data: yaml.stringify(instanceToPlain(xpert))
             }
@@ -370,15 +357,9 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Post(':id/export/template')
-    async exportDSLAsTemplate(
-        @Param('id') xpertId: string,
-        @Query('isDraft') isDraft: string,
-        @Query('includeMemory') includeMemory: string
-    ) {
+    async exportDSLAsTemplate(@Param('id') xpertId: string, @Query('isDraft') isDraft: string) {
         try {
-            return await this.commandBus.execute(
-                new XpertExportTemplateCommand(xpertId, isDraft === 'true', includeMemory === 'true')
-            )
+            return await this.commandBus.execute(new XpertExportTemplateCommand(xpertId, isDraft === 'true'))
         } catch (err) {
             throw new InternalServerErrorException(err.message)
         }
@@ -657,52 +638,6 @@ export class XpertController extends CrudController<Xpert> {
         return this.service.updateUserGroups(id, ids, organizationId)
     }
 
-    @Get(':id/memory')
-    async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
-        const _types = types?.split(':').filter((_) => !!_)
-        return this.service.findAllMemory(id, _types)
-    }
-
-    @UseGuards(XpertGuard)
-    @Get(':id/memory/files')
-    async getMemoryFiles(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Query('deepth') deepth: number,
-        @Query('path') path: string
-    ) {
-        return await this.service.getMemoryFiles(id, path, deepth)
-    }
-
-    @UseGuards(XpertGuard)
-    @Get(':id/memory/file')
-    async getMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
-        return await this.service.getMemoryFile(id, path)
-    }
-
-    @UseGuards(XpertGuard)
-    @Put(':id/memory/file')
-    async saveMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Body()
-        body: {
-            path: string
-            content: string
-        }
-    ) {
-        return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')
-    }
-
-    @UseGuards(XpertGuard)
-    @Post(':id/memory/file/upload')
-    @UseInterceptors(FileInterceptor('file'))
-    async uploadMemoryFile(
-        @Param('id', UUIDValidationPipe) id: string,
-        @Body('path') path: string,
-        @NestUploadedFile() file: Express.Multer.File
-    ) {
-        return await this.service.uploadMemoryFile(id, path, file)
-    }
-
     @UseGuards(XpertGuard)
     @Get(':id/workspace/files')
     async listWorkspaceFiles(
@@ -796,247 +731,6 @@ export class XpertController extends CrudController<Xpert> {
             )
         }
         return this.workspaceFilesService.upload(id, file)
-    }
-
-    @UseGuards(XpertGuard)
-    @Delete(':id/memory/file')
-    async deleteMemoryFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
-        return await this.service.deleteMemoryFile(id, path)
-    }
-
-    @Post(':id/memory/bulk')
-    async createBulkMemory(
-        @Param('id') id: string,
-        @Body()
-        body: {
-            type: LongTermMemoryTypeEnum
-            memories: Array<TMemoryQA | TMemoryUserProfile>
-        }
-    ) {
-        return this.service.createBulkMemories(id, body)
-    }
-
-    /**
-     * @todo Refactoring is required
-     */
-    @Post(':id/memory/bulk/upload')
-    @UseInterceptors(
-        FileInterceptor('file', {
-            storage: new FileStorage().storage({
-                dest: path.join('temp'), // Store in a temporary directory
-                prefix: 'memory-csv-upload'
-            })
-        })
-    )
-    @ApiOperation({ summary: 'Upload and parse CSV file for bulk memory import' })
-    @ApiResponse({
-        status: HttpStatus.OK,
-        description: 'Memories parsed from CSV file'
-    })
-    async uploadAndParseCsv(
-        @Param('id') id: string,
-        @Body() body: { type: LongTermMemoryTypeEnum },
-        @UploadedFileStorage() file: UploadedFile
-    ): Promise<Array<TMemoryQA | TMemoryUserProfile>> {
-        const type = body.type
-        if (!file) {
-            throw new BadRequestException('No file uploaded')
-        }
-
-        const { path: filePath, mimetype, originalname } = file
-
-        if (mimetype !== 'text/csv' && !originalname.endsWith('.csv')) {
-            throw new BadRequestException('Only CSV files are supported')
-        }
-
-        try {
-            // Read file buffer
-            const buffer = await fsPromises.readFile(filePath)
-
-            // Function to check if string contains valid Chinese characters
-            const containsValidChinese = (str: string): boolean => {
-                return /[\u4e00-\u9fa5]/.test(str)
-            }
-
-            // Function to detect if string looks like mis-decoded UTF-8
-            const looksLikeMisDecoded = (str: string): boolean => {
-                return /[´°µÄÂÈøò·¢]{3,}/.test(str)
-            }
-
-            // Function to check if decoding is likely correct
-            const isValidDecoding = (decoded: string, encoding: string): boolean => {
-                if (decoded.includes('\uFFFD')) {
-                    return false
-                }
-
-                if (encoding === 'utf8' || encoding === 'utf-8') {
-                    try {
-                        Buffer.from(decoded, 'utf8')
-                        return true
-                    } catch {
-                        return false
-                    }
-                }
-
-                return true
-            }
-
-            // Try different encodings
-            const encodingsToTry = ['utf8', 'gbk', 'gb18030', 'gb2312', 'big5']
-
-            // Check for BOM
-            let startOffset = 0
-            if (buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
-                startOffset = 3
-            }
-
-            const bufferToDecode = startOffset > 0 ? buffer.slice(startOffset) : buffer
-
-            let content: string | null = null
-            let lastError: Error | null = null
-
-            for (const encoding of encodingsToTry) {
-                try {
-                    const decoded = iconv.decode(bufferToDecode, encoding)
-
-                    if (!isValidDecoding(decoded, encoding)) {
-                        continue
-                    }
-
-                    if (looksLikeMisDecoded(decoded)) {
-                        continue
-                    }
-
-                    if (containsValidChinese(decoded)) {
-                        content = decoded
-                        break
-                    }
-
-                    if (encoding === 'utf8' && !content && decoded.length > 0) {
-                        content = decoded
-                    } else if (!content && decoded.length > 0 && !decoded.match(/[^\x00-\x7F]/)) {
-                        content = decoded
-                    }
-                } catch (err) {
-                    lastError = err
-                }
-            }
-
-            if (!content) {
-                try {
-                    content = iconv.decode(bufferToDecode, 'utf8')
-                } catch (err) {
-                    throw new BadRequestException(
-                        `Failed to decode CSV file. Tried encodings: ${encodingsToTry.join(', ')}. Error: ${lastError?.message || err.message}`
-                    )
-                }
-            }
-
-            if (!content) {
-                throw new BadRequestException('Failed to decode CSV file with any known encoding')
-            }
-
-            // Parse CSV with XLSX
-            const workbook = XLSX.read(content, {
-                type: 'string',
-                codepage: 65001 // UTF-8 codepage
-            })
-
-            type MemoryCsvRow = {
-                question?: unknown
-                问题?: unknown
-                問題?: unknown
-                answer?: unknown
-                答案?: unknown
-                profile?: unknown
-                档案?: unknown
-                檔案?: unknown
-                context?: unknown
-                上下文?: unknown
-            }
-
-            const readCsvText = (...values: unknown[]) => {
-                for (const value of values) {
-                    if (typeof value === 'string') {
-                        return value
-                    }
-
-                    if (typeof value === 'number' || typeof value === 'boolean') {
-                        return String(value)
-                    }
-                }
-
-                return ''
-            }
-
-            const sheet = workbook.Sheets[workbook.SheetNames[0]]
-            const jsonData = XLSX.utils.sheet_to_json<MemoryCsvRow>(sheet)
-
-            // Map to memory format based on type
-            const memories: Array<TMemoryQA | TMemoryUserProfile> = jsonData.map((row) => {
-                if (type === LongTermMemoryTypeEnum.QA) {
-                    return {
-                        question: readCsvText(row.question, row.问题, row.問題),
-                        answer: readCsvText(row.answer, row.答案)
-                    }
-                }
-
-                if (type === LongTermMemoryTypeEnum.PROFILE) {
-                    return {
-                        profile: readCsvText(row.profile, row.档案, row.檔案),
-                        context: readCsvText(row.context, row.上下文)
-                    }
-                }
-
-                throw new BadRequestException(`Unsupported memory type: ${type}`)
-            })
-
-            // Clean up temporary file
-            try {
-                await fsPromises.unlink(filePath)
-            } catch (err) {
-                // Ignore cleanup errors
-            }
-
-            return memories
-        } catch (error) {
-            // Clean up temporary file on error
-            try {
-                await fsPromises.unlink(filePath)
-            } catch (err) {
-                // Ignore cleanup errors
-            }
-            throw new BadRequestException(`Failed to parse CSV file: ${error.message}`)
-        }
-    }
-
-    @Post(':id/memory')
-    async createMemory(
-        @Param('id') id: string,
-        @Body() body: { type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile }
-    ) {
-        return this.service.createMemory(id, body)
-    }
-
-    @Post(':id/memory/search')
-    async searchMemory(
-        @Param('id') id: string,
-        @Body() body: { type: LongTermMemoryTypeEnum; text: string; isDraft?: boolean }
-    ) {
-        try {
-            return await this.queryBus.execute(new SearchXpertMemoryQuery(id, body))
-        } catch (err) {
-            throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-    @Delete(':id/memory')
-    async clearMemory(@Param('id') id: string) {
-        try {
-            return await this.storeService.delete({ prefix: Like(`${id}%`) })
-        } catch (err) {
-            throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
-        }
     }
 
     @Get(':id/variables')
@@ -1163,7 +857,7 @@ export class XpertController extends CrudController<Xpert> {
                 )
             }
             const sourceXpert = await this.service.findOne(id)
-            const xpertDto = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft, false))
+            const xpertDto = await this.commandBus.execute(new XpertExportCommand(id, body.isDraft))
             const dsl = instanceToPlain(xpertDto)
             return await this.commandBus.execute(
                 new XpertImportCommand(

@@ -3,28 +3,22 @@ import { assertAppPlatformUpload } from '../shared/app-platform-resource-policy'
 import { assertGroupWorkspaceFileAccess } from './workspace-files/group-workspace-file-access'
 import { createConversationWorkspaceVolumeClient } from './workspace-files/conversation-workspace-volume'
 import { isGroupRuntime } from '../chat-group/group-runtime-context'
-import { BaseStore } from '@langchain/langgraph'
 import {
     IChatConversationReadState,
     IChatConversationUnreadXpertSummary,
-    IChatMessage,
-    LongTermMemoryTypeEnum,
     TFile,
     TFileDirectory
 } from '@xpert-ai/contracts'
 import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { StorageFile } from '@xpert-ai/server-core'
-import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Queue } from 'bull'
 import { t } from 'i18next'
 import { DeepPartial, FindOptionsWhere, Repository, UpdateResult } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { ChatMessageService } from '../chat-message/chat-message.service'
-import { CreateCopilotStoreCommand } from '../copilot-store'
 import { resolveFileAssetWorkspaceRelativePath } from '../file-understanding/domain/workspace-file'
 import {
     GetFileAssetByStorageFileQuery,
@@ -57,7 +51,6 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         private readonly messageService: ChatMessageService,
         readonly commandBus: CommandBus,
         readonly queryBus: QueryBus,
-        @InjectQueue('conversation-summary') private summaryQueue: Queue,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
         private readonly projectAccessService: XpertProjectAccessService,
@@ -509,81 +502,6 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             ...entity,
             executions
         })
-    }
-
-    async triggerSummary(conversationId: string, type: LongTermMemoryTypeEnum, userId: string, messageId?: string) {
-        let message: IChatMessage = null
-        if (messageId) {
-            message = await this.messageService.findOne(messageId)
-        } else {
-            const conversation = await this.findOne(conversationId, { relations: ['messages'] })
-            if (!conversation.messages.length) {
-                return
-            }
-            message = conversation.messages[conversation.messages.length - 1]
-        }
-
-        if (message?.summaryJob?.[type]) {
-            return
-        }
-        return await this.summaryQueue.add({
-            tenantId: RequestContext.currentTenantId(),
-            organizationId: RequestContext.getOrganizationId(),
-            conversationId,
-            userId,
-            messageId,
-            types: [type]
-        })
-    }
-
-    async deleteSummary(conversationId: string, messageId: string, type: LongTermMemoryTypeEnum) {
-        const conversation = await this.findOne(conversationId)
-        const message = await this.messageService.findOne(messageId)
-        const { tenantId, organizationId } = message
-        const userId = RequestContext.currentUserId()
-
-        const summaryJob = message.summaryJob?.[type]
-        try {
-            if (summaryJob?.jobId) {
-                const job = await this.getJob(summaryJob.jobId)
-                // cancel job
-                if (job) {
-                    await job.discard()
-                    await job.moveToFailed({ message: 'Job stopped by user' }, true)
-                }
-            }
-
-            if (summaryJob) {
-                if (summaryJob.memoryKey) {
-                    const keys = Array.isArray(summaryJob.memoryKey) ? summaryJob.memoryKey : [summaryJob.memoryKey]
-
-                    const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
-                        new CreateCopilotStoreCommand({
-                            tenantId,
-                            organizationId,
-                            userId
-                        })
-                    )
-
-                    for await (const key of keys) {
-                        await store.delete([conversation.xpertId], key)
-                    }
-                }
-
-                await this.messageService.update(messageId, {
-                    summaryJob: {
-                        ...message.summaryJob,
-                        [type]: null
-                    }
-                })
-            }
-        } catch (err) {
-            this.logger.error(err)
-        }
-    }
-
-    async getJob(id: number | string) {
-        return await this.summaryQueue.getJob(id)
     }
 
     async getThreadState(id: string) {
