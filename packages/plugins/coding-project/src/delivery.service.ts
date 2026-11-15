@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { deliveryGraphSummary } from './context-summary'
 import { createHash } from 'node:crypto'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
@@ -239,7 +240,9 @@ export class CodingDeliveryService {
       candidateDigest: candidate ? digest(candidate) : null,
       manifestSchema: zodToJsonSchema(schema),
       graph: delivery.instanceId
-        ? await this.store.capabilities.require(ProjectPipelinesRuntimeCapability).graph(c, delivery.instanceId)
+        ? deliveryGraphSummary(
+            await this.store.capabilities.require(ProjectPipelinesRuntimeCapability).graph(c, delivery.instanceId)
+          )
         : null
     }
   }

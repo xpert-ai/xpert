@@ -52,6 +52,13 @@ function invocation(status: AgentInvocation['status']): AgentInvocation {
     }
 }
 describe('Project task invocation read projection', () => {
+    it('uses confirmed completion, not a later report recovery timestamp, and leaves legacy timing unavailable', () => {
+        const observed = invocation('succeeded')
+        observed.completedAt = '2026-10-06T00:00:30Z'
+        expect(projectTaskInvocationView(attempt, observed).runtimeCompletedAt).toBe(observed.completedAt)
+        delete observed.completedAt
+        expect(projectTaskInvocationView(attempt, observed).runtimeCompletedAt).toBeNull()
+    })
     it('does not manufacture a process start from an admitted running invocation', () => {
         expect(projectTaskInvocationView(attempt, invocation('running')).runtimeProvider).toBe('test')
         expect(projectTaskInvocationView(attempt, invocation('running'))).toMatchObject({

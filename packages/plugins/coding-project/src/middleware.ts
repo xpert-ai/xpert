@@ -112,7 +112,7 @@ export class CodingDeliveryMiddleware implements IAgentMiddlewareStrategy<Record
           schema: operation,
           verboseParsingErrors: true,
           description:
-            'Read the exact operation supplied in the stage prompt: requirement, pinned candidate, manifest JSON Schema and Pipeline state. These are authoritative technical identities; infer business acceptance through independent review.',
+            'Read the exact operation supplied in the stage prompt: requirement, pinned candidate, manifest JSON Schema and compact current Pipeline state. Reuse this result within a turn; refresh after a state-changing action or stale-state error. Task reports are read with project_get_task. Infer business acceptance through independent review; node execution statistics are not whole-delivery timing.',
           metadata: { toolName: label('Inspect delivery stage', '查看交付阶段') }
         }),
         tool(
