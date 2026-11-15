@@ -6294,6 +6294,7 @@
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
+        "EVOLUTION_REVIEW": "Review project decisions",
         "EVOLUTION_VIEW": "View agent evolution",
         "EVOLUTION_MANAGE": "Manage agent evolution",
         "PROFILE_EDIT": "Edit Profile",

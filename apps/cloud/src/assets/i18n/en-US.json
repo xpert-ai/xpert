@@ -5333,6 +5333,7 @@
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
+        "EVOLUTION_REVIEW": "Review project decisions",
         "EVOLUTION_VIEW": "View agent evolution",
         "EVOLUTION_MANAGE": "Manage agent evolution",
         "ADMIN_DASHBOARD_VIEW": "View Admin Dashboard",

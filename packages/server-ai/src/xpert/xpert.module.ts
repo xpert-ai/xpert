@@ -1,3 +1,4 @@
+import { AgentEvolutionModule } from '../agent-evolution/agent-evolution.module'
 import { StudioMemoryHostDefinition } from '../view-extension/hosts/studio-memory-host.definition'
 import { AssistantPrincipalModule } from './assistant-principal/assistant-principal.module'
 import { ModelReplacementOperation } from './model-replacement/operation.entity'
@@ -97,6 +98,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
 
 @Module({
     imports: [
+        AgentEvolutionModule,
         AssistantPrincipalModule,
         RouterModule.register([{ path: '/xpert', module: XpertModule }]),
         TypeOrmModule.forFeature([

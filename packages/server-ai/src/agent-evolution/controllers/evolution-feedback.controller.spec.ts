@@ -1,3 +1,4 @@
+import { ExecutionReviewService } from '../execution-review/execution-review.service'
 import { ForbiddenException, INestApplication } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
@@ -33,6 +34,7 @@ describe('evolution feedback HTTP dispatch', () => {
         const module = await Test.createTestingModule({
             controllers: [EvolutionFeedbackController],
             providers: [
+                { provide: ExecutionReviewService, useValue: {} },
                 { provide: DataSource, useValue: { getRepository: () => ({ findOne }) } },
                 { provide: QueryBus, useValue: { execute } },
                 {

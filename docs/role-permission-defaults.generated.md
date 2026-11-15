@@ -67,5 +67,6 @@
 | `XPERT_PROJECT_EDIT`            | projects | 已定义     | ✓           | ✓     | ✓          | —      | ✓        | —                       | ✓     |
 | `XPERT_PROJECT_MANAGE`          | projects | 已定义     | ✓           | ✓     | —          | —      | —        | —                       | —     |
 | `CHAT_VIEW`                     | ai       | 已定义     | ✓           | ✓     | ✓          | ✓      | ✓        | —                       | ✓     |
+| `EVOLUTION_REVIEW`              | ai       | 已定义     | —           | —     | —          | —      | —        | —                       | —     |
 | `EVOLUTION_VIEW`                | ai       | 已定义     | ✓           | ✓     | ✓          | ✓      | —        | —                       | —     |
 | `EVOLUTION_MANAGE`              | ai       | 已定义     | ✓           | ✓     | ✓          | —      | —        | —                       | —     |

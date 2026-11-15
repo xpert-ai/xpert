@@ -79,6 +79,8 @@ export enum AIPermissionsEnum {
    * This includes execution and authorized writes, not just viewing; it grants no authoring access.
    */
   CHAT_VIEW = 'CHAT_VIEW',
+  /** Review authorized business decisions within a project. */
+  EVOLUTION_REVIEW = 'EVOLUTION_REVIEW',
   /** Read Agent Evolution dashboards, learning records, evaluations and change history in the authorized scope. */
   EVOLUTION_VIEW = 'EVOLUTION_VIEW',
   /** Manage Agent Evolution proposals, evaluations, approvals and releases, subject to governance checks. */

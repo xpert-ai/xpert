@@ -1,3 +1,6 @@
+import { ConflictException } from '@nestjs/common'
+import { ExecutionReviewEntity, LearningEventEntity } from '../entities'
+import { ExecutionReviewService } from '../execution-review/execution-review.service'
 import { Body, Controller, NotFoundException, Param, Post, UseGuards } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -21,7 +24,8 @@ export class EvolutionFeedbackController {
         private readonly queries: QueryBus,
         private readonly providers: EvolutionTargetProviderRegistry,
         private readonly store: AgentEvolutionStore,
-        private readonly governance: AgentEvolutionGovernanceService
+        private readonly governance: AgentEvolutionGovernanceService,
+        private readonly reviews: ExecutionReviewService
     ) {}
 
     private resolve(key: string) {
@@ -84,7 +88,7 @@ export class EvolutionFeedbackController {
         @Param('id', UUIDValidationPipe) id: string,
         @Body() input: unknown
     ) {
-        const { identity, feedback } = this.resolve(key)
+        const { identity, feedback, targetId } = this.resolve(key)
         const execution = await this.db
             .getRepository(XpertAgentExecution)
             .findOne({ where: { ...identity, id, type: feedback.executionType }, select: feedbackFields })
@@ -92,6 +96,22 @@ export class EvolutionFeedbackController {
         await this.queries.execute(
             new AssertChatConversationAccessQuery({ threadId: execution.threadId, ...identity }, 'contribute')
         )
-        return feedback.review(identity, execution, input)
+        if (!feedback.workbench) return feedback.review(identity, execution, input)
+        return this.db.transaction(async (manager) => {
+            await this.reviews.lock(manager, identity, targetId, id)
+            const record = await manager.findOneBy(ExecutionReviewEntity, { ...identity, targetId, executionId: id })
+            if (record) {
+                if (feedback.workbench.matchesLegacy(input, record.receipt) && record.receipt.learningEventId) {
+                    const event = await manager.findOneBy(LearningEventEntity, {
+                        ...identity,
+                        targetId,
+                        eventId: record.receipt.learningEventId
+                    })
+                    if (event) return event.value
+                }
+                throw new ConflictException('execution_already_reviewed')
+            }
+            return feedback.review(identity, execution, input)
+        })
     }
 }

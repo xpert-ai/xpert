@@ -1,3 +1,4 @@
+import { ExecutionReviewService } from '../agent-evolution/execution-review/execution-review.service'
 import { ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -90,6 +91,7 @@ async function fixture() {
         providers: [
             AgentViewHostDefinition,
             ViewMiddlewareRuntimeService,
+            { provide: ExecutionReviewService, useValue: { bind: jest.fn() } },
             { provide: XpertService, useValue: xpertService },
             { provide: PublishedXpertAccessService, useValue: access },
             { provide: AgentMiddlewareRegistry, useValue: registry },

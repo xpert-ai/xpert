@@ -1,3 +1,4 @@
+import { ExecutionReviewService } from './execution-review/execution-review.service'
 import { CheckedProposalService } from './learning/checked-proposal.service'
 import { LearningDirectoryService } from './learning/learning-directory.service'
 import { EvolutionFeedbackController } from './controllers/evolution-feedback.controller'
@@ -46,6 +47,7 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         AgentEvolutionController
     ],
     providers: [
+        ExecutionReviewService,
         EvolutionBaselineService,
         LearningDirectoryService,
         CheckedProposalService,
@@ -71,6 +73,7 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         ...AGENT_EVOLUTION_CONFORMANCE_PROVIDERS
     ],
     exports: [
+        ExecutionReviewService,
         AgentEvolutionService,
         AgentEvolutionRuntimeService,
         EVOLUTION_RUNTIME_SERVICE_TOKEN,

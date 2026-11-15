@@ -12306,6 +12306,7 @@
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
+        "EVOLUTION_REVIEW": "复核项目业务判断",
         "EVOLUTION_VIEW": "查看智能体进化",
         "EVOLUTION_MANAGE": "管理智能体进化",
         "ADMIN_DASHBOARD_VIEW": "查看管理员仪表盘",

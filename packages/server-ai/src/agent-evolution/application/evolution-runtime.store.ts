@@ -1,3 +1,4 @@
+import type { EntityManager } from 'typeorm'
 // Invariants: runtime rollout mutations keep their original CAS, locks and safety gates.
 import type {
     ActiveCapabilityPointer,
@@ -166,162 +167,167 @@ export class EvolutionRuntimeStore {
     }
 
     async saveRuntimeObservation(tenant: EvolutionTenantScope, observation: EvolutionRuntimeObservation) {
-        return this.dataSource.transaction(async (manager) => {
-            const observationRepository = manager.getRepository(EvolutionRuntimeObservationEntity)
-            const deploymentRepository = manager.getRepository(ReleaseDeploymentEntity)
-            const releaseRepository = manager.getRepository(ReleasePackageEntity)
-            const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
-            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-                JSON.stringify([tenant.tenantId, tenant.organizationId, observation.observationId])
-            ])
-            const existing = await observationRepository.findOne({
-                where: { ...tenantWhere(tenant), observationId: observation.observationId }
-            })
-            if (existing) {
-                if (
-                    !sameScope(existing.value.scope, observation.scope) ||
-                    existing.targetId !== observation.targetId ||
-                    existing.value.channel !== observation.channel ||
-                    existing.value.bundleId !== observation.bundleId ||
-                    existing.value.deploymentId !== observation.deploymentId ||
-                    existing.executionId !== observation.executionId
-                )
-                    changeError('observation_identity_mismatch')
-                return existing.value
-            }
-            const saved = await observationRepository.save(
-                observationRepository.create({
-                    ...tenantValues(tenant),
-                    scopeType: observation.scope.type,
-                    scopeKey: observation.scope.key,
-                    observationId: observation.observationId,
-                    targetId: observation.targetId,
-                    deploymentId: observation.deploymentId ?? null,
-                    executionId: observation.executionId,
-                    severeError: observation.severeError,
-                    value: observation
-                })
+        return this.dataSource.transaction((manager) => this.insertRuntimeObservation(manager, tenant, observation))
+    }
+
+    async insertRuntimeObservation(
+        manager: EntityManager,
+        tenant: EvolutionTenantScope,
+        observation: EvolutionRuntimeObservation
+    ) {
+        const observationRepository = manager.getRepository(EvolutionRuntimeObservationEntity)
+        const deploymentRepository = manager.getRepository(ReleaseDeploymentEntity)
+        const releaseRepository = manager.getRepository(ReleasePackageEntity)
+        const auditRepository = manager.getRepository(EvolutionAuditEventEntity)
+        await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+            JSON.stringify([tenant.tenantId, tenant.organizationId, observation.observationId])
+        ])
+        const existing = await observationRepository.findOne({
+            where: { ...tenantWhere(tenant), observationId: observation.observationId }
+        })
+        if (existing) {
+            if (
+                !sameScope(existing.value.scope, observation.scope) ||
+                existing.targetId !== observation.targetId ||
+                existing.value.channel !== observation.channel ||
+                existing.value.bundleId !== observation.bundleId ||
+                existing.value.deploymentId !== observation.deploymentId ||
+                existing.executionId !== observation.executionId
             )
-            if (observation.deploymentId) {
-                const deployment = await deploymentRepository.findOne({
-                    where: { ...tenantWhere(tenant), deploymentId: observation.deploymentId },
-                    lock: { mode: 'pessimistic_write' }
-                })
-                if (
-                    !deployment ||
-                    !sameScope(deployment.value.scope, observation.scope) ||
-                    deployment.channel !== observation.channel
-                )
-                    changeError('observation_deployment_mismatch')
-                const release = await releaseRepository.findOne({
-                    where: {
-                        ...tenantWhere(tenant),
-                        releasePackageId: deployment.releasePackageId,
-                        targetId: observation.targetId
-                    },
-                    lock: { mode: 'pessimistic_write' }
-                })
-                if (!release || !isStagedRelease(release.value) || !sameScope(release.value.scope, observation.scope))
-                    changeError('observation_deployment_mismatch')
-                const expectedVersion = release.value.targetVersionId
-                const expectedHash = release.value.artifactHash
-                const bundle = await manager.getRepository(CapabilityVersionBundleEntity).findOneBy({
+                changeError('observation_identity_mismatch')
+            return existing.value
+        }
+        const saved = await observationRepository.save(
+            observationRepository.create({
+                ...tenantValues(tenant),
+                scopeType: observation.scope.type,
+                scopeKey: observation.scope.key,
+                observationId: observation.observationId,
+                targetId: observation.targetId,
+                deploymentId: observation.deploymentId ?? null,
+                executionId: observation.executionId,
+                severeError: observation.severeError,
+                value: observation
+            })
+        )
+        if (observation.deploymentId) {
+            const deployment = await deploymentRepository.findOne({
+                where: { ...tenantWhere(tenant), deploymentId: observation.deploymentId },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (
+                !deployment ||
+                !sameScope(deployment.value.scope, observation.scope) ||
+                deployment.channel !== observation.channel
+            )
+                changeError('observation_deployment_mismatch')
+            const release = await releaseRepository.findOne({
+                where: {
                     ...tenantWhere(tenant),
-                    bundleId: observation.bundleId
-                })
-                if (
-                    !bundle?.value.items.some(
-                        (item) =>
-                            item.targetId === observation.targetId &&
-                            item.versionId === expectedVersion &&
-                            item.artifactHash === expectedHash
-                    )
+                    releasePackageId: deployment.releasePackageId,
+                    targetId: observation.targetId
+                },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!release || !isStagedRelease(release.value) || !sameScope(release.value.scope, observation.scope))
+                changeError('observation_deployment_mismatch')
+            const expectedVersion = release.value.targetVersionId
+            const expectedHash = release.value.artifactHash
+            const bundle = await manager.getRepository(CapabilityVersionBundleEntity).findOneBy({
+                ...tenantWhere(tenant),
+                bundleId: observation.bundleId
+            })
+            if (
+                !bundle?.value.items.some(
+                    (item) =>
+                        item.targetId === observation.targetId &&
+                        item.versionId === expectedVersion &&
+                        item.artifactHash === expectedHash
                 )
-                    changeError('observation_bundle_mismatch')
-                const samples = await observationRepository
-                    .createQueryBuilder('obs')
-                    .select("percentile_disc(0.95) WITHIN GROUP (ORDER BY (obs.value ->> 'latencyMs')::float8)", 'p95')
-                    .addSelect("AVG(((obs.value ->> 'baselineSuccess')::boolean)::int)::float8", 'baseline')
-                    .addSelect("COUNT(obs.value ->> 'baselineSuccess')::int", 'paired')
-                    .where({
-                        ...tenantWhere(tenant),
-                        deploymentId: observation.deploymentId,
-                        targetId: observation.targetId,
-                        scopeType: observation.scope.type,
-                        scopeKey: observation.scope.key
-                    })
-                    .andWhere("obs.value ->> 'channel' = :channel", { channel: observation.channel })
-                    .andWhere(
-                        "COALESCE((obs.value -> 'scope' -> 'dimensions')::jsonb, '{}'::jsonb) = CAST(:dimensions AS jsonb)",
-                        {
-                            dimensions: JSON.stringify(observation.scope.dimensions ?? {})
-                        }
-                    )
-                    .getRawOne<{ p95: number; baseline: number | null; paired: number }>()
-                if (!samples || samples.p95 == null) changeError('observation_sample_missing')
-                const previousCount = deployment.value.sampleCount
-                const sampleCount = previousCount + 1
-                const candidateAccuracy =
-                    (deployment.value.candidateAccuracy * previousCount + (observation.success ? 1 : 0)) / sampleCount
-                const severeErrors = deployment.value.severeErrors + (observation.severeError ? 1 : 0)
-                const previousObservation = deployment.value.observations.at(-1)
-                const runtimeObservation = {
-                    observationId: observation.observationId,
-                    observedAt: observation.observedAt,
-                    sequence: sampleCount,
-                    sampleCount,
-                    baselineAccuracy: samples.baseline,
-                    pairedBaselineSamples: samples.paired,
-                    candidateAccuracy,
-                    severeErrors,
-                    p95LatencyMs: samples.p95,
-                    averageCost:
-                        ((previousObservation?.averageCost ?? 0) * previousCount + (observation.cost ?? 0)) /
-                        sampleCount
-                }
-                deployment.value = {
-                    ...deployment.value,
-                    sampleCount,
-                    candidateAccuracy,
-                    severeErrors,
-                    observations: [...deployment.value.observations, runtimeObservation]
-                }
-                await deploymentRepository.save(deployment)
-                if (observation.severeError) {
-                    if (
-                        release &&
-                        isStagedRelease(release.value) &&
-                        (release.status === 'shadow' || release.status === 'canary')
-                    ) {
-                        assertReleaseTransition(release.status, 'paused')
-                        release.status = 'paused'
-                        release.value = { ...release.value, status: 'paused' }
-                        const audit: EvolutionAuditEvent = {
-                            auditId: `AUD-${observation.observationId}-auto-pause`,
+            )
+                changeError('observation_bundle_mismatch')
+            const samples = await observationRepository
+                .createQueryBuilder('obs')
+                .select("percentile_disc(0.95) WITHIN GROUP (ORDER BY (obs.value ->> 'latencyMs')::float8)", 'p95')
+                .addSelect("AVG(((obs.value ->> 'baselineSuccess')::boolean)::int)::float8", 'baseline')
+                .addSelect("COUNT(obs.value ->> 'baselineSuccess')::int", 'paired')
+                .where({
+                    ...tenantWhere(tenant),
+                    deploymentId: observation.deploymentId,
+                    targetId: observation.targetId,
+                    scopeType: observation.scope.type,
+                    scopeKey: observation.scope.key
+                })
+                .andWhere("obs.value ->> 'channel' = :channel", { channel: observation.channel })
+                .andWhere(
+                    "COALESCE((obs.value -> 'scope' -> 'dimensions')::jsonb, '{}'::jsonb) = CAST(:dimensions AS jsonb)",
+                    {
+                        dimensions: JSON.stringify(observation.scope.dimensions ?? {})
+                    }
+                )
+                .getRawOne<{ p95: number; baseline: number | null; paired: number }>()
+            if (!samples || samples.p95 == null) changeError('observation_sample_missing')
+            const previousCount = deployment.value.sampleCount
+            const sampleCount = previousCount + 1
+            const candidateAccuracy =
+                (deployment.value.candidateAccuracy * previousCount + (observation.success ? 1 : 0)) / sampleCount
+            const severeErrors = deployment.value.severeErrors + (observation.severeError ? 1 : 0)
+            const previousObservation = deployment.value.observations.at(-1)
+            const runtimeObservation = {
+                observationId: observation.observationId,
+                observedAt: observation.observedAt,
+                sequence: sampleCount,
+                sampleCount,
+                baselineAccuracy: samples.baseline,
+                pairedBaselineSamples: samples.paired,
+                candidateAccuracy,
+                severeErrors,
+                p95LatencyMs: samples.p95,
+                averageCost:
+                    ((previousObservation?.averageCost ?? 0) * previousCount + (observation.cost ?? 0)) / sampleCount
+            }
+            deployment.value = {
+                ...deployment.value,
+                sampleCount,
+                candidateAccuracy,
+                severeErrors,
+                observations: [...deployment.value.observations, runtimeObservation]
+            }
+            await deploymentRepository.save(deployment)
+            if (observation.severeError) {
+                if (
+                    release &&
+                    isStagedRelease(release.value) &&
+                    (release.status === 'shadow' || release.status === 'canary')
+                ) {
+                    assertReleaseTransition(release.status, 'paused')
+                    release.status = 'paused'
+                    release.value = { ...release.value, status: 'paused' }
+                    const audit: EvolutionAuditEvent = {
+                        auditId: `AUD-${observation.observationId}-auto-pause`,
+                        releasePackageId: release.releasePackageId,
+                        candidateId: release.candidateId,
+                        action: 'deployment.auto_paused',
+                        actorId: 'agent-evolution-runtime',
+                        actorRole: 'system_safety_guard',
+                        summary: `Deployment automatically paused after severe runtime observation ${observation.observationId}.`,
+                        occurredAt: observation.observedAt
+                    }
+                    await releaseRepository.save(release)
+                    await auditRepository.save(
+                        auditRepository.create({
+                            ...tenantValues(tenant),
+                            auditId: audit.auditId,
                             releasePackageId: release.releasePackageId,
                             candidateId: release.candidateId,
-                            action: 'deployment.auto_paused',
-                            actorId: 'agent-evolution-runtime',
-                            actorRole: 'system_safety_guard',
-                            summary: `Deployment automatically paused after severe runtime observation ${observation.observationId}.`,
-                            occurredAt: observation.observedAt
-                        }
-                        await releaseRepository.save(release)
-                        await auditRepository.save(
-                            auditRepository.create({
-                                ...tenantValues(tenant),
-                                auditId: audit.auditId,
-                                releasePackageId: release.releasePackageId,
-                                candidateId: release.candidateId,
-                                action: audit.action,
-                                value: audit
-                            })
-                        )
-                    }
+                            action: audit.action,
+                            value: audit
+                        })
+                    )
                 }
             }
-            return saved.value
-        })
+        }
+        return saved.value
     }
 
     async activatePointerCas(input: {

@@ -1,3 +1,4 @@
+import { ExecutionReviewEntity } from './execution-review.entity'
 import type {
     StoredEvolutionProposal,
     StoredEvaluationRun,
@@ -426,6 +427,7 @@ export class EvolutionJobEntity extends TenantOrganizationBaseEntity {
 }
 
 export const AGENT_EVOLUTION_ENTITIES = [
+    ExecutionReviewEntity,
     EvolutionTargetEntity,
     CapabilityVersionEntity,
     CapabilityVersionBundleEntity,

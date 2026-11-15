@@ -25,6 +25,7 @@ const modulePermissions: ReadonlyArray<{
       AI.APPLICATION_INSTALL,
       AI.XPERT_EDIT,
       AI.CHAT_VIEW,
+      AI.EVOLUTION_REVIEW,
       AI.EVOLUTION_VIEW,
       AI.EVOLUTION_MANAGE
     ]

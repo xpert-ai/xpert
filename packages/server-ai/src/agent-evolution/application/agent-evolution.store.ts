@@ -1,3 +1,4 @@
+import type { EntityManager } from 'typeorm'
 import { listScopedValues } from './evolution-scoped-list'
 import { finalizeCheckedProposal } from '../learning/finalize-checked-proposal'
 import { sameScope } from './evolution-governance.helpers'
@@ -545,29 +546,31 @@ export class AgentEvolutionStore {
     }
 
     async saveLearningEvent(tenant: EvolutionTenantScope, event: LearningEvent) {
-        return this.dataSource.transaction(async (manager) => {
-            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
-                JSON.stringify([tenant.tenantId, tenant.organizationId, 'learning', event.idempotencyKey])
-            ])
-            const repository = manager.getRepository(LearningEventEntity)
-            const existing = await repository.findOneBy({
-                ...tenantWhere(tenant),
-                idempotencyKey: event.idempotencyKey
-            })
-            if (existing) return existing
-            return repository.save(
-                repository.create({
-                    ...tenantValues(tenant),
-                    scopeType: event.scope.type,
-                    scopeKey: event.scope.key,
-                    eventId: event.eventId,
-                    idempotencyKey: event.idempotencyKey,
-                    targetId: event.targetId,
-                    bundleHash: event.bundleHash,
-                    value: event
-                })
-            )
+        return this.dataSource.transaction((manager) => this.insertLearningEvent(manager, tenant, event))
+    }
+
+    async insertLearningEvent(manager: EntityManager, tenant: EvolutionTenantScope, event: LearningEvent) {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+            JSON.stringify([tenant.tenantId, tenant.organizationId, 'learning', event.idempotencyKey])
+        ])
+        const repository = manager.getRepository(LearningEventEntity)
+        const existing = await repository.findOneBy({
+            ...tenantWhere(tenant),
+            idempotencyKey: event.idempotencyKey
         })
+        if (existing) return existing
+        return repository.save(
+            repository.create({
+                ...tenantValues(tenant),
+                scopeType: event.scope.type,
+                scopeKey: event.scope.key,
+                eventId: event.eventId,
+                idempotencyKey: event.idempotencyKey,
+                targetId: event.targetId,
+                bundleHash: event.bundleHash,
+                value: event
+            })
+        )
     }
 
     async findRelatedLearningEvents(tenant: EvolutionTenantScope, seed: LearningEvent) {

@@ -1,9 +1,12 @@
+import { ExecutionReviewService } from '../agent-evolution/execution-review/execution-review.service'
 // Resolve configuration and connector grants from one freshly authorized graph.
 // The returned runtime is server-only and must never become part of a View response.
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { normalizeMiddlewareOptions } from '@xpert-ai/contracts'
 import {
     AgentMiddlewareRegistry,
+    ExecutionReviewRuntimeCapability,
+    DefaultRuntimeCapabilityRegistry,
     RequestContext,
     RuntimeCapabilityProvider,
     ViewMiddlewareRuntimeCapability,
@@ -21,6 +24,7 @@ import { AgentViewHostDefinition } from './hosts/agent-view-host.definition'
 @RuntimeCapabilityProvider(ViewMiddlewareRuntimeCapability)
 export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolver {
     constructor(
+        private readonly reviews: ExecutionReviewService,
         private readonly host: AgentViewHostDefinition,
         private readonly middlewareRegistry: AgentMiddlewareRegistry,
         private readonly middlewareRuntime: AgentMiddlewareRuntimeService
@@ -81,6 +85,27 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
             connectorBindingIds,
             connectorProviders
         }
+        const runtime = this.middlewareRuntime.createScopedApi(scope)
+        if (scope.projectId && context.organizationId) {
+            runtime.capabilities = new DefaultRuntimeCapabilityRegistry(
+                [
+                    [
+                        ExecutionReviewRuntimeCapability,
+                        this.reviews.bind(
+                            {
+                                tenantId: context.tenantId,
+                                organizationId: context.organizationId,
+                                userId: context.userId,
+                                projectId: scope.projectId,
+                                xpertId: xpert.id
+                            },
+                            requiredFeature
+                        )
+                    ]
+                ],
+                runtime.capabilities
+            )
+        }
         const options = normalizeMiddlewareOptions(node.options)
         return {
             options,
@@ -98,7 +123,7 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
                 knowledgebaseIds: agent.knowledgebaseIds,
                 node: { ...node, provider: resolvedProvider, options },
                 tools: new Map(),
-                runtime: this.middlewareRuntime.createScopedApi(scope)
+                runtime
             }
         }
     }
