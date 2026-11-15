@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import type { ExecutionReviewApi, IExecutionReview } from '@xpert-ai/contracts'
@@ -5,6 +6,7 @@ import { EvolutionTargetProviderRegistry, RequestContext } from '@xpert-ai/plugi
 import { DataSource } from 'typeorm'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
+import { toProjectViewAccess } from '../../xpert-project/services/project-view-access'
 import { AgentEvolutionStore } from '../application/agent-evolution.store'
 import { ExecutionReviewEntity, LearningEventEntity } from '../entities'
 import { ExecutionReviewService } from './execution-review.service'
@@ -54,6 +56,7 @@ describe('execution review service', () => {
     }
     const prepare = jest.fn(() => ({ observations: [] }))
     const snapshot = jest.fn()
+    const checkAccess = jest.fn()
     const decision = {
         executionId: id,
         bundleHash: 'bundle',
@@ -61,6 +64,8 @@ describe('execution review service', () => {
         expectedLabel: 'refund',
         use: 'case_only'
     } as const
+    const managerView = { feature: 'review', projectAccess: toProjectViewAccess('manager', 'active') }
+    let service: ExecutionReviewService
     let api: ExecutionReviewApi
 
     beforeAll(async () => {
@@ -74,7 +79,7 @@ describe('execution review service', () => {
                         transaction: (apply: (tx: typeof manager) => Promise<unknown>) => apply(manager)
                     }
                 },
-                { provide: CommandBus, useValue: { execute: jest.fn() } },
+                { provide: CommandBus, useValue: { execute: checkAccess } },
                 { provide: AgentEvolutionStore, useValue: {} },
                 {
                     provide: EvolutionTargetProviderRegistry,
@@ -96,7 +101,8 @@ describe('execution review service', () => {
                 }
             ]
         }).compile()
-        api = module.get(ExecutionReviewService).bind(scope, 'review')
+        service = module.get(ExecutionReviewService)
+        api = service.forView(scope, managerView)!
     })
 
     beforeEach(() => {
@@ -112,6 +118,42 @@ describe('execution review service', () => {
         )
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        toProjectViewAccess('member', 'active'),
+        toProjectViewAccess('editor', 'active'),
+        toProjectViewAccess('owner', 'archived'),
+        toProjectViewAccess('manager', 'archived'),
+        null
+    ])('withholds the API for project access %j', (projectAccess) => {
+        expect(service.forView(scope, { ...managerView, projectAccess })).toBeUndefined()
+    })
+
+    it.each(['tenantId', 'organizationId', 'userId', 'xpertId', 'projectId'])('requires a bound %s', (field) => {
+        expect(service.forView({ ...scope, [field]: undefined }, managerView)).toBeUndefined()
+    })
+
+    it('requires a host-authorized View even when the identity is complete', () => {
+        expect(service.forView(scope)).toBeUndefined()
+    })
+
+    it('restricts the bound API to targets for the verified View feature', async () => {
+        const otherView = service.forView(scope, { ...managerView, feature: 'other' })!
+        await expect(otherView.get('intent', id)).rejects.toMatchObject({ status: 403 })
+        expect(query.where).not.toHaveBeenCalled()
+    })
+
+    it('denies list, get and submit on an issued API after the project grant is revoked', async () => {
+        await api.get('intent', id)
+        const denied = new ForbiddenException()
+        checkAccess.mockRejectedValueOnce(denied).mockRejectedValueOnce(denied).mockRejectedValueOnce(denied)
+
+        await expect(api.list('intent', { queue: 'pending', page: 1, pageSize: 1 })).rejects.toBe(denied)
+        await expect(api.get('intent', id)).rejects.toBe(denied)
+        await expect(api.submit('intent', decision)).rejects.toBe(denied)
+        expect(query.where).toHaveBeenCalledTimes(1)
+        expect(insert).not.toHaveBeenCalled()
+    })
 
     it('resolves the exact parent message for a historical execution without a recorded source ID', async () => {
         expect((await api.get('intent', id)).sourceText).toBe('检查发到 [email] 的退款申请')

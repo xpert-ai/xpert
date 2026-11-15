@@ -21,6 +21,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { Xpert } from '../xpert/xpert.entity'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { toProjectViewAccess } from '../xpert-project/services/project-view-access'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../xpert-project/services/project-xpert-binding.service'
 import { VOLUME_CLIENT } from '../shared/volume'
@@ -86,6 +87,7 @@ async function fixture() {
         capabilities: new DefaultRuntimeCapabilityRegistry()
     }
     const runtimeFactory = { createScopedApi: jest.fn((_scope: AgentMiddlewareRuntimeScope) => runtime) }
+    const projectAccess = { assertCanReadXpert: jest.fn(), assertCanUseXpert: jest.fn() }
     const module = await Test.createTestingModule({
         providers: [
             AgentViewHostDefinition,
@@ -95,10 +97,7 @@ async function fixture() {
             { provide: AgentMiddlewareRegistry, useValue: registry },
             { provide: AgentMiddlewareRuntimeService, useValue: runtimeFactory },
             { provide: getRepositoryToken(ChatConversation), useValue: { findOne: jest.fn() } },
-            {
-                provide: XpertProjectAccessService,
-                useValue: { assertCanReadXpert: jest.fn(), assertCanUseXpert: jest.fn() }
-            },
+            { provide: XpertProjectAccessService, useValue: projectAccess },
             { provide: XpertProjectXpertBindingService, useValue: { isSameXpert: jest.fn() } },
             { provide: VOLUME_CLIENT, useValue: {} },
             { provide: CommandBus, useValue: { execute: jest.fn() } },
@@ -131,7 +130,7 @@ async function fixture() {
         hostId: 'assistant',
         slots: definition.slots
     }
-    return { xpert, xpertService, access, registry, runtimeFactory, definition, service, context }
+    return { xpert, xpertService, access, registry, runtimeFactory, definition, service, context, projectAccess }
 }
 
 describe('View middleware runtime authorization', () => {
@@ -210,13 +209,46 @@ describe('View middleware runtime authorization', () => {
                 connectorProviders: [],
                 workspaceId: 'workspace',
                 viewHost: { type: 'agent', id: 'assistant' }
-            })
+            }),
+            { feature: FEATURE, projectAccess: null }
         )
         expect(f.runtimeFactory.createScopedApi.mock.calls[0][0]).not.toHaveProperty('executionId')
         const view = await f.definition.resolve('assistant')
         expect(JSON.stringify(view)).not.toContain('pinned-amap')
         expect(JSON.stringify(view)).not.toContain('"mode"')
         expect(ViewMiddlewareRuntimeCapability.id).toBe('platform.view.middleware-runtime')
+    })
+
+    it('passes the freshly resolved project role even when the View remembers a manager grant', async () => {
+        const f = await fixture()
+        const projectId = 'project'
+        const context: XpertResolvedViewHostContext = {
+            ...f.context,
+            runtimeScope: {
+                projectId,
+                conversationId: null,
+                dataScopeKey: 'project:project',
+                projectAccess: toProjectViewAccess('manager', 'active'),
+                workspaceFiles: { catalog: 'projects', scopeId: projectId }
+            }
+        }
+        for (const role of ['manager', 'member'] as const) {
+            f.projectAccess.assertCanUseXpert.mockResolvedValueOnce({
+                project: { id: projectId, status: 'active' },
+                role
+            })
+            await f.service.resolve({ context, provider: PROVIDER, requiredFeature: FEATURE })
+            expect(f.runtimeFactory.createScopedApi).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    userId: 'user',
+                    xpertId: 'assistant',
+                    projectId
+                }),
+                { feature: FEATURE, projectAccess: toProjectViewAccess(role, 'active') }
+            )
+        }
     })
 
     it('rechecks revoked published access on each call', async () => {
@@ -281,7 +313,8 @@ describe('View middleware runtime authorization', () => {
         f.xpert.graph.nodes.push(middleware('unconnected', 'ConnectorMiddleware', { provider: 'amap' }))
         await f.service.resolve({ context: f.context, provider: PROVIDER, requiredFeature: FEATURE })
         expect(f.runtimeFactory.createScopedApi).toHaveBeenCalledWith(
-            expect.objectContaining({ connectorBindingIds: [], connectorProviders: [] })
+            expect.objectContaining({ connectorBindingIds: [], connectorProviders: [] }),
+            { feature: FEATURE, projectAccess: null }
         )
     })
 
@@ -299,7 +332,8 @@ describe('View middleware runtime authorization', () => {
         expect(f.xpertService.assertCanAuthorById).toHaveBeenCalledWith('assistant', 'workspace')
         expect(result.options).toEqual({ mode: 'live', provider: 'tencent' })
         expect(f.runtimeFactory.createScopedApi).toHaveBeenCalledWith(
-            expect.objectContaining({ connectorBindingIds: [], connectorProviders: ['tencent-map'] })
+            expect.objectContaining({ connectorBindingIds: [], connectorProviders: ['tencent-map'] }),
+            { feature: FEATURE, projectAccess: null }
         )
     })
 })

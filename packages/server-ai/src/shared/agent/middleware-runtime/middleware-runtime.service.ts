@@ -20,6 +20,7 @@ import {
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     ExecutionObservabilityRuntimeCapability,
+    ExecutionReviewRuntimeCapability,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     RequestContext,
     ToolImagesRuntimeCapability,
@@ -29,12 +30,13 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { ArtifactsService } from '../../../artifacts/artifacts.service'
 import { CollaborationService } from '../../../collaboration/collaboration.service'
-import { resolveAgentExecutionScope } from './execution-scope'
+import { resolveAgentExecutionScope, type AuthorizedMiddlewareView } from './execution-scope'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-files-runtime-capability.service'
 import { FileRuntimeService } from '../../../file-understanding/runtime/file-runtime.service'
 import { AgentMiddlewareModelRuntimeService, type AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createToolImagesApi } from '../../runtime/tool-images-runtime'
+import { ExecutionReviewService } from '../../../agent-evolution/execution-review/execution-review.service'
 import { ExecutionObservationService } from '../../../xpert-agent-execution/observability/observation.service'
 
 export type { AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
@@ -61,7 +63,8 @@ export class AgentMiddlewareRuntimeService {
         @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN)
         private readonly platformCapabilities: RuntimeCapabilityRegistry,
         @Inject(ExecutionObservationService)
-        private readonly executionObservation: Pick<ExecutionObservationService, 'createScopedApi'>
+        private readonly executionObservation: Pick<ExecutionObservationService, 'createScopedApi'>,
+        @Inject(ExecutionReviewService) private readonly reviews: Pick<ExecutionReviewService, 'forView'>
     ) {}
 
     createModelClient<T = AgentMiddlewareModelClient>(
@@ -97,8 +100,20 @@ export class AgentMiddlewareRuntimeService {
             .resolveSelectedRuntimeBindings(scope.connectorBindingIds, scope)
     }
 
-    /** Build the middleware runtime API and capability registry for one invocation. */
-    createScopedApi(scope: AgentMiddlewareRuntimeScope = {}): AgentMiddlewareRuntimeApi {
+    /**
+     * Build the runtime API and a child capability registry for one middleware invocation.
+     * Use `@RuntimeCapabilityProvider(key)` when the Nest provider itself implements a shared plugin API.
+     * Startup discovery registers that provider in the platform registry, which this child inherits.
+     *
+     * For a scoped API, pass the invocation scope to the domain service or a registered factory.
+     * Register the returned API under its SDK key in this child registry. The domain owns admission
+     * and authorization. For example, reviews.forView uses host-verified View context to decide
+     * whether to return a review API, and that API rechecks project access on each operation.
+     */
+    createScopedApi(
+        scope: AgentMiddlewareRuntimeScope = {},
+        authorizedView?: AuthorizedMiddlewareView
+    ): AgentMiddlewareRuntimeApi {
         scope = {
             ...scope,
             connectorBindingIds: [...(scope.connectorBindingIds ?? [])],
@@ -128,6 +143,8 @@ export class AgentMiddlewareRuntimeService {
             ],
             this.platformCapabilities
         )
+        const reviewApi = this.reviews.forView(scope, authorizedView)
+        if (reviewApi) capabilities.register(ExecutionReviewRuntimeCapability, reviewApi)
         const runtimeFactory = this.platformCapabilities.get(AgentRuntimeFactoryCapability)
         if (runtimeFactory)
             capabilities.register(AgentInvocationRuntimeCapability, runtimeFactory.createScopedApi(scope))

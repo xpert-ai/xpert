@@ -13,10 +13,11 @@ import type {
     ExecutionReviewReceipt,
     ExecutionReviewSubmission
 } from '@xpert-ai/contracts'
-import { EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { EvolutionTargetProviderRegistry, type RuntimeIdentityScope } from '@xpert-ai/plugin-sdk'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
+import type { AuthorizedMiddlewareView } from '../../shared/agent/middleware-runtime/execution-scope'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { AgentEvolutionStore } from '../application/agent-evolution.store'
 import { ExecutionReviewEntity, LearningEventEntity } from '../entities'
@@ -34,7 +35,16 @@ export class ExecutionReviewService {
         private readonly store: AgentEvolutionStore
     ) {}
 
-    bind(scope: ExecutionReviewScope, feature: string): ExecutionReviewApi {
+    /**
+     * Expose review only for a fully scoped View with project management access.
+     * The View grant controls API availability. List, get and submit each recheck live project access.
+     */
+    forView(identity: RuntimeIdentityScope, view?: AuthorizedMiddlewareView): ExecutionReviewApi | undefined {
+        const { tenantId, organizationId, userId, projectId, xpertId } = identity
+        if (!view?.projectAccess?.canManage || !tenantId || !organizationId || !userId || !projectId || !xpertId)
+            return undefined
+        const scope: ExecutionReviewScope = { tenantId, organizationId, userId, projectId, xpertId }
+        const { feature } = view
         const resolveTarget = (targetId: string) => {
             const target = this.registry.get(targetId, scope.organizationId)
             if (
