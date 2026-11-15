@@ -25,6 +25,11 @@
             "glob": "*.yaml",
             "input": "packages/plugins/draft/src/lib/customer-intent/templates",
             "output": "templates"
+          },
+          {
+            "glob": "app.*",
+            "input": "packages/plugins/draft/remote-components/intent-review",
+            "output": "remote-components/intent-review"
           }
         ],
         "project": "packages/plugins/draft/package.json",
@@ -49,7 +54,8 @@
           "uuid",
           "zod"
         ]
-      }
+      },
+      "dependsOn": ["^build", "generate-remote-components"]
     },
     "nx-release-publish": {
       "options": {
@@ -61,6 +67,12 @@
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "packages/plugins/draft/jest.config.ts"
+      }
+    },
+    "generate-remote-components": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node packages/plugins/draft/remote-components/intent-review/build.mjs"
       }
     }
   }

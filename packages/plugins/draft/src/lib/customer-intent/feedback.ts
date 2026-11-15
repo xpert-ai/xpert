@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { z } from 'zod'
+import { legacyInput as reviewSchema, reviewAdapter, reviewedObservations } from './review'
 import type { EvolutionFeedbackExecution, EvolutionFeedbackProvider, LearningEvent } from '@xpert-ai/contracts'
 import {
   EvolutionRuntimeCapability,
@@ -7,14 +7,13 @@ import {
   type RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import { changeError } from './errors'
-import { intentNode, intentSchema, intentTarget } from './policy'
+import { intentNode, intentTarget } from './policy'
 import { buildIntentCases } from './dataset'
 import { routeDecision } from './decision'
 
-const reviewSchema = z.object({ expectedIntent: intentSchema }).strict()
-
 @Injectable()
 export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
+  readonly workbench = reviewAdapter
   readonly routeKey = 'customer-intent'
   readonly executionType = intentNode
   constructor(@Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry) {}
@@ -78,43 +77,8 @@ export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
       }
     })
     if (event.finalOutcomeSummary !== body.expectedIntent) changeError('immutable_review_changed')
-    const common = {
-      scope,
-      executionId: id,
-      subjectKey: threadId,
-      targetId: intentTarget,
-      observedAt: reviewedAt
-    }
-    if (decision.deploymentId)
-      await runtime.recordRuntimeObservation({
-        ...identity,
-        observation: {
-          ...common,
-          observationId: `intent:${id}:primary`,
-          deploymentId: decision.deploymentId,
-          channel: decision.channel,
-          bundleId: decision.bundleId,
-          success: correct,
-          severeError: false,
-          latencyMs: decision.latencyMs
-        }
-      })
-    if (decision.shadow) {
-      const success = decision.shadow.intent === body.expectedIntent
-      await runtime.recordRuntimeObservation({
-        ...identity,
-        observation: {
-          ...common,
-          observationId: `intent:${id}:shadow`,
-          deploymentId: decision.shadow.deploymentId,
-          channel: 'shadow',
-          bundleId: decision.shadow.bundleId,
-          success,
-          baselineSuccess: correct,
-          severeError: correct && !success,
-          latencyMs: decision.shadow.latencyMs
-        }
-      })
+    for (const observation of reviewedObservations(execution, organizationId, body.expectedIntent, reviewedAt)) {
+      await runtime.recordRuntimeObservation({ ...identity, observation })
     }
     return event
   }

@@ -3,7 +3,7 @@ team:
   title: 客服意图路由
   description: 将客服请求分为订单查询、退款或其他意图。使用当前组织审核发布的路由版本。
   type: agent
-  version: '2'
+  version: '3'
   agent:
     key: Agent_CustomerIntent
   features:
@@ -35,7 +35,16 @@ nodes:
       type: answer
       title: 分类结果
       promptTemplate: '{{ intent_route_channel.intent }}'
+  - type: workflow
+    key: Middleware_IntentReview
+    entity: { type: middleware, key: Middleware_IntentReview, title: 意图路由复核, provider: customer-intent-review }
 connections:
+  - {
+      type: workflow,
+      key: Agent_CustomerIntent/Middleware_IntentReview,
+      from: Agent_CustomerIntent,
+      to: Middleware_IntentReview
+    }
   - { type: workflow, key: Agent_CustomerIntent/Trigger_Chat, from: Agent_CustomerIntent, to: Trigger_Chat }
   - { type: edge, key: Trigger_Chat/Intent_Route, from: Trigger_Chat, to: Intent_Route }
   - { type: edge, key: Intent_Route/Answer_Intent, from: Intent_Route, to: Answer_Intent }
