@@ -8,6 +8,7 @@ import { ImagePreviewService } from '../../workspace-file-access/image-preview/i
 import sharp from 'sharp'
 import { Test, TestingModule } from '@nestjs/testing'
 import {
+    AIPermissionsEnum,
     ApiKeyBindingType,
     IApiPrincipal,
     IUser,
@@ -73,6 +74,11 @@ describe('Assistant file authority integration', () => {
         jest.spyOn(RequestContext, 'currentUserId').mockImplementation(() => actor.id)
         jest.spyOn(RequestContext, 'currentUser').mockImplementation(() => actor)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockImplementation(() => principal)
+        jest.spyOn(RequestContext, 'hasPermission').mockImplementation(
+            (permission) =>
+                permission === AIPermissionsEnum.CHAT_VIEW ||
+                (actor.id === 'user-a' && !principal && permission === AIPermissionsEnum.XPERT_EDIT)
+        )
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(false)
         workspace = Object.assign(new XpertWorkspace(), {
@@ -99,16 +105,24 @@ describe('Assistant file authority integration', () => {
         ])
         const query = () => {
             let requestedId: string | undefined
+            let checksCatalogGrant = false
             const capture = (_condition: unknown, parameters?: { id?: string }) => {
                 if (parameters?.id) requestedId = parameters.id
                 return builder
             }
             const builder = {
-                leftJoin: jest.fn().mockReturnThis(),
+                leftJoin: jest.fn((relation: string) => {
+                    if (relation === 'xpert.userGroups') checksCatalogGrant = true
+                    return builder
+                }),
                 where: jest.fn(capture),
                 andWhere: jest.fn(capture),
                 getCount: jest.fn(async () =>
-                    requestedId === assistant.id && groupGrant && actor.tenantId === assistant.tenantId ? 1 : 0
+                    requestedId === assistant.id &&
+                    (!checksCatalogGrant || groupGrant) &&
+                    actor.tenantId === assistant.tenantId
+                        ? 1
+                        : 0
                 )
             }
             return builder
@@ -424,6 +438,7 @@ describe('Assistant file authority integration', () => {
             ...actor,
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            grantSource: { kind: 'project', projectId: 'project-1' },
             resourceScope: { kind: 'assistant', xpertId: assistant.id },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
@@ -477,6 +492,7 @@ describe('Assistant file authority integration', () => {
             ...actor,
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            grantSource: { kind: 'project', projectId: 'project-1' },
             resourceScope: { kind: 'assistant', xpertId: assistant.id }
         } as IApiPrincipal
         const task = templateAuthority()
