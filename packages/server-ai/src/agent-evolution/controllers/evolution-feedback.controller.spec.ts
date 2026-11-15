@@ -1,10 +1,11 @@
 import { ForbiddenException, INestApplication } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { EvolutionTargetProviderRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { PermissionGuard } from '@xpert-ai/server-core'
 import { DataSource } from 'typeorm'
 import { AssertChatConversationAccessQuery } from '../../chat-conversation/queries/conversation-assert-access.query'
+import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { AgentEvolutionGovernanceService, AgentEvolutionStore } from '../application'
 import { EvolutionFeedbackController } from './evolution-feedback.controller'
 
@@ -15,6 +16,7 @@ describe('evolution feedback HTTP dispatch', () => {
     const review = jest.fn().mockResolvedValue({ outcome: 'reviewed' })
     const findOne = jest.fn().mockResolvedValue(execution)
     const execute = jest.fn()
+    const assertProjectAccess = jest.fn()
     let app: INestApplication
     let url: string
     const post = async (path: string, body: object) => {
@@ -33,6 +35,7 @@ describe('evolution feedback HTTP dispatch', () => {
         const module = await Test.createTestingModule({
             controllers: [EvolutionFeedbackController],
             providers: [
+                { provide: CommandBus, useValue: { execute: assertProjectAccess } },
                 { provide: DataSource, useValue: { getRepository: () => ({ findOne }) } },
                 { provide: QueryBus, useValue: { execute } },
                 {
@@ -42,6 +45,15 @@ describe('evolution feedback HTTP dispatch', () => {
                             {
                                 descriptor: { targetId: 'example' },
                                 feedback: { routeKey: 'example', executionType: 'example-node', review }
+                            },
+                            {
+                                descriptor: { targetId: 'project-intent' },
+                                feedback: {
+                                    routeKey: 'project-intent',
+                                    executionType: 'example-node',
+                                    workbench: {},
+                                    review
+                                }
                             }
                         ]
                     }
@@ -84,6 +96,16 @@ describe('evolution feedback HTTP dispatch', () => {
         expect(await post('/missing/executions/' + id + '/review', {})).toBe(404)
         expect(await post('/example/executions/not-a-uuid/review', {})).toBe(406)
         expect(findOne).not.toHaveBeenCalled()
+        expect(review).not.toHaveBeenCalled()
+    })
+
+    it('requires project management on the legacy route for a project review target', async () => {
+        execute.mockResolvedValueOnce({ projectId: 'project', xpertId: 'assistant' })
+        assertProjectAccess.mockRejectedValueOnce(new ForbiddenException())
+        expect(await post('/project-intent/executions/' + id + '/review', { label: 'one' })).toBe(403)
+        expect(assertProjectAccess).toHaveBeenCalledWith(
+            new AssertProjectAssistantAccessCommand('project', 'assistant', 'manage')
+        )
         expect(review).not.toHaveBeenCalled()
     })
 })
