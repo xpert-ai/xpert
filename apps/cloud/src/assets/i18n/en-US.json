@@ -3943,6 +3943,7 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "Files": {
+      "PluginEditorUnavailable": "Unable to open the file editor. Check plugin availability and Project access.",
       "Pdf": {
         "Previous": "Previous page",
         "Next": "Next page",

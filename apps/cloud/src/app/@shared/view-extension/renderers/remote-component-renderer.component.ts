@@ -1,4 +1,11 @@
+import {
+  REMOTE_COMPONENT_CHANNEL,
+  REMOTE_COMPONENT_PROTOCOL_VERSION,
+  isRemoteComponentMessage,
+  type RemoteComponentMessage
+} from './remote-component-message'
 import { injectOrganization } from '@cloud/app/@core/state'
+import { RemoteEditorClose } from './remote-editor-close'
 import { matchesHost, matchesSubscription, createRemoteHostEvent } from './remote-host-event-filters'
 import { createLocalDraftBridge } from '@xpert-ai/xpert-sdk/workbench/browser'
 import { getAvailableFrameHeight } from './remote-frame-layout'
@@ -46,21 +53,9 @@ import {
   type XpertViewHostEventMessage
 } from '../view-host-event-bus.service'
 
-const REMOTE_COMPONENT_CHANNEL = 'xpertai.remote_component'
-const REMOTE_COMPONENT_PROTOCOL_VERSION = 1
-
 type RemoteComponentDebugState = {
   enabled: boolean
   production: boolean
-}
-
-type RemoteComponentMessage = {
-  channel?: string
-  protocolVersion?: number
-  instanceId?: string | null
-  type?: string
-  requestId?: string
-  [key: string]: unknown
 }
 
 @Component({
@@ -130,6 +125,12 @@ type RemoteComponentMessage = {
   `
 })
 export class RemoteComponentRendererComponent {
+  private readonly editorClose = new RemoteEditorClose((body) =>
+    this.sendToFrame('editorEvent', { ...body, scopeRevision: this.#entryRequestId })
+  )
+  prepareEditorClose(resourceId: string) {
+    return this.editorClose.prepare(resourceId)
+  }
   readonly actionPending = output<boolean>()
   readonly isolatedOrigin = input(false)
   readonly hostType = input.required<string>()
@@ -234,6 +235,7 @@ export class RemoteComponentRendererComponent {
     window.addEventListener('resize', onViewportChange)
     window.addEventListener('scroll', onViewportChange, true)
     this.#destroyRef.onDestroy(() => {
+      this.editorClose.cancel()
       ++this.#entryRequestId
       this.#draftAbort.abort()
       this.#contextCancelled.next()
@@ -326,6 +328,7 @@ export class RemoteComponentRendererComponent {
     runtimeScope: XpertViewRuntimeScopeInput | null,
     preserveDocument = false
   ) {
+    this.editorClose.cancel()
     this.contextReady.set(false)
     this.#draftAbort.abort()
     this.#draftAbort = new AbortController()
@@ -440,6 +443,10 @@ export class RemoteComponentRendererComponent {
       return
     }
     switch (message.type) {
+      case 'closePrepared':
+        if (message.scopeRevision === this.#entryRequestId)
+          this.editorClose.acknowledge(message.requestId, message.ready)
+        return
       case 'saveViewState':
         this.viewState(message.state)
         return
@@ -929,16 +936,6 @@ export class RemoteComponentRendererComponent {
       production: environment.production
     }
   }
-}
-
-function isRemoteComponentMessage(value: unknown): value is RemoteComponentMessage {
-  return Boolean(
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    (value as RemoteComponentMessage).channel === REMOTE_COMPONENT_CHANNEL &&
-    (value as RemoteComponentMessage).protocolVersion === REMOTE_COMPONENT_PROTOCOL_VERSION
-  )
 }
 
 function toQuery(value: unknown): XpertViewQuery {

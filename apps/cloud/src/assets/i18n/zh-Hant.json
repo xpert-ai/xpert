@@ -2428,6 +2428,7 @@
       "DeleteSelected": "刪除所選"
     },
     "Files": {
+      "PluginEditorUnavailable": "無法開啟檔案編輯器，請檢查外掛是否可用及專案存取權限。",
       "Pdf": {
         "Previous": "上一頁",
         "Next": "下一頁",
