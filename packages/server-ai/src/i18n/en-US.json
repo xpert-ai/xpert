@@ -84,6 +84,15 @@
         "ContractMismatch": "The result does not match the pinned review contract.",
         "ErrorWithDiagnostic": "{{message}} Diagnostic: {{diagnostic}}"
     },
+    "ExecutionReview": {
+        "invalid_execution_id": "The execution ID is invalid.",
+        "invalid_review_page": "The review queue or page is invalid.",
+        "review_version_changed": "The routing version has changed. Reload this case before submitting.",
+        "execution_already_reviewed": "This execution already has a different review.",
+        "source_unavailable": "The original message could not be verified. Mark this case as insufficient evidence.",
+        "invalid_review_evidence": "The learning event does not match this review.",
+        "invalid_review_observation": "The runtime observation does not match this review."
+    },
     "Error": {
         "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
         "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",

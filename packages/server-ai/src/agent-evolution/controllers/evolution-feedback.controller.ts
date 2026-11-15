@@ -9,6 +9,7 @@ import { AssertChatConversationAccessQuery } from '../../chat-conversation/queri
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { AgentEvolutionGovernanceService, AgentEvolutionStore } from '../application'
+import { ExecutionReviewService } from '../execution-review/execution-review.service'
 import { changeError } from '../changes/change.errors'
 
 const feedbackFields = { id: true, threadId: true, outputs: true, createdAt: true, completedAt: true } as const
@@ -23,7 +24,8 @@ export class EvolutionFeedbackController {
         private readonly commands: CommandBus,
         private readonly providers: EvolutionTargetProviderRegistry,
         private readonly store: AgentEvolutionStore,
-        private readonly governance: AgentEvolutionGovernanceService
+        private readonly governance: AgentEvolutionGovernanceService,
+        private readonly reviews: ExecutionReviewService
     ) {}
 
     private resolve(key: string) {
@@ -86,7 +88,7 @@ export class EvolutionFeedbackController {
         @Param('id', UUIDValidationPipe) id: string,
         @Body() input: unknown
     ) {
-        const { identity, feedback } = this.resolve(key)
+        const { identity, feedback, targetId } = this.resolve(key)
         const execution = await this.db
             .getRepository(XpertAgentExecution)
             .findOne({ where: { ...identity, id, type: feedback.executionType }, select: feedbackFields })
@@ -100,6 +102,6 @@ export class EvolutionFeedbackController {
                 new AssertProjectAssistantAccessCommand(conversation.projectId, conversation.xpertId, 'manage')
             )
         }
-        return feedback.review(identity, execution, input)
+        return this.reviews.reviewFeedback(identity, targetId, feedback, execution, input)
     }
 }
