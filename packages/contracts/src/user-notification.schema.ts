@@ -64,6 +64,14 @@ export const notificationSourceSchema = z
 export const scheduledNotificationOriginSchema = notificationSourceSchema.extend({
   threadId: z.string().uuid().optional()
 })
+export const openConversationActionSchema = z.object({
+  type: z.literal('open_conversation'),
+  assistantId: z.string().uuid(),
+  conversationId: z.string().uuid(),
+  threadId: z.string().uuid().nullable()
+}).strict()
+export type OpenConversationAction = Required<z.output<typeof openConversationActionSchema>>
+
 export const userNotificationSchema = z
   .object({
     id: z.string().uuid(),
@@ -71,14 +79,7 @@ export const userNotificationSchema = z
     source: notificationSourceSchema,
     createdAt: z.string().datetime({ offset: true }),
     readAt: z.string().datetime({ offset: true }).nullable(),
-    action: z
-      .object({
-        type: z.literal('open_conversation'),
-        assistantId: z.string().uuid(),
-        conversationId: z.string().uuid(),
-        threadId: z.string().uuid().nullable()
-      })
-      .strict()
+    action: openConversationActionSchema
   })
   .strict()
 export type UserNotification = Omit<Required<z.output<typeof userNotificationSchema>>, 'source' | 'action'> & {
@@ -138,6 +139,9 @@ export type NotificationDestination =
 // object outputs optional. These boundaries validate every required field before narrowing.
 export function parseAnnouncement(value: unknown): Announcement {
   return announcementSchema.parse(value) as Announcement
+}
+export function parseOpenConversationAction(value: unknown): OpenConversationAction {
+  return openConversationActionSchema.parse(value) as OpenConversationAction
 }
 export function parseUserNotification(value: unknown): UserNotification {
   return userNotificationSchema.parse(value) as UserNotification

@@ -75,6 +75,7 @@ const methods = new Set([
   'cancelAssistantTriggerQr',
   'botConversations',
   'botProfileViews',
+  'personalInboxViews',
   'openProfileView',
   'closeProfileView',
   'profileViewRequest',

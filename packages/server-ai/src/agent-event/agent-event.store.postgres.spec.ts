@@ -12,6 +12,12 @@ import { AgentEventStore } from './agent-event.store'
 import { AGENT_EVENT_ENTITIES, AgentEventBinding, AgentEventInbox, AgentEventPartition } from './agent-event.entity'
 import { AgentEventBindingService } from './agent-event-binding.service'
 
+import { EventInboxService } from './views/event-inbox.service'
+import type { EventBindingAccessService } from './event-binding-access.service'
+
+// The integration suite injects the scoped policy and installed source registry.
+jest.mock('./event-binding-access.service', () => ({ EventBindingAccessService: class {} }))
+
 const url = process.env.XPERT_PIPELINE_TEST_DATABASE_URL
 if (url && !/^\/xpert_pipeline_test_[a-z0-9_]+$/.test(new URL(url).pathname))
     throw new Error('Dedicated test database required')
@@ -561,5 +567,197 @@ integration('Event Inbox PostgreSQL', () => {
                 state: 'enabled'
             })
         })
+    })
+
+    it('returns visible receipts and healthy title matches when a plugin ignores the projection deadline', async () => {
+        const bindings = db.getRepository(AgentEventBinding)
+        const userId = randomUUID()
+        const makeBinding = () =>
+            bindings.save({
+                ...binding,
+                id: randomUUID(),
+                sourceBindingRef: randomUUID(),
+                userId,
+                xpertId: randomUUID()
+            })
+        const slow = await makeBinding()
+        const healthy = await makeBinding()
+        const publish = async (b: AgentEventBinding, key: string) => {
+            const result = await store.publish(b, source, event(key, key))
+            if (result.status !== 'accepted') throw new Error('Expected an accepted receipt')
+            return result.receiptId
+        }
+        const slowId = await publish(slow, 'slow')
+        const healthyId = await publish(healthy, 'healthy')
+        const signals: AbortSignal[] = []
+        const pending = (signal: AbortSignal) => {
+            signals.push(signal)
+            return new Promise<never>(() => {})
+        }
+        const slowSource: PluginAgentEventSource = {
+            ...source,
+            describe: (ctx) => pending(ctx.signal),
+            searchTitles: (ctx) => pending(ctx.signal)
+        }
+        const healthySource: PluginAgentEventSource = {
+            ...source,
+            describe: async () => ({ title: 'Supplier update' }),
+            searchTitles: async () => [{ subject: 'healthy' }]
+        }
+        const access: Pick<EventBindingAccessService, 'assertAccessible' | 'conversationAction'> = {
+            assertAccessible: async () => 'Assistant',
+            conversationAction: jest.fn()
+        }
+        const view = new EventInboxService(
+            bindings,
+            db.getRepository(AgentEventInbox),
+            access as EventBindingAccessService,
+            { resolve: (b: AgentEventBinding) => (b.id === slow.id ? slowSource : healthySource) } as AgentEventSources,
+            new AgentEventBindingService(bindings)
+        )
+        const context = { hostType: 'user', hostId: 'me', tenantId, organizationId, userId, slots: [] }
+        const [list, search, detail] = await Promise.all([
+            view.data(context, {}),
+            view.data(context, { search: 'Supplier' }),
+            view.data(context, { selectionId: slowId })
+        ])
+        expect(signals).toHaveLength(3)
+        expect(signals.every((signal) => signal.aborted)).toBe(true)
+        expect(list.items).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ id: healthyId, title: 'Supplier update' }),
+                expect.objectContaining({ id: slowId, subject: 'slow', title: undefined })
+            ])
+        )
+        expect(search.items?.map((item) => item.id)).toEqual([healthyId])
+        expect(detail.item).toMatchObject({ id: slowId, type: 'test.fact', title: undefined })
+        expect(detail.item).not.toHaveProperty('conversationAction')
+        expect(access.conversationAction).not.toHaveBeenCalled()
+    }, 12_000)
+
+    it('scopes category counts, title lookup, cursors, details and retry to the current binding owner and Assistant', async () => {
+        const bindings = db.getRepository(AgentEventBinding)
+        const receipts = db.getRepository(AgentEventInbox)
+        const createBinding = (userId: string) =>
+            bindings.save(
+                bindings.create({
+                    tenantId,
+                    organizationId,
+                    userId,
+                    xpertId: randomUUID(),
+                    workspaceId: randomUUID(),
+                    plugin: 'test',
+                    adapter: 'test',
+                    sourceBindingRef: randomUUID(),
+                    publishedAt: new Date(),
+                    revision: 1,
+                    state: 'enabled'
+                })
+            )
+        const userId = randomUUID()
+        const own = await createBinding(userId),
+            other = await createBinding(randomUUID()),
+            second = await createBinding(userId)
+        const label = { en_US: 'Test type' },
+            icon = { type: 'emoji' as const, value: '📥' }
+        const conversation = randomUUID()
+        const typed: PluginAgentEventSource = {
+            ...source,
+            eventTypes: [
+                {
+                    type: 'test.fact',
+                    schemaVersion: 1,
+                    display: {
+                        label,
+                        icon,
+                        category: { label, icon, key: 'test-category' }
+                    }
+                }
+            ],
+            searchTitles: async (ctx) => (ctx.bindingId === own.id ? [{ subject: 'first' }] : []),
+            describe: async () => ({
+                title: 'Quarterly comparison',
+                conversation: { conversationId: conversation },
+                result: { action: label, fields: [{ label, value: 'Visible' }] }
+            })
+        }
+        await db.query('INSERT INTO "user"(id) VALUES ($1)', [userId])
+        const pub = async (b: AgentEventBinding, key: string) => {
+            const result = await store.publish(b, typed, event(key, key))
+            if (result.status === 'rejected') throw new Error(result.code)
+            return result
+        }
+        const first = await pub(own, 'first'),
+            last = await pub(own, 'last'),
+            foreign = await pub(other, 'private')
+        const old = await pub(second, 'old')
+        let revoked = false
+        let readable = true
+        const access = {
+            conversationAction: async (b: AgentEventBinding, id: string) => {
+                if (!readable || b.id !== own.id || id !== conversation) throw new ForbiddenException()
+                return { type: 'open_conversation', conversationId: id, assistantId: b.xpertId, threadId: id }
+            },
+            assertAccessible: async (b: AgentEventBinding) => {
+                if (revoked && b.id === own.id) throw new ForbiddenException()
+                return b.xpertId
+            }
+        } as EventBindingAccessService
+        const registry = {
+            resolve: (b: AgentEventBinding) => {
+                if (b.id === second.id) throw new Error('uninstalled')
+                return typed
+            }
+        } as AgentEventSources
+        const view = new EventInboxService(bindings, receipts, access, registry, new AgentEventBindingService(bindings))
+        const context = { hostType: 'user', hostId: 'me', tenantId, organizationId, userId, slots: [] }
+        const full = await view.data(context, {})
+        expect(full.summary?.count).toBe(3)
+        expect(full.summary?.categories.map((c) => [c.key, c.count])).toEqual([
+            ['test-category', 2],
+            ['uncategorized', 1]
+        ])
+        const agent = { ...context, hostType: 'agent', hostId: own.xpertId }
+        const a = await view.data(agent, { pageSize: 1 })
+        const b = await view.data(agent, { pageSize: 1, cursor: a.nextCursor })
+        expect([a.items?.[0].id, b.items?.[0].id]).toEqual([last.receiptId, first.receiptId])
+        expect(
+            (
+                await view.data(context, {
+                    search: 'Quarterly',
+                    parameters: { category: 'test-category', assistant: own.xpertId }
+                })
+            ).items?.map((i) => i.id)
+        ).toEqual([first.receiptId])
+        expect((await view.data(agent, { parameters: { assistant: other.xpertId } })).summary?.count).toBe(0)
+        expect((await view.data({ ...context, organizationId: randomUUID() }, {})).summary?.count).toBe(0)
+        await expect(view.data(context, { selectionId: foreign.receiptId })).rejects.toThrow()
+        await expect(view.retry(context, foreign.receiptId)).rejects.toThrow()
+        await receipts.update(old.receiptId, { state: 'isolated' })
+        expect((await view.data(context, { selectionId: old.receiptId })).item?.canRetry).toBe(false)
+        await expect(view.retry(context, old.receiptId)).rejects.toThrow()
+        expect(a.items?.[0]).not.toHaveProperty('conversationAction')
+        for (const host of [context, agent]) {
+            expect(
+                (await view.data(host, { selectionId: first.receiptId })).item?.conversationAction?.conversationId
+            ).toBe(conversation)
+        }
+        readable = false
+        expect((await view.data(context, { selectionId: first.receiptId })).item).not.toHaveProperty(
+            'conversationAction'
+        )
+        expect((await view.data(agent, { selectionId: first.receiptId })).item?.result).toEqual({ action: label })
+        expect(
+            (await view.data(agent, { selectionId: first.receiptId, parameters: { section: 'result' } })).item?.result
+        ).toHaveProperty('fields')
+
+        await expect(view.retry(agent, last.receiptId)).rejects.toThrow()
+        await receipts.update(last.receiptId, { state: 'isolated' })
+        expect((await view.data(agent, { selectionId: last.receiptId })).item?.canRetry).toBe(true)
+        expect(await view.retry(agent, last.receiptId)).toHaveProperty('success', true)
+        revoked = true
+        await expect(view.data(context, { selectionId: last.receiptId })).rejects.toThrow()
+        await expect(view.retry(context, last.receiptId)).rejects.toThrow()
+        expect((await view.data(context, {})).summary?.count).toBe(1)
     })
 })

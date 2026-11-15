@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@xpert-ai/shadcn-ui'
-import { ExternalLink, LogOut, MoreHorizontal, Settings2 } from 'lucide-react'
+import { ExternalLink, Inbox, LogOut, MoreHorizontal, Settings2 } from 'lucide-react'
 import { openWorkspace } from './host'
 import type { Profile } from './types'
 
@@ -18,12 +18,14 @@ export function UserMenu({
   profile,
   webUrl,
   compact = false,
+  onInbox,
   onSettings,
   onLogout
 }: {
   profile: Profile
   webUrl: string
   compact?: boolean
+  onInbox: (opener: HTMLElement | null) => void
   onSettings: () => void
   onLogout: () => void
 }) {
@@ -69,6 +71,12 @@ export function UserMenu({
           <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">{organization?.name}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {profile.organizationId && (
+          <DropdownMenuItem className="rounded-lg px-3 py-2.5" onSelect={() => onInbox(notificationOpener.current)}>
+            <Inbox />
+            {t('My events')}
+          </DropdownMenuItem>
+        )}
         {notifications.available && (
           <DropdownMenuItem
             className="rounded-lg px-3 py-2.5"

@@ -13,7 +13,11 @@ import { AgentEventBindingService } from './agent-event-binding.service'
 import { AgentEventController } from './agent-event.controller'
 import { AgentEventRuntime, AgentEventSources } from './agent-event.runtime'
 import { AgentEventStore } from './agent-event.store'
+
 import { EventBindingAccessService } from './event-binding-access.service'
+import { EventInboxService } from './views/event-inbox.service'
+import { EventInboxViewProvider } from './views/event-inbox.provider'
+import { UserInboxHostDefinition } from './views/user-inbox-host.definition'
 
 @Module({
     imports: [
@@ -29,7 +33,10 @@ import { EventBindingAccessService } from './event-binding-access.service'
     ],
     controllers: [AgentEventController],
     providers: [
+        UserInboxHostDefinition,
         EventBindingAccessService,
+        EventInboxService,
+        EventInboxViewProvider,
         AgentEventBindingService,
         AgentEventStore,
         AgentEventSources,

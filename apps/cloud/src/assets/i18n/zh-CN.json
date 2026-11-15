@@ -2382,6 +2382,7 @@
       }
     },
     "MENU": {
+      "My events": "我的事件",
       "Connectors": "连接器",
       "Skills": "技能",
       "ExpertSkillsConnectors": "专家·技能·连接器",

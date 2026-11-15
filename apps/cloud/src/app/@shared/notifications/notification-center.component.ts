@@ -13,6 +13,7 @@ import {
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 import { UserNotificationsService } from '../../@core/services/user-notifications.service'
+import { openConversation } from './open-conversation'
 import { AnnouncementDialogComponent } from './announcement-dialog.component'
 
 @Component({
@@ -195,7 +196,7 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
       await this.service.read(item.id)
       if (this.destroyed) return
       this.ref.close()
-      await this.router.navigate(['/chat/c', item.action.conversationId])
+      await openConversation(this.router, item.action)
     } catch {
       this.failed.set(true)
     }

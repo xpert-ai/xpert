@@ -1,3 +1,4 @@
+import type { OpenConversationAction } from '@xpert-ai/contracts'
 import { NotificationProvider } from './notifications/NotificationProvider'
 import type { AgentDockTarget } from './types'
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
@@ -7,6 +8,7 @@ import { t, useLocale, setLocale, localizeValidation, clearValidation } from './
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { Bot as BotIcon } from 'lucide-react'
+import { PersonalEventInbox } from './profile/PersonalEventInbox'
 import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
 import { Login } from './Login'
@@ -27,6 +29,8 @@ import { notifyEmbeddedAppActivation, subscribeAppActivation } from './app-activ
 export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => void }) {
   useEffect(() => subscribeAppActivation(() => notifyEmbeddedAppActivation()), [])
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [inboxScope, setInboxScope] = useState<string | null>(null)
+  const inboxOpener = useRef<HTMLElement | null>(null)
   const [createGroup, setCreateGroup] = useState(false)
   const [groupRevision, setGroupRevision] = useState(0)
   const [state, setState] = useState<AppState | null>(null)
@@ -43,6 +47,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const [selectionVersion, setSelectionVersion] = useState(0)
   const [bosiReady, setBosiReady] = useState(false)
   const selectBot = (id: string, threadId: string | null = null) => {
+    setInboxScope(null)
     navigationVersion.current++
     selectedRef.current = id
     setBosiReady(true)
@@ -53,6 +58,12 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setSelectionVersion((value) => value + 1)
     setNotice(undefined)
     rememberSession({ botId: id, threadId })
+  }
+  const selectGroup = (id: string) => {
+    setInboxScope(null)
+    navigationVersion.current++
+    selectedRef.current = null
+    setSelectedGroup(id)
   }
   const onConversationRead = useCallback((botId: string, threadId: string | null) => {
     setNotice((value) => ({ botId, threadId, revision: (value?.revision ?? 0) + 1 }))
@@ -162,9 +173,13 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   }, [binding, organizationId, workspaceRevision])
   const workspace = workspaceOptions.find((option) => option.id === workspaceId)
   const selectWorkspace = (id: string) => {
+    setInboxScope(null)
     setWorkspaceId(id)
     navigationVersion.current++
   }
+  useEffect(() => {
+    setInboxScope(null)
+  }, [binding])
   const bindingRef = useRef(binding)
   bindingRef.current = binding
   const rememberSession = useCallback(
@@ -181,6 +196,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const islandReview = useRef<(target: { botId: string; threadId: string }) => void>(() => {})
   islandReview.current = ({ botId, threadId }) => {
     if (!bots.some((item) => item.id === botId)) return
+    setInboxScope(null)
     setSettings(false)
     setCatalog(false)
     setCreateGroup(false)
@@ -200,15 +216,15 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setWorkspaceId('')
     setBosiReady(true)
     if (target.kind === 'group') {
-      navigationVersion.current++
-      selectedRef.current = null
-      setSelectedGroup(target.id)
+      selectGroup(target.id)
     } else if (
       selectedGroup ||
       selected !== target.id ||
       (target.threadId && (notice?.threadId ?? initialThread) !== target.threadId)
     ) {
       selectBot(target.id, target.threadId)
+    } else {
+      setInboxScope(null)
     }
   }
   useEffect(() => {
@@ -378,11 +394,18 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   if (state.needsComputerSetup) return <ComputerPermissions onFinish={setState} />
   const bot = bots.find((item) => item.id === selected)
   const visibleBots = workspace ? bots.filter((item) => item.workspaceId === workspace.id) : bots
+  const inboxVisible = inboxScope === binding
   const chatVisible = !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)
   const showOnboarding =
     !workspace && !selectedGroup && !bosiReady && navigationReady && !!state.profile?.organizationId
   const revealBot = (id: string) => {
     if (workspace && bots.find((item) => item.id === id)?.workspaceId !== workspace.id) setWorkspaceId('')
+  }
+  const openConversation = (action: OpenConversationAction) => {
+    const target = bots.find((bot) => (bot.assistantId || bot.id) === action.assistantId)
+    if (!target || !action.threadId) throw new Error(t('Unavailable'))
+    revealBot(target.id)
+    selectBot(target.id, action.threadId)
   }
   return (
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
@@ -392,14 +415,11 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
             key={binding}
             suspended={settings || catalog || createGroup}
             activeThreadId={
-              chatVisible && !selectedGroup && !settings && !catalog ? (notice?.threadId ?? initialThread) : null
+              !inboxVisible && chatVisible && !selectedGroup && !settings && !catalog
+                ? (notice?.threadId ?? initialThread)
+                : null
             }
-            onOpen={async (item) => {
-              const target = bots.find((bot) => (bot.assistantId || bot.id) === item.action.assistantId)
-              if (!target || !item.action.threadId) throw new Error('Unavailable result')
-              revealBot(target.id)
-              selectBot(target.id, item.action.threadId)
-            }}
+            onOpen={async (item) => openConversation(item.action)}
           >
             <VoiceProvider
               key={`${binding}:${state.config.apiUrl}`}
@@ -424,11 +444,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                     selected={selectedGroup ? null : selected}
                     selectedGroup={selectedGroup}
                     groupRevision={groupRevision}
-                    onSelectGroup={(id) => {
-                      navigationVersion.current++
-                      selectedRef.current = null
-                      setSelectedGroup(id)
-                    }}
+                    onSelectGroup={selectGroup}
                     onCreateGroup={() => {
                       setWorkspaceId('')
                       setCreateGroup(true)
@@ -451,6 +467,10 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                         if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
                       }
                     }}
+                    onInbox={(opener) => {
+                      inboxOpener.current = opener
+                      setInboxScope(binding)
+                    }}
                     onSettings={() => openSettings()}
                     onBrowse={() => setCatalog(true)}
                     onLogout={signOut}
@@ -468,7 +488,19 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                     }}
                   />
                 </AssistantPreviewScope>
-                <main className="flex min-w-0 flex-1 flex-col">
+                {inboxVisible && (
+                  <main className="flex min-w-0 flex-1 flex-col">
+                    <PersonalEventInbox
+                      onOpenConversation={openConversation}
+                      key={binding}
+                      onClose={() => {
+                        setInboxScope(null)
+                        inboxOpener.current?.focus()
+                      }}
+                    />
+                  </main>
+                )}
+                <main className={inboxVisible ? 'hidden' : 'flex min-w-0 flex-1 flex-col'}>
                   {showOnboarding && state.profile.organizationId ? (
                     <BosiOnboarding
                       key={binding}
@@ -548,9 +580,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
           key={binding}
           onClose={() => setCreateGroup(false)}
           onCreated={(id) => {
-            navigationVersion.current++
-            selectedRef.current = null
-            setSelectedGroup(id)
+            selectGroup(id)
             setWorkspaceId('')
             setCreateGroup(false)
             setGroupRevision((value) => value + 1)

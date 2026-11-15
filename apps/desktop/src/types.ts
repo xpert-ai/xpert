@@ -264,7 +264,11 @@ export interface HostMethods {
   assistantTriggerManageUrl: { input: { botId: string }; output: { url: string } }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
-  openProfileView: { input: { botId: string; viewKey: string }; output: ProfileViewSession }
+  personalInboxViews: { input: void; output: XpertExtensionViewManifest[] }
+  openProfileView: {
+    input: { botId: string; viewKey: string } | { scope: 'personal-inbox'; viewKey: string }
+    output: ProfileViewSession
+  }
   closeProfileView: { input: string; output: { closed: boolean } }
   profileViewRequest: { input: ProfileViewRequest; output: unknown }
   workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }

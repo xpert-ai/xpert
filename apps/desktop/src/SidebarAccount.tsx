@@ -6,12 +6,14 @@ export function SidebarAccount({
   profile,
   webUrl,
   compact,
+  onInbox,
   onSettings,
   onLogout
 }: {
   profile: Profile
   webUrl: string
   compact: boolean
+  onInbox: (opener: HTMLElement | null) => void
   onSettings: () => void
   onLogout: () => void
 }) {
@@ -24,7 +26,14 @@ export function SidebarAccount({
       }
     >
       <div className={compact ? '' : 'min-w-0 flex-1'}>
-        <UserMenu profile={profile} webUrl={webUrl} compact={compact} onSettings={onSettings} onLogout={onLogout} />
+        <UserMenu
+          profile={profile}
+          webUrl={webUrl}
+          compact={compact}
+          onInbox={onInbox}
+          onSettings={onSettings}
+          onLogout={onLogout}
+        />
       </div>
       <DesktopUpdate compact={compact} />
     </div>

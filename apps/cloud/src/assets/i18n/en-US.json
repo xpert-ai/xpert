@@ -4209,6 +4209,7 @@
       }
     },
     "MENU": {
+      "My events": "My events",
       "Connectors": "Connectors",
       "Skills": "Skills",
       "ExpertSkillsConnectors": "Experts · Skills · Connectors",
@@ -6512,6 +6513,7 @@
       "WorkspaceTabsLabel": "User group configuration"
     },
     "Scope": {
+      "SelectOrganization": "Select an organization",
       "TenantEyebrow": "Tenant Console",
       "OrganizationEyebrow": "Organization Scope"
     },

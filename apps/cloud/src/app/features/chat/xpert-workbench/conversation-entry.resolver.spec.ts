@@ -11,12 +11,13 @@ import { TranslateService } from '@ngx-translate/core'
 import type { ChatConversationEntry } from '@xpert-ai/contracts'
 import { firstValueFrom, isObservable, of, throwError } from 'rxjs'
 import { ChatConversationService, Store } from '../../../@core'
+import { openConversation } from '../../../@shared/notifications/open-conversation'
 import { resolveConversationEntry } from './conversation-entry.resolver'
 
 describe('conversation entry resolver', () => {
   const service = { getEntryByThreadId: jest.fn() }
   const store = { organizationId: 'org', hasFeatureEnabled: jest.fn(() => true) }
-  const router = { createUrlTree: jest.fn(() => new UrlTree()) }
+  const router = { createUrlTree: jest.fn(() => new UrlTree()), currentNavigation: jest.fn(), navigate: jest.fn() }
   const entry: ChatConversationEntry = {
     id: 'group',
     threadId: 'thread',
@@ -27,6 +28,7 @@ describe('conversation entry resolver', () => {
   let injector: Injector
   beforeEach(() => {
     jest.clearAllMocks()
+    router.currentNavigation.mockReturnValue(null)
     service.getEntryByThreadId.mockReturnValue(of(entry))
     store.hasFeatureEnabled.mockReturnValue(true)
     injector = Injector.create({
@@ -58,6 +60,29 @@ describe('conversation entry resolver', () => {
     service.getEntryByThreadId.mockReturnValue(of({ ...entry, purpose: 'private' }))
     expect(await resolve('thread')).toBeInstanceOf(RedirectCommand)
     expect(router.createUrlTree).toHaveBeenCalledWith(['/chat'])
+  })
+  it('opens an authorized private receipt or notification in the classic chat when personal workbench is disabled', async () => {
+    const privateEntry = { ...entry, id: 'conversation', purpose: 'private' }
+    service.getEntryByThreadId.mockReturnValue(of(privateEntry))
+    store.hasFeatureEnabled.mockReturnValue(false)
+    router.navigate.mockImplementation((_url, extras) => {
+      router.currentNavigation.mockReturnValue({ extras })
+      return Promise.resolve(true)
+    })
+    await openConversation(injector.get(Router), {
+      type: 'open_conversation',
+      assistantId: 'assistant',
+      threadId: entry.threadId,
+      conversationId: privateEntry.id
+    })
+    const [commands] = router.navigate.mock.calls[0]
+    expect(commands).toEqual(['/chat/x', 'assistant', 'c', entry.threadId])
+    expect(await resolve(commands[3])).toBeInstanceOf(RedirectCommand)
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/chat/c', privateEntry.id])
+
+    service.getEntryByThreadId.mockReturnValue(throwError(() => new Error('Membership required')))
+    expect(await resolve(entry.threadId)).toMatchObject({ entry: null, error: expect.any(String) })
+    expect(router.createUrlTree).toHaveBeenCalledTimes(1)
   })
   it('keeps new private conversations behind the feature gate without fetching a thread', async () => {
     store.hasFeatureEnabled.mockReturnValue(false)

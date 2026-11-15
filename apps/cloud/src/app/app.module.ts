@@ -31,6 +31,7 @@ import { environment } from '../environments/environment'
 import { createUiI18nAdapter, I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 import { BrowserAudioCaptureService } from './@shared/browser-audio-capture'
+import { provideInboxConversationCommand } from './features/chat/event-inbox-conversation-command'
 import { provideArtifactPresentationCommands } from './artifacts/presentation/presentation.providers'
 
 const TYPE_KEY = '__subject__'
@@ -64,6 +65,7 @@ function detectSubjectType(subject) {
   ],
   providers: [
     provideArtifactPresentationCommands(),
+    provideInboxConversationCommand(),
     {
       provide: APP_INITIALIZER,
       useFactory: (capture: BrowserAudioCaptureService) => () => capture.register(),
