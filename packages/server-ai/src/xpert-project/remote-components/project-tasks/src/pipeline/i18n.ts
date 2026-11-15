@@ -1,4 +1,6 @@
 const zh = {
+    showApprovalSteps: '展开审批后续步骤',
+    approvalSteps: '审批后续步骤',
     executionStart: '开始时间',
     executionDuration: '执行时长',
     executionElapsed: '已运行',
@@ -203,6 +205,8 @@ const zh = {
     sourceMissing: '暂时无法读取来源，保留上次保存的状态。'
 }
 const en: { [K in keyof typeof zh]: string } = {
+    showApprovalSteps: 'Expand approval steps',
+    approvalSteps: 'Approval follow-up steps',
     executionStart: 'Started',
     executionDuration: 'Duration',
     executionElapsed: 'Elapsed',

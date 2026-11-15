@@ -101,6 +101,9 @@ export const projectPipelineConfigurationSchema = z
     for (const [index, node] of template.nodes.entries()) {
       if (node.kind === 'work') {
         const executor = binding.executorBindings?.[node.executorSlot]
+        if (node.presentation?.foldIntoApproval && executor && executor.kind !== 'service') {
+          issue('APPROVAL_STEP_SERVICE_REQUIRED', 'binding', 'executorBindings', node.executorSlot)
+        }
         // Native Assistant/file tools need a separate enforcement bridge before opting in.
         if (node.resourceResolverRef && executor?.kind !== 'service') {
           issue('RESOURCE_EXECUTOR_UNSUPPORTED', 'template', 'nodes', index, 'resourceResolverRef')

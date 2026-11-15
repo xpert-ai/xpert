@@ -83,6 +83,39 @@ describe('Project Pipeline public configuration', () => {
     )
   })
 
+  it('validates the service and its named parent when a template folds an approval step', () => {
+    const config = managed()
+    const declare = (key: string, approval: string) => ({
+      ...config.template,
+      nodes: config.template.nodes.map((node) =>
+        node.key === key ? { ...node, presentation: { foldIntoApproval: approval } } : node
+      )
+    })
+    const template = declare('handoff', 'approve')
+    expect(projectPipelineConfigurationSchema.parse({ ...config, template }).template).toEqual(template)
+    for (const parent of ['missing', 'handoff', 'escalate']) {
+      expect(codes({ ...config, template: declare('handoff', parent) })).toContain('APPROVAL_STEP_PARENT_INVALID')
+    }
+    expect(
+      codes({ ...config, template: { ...template, edges: [...template.edges, { from: 'verify', to: 'handoff' }] } })
+    ).toContain('APPROVAL_STEP_PARENT_INVALID')
+    const mixedRole = template.roles.map((role) =>
+      role.key === 'system' ? { ...role, allowedKinds: ['assistant', 'service'] } : role
+    )
+    expect(codes({ ...config, template: { ...template, roles: mixedRole } })).toEqual([])
+    const binding = {
+      ...config.binding,
+      executorBindings: {
+        ...config.binding.executorBindings,
+        publisher: { roleKey: 'system', kind: 'assistant', selectionKey: 'publisher' }
+      }
+    }
+    expect(codes({ binding, schemaVersion: 1, template: { ...template, roles: mixedRole } })).toContain(
+      'APPROVAL_STEP_SERVICE_REQUIRED'
+    )
+    expect(codes({ ...config, template: declare('verify', 'approve') })).toContain('APPROVAL_STEP_SERVICE_REQUIRED')
+  })
+
   it('rejects unknown participants, incorrect lanes and Agent approval seats', () => {
     const config = managed()
     expect(

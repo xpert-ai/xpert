@@ -1,3 +1,4 @@
+import type { ApprovalStep } from './approval-steps'
 import { pipelineExecutions } from './executions'
 import { type PipelineFocus } from '../bridge'
 import { pipelineStageIcons } from './stage-icons'
@@ -34,6 +35,7 @@ const icons = {
 export function Swimlane({
     status,
     graph,
+    approvalSteps,
     locale,
     t,
     lane,
@@ -50,6 +52,7 @@ export function Swimlane({
     status?: ReactNode
     initialScroll?: PipelineFocus
     graph: PipelineGraph
+    approvalSteps?: Map<string, ApprovalStep[]>
     locale: string
     t: PipelineTexts
     lane: string
@@ -334,6 +337,15 @@ export function Swimlane({
                                 : state.lifecycle === 'pending' || state.lifecycle === 'active'
                                   ? state.readiness
                                   : state.lifecycle
+                    const followUp = approvalSteps?.get(node.id)
+                    const followUpState = followUp?.find(
+                        ({ node }) =>
+                            node.projection.state.freshness === 'current' &&
+                            node.projection.state.applicability === 'selected' &&
+                            (node.projection.state.lifecycle === 'active' ||
+                                node.projection.state.lifecycle === 'failed' ||
+                                node.projection.state.readiness === 'blocked')
+                    )?.node.projection.state
                     if (logic)
                         return (
                             <button
@@ -425,7 +437,15 @@ export function Swimlane({
                                     {graph.instance.title}
                                 </span>
                                 <span className="w-full truncate text-xs text-muted-foreground">
-                                    {t[projection.kind]} · {t[state.runtime]}
+                                    {t[projection.kind]} ·{' '}
+                                    {followUp?.length ? t.approvalSteps + ' ' + followUp.length : t[state.runtime]}
+                                    {followUpState &&
+                                        ' · ' +
+                                            t[
+                                                followUpState.readiness === 'blocked'
+                                                    ? 'blocked'
+                                                    : followUpState.runtime
+                                            ]}
                                 </span>
                             </button>
                             <ExecutionIndicators

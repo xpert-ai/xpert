@@ -21,6 +21,7 @@ export const projectPipelineNodeSchema = z.discriminatedUnion('kind', [
       ...base,
       kind: z.literal('work'),
       laneKey: projectPipelineKeySchema,
+      presentation: z.object({ foldIntoApproval: projectPipelineKeySchema }).strict().optional(),
       operationRef: projectPipelineRefSchema,
       executorSlot: projectPipelineKeySchema,
       completionRef: projectPipelineRefSchema,

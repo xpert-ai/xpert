@@ -1,9 +1,16 @@
 /** @jest-environment jsdom */
-import React from 'react'
+import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { act } from 'react-dom/test-utils'
 import { PipelineView } from './view'
 import { readPipeline, readPipelineRounds, listPipelines } from './bridge'
+import { getTaskViewState, type PipelineFocus } from '../bridge'
+import { restoreTaskView } from '../view-state'
+import { approvalGraphFixture } from './__fixtures__/approval-graph'
+import type { Swimlane } from './swimlane'
+
+beforeAll(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+})
 
 jest.mock('@xpert-ai/shadcn-ui', () => {
     const React = jest.requireActual<typeof import('react')>('react')
@@ -58,11 +65,25 @@ jest.mock('@xpert-ai/shadcn-ui', () => {
         AccordionContent: box,
         DialogTitle: box,
         DialogDescription: box,
-        Select: () => null,
-        SelectTrigger: box,
+        Select: ({
+            value,
+            onValueChange,
+            children
+        }: {
+            value: string
+            onValueChange: (value: string) => void
+            children: React.ReactNode
+        }) =>
+            React.createElement(
+                'select',
+                { value, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => onValueChange(event.target.value) },
+                children
+            ),
+        SelectTrigger: () => null,
         SelectValue: box,
-        SelectContent: box,
-        SelectItem: box
+        SelectContent: React.Fragment,
+        SelectItem: ({ value, children }: { value: string; children: React.ReactNode }) =>
+            React.createElement('option', { value }, children)
     }
 })
 jest.mock('lucide-react', () => ({
@@ -107,8 +128,82 @@ jest.mock('./pipeline-heading', () => ({
             hasMore && React.createElement('button', { onClick: onMore }, 'More pipelines')
         )
 }))
-jest.mock('./swimlane', () => ({ Swimlane: () => null }))
+jest.mock('./swimlane', () => ({
+    Swimlane: ({ graph, lane, selectedLane, onLaneSelect }: React.ComponentProps<typeof Swimlane>) =>
+        graph.definition.lanes
+            .filter(({ key }) => !lane || key === lane)
+            .map(({ key, label }) =>
+                React.createElement(
+                    'button',
+                    { key, 'aria-pressed': key === selectedLane, onClick: () => onLaneSelect(key) },
+                    label
+                )
+            )
+}))
 jest.mock('./timeline', () => ({ ExecutionTimeline: () => null }))
+
+it('restores approval expansion, the service lane filter and its selection when reopened', async () => {
+    const id = '00000000-0000-4000-8000-000000000001'
+    const graph = approvalGraphFixture()
+    jest.mocked(listPipelines).mockResolvedValue({ items: [], next: null })
+    jest.mocked(readPipelineRounds).mockResolvedValue({ items: [], next: null })
+    jest.mocked(readPipeline).mockResolvedValue({
+        ...graph,
+        cursor: 'current',
+        instance: { ...graph.instance, id, authority: 'platform' },
+        round: { ...graph.round, sequence: 1 }
+    })
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    const open = async (focus: PipelineFocus) => {
+        await act(async () =>
+            root.render(
+                React.createElement(PipelineView, { locale: 'en-US', initialFocus: focus, onTask: () => undefined })
+            )
+        )
+    }
+    const close = async () => {
+        await act(async () => root.render(null))
+    }
+    const button = (label: string) =>
+        [...container.querySelectorAll('button')].find((item) => item.textContent === label)
+    const filter = () => container.querySelector<HTMLOptionElement>('option[value="__all"]')!.closest('select')!
+    const expectExpanded = () => {
+        expect(button('Expand approval steps')?.getAttribute('aria-pressed')).toBe('true')
+        expect(filter().value).toBe('machine')
+        expect(button('machine')?.getAttribute('aria-pressed')).toBe('true')
+    }
+    try {
+        await open({ pipelineInstanceId: id })
+        expect(button('Expand approval steps')?.getAttribute('aria-pressed')).toBe('false')
+        expect(button('machine')).toBeUndefined()
+        await act(async () => button('Expand approval steps')!.click())
+        await act(async () => {
+            const select = filter()
+            select.value = 'machine'
+            select.dispatchEvent(new Event('change', { bubbles: true }))
+        })
+        await act(async () => button('machine')!.click())
+        const saved = getTaskViewState()
+        expect(saved).toMatchObject({ showApprovalSteps: true, pipelineLane: 'machine', selectedLane: 'machine' })
+        await close()
+        await open(restoreTaskView(saved, { pipelineInstanceId: id }))
+        expectExpanded()
+        await act(async () => button('Expand approval steps')!.click())
+        const collapsed = getTaskViewState()
+        expect(collapsed).toMatchObject({ showApprovalSteps: false, pipelineLane: '', selectedLane: '' })
+        await close()
+        await open(restoreTaskView(collapsed))
+        expect(button('Expand approval steps')?.getAttribute('aria-pressed')).toBe('false')
+        expect(filter().value).toBe('__all')
+        expect(button('machine')).toBeUndefined()
+        await close()
+        await open(restoreTaskView({ pipelineInstanceId: id, pipelineLane: 'machine', selectedLane: 'machine' }))
+        expectExpanded()
+    } finally {
+        await act(async () => root.unmount())
+    }
+})
 
 it('keeps one workspace entry through repeated polling updates and removes it for history', async () => {
     jest.useFakeTimers()
