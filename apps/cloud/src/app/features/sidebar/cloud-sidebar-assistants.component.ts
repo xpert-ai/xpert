@@ -1,4 +1,5 @@
 import { SidebarSearchResultsComponent } from './search/sidebar-search-results.component'
+import { WORKBENCH_VIEW_MENU_CLICK } from '../chat/clawxpert/clawxpert-workbench-view-url-state.service'
 import { CloudSidebarGroupsComponent } from './cloud-sidebar-groups.component'
 import { CloudSidebarPanelTriggerDirective } from './cloud-sidebar-panel-trigger.directive'
 import {
@@ -609,14 +610,17 @@ export class CloudSidebarAssistantsComponent {
       return
     }
 
-    const unreadThreadId = this.getLatestUnreadThreadId(xpert.id)
-    const commands = unreadThreadId ? ['/chat/x', routeId, 'c', unreadThreadId] : ['/chat/x', routeId, 'c']
-    void this.#router.navigate(commands, {
-      queryParams: {
-        view: item.viewKey,
-        viewLayout: 'maximized'
-      }
-    })
+    const queryParams = { view: item.viewKey, viewLayout: 'maximized' }
+    if (this.isActive(xpert)) {
+      void this.#router.navigate([], {
+        info: WORKBENCH_VIEW_MENU_CLICK,
+        onSameUrlNavigation: 'reload',
+        queryParamsHandling: 'merge',
+        queryParams: { ...queryParams, viewProject: null, viewSelection: null, viewParameters: null }
+      })
+    } else {
+      void this.#router.navigate(['/chat/x', routeId, 'c'], { queryParams })
+    }
   }
 
   openAssistantSettings(event: Event, xpert: IXpert) {

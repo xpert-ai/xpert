@@ -164,7 +164,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.facade.assistantId()?.trim() || null,
       this.projectId(),
       this.facade.threadId(),
-      this.facade.group?.()?.id ?? null
+      this.facade.group?.()?.id ?? null,
+      this.#workbenchViewUrlState.menuRequestId()
     ])
   )
 
@@ -218,7 +219,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   readonly #chatkitNavigation = createChatkitWorkbenchNavigation({
     assistantId: () => this.chatkitAssistantId(),
-    projectId: () => this.chatkitProjectId(),
+    // A mounted thread can adopt its persisted Project without recreating the iframe.
+    projectId: () => {
+      const delegated = this.#workbenchConversationScope()
+      return delegated ? delegated.projectId : this.runtimeProjectId()
+    },
     routeKey: () => this.#hostChatRouteKey(),
     defaultViewKey: () => this.facade.defaultViewKey(),
     initialLayout: () => this.facade.initialLayout(),

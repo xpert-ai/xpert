@@ -356,6 +356,15 @@ describe('CloudSidebarAssistantsComponent', () => {
     normalAssistantButton.click()
 
     expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c', 'thread-unread'])
+    navigateSpy.mockClear()
+    fixture.componentInstance.openAssistantMenuItem(
+      new Event('click'),
+      { id: 'other-xpert', slug: 'other-assistant' },
+      { viewKey: 'sales-orders', title: 'Orders', icon: null, order: 1 }
+    )
+    expect(navigateSpy).toHaveBeenCalledWith(['/chat/x', 'other-assistant', 'c'], {
+      queryParams: { view: 'sales-orders', viewLayout: 'maximized' }
+    })
   })
 
   it('shows inline groups and rounded avatar fallbacks in the directory, retaining keyboard assistant switching', async () => {
@@ -433,6 +442,22 @@ describe('CloudSidebarAssistantsComponent', () => {
     })
 
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children')).toBeNull()
+  })
+
+  it('opens a menu view in the current Project thread and drops the previous view selection', async () => {
+    const router = TestBed.inject(Router)
+    const path = '/chat/x/other-assistant/p/project-1/c/thread-1'
+    await router.navigateByUrl(path + '?view=previous&viewSelection=old&viewParameters=%7B%7D&viewLayout=split')
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const assistant = { id: 'other-xpert', slug: 'other-assistant' }
+    const item = { viewKey: 'sales-orders', title: 'Orders', icon: null, order: 1 }
+
+    fixture.componentInstance.openAssistantMenuItem(new Event('click'), assistant, item)
+    await fixture.whenStable()
+    expect(router.url).toBe(path + '?view=sales-orders&viewLayout=maximized')
+    expect(fixture.componentInstance.isAssistantMenuItemActive(assistant, item)).toBe(true)
   })
 
   it('marks the assistant menu item matching the current view query as active', async () => {

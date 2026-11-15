@@ -30,6 +30,7 @@ const view = {
 }
 function setup() {
   const url = {
+    menuRequestId: signal<string | undefined>(undefined),
     viewClosed: signal(false),
     viewKey: signal<string | null>(null),
     viewLayout: signal<'split' | 'maximized' | null>(null),

@@ -295,6 +295,7 @@ export function configureConversationDetailTests(providers: Provider[] = []) {
     clear: jest.Mock
   }
   let workbenchViewUrlState: {
+    menuRequestId: ReturnType<typeof signal<string | undefined>>
     viewClosed: ReturnType<typeof signal<boolean>>
     projectId: ReturnType<typeof signal<string | null>>
     viewKey: ReturnType<typeof signal<string | null>>
@@ -319,6 +320,7 @@ export function configureConversationDetailTests(providers: Provider[] = []) {
     const viewKey = signal<string | null>(null)
     const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
+      menuRequestId: signal<string | undefined>(undefined),
       viewClosed: signal(false),
       projectId: viewProjectId,
       viewKey,
