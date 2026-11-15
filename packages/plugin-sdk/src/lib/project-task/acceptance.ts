@@ -1,3 +1,13 @@
+/** Read-only current implementation output; not a review or acceptance receipt. */
+export interface ProjectTaskCandidateReceipt {
+  projectId: string
+  taskId: string
+  taskRevision: number
+  conversationId: string
+  executionId: string
+  artifacts: Array<{ artifactId: string; versionId: string }>
+}
+
 /** Current formal acceptance facts; consumers decide which review mode their workflow requires. */
 export interface ProjectTaskAcceptanceReceipt {
   projectId: string

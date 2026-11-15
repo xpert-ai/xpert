@@ -19,6 +19,13 @@ import { deliveryModeSchema } from './schemas'
 import { PROVIDER, FEATURE, label } from './constants'
 
 const operation = z.object({ operationId: z.string().uuid() }).strict()
+const materialInput = z
+  .object({
+    taskId: z.string().uuid(),
+    operationId: z.string().uuid().optional(),
+    manifestArtifactId: z.string().uuid().optional()
+  })
+  .strict()
 export const TOOL_NAMES = [
   'coding_delivery_targets',
   'coding_delivery_start',
@@ -111,21 +118,21 @@ export class CodingDeliveryMiddleware implements IAgentMiddlewareStrategy<Record
         tool(
           async (input) =>
             JSON.stringify(
-              await this.evidence.submit(
+              await this.evidence.submitTask(
                 scope(),
                 context.conversationId!,
-                input.operationId,
                 input.taskId,
+                input.operationId,
                 input.manifestArtifactId
               )
             ),
           {
             name: 'coding_delivery_submit',
-            schema: operation.extend({ taskId: z.string().uuid(), manifestArtifactId: z.string().uuid() }).strict(),
+            schema: materialInput,
             verboseParsingErrors: true,
             description:
-              'Seal output from a formally accepted task in this stage conversation. Requires separate execution review and project_decide_task accept. Pass the delivery-manifest.json Artifact ID returned by project_get_task; host derives its version and verifies referenced artifacts and exact approved candidate. Does not approve a release.',
-            metadata: { toolName: label('Submit accepted delivery', '提交已验收成果') }
+              'Submit stage output with built-in material checks. Usually pass only taskId; the host resolves the stage, unique delivery-manifest.json and immutable versions. Before formal acceptance, pass the completed implementation child: materials_invalid returns field-level repair issues; awaiting_acceptance means materials passed but nothing was submitted or sealed. Arrange independent execution review, record project_decide_task with decisionRef, then call this same tool with the accepted summary taskId (the original task for a legacy workflow). Only submitted=true confirms sealed evidence. Accepted submissions recheck scope, active state, review, identity and bytes. Repeated calls never accept tasks, approve releases or schedule work. Optional operationId/manifestArtifactId remain explicit selectors.',
+            metadata: { toolName: label('Submit delivery', '提交交付成果') }
           }
         ),
         tool(async (input) => JSON.stringify(await this.service.materialize(scope(), input.operationId)), {

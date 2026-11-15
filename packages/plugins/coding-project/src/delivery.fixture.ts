@@ -200,6 +200,14 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   }
   capabilities.register(ProjectTasksRuntimeCapability, {
     readAcceptance,
+    readCandidate: async () => ({
+      projectId,
+      taskId: accepted.taskId,
+      taskRevision: accepted.taskRevision,
+      conversationId: accepted.conversationId,
+      executionId: context.executor.executionId,
+      artifacts: accepted.artifacts
+    }),
     graph: unusedTaskApi,
     refresh: unusedTaskApi,
     change: unusedTaskApi,

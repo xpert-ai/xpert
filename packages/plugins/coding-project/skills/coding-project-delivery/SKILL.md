@@ -120,12 +120,27 @@ the selected child's decision; do not accept both separately. Submit the accepte
 Do not convert existing tasks or move historical executions into a new hierarchy.
 Preserve their original acceptance path when resuming an existing stage.
 
-Each work stage exports a `delivery-manifest.json` matching its supplied schema and
-all referenced files through file delivery. Manifest file references contain the exact
-file name and SHA-256; Artifact IDs are assigned by the host after export. Include all
-those Artifact references in the formal task acceptance. Submit the accepted task and
-manifest Artifact ID with `coding_delivery_submit`. The host checks current operation,
-task acceptance, independent review and immutable bytes.
+Each work stage exports `delivery-manifest.json` and every referenced file. `fileName`
+is the exact exported basename (for example `plugin.tgz`, not `dist/plugin.tgz`);
+compute SHA-256 from the actual file bytes. Artifact IDs and versions are host-owned.
+Call `coding_delivery_submit` with the completed implementation child `taskId`.
+The host resolves the stage, unique manifest and immutable file versions. It returns:
+
+- `materials_invalid`, `submitted: false`: fix the listed fields and export the updated files.
+- `awaiting_acceptance`, `submitted: false`: materials passed; arrange independent review
+  of the current candidate and record formal acceptance using `decisionRef`.
+- `submitted`, `submitted: true`: formally accepted evidence was checked and sealed.
+
+After formal acceptance, call the same tool with the accepted summary `taskId`
+(the original task for a legacy workflow). No `mode` parameter or separate validation
+tool is needed. Repeated calls before acceptance do not accept tasks or advance work.
+Optional `operationId` and `manifestArtifactId` remain explicit selectors; never invent
+versions or build acceptance evidence arrays. Submission rechecks current authorization,
+state and bytes; an earlier materials-passed result is not an access grant.
+This is a host Assistant tool, not a cloud CLI command. Forward field diagnostics to
+the CLI for repair. JSON Schema or a self-written checker does not cover all host checks.
+If only materials changed, arrange a focused review of the new candidate and reuse
+unchanged business-test evidence only within its verified coverage.
 
 Development fixes a local source commit before final packaging/acceptance, and exports
 a recoverable source archive or Git bundle, installable package, concise report and

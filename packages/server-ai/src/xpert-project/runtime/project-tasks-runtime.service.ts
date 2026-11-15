@@ -4,19 +4,33 @@ import { ProjectTasksRuntimeCapability, type ProjectTasksApi, type ProjectTaskCo
 import type { ProjectTaskGraphChange } from '@xpert-ai/contracts'
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 import { ReadProjectTaskAcceptanceCommand } from '../commands/read-project-task-acceptance.command'
+import { ReadProjectTaskCandidateCommand } from '../commands/read-project-task-candidate.command'
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectTasksRuntimeCapability)
 export class ProjectTasksRuntimeService implements ProjectTasksApi {
-    constructor(private readonly tasks: ProjectTaskGraphService, private readonly commands: CommandBus) {}
+    constructor(
+        private readonly tasks: ProjectTaskGraphService,
+        private readonly commands: CommandBus
+    ) {}
+
+    readCandidate(context: ProjectTaskContext, taskId: string) {
+        return this.commands.execute(new ReadProjectTaskCandidateCommand(context, taskId))
+    }
 
     readAcceptance(context: ProjectTaskContext, taskId: string) {
         return this.commands.execute(new ReadProjectTaskAcceptanceCommand(context, taskId))
     }
-    graph(context: ProjectTaskContext) { return this.tasks.graph(context) }
-    refresh(context: ProjectTaskContext) { return this.tasks.refresh(context) }
-    change(context: ProjectTaskContext, input: ProjectTaskGraphChange) { return this.tasks.change(context, input) }
+    graph(context: ProjectTaskContext) {
+        return this.tasks.graph(context)
+    }
+    refresh(context: ProjectTaskContext) {
+        return this.tasks.refresh(context)
+    }
+    change(context: ProjectTaskContext, input: ProjectTaskGraphChange) {
+        return this.tasks.change(context, input)
+    }
     resolveExecution(context: ProjectTaskContext, taskExecutionId: string) {
         return this.tasks.resolveExecution(context, taskExecutionId)
     }

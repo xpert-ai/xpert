@@ -23,6 +23,7 @@ import { ProjectTasksRuntimeService } from '../../runtime/project-tasks-runtime.
 import { XpertProjectAccessService } from '../../services/project-access.service'
 import { ProjectTaskGraphService } from '../../services/project-task-graph.service'
 import { ReadProjectTaskAcceptanceHandler } from './read-project-task-acceptance.handler'
+import { ReadProjectTaskCandidateHandler } from './read-project-task-candidate.handler'
 
 const scopeColumns = {
     id: { type: 'varchar' as const, primary: true },
@@ -124,17 +125,15 @@ async function fixture() {
         steps: []
     })
     const snapshot = taskSpecification(task)
-    const attempt = db
-        .getRepository(XpertProjectTaskExecution)
-        .create({
-            ...scope,
-            id: randomUUID(),
-            taskId: task.id,
-            invocationId: randomUUID(),
-            attempt: 1,
-            purpose: { type: 'implementation' },
-            specificationSnapshot: snapshot
-        })
+    const attempt = db.getRepository(XpertProjectTaskExecution).create({
+        ...scope,
+        id: randomUUID(),
+        taskId: task.id,
+        invocationId: randomUUID(),
+        attempt: 1,
+        purpose: { type: 'implementation' },
+        specificationSnapshot: snapshot
+    })
     const invocation: AgentInvocation = {
         id: attempt.invocationId,
         revision: 2,
@@ -218,6 +217,7 @@ async function fixture() {
         imports: [CqrsModule.forRoot()],
         providers: [
             ReadProjectTaskAcceptanceHandler,
+            ReadProjectTaskCandidateHandler,
             ProjectTasksRuntimeService,
             { provide: getRepositoryToken(XpertProjectTask), useValue: tasks },
             { provide: XpertProjectAccessService, useValue: access },
@@ -243,17 +243,15 @@ async function fixture() {
             evidence: decision.evidence,
             ...(mode === 'execution' ? { candidatePaths: ['report'] } : {})
         }
-        const review = db
-            .getRepository(XpertProjectTaskExecution)
-            .create({
-                ...scope,
-                id: randomUUID(),
-                taskId: task.id,
-                attempt: 2,
-                invocationId: randomUUID(),
-                purpose,
-                specificationSnapshot: snapshot
-            })
+        const review = db.getRepository(XpertProjectTaskExecution).create({
+            ...scope,
+            id: randomUUID(),
+            taskId: task.id,
+            attempt: 2,
+            invocationId: randomUUID(),
+            purpose,
+            specificationSnapshot: snapshot
+        })
         const report = `# Review\n${verdict}. Report inspected; mode: ${mode}.`
         const reviewInvocation: AgentInvocation = {
             ...invocation,
@@ -316,6 +314,35 @@ describe('ProjectTasksApi.readAcceptance', () => {
         await f?.db.destroy()
         jest.restoreAllMocks()
     })
+
+    it('reads completed implementation output before acceptance without reconciliation', async () => {
+        await f.tasks.update(f.task.id, { status: 'review', decisions: [] })
+        expect(await f.api.readCandidate!(f.context, f.task.id)).toEqual({
+            projectId: f.context.projectId,
+            taskId: f.task.id,
+            taskRevision: 3,
+            conversationId: f.invocation.scope.conversationId,
+            executionId: f.attempt.id,
+            artifacts: []
+        })
+        expect(await f.read()).toBeNull()
+        expect(f.unusedGraphOperation).not.toHaveBeenCalled()
+        expect((await f.tasks.findOneByOrFail({ id: f.task.id })).status).toBe('review')
+    })
+
+    it.each(['scope', 'dispatch', 'running', 'specification', 'summary'] as const)(
+        'rejects invalid candidate %s',
+        async (change) => {
+            if (change === 'scope') jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(randomUUID())
+            if (change === 'dispatch') f.invocation.request.dispatch!.projectTask!.projectTaskId = randomUUID()
+            if (change === 'running') f.invocation.status = 'running'
+            if (change === 'specification') await f.tasks.update(f.task.id, { title: 'Changed task' })
+            if (change === 'summary') await f.tasks.update(f.task.id, { kind: 'summary' })
+            await f.saveInvocation(f.invocation)
+            await expect(f.api.readCandidate!(f.context, f.task.id)).rejects.toThrow()
+            expect(f.unusedGraphOperation).not.toHaveBeenCalled()
+        }
+    )
 
     it('reads a minimal current receipt through the registered internal command without dispatching work', async () => {
         expect(await f.read()).toEqual({
@@ -411,15 +438,13 @@ describe('ProjectTasksApi.readAcceptance', () => {
             await f.tasks.save(f.task)
             f.invocation.result.artifacts = state === 'missing_from_result' ? [] : [{ id: artifactId, versionId }]
             await f.saveInvocation(f.invocation)
-            await f.db
-                .getRepository(Artifact)
-                .save({
-                    ...f.scope,
-                    id: artifactId,
-                    status: 'active',
-                    userId: state === 'other_owner' ? randomUUID() : f.actor.userId,
-                    currentVersionId: state === 'version_changed' ? randomUUID() : versionId
-                })
+            await f.db.getRepository(Artifact).save({
+                ...f.scope,
+                id: artifactId,
+                status: 'active',
+                userId: state === 'other_owner' ? randomUUID() : f.actor.userId,
+                currentVersionId: state === 'version_changed' ? randomUUID() : versionId
+            })
             if (state === 'current') expect((await f.read()).artifacts).toEqual([{ artifactId, versionId }])
             else await expect(f.read()).rejects.toThrow()
         }
