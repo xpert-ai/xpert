@@ -1,4 +1,4 @@
-<section xpDialogLayout="wide" xpDialogPurpose="workflow" class="h-full flex-row">
+<section xpDialogLayout="wide" xpDialogCompactControls class="h-full flex-row">
   <aside
     class="hidden w-56 shrink-0 flex-col border-r border-divider-regular bg-background-default-subtle p-3 sm:flex lg:w-60"
   >
@@ -18,32 +18,35 @@
         </div>
       </div>
     </header>
-    <div class="relative">
+    <div class="relative shrink-0">
       <i
-        class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+        class="ri-search-line pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary"
         aria-hidden="true"
       ></i
       ><input
         z-input
         type="search"
-        class="w-full pl-9"
+        class="w-full ps-9!"
         [ngModel]="query()"
         (ngModelChange)="query.set($event)"
         [placeholder]="'XP.XpertSettings.Search' | translate"
         [attr.aria-label]="'XP.XpertSettings.Search' | translate"
       />
     </div>
-    <nav class="mt-3 min-h-0 flex-1 overflow-y-auto" [attr.aria-label]="'XP.XpertSettings.Navigation' | translate">
+    <nav
+      class="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto"
+      [attr.aria-label]="'XP.XpertSettings.Navigation' | translate"
+    >
       @for (group of groups; track group) {
         @if (groupSections(group).length) {
-          <div class="mb-2">
-            <h3 class="mb-1 px-2 text-sm font-medium text-text-tertiary">
+          <div class="flex flex-col gap-0.5">
+            <h3 class="mb-1 px-4 text-sm font-medium text-text-tertiary">
               {{ 'XP.XpertSettings.Groups.' + group | translate }}
             </h3>
             @for (section of groupSections(group); track section.key) {
               <button
                 type="button"
-                class="flex min-h-8 w-full items-center gap-2.5 rounded-[var(--assistant-settings-item-radius)] px-2.5 py-0.5 text-left text-base leading-6 transition-colors focus-visible:outline-2 focus-visible:outline-primary"
+                class="flex min-h-[32px] w-full items-center gap-2.5 rounded-[var(--assistant-settings-item-radius)] px-4 py-1 text-start text-base leading-6 transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary pointer-coarse:min-h-[44px]"
                 [class]="
                   editor.section() === section.key
                     ? 'bg-hover-bg font-semibold text-text-primary'
@@ -74,7 +77,7 @@
     </nav>
   </aside>
   <main class="flex min-w-0 flex-1 flex-col">
-    <header xpDialogHeader class="border-b border-divider-regular">
+    <header xpDialogHeader class="border-b border-divider-regular sm:flex-row sm:items-center">
       <div class="min-w-0 flex-1">
         <div class="mb-2 flex items-center gap-3 sm:hidden">
           <z-select
@@ -198,18 +201,6 @@
       }
     </div>
     <footer xpDialogFooter class="block">
-      @if (editor.confirmDiscard()) {
-        <div class="mb-4 space-y-3 rounded-lg bg-background-default-subtle p-3" role="alert">
-          <p class="text-sm">{{ 'XP.XpertSettings.DiscardUnapplied' | translate }}</p>
-          <div class="flex flex-wrap justify-end gap-2">
-            <button z-button zType="outline" (click)="continueEditing()">
-              {{ 'XP.XpertSettings.KeepEditing' | translate }}</button
-            ><button z-button zType="outline" [zDisabled]="editor.closing()" (click)="close(true)">
-              {{ 'XP.XpertSettings.DiscardInvalid' | translate }}
-            </button>
-          </div>
-        </div>
-      }
       @if (source.error() || editor.saveError()) {
         <p class="mb-3 break-words text-base text-text-destructive" role="alert">
           {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() || editor.saveError() }}

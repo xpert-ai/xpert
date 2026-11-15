@@ -18,8 +18,8 @@ import { lucideLoaderCircle } from '@ng-icons/lucide'
 import type { ClassValue } from 'clsx'
 
 import { mergeClasses } from '../../utils/merge-classes'
-import { dialogActionVariants } from './dialog-action.variants'
-import { XP_DIALOG_ACTION_CONTEXT } from '../dialog/dialog-context'
+import { compactDialogTextButtonClasses, dialogActionVariants } from './dialog-action.variants'
+import { XP_DIALOG_ACTION_CONTEXT, XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
 
 import {
   buttonVariants,
@@ -69,6 +69,7 @@ import {
 export class ZardButtonComponent implements OnDestroy {
   private readonly elementRef = inject(ElementRef<HTMLElement>)
   private readonly dialogActions = inject(XP_DIALOG_ACTION_CONTEXT, { optional: true })
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
 
   readonly zType = input<ZardButtonTypeVariants>('default')
   readonly zSize = input<ZardButtonSizeVariants>('default')
@@ -141,6 +142,9 @@ export class ZardButtonComponent implements OnDestroy {
       this.class(),
       this.dialogActionRole()
         ? dialogActionVariants({ purpose: this.dialogActions?.purpose(), icon: this.zSize().startsWith('icon') })
+        : '',
+      this.dialog?.compactControls?.() && this.zSize() === 'default' && !this.iconOnly()
+        ? compactDialogTextButtonClasses
         : ''
     )
   )

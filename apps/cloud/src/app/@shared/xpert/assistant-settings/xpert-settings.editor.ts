@@ -24,7 +24,6 @@ export class XpertSettingsEditor {
   readonly section = signal<XpertSettingsSection>(this.data.section === 'runtime' ? 'capabilities' : this.data.section)
   readonly revision = signal(0)
   readonly closing = signal(false)
-  readonly confirmDiscard = signal(false)
   readonly publishing = signal(false)
   readonly savingDraft = signal(false)
   readonly saveError = signal<string | null>(null)
@@ -49,7 +48,6 @@ export class XpertSettingsEditor {
     for (const { key } of XPERT_DRAFT_SETTINGS_SECTIONS) {
       const changes: Observable<unknown> = this.form.controls[key].valueChanges
       changes.pipe(takeUntilDestroyed()).subscribe(() => {
-        this.confirmDiscard.set(false)
         this.revision.update((value) => value + 1)
         const next = this.form.getRawValue()
         if (this.form.controls[key].invalid || isEqual(this.applied[key], next[key])) return
@@ -72,7 +70,6 @@ export class XpertSettingsEditor {
     }
     this.section.set(next)
     this.data.selectSection(next)
-    this.confirmDiscard.set(false)
   }
 
   setText(control: FormControl<string>, value: string) {

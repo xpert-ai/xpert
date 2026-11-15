@@ -5,6 +5,7 @@ export type XpDialogActionRole = 'header' | 'inline' | 'footer'
 
 export interface XpDialogContext {
   purpose: Signal<XpDialogPurpose>
+  compactControls?: Signal<boolean>
 }
 
 export interface XpDialogActionContext extends XpDialogContext {

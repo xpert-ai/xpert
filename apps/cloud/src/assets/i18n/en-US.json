@@ -836,7 +836,7 @@
         "video": "Video",
         "others": "Other files"
       },
-      "DiscardUnapplied": "You have unsaved changes. Continue editing, or discard them and close.",
+      "DiscardUnapplied": "Closing settings will discard your unsaved changes.",
       "StatisticsHint": "Daily message activity covers your conversations with this assistant.",
       "Delegation": {
         "AssignedExperts": "Assigned external experts",

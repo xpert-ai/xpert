@@ -4,6 +4,9 @@ import { cva } from 'class-variance-authority'
 // Cloud uses a 14px root font; pixel tokens keep targets independent of page density.
 const standardActionHeight = 'h-[36px] min-h-[36px]'
 
+export const compactDialogTextButtonClasses =
+  'h-auto min-h-[30px] whitespace-normal py-1 pointer-coarse:h-auto pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]'
+
 export const dialogActionVariants = cva(
   'relative rounded-[8px] gap-[6px] text-[14px] leading-[20px] [&_z-icon]:size-[16px] [&_ng-icon]:size-[16px] [&_svg]:size-[16px] [&_i]:text-[16px] [&_i]:leading-none pointer-coarse:h-[44px] pointer-coarse:min-h-[44px]',
   {

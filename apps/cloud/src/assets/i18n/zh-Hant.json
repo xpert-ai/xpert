@@ -463,7 +463,7 @@
       "SandboxError": "开启沙盒前请选择供应商。",
       "ValidationError": "当前分类有未完成或无效的修改，尚未保存。请检查字段内容及允许范围。",
       "DiscardPrompt": "部分修改尚未完成或未通过校验。可以继续编辑，或关闭并放弃这些无效修改；有效修改仍会保存到草稿。",
-      "KeepEditing": "继续编辑",
+      "KeepEditing": "繼續編輯",
       "DiscardInvalid": "放棄修改並關閉",
       "SaveFailed": "草稿保存失败",
       "Saving": "正在保存…",
@@ -557,7 +557,7 @@
         "video": "视频",
         "others": "其他文件"
       },
-      "DiscardUnapplied": "尚有未儲存的修改。你可以繼續編輯，或放棄這些修改並關閉。",
+      "DiscardUnapplied": "關閉後，本次未儲存的設定將會遺失。",
       "StatisticsHint": "每日消息活动仅统计当前用户与此助手的对话。",
       "Delegation": {
         "AssignedExperts": "已分配的外部專家",

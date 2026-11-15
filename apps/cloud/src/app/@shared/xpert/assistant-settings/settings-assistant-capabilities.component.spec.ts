@@ -68,7 +68,6 @@ function fixture() {
     source,
     form,
     revision,
-    confirmDiscard: signal(false),
     composing: signal(false),
     publishing: signal(false),
     select: jest.fn(),

@@ -1,4 +1,5 @@
 import {
+  ZardAlertDialogService,
   ZardButtonComponent,
   XpDialogFrameImports,
   ZardInputDirective,
@@ -6,7 +7,17 @@ import {
   ZardSelectValue
 } from '@xpert-ai/headless-ui'
 import { DialogRef } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  ViewContainerRef,
+  computed,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
@@ -70,6 +81,10 @@ export class XpertSettingsDialogComponent {
   readonly editor = inject(XpertSettingsEditor)
   readonly source = this.editor.source
   private readonly ref = inject(DialogRef)
+  private readonly alerts = inject(ZardAlertDialogService)
+  private readonly viewContainerRef = inject(ViewContainerRef)
+  private readonly destroyRef = inject(DestroyRef)
+  private confirmingDiscard = false
   private readonly translate = inject(TranslateService)
   private readonly language = toSignal(this.translate.onLangChange)
   readonly content = viewChild<ElementRef<HTMLElement>>('content')
@@ -112,13 +127,11 @@ export class XpertSettingsDialogComponent {
   readonly invalid = computed(() => this.editor.invalidSections().includes(this.editor.section()))
 
   constructor() {
-    this.ref.backdropClick.pipe(takeUntilDestroyed()).subscribe(() => {
-      void this.close()
-    })
+    this.ref.backdropClick.pipe(takeUntilDestroyed()).subscribe(() => this.close())
     this.ref.keydownEvents.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        void this.close()
+        this.close()
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault()
@@ -175,12 +188,9 @@ export class XpertSettingsDialogComponent {
     if (this.editor.draftOnly) await this.editor.saveDraft(prepare)
     else await this.editor.saveAndPublish(prepare)
   }
-  continueEditing() {
-    this.editor.confirmDiscard.set(false)
-    this.select(this.editor.invalidSections()[0] ?? this.pendingSections()[0] ?? this.editor.section())
-  }
-  async close(discardInvalid = false) {
+  close() {
     if (
+      this.confirmingDiscard ||
       this.editor.closing() ||
       this.source.saving() ||
       this.editor.publishing() ||
@@ -189,15 +199,31 @@ export class XpertSettingsDialogComponent {
       this.personalization()?.saving()
     )
       return
-    if (
-      (this.source.unsaved() || this.editor.invalidSections().length || this.pendingSections().length) &&
-      !discardInvalid
-    ) {
-      this.editor.confirmDiscard.set(true)
+    if (this.source.unsaved() || this.editor.invalidSections().length || this.pendingSections().length) {
+      this.confirmingDiscard = true
+      this.alerts
+        .confirm({
+          title: this.translate.instant('XP.AssistantSettings.UnsavedChanges'),
+          description: this.translate.instant('XP.XpertSettings.DiscardUnapplied'),
+          cancelText: this.translate.instant('XP.XpertSettings.KeepEditing'),
+          actionText: this.translate.instant('XP.XpertSettings.DiscardInvalid'),
+          destructive: true,
+          viewContainerRef: this.viewContainerRef
+        })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((discard) => {
+          this.confirmingDiscard = false
+          if (discard) {
+            this.source.discard?.()
+            this.finishClose()
+          }
+        })
       return
     }
+    this.finishClose()
+  }
+  private finishClose() {
     this.editor.closing.set(true)
-    if (discardInvalid) this.source.discard?.()
     this.ref.close(this.source.draft())
   }
 }

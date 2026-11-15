@@ -20,7 +20,7 @@ import { provideZard } from '../../core/provider/providezard'
     ...ZardSelectImports
   ],
   template: `
-    <section xpDialogLayout="wide" [xpDialogPurpose]="purpose()">
+    <section xpDialogLayout="wide" [xpDialogPurpose]="purpose()" [xpDialogCompactControls]="compact()">
       <header xpDialogHeader>
         <h2 xpDialogHeading>Profile</h2>
         <p xpDialogDescription>Update your profile.</p>
@@ -33,6 +33,7 @@ import { provideZard } from '../../core/provider/providezard'
           <button z-button (click)="clicks.set(clicks() + 1)">Add</button>
         </div>
         <textarea z-input aria-label="Notes"></textarea>
+        <input z-input type="search" aria-label="Filter sections" />
         <z-select [zMultiple]="true"><z-select-item zValue="editor">Editor</z-select-item></z-select>
       </div>
       <footer xpDialogFooter>
@@ -51,6 +52,7 @@ import { provideZard } from '../../core/provider/providezard'
 })
 class DialogFrameHost {
   readonly purpose = signal<XpDialogPurpose>('standard')
+  readonly compact = signal(false)
   readonly busy = signal(false)
   readonly clicks = signal(0)
 }
@@ -168,6 +170,20 @@ describe('shared Dialog layout', () => {
     expect(host.querySelectorAll('z-select button')[2].classList.contains('h-[36px]')).toBe(false)
     row.querySelector<HTMLButtonElement>('button[z-button]')!.click()
     expect(fixture.componentInstance.clicks()).toBe(1)
+  })
+
+  it('compacts text actions and search within the opted-in dialog while preserving icon and field targets', () => {
+    const fixture = TestBed.createComponent(DialogFrameHost)
+    fixture.componentInstance.compact.set(true)
+    fixture.detectChanges()
+    const host: HTMLElement = fixture.nativeElement
+    const button = host.querySelector('footer button')!
+    expect(button.classList.contains('h-auto')).toBe(true)
+    expect(button.classList.contains('pointer-coarse:min-h-[44px]')).toBe(true)
+    expect(host.querySelector('input[type="search"]')!.classList.contains('h-[30px]')).toBe(true)
+    expect(host.querySelector('input[aria-label="Name"]')!.classList.contains('h-[36px]')).toBe(true)
+    expect(host.querySelector('[xpDialogCloseButton]')!.classList.contains('h-[36px]')).toBe(true)
+    expect(host.querySelector('section section footer button')!.classList.contains('h-[36px]')).toBe(true)
   })
 
   it('applies workflow emphasis to the whole footer while header, inline and nested Dialog actions remain normal', () => {
