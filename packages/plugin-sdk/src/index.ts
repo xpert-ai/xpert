@@ -40,3 +40,4 @@ export * from './lib/project-pipeline'
 export * from './lib/agent-plugin/import-default-agent-plugins.command'
 
 export * from './lib/execution-control'
+export * from './lib/agent-event'

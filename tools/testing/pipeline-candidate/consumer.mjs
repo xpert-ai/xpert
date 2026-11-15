@@ -51,7 +51,8 @@ for (const name of ['contracts', 'plugin-sdk']) {
 `
 fs.writeFileSync(`${consumer}/runtime.mjs`, checks)
 execFileSync(process.execPath, [`${consumer}/runtime.mjs`], { stdio: 'inherit' })
-fs.copyFileSync('packages/plugin-sdk/testing/pipeline-declarations.consumer.ts', `${consumer}/consumer.ts`)
+const fixtures = ['pipeline-declarations.consumer.ts', 'event-inbox-declarations.consumer.ts']
+for (const file of fixtures) fs.copyFileSync(path.join('packages/plugin-sdk/testing', file), path.join(consumer, file))
 for (const [module, moduleResolution] of [
   ['commonjs', 'node'],
   ['NodeNext', 'NodeNext'],
@@ -70,7 +71,7 @@ for (const [module, moduleResolution] of [
         moduleResolution,
         types: []
       },
-      files: ['./consumer.ts']
+      files: fixtures
     })
   )
   execFileSync(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', config], { stdio: 'inherit' })
