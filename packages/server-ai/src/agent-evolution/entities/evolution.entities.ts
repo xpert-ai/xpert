@@ -1,37 +1,32 @@
+import { ExecutionReviewEntity } from './execution-review.entity'
 import type {
-    StoredEvolutionProposal,
-    StoredEvaluationRun,
-    StoredReleasePackage,
-    ActiveCapabilityPointer,
-    ApprovalDecision,
-    CapabilityVersion,
-    CapabilityVersionBundle,
-    DatasetSnapshot,
-    EvaluationRun,
-    EvolutionAuditEvent,
-    EvolutionCanaryTestOverride,
-    EvolutionCandidate,
-    EvolutionReleaseStatus,
-    EvolutionJob,
-    EvolutionJobStatus,
-    EvolutionJobType,
-    EvolutionRuntimeObservation,
-    EvolutionDiagnosis,
-    EvolutionEventCluster,
-    EvolutionExperience,
-    EvolutionScopeType,
-    EvolutionTargetDescriptor,
-    ImprovementProposal,
-    LearningEvent,
-    ReleaseDeployment,
-    ReleasePackage
+    IEvolutionScopedEntity,
+    IEvolutionTarget,
+    ICapabilityVersion,
+    ICapabilityVersionBundle,
+    IActiveCapabilityPointer,
+    ILearningEvent,
+    IEvolutionDiagnosis,
+    IEvolutionEventCluster,
+    IEvolutionExperience,
+    IImprovementProposal,
+    IEvolutionCandidate,
+    IDatasetSnapshot,
+    IEvaluationRun,
+    IApprovalDecision,
+    IReleasePackage,
+    IReleaseDeployment,
+    IEvolutionCanaryTestOverride,
+    IEvolutionAuditEvent,
+    IEvolutionRuntimeObservation,
+    IEvolutionJob
 } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index } from 'typeorm'
 
-abstract class EvolutionScopedEntity extends TenantOrganizationBaseEntity {
+abstract class EvolutionScopedEntity extends TenantOrganizationBaseEntity implements IEvolutionScopedEntity {
     @Column({ type: 'varchar' })
-    scopeType: EvolutionScopeType
+    scopeType: IEvolutionScopedEntity['scopeType']
 
     @Column({ type: 'varchar' })
     scopeKey: string
@@ -39,7 +34,7 @@ abstract class EvolutionScopedEntity extends TenantOrganizationBaseEntity {
 
 @Entity('agent_evolution_target')
 @Index(['tenantId', 'organizationId', 'targetId'], { unique: true })
-export class EvolutionTargetEntity extends TenantOrganizationBaseEntity {
+export class EvolutionTargetEntity extends TenantOrganizationBaseEntity implements IEvolutionTarget {
     @Column({ type: 'varchar' })
     targetId: string
 
@@ -47,16 +42,16 @@ export class EvolutionTargetEntity extends TenantOrganizationBaseEntity {
     providerKey: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionTargetDescriptor['status']
+    status: IEvolutionTarget['status']
 
     @Column({ type: 'json' })
-    descriptor: EvolutionTargetDescriptor
+    descriptor: IEvolutionTarget['descriptor']
 }
 
 @Entity('agent_evolution_capability_version')
 @Index(['tenantId', 'organizationId', 'versionId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'sequence'], { unique: true })
-export class CapabilityVersionEntity extends TenantOrganizationBaseEntity {
+export class CapabilityVersionEntity extends TenantOrganizationBaseEntity implements ICapabilityVersion {
     @Column({ type: 'varchar' })
     versionId: string
 
@@ -73,13 +68,13 @@ export class CapabilityVersionEntity extends TenantOrganizationBaseEntity {
     sourceCandidateId?: string | null
 
     @Column({ type: 'json' })
-    value: CapabilityVersion
+    value: ICapabilityVersion['value']
 }
 
 @Entity('agent_evolution_capability_bundle')
 @Index(['tenantId', 'organizationId', 'bundleId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'bundleHash'])
-export class CapabilityVersionBundleEntity extends TenantOrganizationBaseEntity {
+export class CapabilityVersionBundleEntity extends TenantOrganizationBaseEntity implements ICapabilityVersionBundle {
     @Column({ type: 'varchar' })
     bundleId: string
 
@@ -87,12 +82,12 @@ export class CapabilityVersionBundleEntity extends TenantOrganizationBaseEntity 
     bundleHash: string
 
     @Column({ type: 'json' })
-    value: CapabilityVersionBundle
+    value: ICapabilityVersionBundle['value']
 }
 
 @Entity('agent_evolution_active_pointer')
 @Index(['tenantId', 'organizationId', 'targetId', 'scopeType', 'scopeKey', 'channel'], { unique: true })
-export class ActiveCapabilityPointerEntity extends EvolutionScopedEntity {
+export class ActiveCapabilityPointerEntity extends EvolutionScopedEntity implements IActiveCapabilityPointer {
     @Column({ type: 'varchar' })
     pointerId: string
 
@@ -100,7 +95,7 @@ export class ActiveCapabilityPointerEntity extends EvolutionScopedEntity {
     targetId: string
 
     @Column({ type: 'varchar' })
-    channel: ActiveCapabilityPointer['channel']
+    channel: IActiveCapabilityPointer['channel']
 
     @Column({ type: 'varchar' })
     activeVersionId: string
@@ -109,13 +104,13 @@ export class ActiveCapabilityPointerEntity extends EvolutionScopedEntity {
     revision: number
 
     @Column({ type: 'json' })
-    value: ActiveCapabilityPointer
+    value: IActiveCapabilityPointer['value']
 }
 
 @Entity('agent_evolution_learning_event')
 @Index(['tenantId', 'organizationId', 'idempotencyKey'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'scopeType', 'scopeKey'])
-export class LearningEventEntity extends EvolutionScopedEntity {
+export class LearningEventEntity extends EvolutionScopedEntity implements ILearningEvent {
     @Column({ type: 'varchar' })
     eventId: string
 
@@ -129,13 +124,13 @@ export class LearningEventEntity extends EvolutionScopedEntity {
     bundleHash: string
 
     @Column({ type: 'json' })
-    value: LearningEvent
+    value: ILearningEvent['value']
 }
 
 @Entity('agent_evolution_diagnosis')
 @Index(['tenantId', 'organizationId', 'diagnosisId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'scopeKey'])
-export class EvolutionDiagnosisEntity extends EvolutionScopedEntity {
+export class EvolutionDiagnosisEntity extends EvolutionScopedEntity implements IEvolutionDiagnosis {
     @Column({ type: 'varchar' })
     diagnosisId: string
 
@@ -146,13 +141,13 @@ export class EvolutionDiagnosisEntity extends EvolutionScopedEntity {
     correctionSignature: string
 
     @Column({ type: 'json' })
-    value: EvolutionDiagnosis
+    value: IEvolutionDiagnosis['value']
 }
 
 @Entity('agent_evolution_event_cluster')
 @Index(['tenantId', 'organizationId', 'clusterId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'scopeKey', 'correctionSignature'])
-export class EvolutionEventClusterEntity extends EvolutionScopedEntity {
+export class EvolutionEventClusterEntity extends EvolutionScopedEntity implements IEvolutionEventCluster {
     @Column({ type: 'varchar' })
     clusterId: string
 
@@ -163,16 +158,16 @@ export class EvolutionEventClusterEntity extends EvolutionScopedEntity {
     correctionSignature: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionEventCluster['status']
+    status: IEvolutionEventCluster['status']
 
     @Column({ type: 'json' })
-    value: EvolutionEventCluster
+    value: IEvolutionEventCluster['value']
 }
 
 @Entity('agent_evolution_experience')
 @Index(['tenantId', 'organizationId', 'experienceId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'scopeKey', 'status'])
-export class EvolutionExperienceEntity extends EvolutionScopedEntity {
+export class EvolutionExperienceEntity extends EvolutionScopedEntity implements IEvolutionExperience {
     @Column({ type: 'varchar' })
     experienceId: string
 
@@ -183,16 +178,16 @@ export class EvolutionExperienceEntity extends EvolutionScopedEntity {
     sourceReleasePackageId: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionExperience['status']
+    status: IEvolutionExperience['status']
 
     @Column({ type: 'json' })
-    value: EvolutionExperience
+    value: IEvolutionExperience['value']
 }
 
 @Entity('agent_evolution_proposal')
 @Index('UX_evolution_proposal_request', ['tenantId', 'organizationId', 'targetId', 'requestId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'proposalId', 'revision'], { unique: true })
-export class ImprovementProposalEntity extends EvolutionScopedEntity {
+export class ImprovementProposalEntity extends EvolutionScopedEntity implements IImprovementProposal {
     @Column({ type: 'varchar', nullable: true })
     requestId?: string | null
 
@@ -206,16 +201,16 @@ export class ImprovementProposalEntity extends EvolutionScopedEntity {
     targetId: string
 
     @Column({ type: 'varchar' })
-    status: ImprovementProposal['status']
+    status: IImprovementProposal['status']
 
     @Column({ type: 'json' })
-    value: StoredEvolutionProposal
+    value: IImprovementProposal['value']
 }
 
 @Entity('agent_evolution_candidate')
 @Index(['tenantId', 'organizationId', 'candidateId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'artifactHash'])
-export class EvolutionCandidateEntity extends EvolutionScopedEntity {
+export class EvolutionCandidateEntity extends EvolutionScopedEntity implements IEvolutionCandidate {
     @Column({ type: 'varchar' })
     candidateId: string
 
@@ -226,15 +221,15 @@ export class EvolutionCandidateEntity extends EvolutionScopedEntity {
     artifactHash: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionCandidate['status']
+    status: IEvolutionCandidate['status']
 
     @Column({ type: 'json' })
-    value: EvolutionCandidate
+    value: IEvolutionCandidate['value']
 }
 
 @Entity('agent_evolution_dataset_snapshot')
 @Index(['tenantId', 'organizationId', 'snapshotId'], { unique: true })
-export class DatasetSnapshotEntity extends TenantOrganizationBaseEntity {
+export class DatasetSnapshotEntity extends TenantOrganizationBaseEntity implements IDatasetSnapshot {
     @Column({ type: 'varchar' })
     snapshotId: string
 
@@ -245,13 +240,13 @@ export class DatasetSnapshotEntity extends TenantOrganizationBaseEntity {
     snapshotHash: string
 
     @Column({ type: 'json' })
-    value: DatasetSnapshot
+    value: IDatasetSnapshot['value']
 }
 
 @Entity('agent_evolution_evaluation_run')
 @Index(['tenantId', 'organizationId', 'runId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'candidateId'])
-export class EvaluationRunEntity extends TenantOrganizationBaseEntity {
+export class EvaluationRunEntity extends TenantOrganizationBaseEntity implements IEvaluationRun {
     @Column({ type: 'varchar' })
     runId: string
 
@@ -259,18 +254,18 @@ export class EvaluationRunEntity extends TenantOrganizationBaseEntity {
     candidateId: string
 
     @Column({ type: 'varchar' })
-    status: EvaluationRun['status']
+    status: IEvaluationRun['status']
 
     @Column({ type: 'boolean' })
     gatePassed: boolean
 
     @Column({ type: 'json' })
-    value: StoredEvaluationRun
+    value: IEvaluationRun['value']
 }
 
 @Entity('agent_evolution_approval')
 @Index(['tenantId', 'organizationId', 'approvalId'], { unique: true })
-export class ApprovalDecisionEntity extends EvolutionScopedEntity {
+export class ApprovalDecisionEntity extends EvolutionScopedEntity implements IApprovalDecision {
     @Column({ type: 'varchar' })
     approvalId: string
 
@@ -281,15 +276,15 @@ export class ApprovalDecisionEntity extends EvolutionScopedEntity {
     candidateHash: string
 
     @Column({ type: 'varchar' })
-    decision: ApprovalDecision['decision']
+    decision: IApprovalDecision['decision']
 
     @Column({ type: 'json' })
-    value: ApprovalDecision
+    value: IApprovalDecision['value']
 }
 
 @Entity('agent_evolution_release_package')
 @Index(['tenantId', 'organizationId', 'releasePackageId'], { unique: true })
-export class ReleasePackageEntity extends EvolutionScopedEntity {
+export class ReleasePackageEntity extends EvolutionScopedEntity implements IReleasePackage {
     @Column({ type: 'varchar' })
     releasePackageId: string
 
@@ -300,15 +295,15 @@ export class ReleasePackageEntity extends EvolutionScopedEntity {
     targetId: string
 
     @Column({ type: 'varchar' })
-    status: StoredReleasePackage['status']
+    status: IReleasePackage['status']
 
     @Column({ type: 'json' })
-    value: StoredReleasePackage
+    value: IReleasePackage['value']
 }
 
 @Entity('agent_evolution_release_deployment')
 @Index(['tenantId', 'organizationId', 'deploymentId'], { unique: true })
-export class ReleaseDeploymentEntity extends EvolutionScopedEntity {
+export class ReleaseDeploymentEntity extends EvolutionScopedEntity implements IReleaseDeployment {
     @Column({ type: 'varchar' })
     deploymentId: string
 
@@ -316,20 +311,20 @@ export class ReleaseDeploymentEntity extends EvolutionScopedEntity {
     releasePackageId: string
 
     @Column({ type: 'varchar' })
-    channel: ReleaseDeployment['channel']
+    channel: IReleaseDeployment['channel']
 
     @Column({ type: 'varchar' })
-    status: EvolutionReleaseStatus
+    status: IReleaseDeployment['status']
 
     @Column({ type: 'json' })
-    value: ReleaseDeployment
+    value: IReleaseDeployment['value']
 }
 
 @Entity('agent_evolution_canary_test_override')
 @Index(['tenantId', 'organizationId', 'overrideId'], { unique: true })
 @Index(['activeKey'], { unique: true })
 @Index(['tenantId', 'organizationId', 'releasePackageId', 'status'])
-export class EvolutionCanaryTestOverrideEntity extends EvolutionScopedEntity {
+export class EvolutionCanaryTestOverrideEntity extends EvolutionScopedEntity implements IEvolutionCanaryTestOverride {
     @Column({ type: 'varchar' })
     overrideId: string
 
@@ -353,19 +348,19 @@ export class EvolutionCanaryTestOverrideEntity extends EvolutionScopedEntity {
     activeKey?: string | null
 
     @Column({ type: 'varchar' })
-    status: EvolutionCanaryTestOverride['status']
+    status: IEvolutionCanaryTestOverride['status']
 
     @Column({ type: 'timestamptz' })
     expiresAt: Date
 
     @Column({ type: 'json' })
-    value: EvolutionCanaryTestOverride
+    value: IEvolutionCanaryTestOverride['value']
 }
 
 @Entity('agent_evolution_audit_event')
 @Index(['tenantId', 'organizationId', 'auditId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'releasePackageId'])
-export class EvolutionAuditEventEntity extends TenantOrganizationBaseEntity {
+export class EvolutionAuditEventEntity extends TenantOrganizationBaseEntity implements IEvolutionAuditEvent {
     @Column({ type: 'varchar' })
     auditId: string
 
@@ -379,13 +374,13 @@ export class EvolutionAuditEventEntity extends TenantOrganizationBaseEntity {
     action: string
 
     @Column({ type: 'json' })
-    value: EvolutionAuditEvent
+    value: IEvolutionAuditEvent['value']
 }
 
 @Entity('agent_evolution_runtime_observation')
 @Index(['tenantId', 'organizationId', 'observationId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'targetId', 'deploymentId'])
-export class EvolutionRuntimeObservationEntity extends EvolutionScopedEntity {
+export class EvolutionRuntimeObservationEntity extends EvolutionScopedEntity implements IEvolutionRuntimeObservation {
     @Column({ type: 'varchar' })
     observationId: string
 
@@ -402,30 +397,31 @@ export class EvolutionRuntimeObservationEntity extends EvolutionScopedEntity {
     severeError: boolean
 
     @Column({ type: 'json' })
-    value: EvolutionRuntimeObservation
+    value: IEvolutionRuntimeObservation['value']
 }
 
 @Entity('agent_evolution_job')
 @Index(['tenantId', 'organizationId', 'jobId'], { unique: true })
 @Index(['tenantId', 'organizationId', 'resourceId', 'jobType'])
-export class EvolutionJobEntity extends TenantOrganizationBaseEntity {
+export class EvolutionJobEntity extends TenantOrganizationBaseEntity implements IEvolutionJob {
     @Column({ type: 'varchar' })
     jobId: string
 
     @Column({ type: 'varchar' })
-    jobType: EvolutionJobType
+    jobType: IEvolutionJob['jobType']
 
     @Column({ type: 'varchar' })
     resourceId: string
 
     @Column({ type: 'varchar' })
-    status: EvolutionJobStatus
+    status: IEvolutionJob['status']
 
     @Column({ type: 'json' })
-    value: EvolutionJob
+    value: IEvolutionJob['value']
 }
 
 export const AGENT_EVOLUTION_ENTITIES = [
+    ExecutionReviewEntity,
     EvolutionTargetEntity,
     CapabilityVersionEntity,
     CapabilityVersionBundleEntity,
