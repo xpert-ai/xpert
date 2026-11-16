@@ -3,7 +3,7 @@
  * - Desired requirements and the outcome outlive expiring operation history.
  * - A failed generation stays blocked until a new generation is explicitly published.
  * - Catch-up admission checks the current outcome atomically with acquiring the active operation.
- * - Publication atomically freezes the cumulative manifest before a later change can overwrite it.
+ * - Pending publications retain their frozen manifest until terminal. Catch-up never replays an old publication.
  */
 import type { IRuntimePluginRequirement, RuntimeRestartStatus } from '@xpert-ai/contracts'
 import type { PluginGenerationChange, PluginGenerationState, RuntimeRestartRedisClient } from './runtime-restart.types'
@@ -19,8 +19,8 @@ const PUBLISH_PLUGIN_GENERATION_SCRIPT = `
 -- xpert-publish-plugin-generation
 local change = cjson.decode(ARGV[1])
 -- Check before any write: stale tabs must never replace the current desired manifest.
-if ARGV[4] ~= '' then
-  if (redis.call('get', KEYS[1]) or '0') ~= ARGV[4] then return -1 end
+if ARGV[3] ~= '' then
+  if (redis.call('get', KEYS[1]) or '0') ~= ARGV[3] then return -1 end
   for _, requirement in ipairs(change['requirements']) do
     local value = redis.call('hget', KEYS[2], cjson.encode({requirement['scopeKey'], requirement['pluginName']}))
     if not value then return -1 end
@@ -43,8 +43,8 @@ end
 local generation = redis.call('incr', KEYS[1])
 change['generation'] = generation
 local state = { generation = generation, status = 'in_progress' }
-redis.call('set', ARGV[2] .. generation .. ':change', cjson.encode(change), 'EX', tonumber(ARGV[3]))
-redis.call('set', ARGV[2] .. generation .. ':status', cjson.encode(state), 'EX', tonumber(ARGV[3]))
+redis.call('set', ARGV[2] .. generation .. ':change', cjson.encode(change))
+redis.call('set', ARGV[2] .. generation .. ':status', cjson.encode(state))
 for _, requirement in ipairs(change['requirements']) do
   redis.call('hset', KEYS[2], cjson.encode({requirement['scopeKey'], requirement['pluginName']}), cjson.encode(requirement))
 end
@@ -56,7 +56,7 @@ for i = 1, #desired, 2 do
     table.insert(requirements, cjson.decode(desired[i + 1]))
   end
 end
-redis.call('set', ARGV[2] .. generation .. ':requirements', cjson.encode(requirements), 'EX', tonumber(ARGV[3]))
+redis.call('set', ARGV[2] .. generation .. ':requirements', cjson.encode(requirements))
 if publicationKey then
   redis.call('hset', KEYS[3], publicationKey, cjson.encode({id = change['publicationId'], generation = generation}))
 end
@@ -65,7 +65,15 @@ return generation
 
 const WRITE_GENERATION_STATE_SCRIPT = `
 -- xpert-write-generation-state
-if ARGV[4] ~= '' and redis.call('get', KEYS[3]) ~= ARGV[4] then return 0 end
+local active = redis.call('get', KEYS[3])
+if ARGV[5] == 'lost-catch-up' then
+  if active then return 0 end
+  local value = redis.call('get', KEYS[1])
+  if not value then return 0 end
+  local previous = cjson.decode(value)
+  if previous['source'] ~= 'plugin-catch-up' or previous['status'] ~= 'in_progress' or
+     previous['restartId'] ~= ARGV[4] then return 0 end
+elseif ARGV[4] ~= '' and active ~= ARGV[4] then return 0 end
 local current = redis.call('hget', KEYS[2], 'generation') == ARGV[2]
 if current and redis.call('hget', KEYS[2], 'status') == 'failed' then return 0 end
 local next = cjson.decode(ARGV[1])
@@ -79,7 +87,14 @@ if next['status'] == 'awaiting_restart' then
   if previous['restartId'] or
      (previous['status'] ~= 'in_progress' and previous['status'] ~= 'awaiting_restart') then return 0 end
 end
-redis.call('set', KEYS[1], ARGV[1], 'EX', tonumber(ARGV[3]))
+redis.call('set', KEYS[1], ARGV[1])
+if next['status'] == 'completed' or next['status'] == 'failed' then
+  for _, key in ipairs({KEYS[1], KEYS[4], KEYS[5]}) do redis.call('expire', key, tonumber(ARGV[3])) end
+elseif next['source'] ~= 'plugin-catch-up' then
+  -- Adopt pending history written by an older replica while its records still exist.
+  redis.call('persist', KEYS[4])
+  redis.call('persist', KEYS[5])
+end
 if current then redis.call('hset', KEYS[2], 'status', next['status']) end
 return 1
 `
@@ -89,6 +104,8 @@ if redis.call('hget', KEYS[1], 'generation') ~= ARGV[1] or
    redis.call('hget', KEYS[1], 'status') ~= 'completed' then return 0 end
 if not redis.call('set', KEYS[2], ARGV[2], 'NX', 'PX', tonumber(ARGV[3])) then return 0 end
 redis.call('hset', KEYS[1], 'status', 'in_progress')
+redis.call('set', KEYS[3], cjson.encode({generation = tonumber(ARGV[1]), status = 'in_progress',
+  source = 'plugin-catch-up', restartId = ARGV[2]}))
 return 1
 `
 const ACTIVE_RESTART_KEY = 'xpert:system:runtime:restart:active'
@@ -106,7 +123,6 @@ export class PluginRuntimeGenerationStore {
 				arguments: [
 					JSON.stringify(change),
 					PLUGIN_GENERATION_PREFIX,
-					`${PLUGIN_GENERATION_TTL_SECONDS}`,
 					expectedGeneration === undefined ? '' : `${expectedGeneration}`
 				]
 			})
@@ -234,14 +250,25 @@ export class PluginRuntimeGenerationStore {
 	}
 
 	async writeState(state: PluginGenerationState): Promise<void> {
+		await this.updateState(state, 'normal')
+	}
+
+	private async updateState(state: PluginGenerationState, mode: 'normal' | 'lost-catch-up'): Promise<void> {
 		if (!this.redis.eval) throw new Error('Redis scripting is required for durable plugin outcomes')
 		await this.redis.eval(WRITE_GENERATION_STATE_SCRIPT, {
-			keys: [this.pluginGenerationStateKey(state.generation), DESIRED_PLUGINS_KEY, ACTIVE_RESTART_KEY],
+			keys: [
+				this.pluginGenerationStateKey(state.generation),
+				DESIRED_PLUGINS_KEY,
+				ACTIVE_RESTART_KEY,
+				this.pluginChangeKey(state.generation),
+				`${PLUGIN_GENERATION_PREFIX}${state.generation}:requirements`
+			],
 			arguments: [
 				JSON.stringify(state),
 				`${state.generation}`,
 				`${PLUGIN_GENERATION_TTL_SECONDS}`,
-				state.restartId ?? ''
+				state.restartId ?? '',
+				mode
 			]
 		})
 	}
@@ -251,7 +278,7 @@ export class PluginRuntimeGenerationStore {
 		return (
 			Number(
 				await this.redis.eval(START_CATCH_UP_SCRIPT, {
-					keys: [DESIRED_PLUGINS_KEY, ACTIVE_RESTART_KEY],
+					keys: [DESIRED_PLUGINS_KEY, ACTIVE_RESTART_KEY, this.pluginGenerationStateKey(generation)],
 					arguments: [`${generation}`, restartId, `${ttlMs}`]
 				})
 			) === 1
@@ -264,8 +291,16 @@ export class PluginRuntimeGenerationStore {
 		const current = await this.current()
 		let first = current + 1
 		for (let generation = current; generation > 0; generation -= 1) {
-			const status = (await this.readState(generation))?.status
-			if (status !== 'in_progress' && status !== 'awaiting_restart') break
+			const state = await this.readState(generation)
+			if (state?.status !== 'in_progress' && state?.status !== 'awaiting_restart') break
+			if (state.source === 'plugin-catch-up' && state.restartId) {
+				// This publication completed before catch-up was admitted. Only its lost attempt can fail here.
+				await this.updateState(
+					{ ...state, status: 'failed', error: 'Plugin catch-up lost its active restart' },
+					'lost-catch-up'
+				)
+				break
+			}
 			first = generation
 		}
 		return first <= current ? this.readChanges(first, current) : []
