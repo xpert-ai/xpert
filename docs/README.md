@@ -146,6 +146,10 @@ completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
 
+## Event Inbox
+
+The [user guide](./en/guides/event-inbox.mdx) and [中文用户指南](./zh-Hans/guides/event-inbox.mdx) cover the three entry points, receipt visibility, and opening a conversation. For binding configuration, rollback, and diagnostics, see [平台操作文档](./operations/event-inbox.md). Track remaining deployment checks in the [pilot acceptance plan](./plans/2026-11-15-always-on-event-inbox.md) and future capabilities in the [Always-on Agents proposal](./proposal/always-on-agents.md).
+
 ## Knowledgebase functional documentation
 
 Maintain current behavior in matching `en/guides/knowledgebase/` and
