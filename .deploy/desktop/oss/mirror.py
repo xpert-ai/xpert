@@ -1,5 +1,6 @@
 """Copy an official stable GitHub release byte for byte. Only latest.json is mutable."""
 import base64
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
@@ -8,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 
 import oss2
 import requests
@@ -16,6 +18,7 @@ import requests
 TAG = re.compile(r"desktop-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 DOMAIN = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?")
 INDEX_KEY = "bosi/latest.json"
+PART_SIZE = 2 * 1024 * 1024
 FEEDS = {"desktop-x64.yml", "desktop-arm64.yml", "desktop-x64-linux.yml",
          "desktop-arm64-linux-arm64.yml", "desktop-x64-mac.yml", "desktop-arm64-mac.yml"}
 
@@ -89,6 +92,50 @@ def next_index(previous, release, assets):
             "assets": sorted(assets), "feeds": feeds}
 
 
+def upload_asset(bucket, key, source, asset):
+    content_type = {"json": "application/json", "yml": "text/yaml", "txt": "text/plain"}.get(
+        source.suffix.lstrip("."), "application/octet-stream")
+    immutable = {"x-oss-forbid-overwrite": "true"}
+    headers = {**immutable, "Content-Type": content_type, "x-oss-meta-sha256": asset.sha256,
+               "Cache-Control": "public, max-age=31536000, immutable"}
+    if asset.size <= PART_SIZE:
+        bucket.put_object_from_file(key, str(source), headers={**headers, "Content-MD5": asset.content_md5})
+        return
+
+    # A timed-out part can be sent again under its original number without restarting the installer.
+    count = (asset.size + PART_SIZE - 1) // PART_SIZE
+    print(f"Uploading {source.name}: {asset.size} bytes in {count} parts", flush=True)
+    upload_id = bucket.init_multipart_upload(key, headers=headers).upload_id
+
+    def upload_part(number):
+        with source.open("rb") as file:
+            file.seek((number - 1) * PART_SIZE)
+            data = file.read(PART_SIZE)
+        checksum = {"Content-MD5": oss2.utils.content_md5(data)}
+        for attempt in range(1, 5):
+            try:
+                result = bucket.upload_part(key, upload_id, number, data, headers=checksum)
+                return oss2.models.PartInfo(number, result.etag, size=len(data), part_crc=result.crc)
+            except oss2.exceptions.OssError as error:
+                transient = isinstance(error, oss2.exceptions.RequestError) or error.status in (
+                    408, 429, 500, 502, 503, 504)
+                if not transient or attempt == 4:
+                    raise
+                print(f"Retrying {source.name} part {number}/{count} after attempt {attempt}", flush=True)
+                time.sleep(2 ** (attempt - 1))
+
+    try:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            parts = list(pool.map(upload_part, range(1, count + 1)))
+        bucket.complete_multipart_upload(key, upload_id, parts, headers=immutable)
+    except Exception:
+        try:
+            bucket.abort_multipart_upload(key, upload_id)
+        except oss2.exceptions.OssError as cleanup_error:
+            print(f"Could not clean up incomplete upload for {source.name} (status {cleanup_error.status})", flush=True)
+        raise
+
+
 def mirror(bucket, domain, release, directory, tag):
     assets = verify_release(release, directory, tag)
     try:
@@ -103,13 +150,7 @@ def mirror(bucket, domain, release, directory, tag):
         except oss2.exceptions.ServerError as error:
             if error.status != 404:
                 raise
-            content_type = {"json": "application/json", "yml": "text/yaml", "txt": "text/plain"}.get(
-                name.rsplit(".", 1)[-1], "application/octet-stream")
-            bucket.put_object_from_file(key, str(directory / name), headers={
-                "Content-Type": content_type, "Content-MD5": asset.content_md5,
-                "Cache-Control": "public, max-age=31536000, immutable",
-                "x-oss-forbid-overwrite": "true", "x-oss-meta-sha256": asset.sha256,
-            })
+            upload_asset(bucket, key, directory / name, asset)
             head = bucket.head_object(key)
         if (head.headers.get("x-oss-meta-sha256") != asset.sha256 or
                 head.server_crc != asset.crc64 or head.content_length != asset.size):
@@ -117,6 +158,7 @@ def mirror(bucket, domain, release, directory, tag):
         with requests.head(f"https://{domain}/{key}", timeout=30) as response:
             if response.status_code != 200 or response.headers.get("x-oss-meta-sha256") != asset.sha256:
                 raise ValueError(f"Public download unavailable or stale: {key}")
+        print(f"Verified public asset: {name}", flush=True)
     if index != previous:
         bucket.put_object(INDEX_KEY, json.dumps(index, sort_keys=True).encode(), headers={
             "Content-Type": "application/json", "Cache-Control": "no-cache, max-age=0, must-revalidate",
