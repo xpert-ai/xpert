@@ -38,7 +38,7 @@ When a source is uninstalled or has no display definition for a historical versi
 
 ## Open a conversation
 
-Select an event and choose **Open conversation** in its details. All three entries open the linked chat thread. The plugin identifies the conversation for this particular event. The platform checks your read access, tenant, organization, published Assistant family and applicable project, and verifies that the conversation has a thread. When you click, the host looks up the receipt again. Refresh the details if your access changed in the meantime.
+Select an event and choose **Open conversation** in its details. All three entries open the linked chat thread. The plugin identifies the conversation for this particular event. The platform checks your read access, tenant, organization, published Assistant family and applicable project, and verifies that the conversation has a thread. When an event identifies a branch, the host verifies that the branch belongs to the conversation and opens it directly. When you click, the host looks up the receipt again. Refresh the details if your access changed in the meantime.
 
 | Event                        | Conversation opened                                                                                                                                                                  |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -47,3 +47,15 @@ Select an event and choose **Open conversation** in its details. All three entri
 | Feishu                       | The Xpert conversation associated with this message or card dispatch. A new conversation can be linked through a successful outbound record for the same Handoff run.                |
 
 The button is hidden if the source has no explicit association, the conversation lacks a usable thread, or you lack read access. A Feishu chat ID or a procurement case number alone cannot identify a chat thread for this action.
+
+## One-time follow-ups
+
+An Assistant with the scheduler middleware can set a deadline and finish its current run. For example, an Agent can decide to check at 3 p.m. whether a supplier has confirmed delivery. You can close the chat. When the deadline arrives, the Event Inbox records a **Follow-up due** event. Choose **Open conversation** to see what the Agent did in the original thread.
+
+| Operation                 | Tool and parameters                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Set a deadline            | Call `create_scheduler` with `mode: "follow_up"`, a timezone-qualified `dueAt` and a `purpose`. The result includes the `taskId`.   |
+| Find pending deadlines    | Call `list_scheduler` with `mode: "follow_up"` to see the current user's pending deadlines and task IDs in this thread.             |
+| Cancel a pending deadline | Call `delete_scheduler` with `mode: "follow_up"` and its `taskId`. Once the due decision has been recorded, that wake will proceed. |
+
+The host binds the Agent and the thread from the current run. Recurring monitors and cron tasks keep their existing arguments. In Procurement Quote Comparison, the buyer and the Agent manage each delivery risk through the procurement workflow. **Waiting to run** means the due decision has been recorded. **Started** means the platform has admitted the run. A later cancellation or supplier reply updates the risk that the Agent reads.

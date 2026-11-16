@@ -1,3 +1,4 @@
+import { AgentEventModule } from '../agent-event/agent-event.module'
 import { MonitorTargets } from './monitor-targets'
 import { ScheduleDifferenceReports } from './schedule-difference-reports'
 import { TemplateRoutinesHandler } from './template-routines/template-routines.handler'
@@ -39,6 +40,7 @@ import { ConnectorModule } from '../connector/connector.module'
             ScheduledTaskExecution,
             User
         ]),
+        AgentEventModule,
         TenantModule,
         RedisModule,
         ActorTokenModule,

@@ -70,7 +70,7 @@ export interface AgentEventTypeDefinition {
 /** Optional domain projection. Sources recheck resource access in the bound actor scope. */
 export interface AgentEventPresentation {
   /** Explicit provenance in the source domain. The host authorizes it for the viewing principal. */
-  conversation?: { conversationId: string }
+  conversation?: { conversationId: string; threadId?: string }
   title: string
   fields?: { label: I18nObject; value: string }[]
   result?: { action: I18nObject; fields: { label: I18nObject; value: string }[] }

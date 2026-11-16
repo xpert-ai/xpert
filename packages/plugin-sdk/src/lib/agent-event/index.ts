@@ -50,6 +50,10 @@ export interface AgentEventDelivery {
   event: PluginAgentEvent
 }
 
+export interface AgentEventFollowUp {
+  wake(input: { conversationId: string; prompt: string; threadId?: string; agentKey?: string }): Promise<void>
+}
+
 export interface PluginAgentEventSource {
   readonly key: string
   readonly protocolVersion: 1
@@ -68,6 +72,11 @@ export interface PluginAgentEventSource {
   /** Changes the capture policy only for an authorized source and revision. */
   configure(context: AgentEventContext, enabled: boolean): Promise<void>
   drain(context: AgentEventContext, publisher: AgentEventPublisher, limit: number): Promise<{ more: boolean }>
-  handle(context: AgentEventContext, delivery: AgentEventDelivery): Promise<EventDecision>
+  /** The host binds the wake to this receipt and actor. Call only for a committed, still applicable follow-up. */
+  handle(
+    context: AgentEventContext,
+    delivery: AgentEventDelivery,
+    followUp?: AgentEventFollowUp
+  ): Promise<EventDecision>
 }
 export * from './journal'

@@ -62,8 +62,19 @@ export class FakeRedis {
 
 	async eval(script: string, options: { keys: string[]; arguments: string[] }) {
 		if (script.includes('xpert-write-generation-state')) {
-			const [value, generation, ttl, restartId] = options.arguments
-			if (restartId && (await this.get(options.keys[2])) !== restartId) return 0
+			const [value, generation, ttl, restartId, mode] = options.arguments
+			const active = await this.get(options.keys[2])
+			if (mode === 'lost-catch-up') {
+				const prior = await this.get(options.keys[0])
+				if (active || !prior) return 0
+				const state: PluginGenerationState = JSON.parse(prior)
+				if (
+					state.status !== 'in_progress' ||
+					state.source !== 'plugin-catch-up' ||
+					state.restartId !== restartId
+				)
+					return 0
+			} else if (restartId && active !== restartId) return 0
 			const desired = await this.hGetAll(options.keys[1])
 			const current = desired.generation === generation
 			if (current && desired.status === 'failed') return 0
@@ -75,7 +86,15 @@ export class FakeRedis {
 				const previous: PluginGenerationState = JSON.parse(previousValue)
 				if (previous.restartId || !['in_progress', 'awaiting_restart'].includes(previous.status)) return 0
 			}
-			await this.set(options.keys[0], value, { EX: Number(ttl) })
+			await this.set(options.keys[0], value)
+			if (next.status === 'completed' || next.status === 'failed') {
+				for (const key of [options.keys[0], ...options.keys.slice(3)]) await this.expire(key, Number(ttl))
+			} else if (next.source !== 'plugin-catch-up') {
+				for (const key of options.keys.slice(3)) {
+					await this.get(key)
+					this.expiresAt.delete(key)
+				}
+			}
 			if (current) await this.hSet(options.keys[1], 'status', next.status)
 			return 1
 		}
@@ -85,6 +104,15 @@ export class FakeRedis {
 			if (desired.generation !== generation || desired.status !== 'completed') return 0
 			if ((await this.set(options.keys[1], restartId, { NX: true, PX: Number(ttl) })) !== 'OK') return 0
 			await this.hSet(options.keys[0], 'status', 'in_progress')
+			await this.set(
+				options.keys[2],
+				JSON.stringify({
+					generation: Number(generation),
+					status: 'in_progress',
+					source: 'plugin-catch-up',
+					restartId
+				})
+			)
 			return 1
 		}
 		if (script.includes('xpert-update-restart-target')) {
@@ -101,7 +129,7 @@ export class FakeRedis {
 			return 1
 		}
 		if (script.includes('xpert-publish-plugin-generation')) {
-			const expected = options.arguments[3]
+			const expected = options.arguments[2]
 			if (expected !== undefined && expected !== '') {
 				if (((await this.get(options.keys[0])) ?? '0') !== expected) return -1
 				const desired = await this.hGetAll(options.keys[1])
@@ -131,13 +159,10 @@ export class FakeRedis {
 			this.values.set(generationKey, `${generation}`)
 			change.generation = generation
 			const prefix = options.arguments[1]
-			const ttlMs = Number.parseInt(options.arguments[2], 10) * 1_000
 			const changeKey = `${prefix}${generation}:change`
 			const statusKey = `${prefix}${generation}:status`
 			this.values.set(changeKey, JSON.stringify(change))
 			this.values.set(statusKey, JSON.stringify({ generation, status: 'in_progress' }))
-			this.expiresAt.set(changeKey, Date.now() + ttlMs)
-			this.expiresAt.set(statusKey, Date.now() + ttlMs)
 			for (const item of change.requirements) {
 				await this.hSet(options.keys[1], JSON.stringify([item.scopeKey, item.pluginName]), JSON.stringify(item))
 			}
@@ -146,7 +171,7 @@ export class FakeRedis {
 			const plugins = Object.entries(await this.hGetAll(options.keys[1]))
 				.filter(([key]) => key !== 'generation' && key !== 'status')
 				.map(([, value]) => JSON.parse(value))
-			await this.set(`${prefix}${generation}:requirements`, JSON.stringify(plugins), { EX: ttlMs / 1_000 })
+			await this.set(`${prefix}${generation}:requirements`, JSON.stringify(plugins))
 			if (publicationKey)
 				await this.hSet(
 					options.keys[2],

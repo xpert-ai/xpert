@@ -347,6 +347,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			await this.generations.writeState({
 				generation,
 				status: 'in_progress',
+				...(metadata.source === 'plugin-catch-up' ? { source: metadata.source } : {}),
 				restartId: metadata.restartId
 			})
 		}

@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { timerSource } from './follow-up-timer.constants'
 import { Repository } from 'typeorm'
 import { AgentEventBinding, AgentEventInbox } from './agent-event.entity'
 
@@ -78,10 +79,19 @@ export class AgentEventBindingService {
     }
 
     async reserveDue() {
-        const [bindings] = await this.bindings.query<[AgentEventBinding[], number]>(`
+        const [bindings] = await this.bindings.query<[AgentEventBinding[], number]>(
+            `
             UPDATE agent_event_binding SET "nextScan"=now()+interval '5 seconds', "updatedAt"=now(), "updatedById"=NULL
-            WHERE id IN (SELECT id FROM agent_event_binding WHERE state='enabled' AND "nextScan"<=now()
-                ORDER BY "nextScan",id LIMIT 16 FOR UPDATE SKIP LOCKED) RETURNING *`)
+            WHERE id IN (SELECT b.id FROM agent_event_binding b WHERE b.state='enabled' AND b."nextScan"<=now()
+                AND ((b.plugin,b.adapter) <> ($1,$2) OR EXISTS (
+                    SELECT 1 FROM agent_follow_up_timer t WHERE t.binding=b.id AND t.revision=b.revision
+                    AND t.state='waiting' AND t."dueAt"<=now()
+                ) OR EXISTS (
+                    SELECT 1 FROM agent_event_inbox i WHERE i.binding=b.id AND i.state IN ('pending','processing','retry_wait')
+                ))
+                ORDER BY b."nextScan",b.id LIMIT 16 FOR UPDATE SKIP LOCKED) RETURNING *`,
+            [timerSource.plugin, timerSource.adapter]
+        )
         return bindings
     }
 

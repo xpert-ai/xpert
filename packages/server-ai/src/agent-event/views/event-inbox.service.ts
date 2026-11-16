@@ -32,6 +32,7 @@ const filters = z
     })
     .strict()
 const id = z.string().uuid()
+const conversationRef = z.object({ conversationId: id, threadId: z.string().min(1).max(100).optional() })
 type Scope = { binding: AgentEventBinding; assistant: string; source?: PluginAgentEventSource }
 type Kind = { binding: string; type: string; version: number; count: number }
 
@@ -222,10 +223,14 @@ export class EventInboxService {
                 })
             )
         }
-        const conversationId = presentation?.conversation?.conversationId
-        if (detail && conversationId && id.safeParse(conversationId).success) {
+        const ref = detail ? conversationRef.safeParse(presentation?.conversation) : undefined
+        if (ref?.success) {
             try {
-                conversationAction = await this.access.conversationAction(binding, conversationId)
+                conversationAction = await this.access.conversationAction(
+                    binding,
+                    ref.data.conversationId,
+                    ref.data.threadId
+                )
             } catch {
                 // Receipt visibility does not grant conversation access.
             }

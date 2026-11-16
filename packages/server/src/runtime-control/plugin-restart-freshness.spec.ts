@@ -11,6 +11,7 @@ const change = (requirements = [current]) => ({ generation: 0, source: 'interact
 // The optional URL must point to a disposable Redis database; this suite clears it between cases.
 const redisUrl = process.env.RUNTIME_RESTART_TEST_REDIS_URL
 describe.each(redisUrl ? ['fake', 'redis'] : ['fake'])('Plugin restart freshness (%s)', (backend) => {
+	let ttl: (key: string) => Promise<number>
 	let store: PluginRuntimeGenerationStore
 	let redis: RuntimeRestartRedisClient
 	let client: ReturnType<typeof createClient>
@@ -23,6 +24,7 @@ describe.each(redisUrl ? ['fake', 'redis'] : ['fake'])('Plugin restart freshness
 	beforeEach(async () => {
 		if (client) {
 			await client.flushDb()
+			ttl = (key) => client.ttl(key)
 			redis = {
 				get: (key) => client.get(key),
 				set: (key, value, options) =>
@@ -40,7 +42,15 @@ describe.each(redisUrl ? ['fake', 'redis'] : ['fake'])('Plugin restart freshness
 					throw new Error('Unexpected Redis result')
 				}
 			}
-		} else redis = new FakeRedis()
+		} else {
+			const fake = new FakeRedis()
+			redis = fake
+			ttl = async (key) => {
+				if ((await fake.get(key)) === null) return -2
+				const expiresAt = fake.expiresAt.get(key)
+				return expiresAt === undefined ? -1 : Math.ceil((expiresAt - Date.now()) / 1000)
+			}
+		}
 		store = new PluginRuntimeGenerationStore(redis)
 		await store.publish({ ...change(), requirements: [old] })
 		await store.publish(change())
@@ -48,6 +58,51 @@ describe.each(redisUrl ? ['fake', 'redis'] : ['fake'])('Plugin restart freshness
 	})
 	afterAll(async () => {
 		await client?.quit()
+	})
+
+	it('recovers later publications when a late catch-up loses its lease after its original history expired', async () => {
+		const prefix = 'xpert:system:plugin-runtime:generation:2:'
+		for (const suffix of ['status', 'change', 'requirements']) await redis.expire(prefix + suffix, 0)
+		expect(await store.claimCatchUp(2, 'late-restart', 60_000)).toBe(true)
+		await store.publish(change())
+		await store.publish(change())
+		expect((await store.readPending()).map((item) => item.generation)).toEqual([3, 4])
+		expect(await store.readState(2)).toMatchObject({ status: 'in_progress', restartId: 'late-restart' })
+		await redis.expire('xpert:system:runtime:restart:active', 0)
+		const replacement = new PluginRuntimeGenerationStore(redis)
+		for (const changes of await Promise.all([store.readPending(), replacement.readPending()])) {
+			expect(changes.map((item) => item.generation)).toEqual([3, 4])
+			expect(changes.some((item) => item.allowDowntime)).toBe(false)
+		}
+		await store.writeState({ generation: 2, status: 'completed', restartId: 'late-restart' })
+		expect(await store.readState(2)).toMatchObject({ status: 'failed', restartId: 'late-restart' })
+		expect(await store.readChange(2)).toBeNull()
+		expect(await store.readRequirements(2)).toBeUndefined()
+		expect(await store.readDesired()).toMatchObject({ generation: 4, status: 'in_progress' })
+	})
+
+	it('retains pending publication evidence and starts the history TTL only at completion', async () => {
+		const generation = await store.publish(change())
+		const prefix = `xpert:system:plugin-runtime:generation:${generation}:`
+		const keys = ['status', 'change', 'requirements'].map((suffix) => prefix + suffix)
+		expect(await Promise.all(keys.map(ttl))).toEqual([-1, -1, -1])
+		// A replica still running the previous build wrote expiring pending history.
+		for (const key of keys) await redis.expire(key, 3600)
+		await store.writeState({ generation, status: 'awaiting_restart' })
+		expect(await Promise.all(keys.map(ttl))).toEqual([-1, -1, -1])
+		expect(await store.readPending()).toMatchObject([{ generation }])
+		await store.writeState({ generation, status: 'completed' })
+		for (const seconds of await Promise.all(keys.map(ttl))) {
+			expect(seconds).toBeGreaterThan(86_390)
+			expect(seconds).toBeLessThanOrEqual(86_400)
+		}
+	})
+
+	it('reports a missing pending publication instead of silently dropping it', async () => {
+		const generation = await store.publish(change())
+		await redis.expire(`xpert:system:plugin-runtime:generation:${generation}:change`, 0)
+		await expect(store.readPending()).rejects.toThrow(`Plugin runtime generation ${generation} is missing`)
+		expect(await store.readState(generation)).toMatchObject({ status: 'in_progress' })
 	})
 
 	it('replays a committed publication without creating another generation or losing other scopes', async () => {

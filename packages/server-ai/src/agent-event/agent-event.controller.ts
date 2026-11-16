@@ -22,6 +22,8 @@ import { AgentEventBindingService, type BindingChange } from './agent-event-bind
 
 import { EventBindingAccessService } from './event-binding-access.service'
 
+import { timerSource } from './follow-up-timer.source'
+
 const changeSchema = z
     .object({
         plugin: z.string().min(1).max(200),
@@ -49,6 +51,12 @@ export class AgentEventController {
         const parsed = changeSchema.safeParse(body)
         if (!parsed.success) throw new BadRequestException('invalid_event_binding')
         const input = parsed.data as BindingChange
+        if (
+            input.plugin === timerSource.plugin &&
+            input.adapter === timerSource.adapter &&
+            input.expectedRevision === 0
+        )
+            throw new ForbiddenException('timer_binding_managed_by_agent')
         const actor = this.actor()
         const target = await this.published.getAccessiblePublishedXpert(id)
         if (!target.publishAt || !target.workspaceId || target.organizationId !== actor.organizationId)

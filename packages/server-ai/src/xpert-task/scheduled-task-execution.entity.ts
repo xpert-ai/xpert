@@ -14,6 +14,9 @@ export enum ScheduledTaskExecutionStatus {
 @Index('uq_xpert_task_execution_occurrence', ['taskId', 'occurrenceKey'], { unique: true })
 @Index(['status', 'leaseExpiresAt'])
 export class ScheduledTaskExecution extends TenantOrganizationBaseEntity {
+    @Column({ type: 'varchar', length: 16, default: 'xpert_task' })
+    taskSource: 'xpert_task' | 'auto_task'
+
     @ApiProperty({ type: () => String })
     @IsString()
     @Column({ type: 'uuid' })
