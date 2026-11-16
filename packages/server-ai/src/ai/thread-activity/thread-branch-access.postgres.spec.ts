@@ -26,6 +26,9 @@ import { ThreadsController } from '../thread.controller'
 import { ThreadRecoveryController } from '../thread-recovery/thread-recovery.controller'
 import { FindThreadHandler } from '../queries/handlers/thread-find.handler'
 import { ThreadActivityService } from './thread-activity.service'
+import { EventBindingAccessService } from '../../agent-event/event-binding-access.service'
+import type { AgentEventBinding } from '../../agent-event/agent-event.entity'
+import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { IsPublishedXpertInFamilyQuery } from '../../xpert/queries'
 
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
@@ -285,6 +288,34 @@ integration('child-thread HTTP access and activity error semantics', () => {
             })
         }
     )
+    it('opens the declared inbox branch only after checking its conversation and reader', async () => {
+        const published: PublishedXpertAccessService = Object.create(PublishedXpertAccessService.prototype)
+        published.getAccessiblePublishedXpertFamilyIds = jest.fn().mockResolvedValue([xpertId])
+        const access = new EventBindingAccessService(published, undefined, undefined, bus)
+        const binding = { tenantId, organizationId, xpertId } as AgentEventBinding
+        const request = { user: { id: owner, tenantId }, headers: { 'organization-id': organizationId } }
+        const namespace = getNamespace('RequestContext') ?? createNamespace('RequestContext')
+        await new Promise<void>((resolve, reject) =>
+            namespace.run(() => {
+                namespace.set('RequestContext', { request })
+                const check = async () => {
+                    await expect(access.conversationAction(binding, conversationId, branch)).resolves.toMatchObject({
+                        threadId: branch
+                    })
+                    await expect(access.conversationAction(binding, conversationId)).resolves.toMatchObject({
+                        threadId: source
+                    })
+                    await expect(access.conversationAction(binding, randomUUID(), branch)).rejects.toThrow()
+                    await expect(access.conversationAction(binding, conversationId, randomUUID())).rejects.toThrow()
+                    await database.db.manager.update(ChatConversation, conversationId, { createdById: outsider })
+                    await expect(access.conversationAction(binding, conversationId, branch)).rejects.toThrow()
+                }
+                runWithRequestContext(request as never, {}, () => {
+                    void check().then(resolve, reject)
+                })
+            })
+        )
+    })
     it('keeps contribute authorization on recovery from a child thread', async () => {
         actor = outsider
         expect((await fetch(`${endpoint}/${branch}/recovery/source`, { method: 'POST' })).status).toBe(403)

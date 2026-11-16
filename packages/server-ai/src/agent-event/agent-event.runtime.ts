@@ -6,6 +6,7 @@ import {
     AGENT_EVENT_SOURCE,
     BaseStrategyRegistry,
     type AgentEventContext,
+    type AgentEventFollowUp,
     type PluginAgentEventSource
 } from '@xpert-ai/plugin-sdk'
 import { HandoffOutboxAdapters } from '../handoff/outbox-adapters.service'
@@ -14,17 +15,26 @@ import { PublishedXpertAccessService } from '../xpert/published-xpert-access.ser
 import { AssertProjectAssistantAccessCommand } from '../xpert-project/commands/assert-project-assistant-access.command'
 import type { AgentEventBinding } from './agent-event.entity'
 import { AgentEventBindingService } from './agent-event-binding.service'
+import { FollowUpThreadBusy } from './follow-up-timer.constants'
+import { FollowUpTimerSource, timerSource } from './follow-up-timer.source'
+import { AgentEventWakeService } from './agent-event-wake.service'
 import { AgentEventStore } from './agent-event.store'
 
 const queue = { pluginName: '@xpert-ai/platform', queueName: 'agent-event', jobName: 'consume' }
 
 @Injectable()
 export class AgentEventSources extends BaseStrategyRegistry<PluginAgentEventSource> {
-    constructor(discovery: DiscoveryService, reflector: Reflector) {
+    constructor(
+        discovery: DiscoveryService,
+        reflector: Reflector,
+        private readonly timers?: FollowUpTimerSource
+    ) {
         super(AGENT_EVENT_SOURCE, discovery, reflector)
     }
 
-    resolve(binding: Pick<AgentEventBinding, 'adapter' | 'plugin' | 'organizationId'>) {
+    resolve(binding: Pick<AgentEventBinding, 'adapter' | 'plugin' | 'organizationId'>): PluginAgentEventSource {
+        if (this.timers && binding.plugin === timerSource.plugin && binding.adapter === timerSource.adapter)
+            return this.timers
         const source = this.get(binding.adapter, binding.organizationId)
         const provenance = this.getSource(source)
         if (
@@ -68,7 +78,8 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
         private readonly handlers: ManagedQueueHandlerRegistryService,
         private readonly access: RuntimeMessageAccessService,
         private readonly published: PublishedXpertAccessService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly wakeService?: AgentEventWakeService
     ) {}
 
     onModuleInit() {
@@ -194,20 +205,40 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
             }
             await this.withAuthority(binding, context.signal, async () => {
                 try {
-                    const decision = await source.handle(context, {
-                        receiptId: claim.receiptId,
-                        fence: claim.fence,
-                        event: claim.event
-                    })
+                    const delivery = new AbortController()
+                    const signal = AbortSignal.any([context.signal,delivery.signal])
+                    const wake: AgentEventFollowUp | undefined = this.wakeService && {
+                        wake: async (input) => {
+                            if (signal.aborted) throw new Error('event_delivery_closed')
+                            await this.wakeService.start(binding, claim, input, signal)
+                        }
+                    }
+                    const decision = await source
+                        .handle(
+                            context,
+                            {
+                                receiptId: claim.receiptId,
+                                fence: claim.fence,
+                                event: claim.event
+                            },
+                            wake
+                        )
+                        .finally(() => {
+                            delivery.abort()
+                        })
                     if (!context.signal.aborted) await this.store.complete(claim, decision)
                 } catch (error) {
-                    if (!context.signal.aborted)
+                    if (context.signal.aborted) return
+                    if (error instanceof FollowUpThreadBusy) {
+                        await this.store.complete(claim, undefined, true)
+                    } else {
                         await this.store.complete(
                             claim,
-                            error instanceof HttpException && [401, 403].includes(error.getStatus())
+                            error instanceof HttpException && [401, 403, 404].includes(error.getStatus())
                                 ? { status: 'blocked', reasonCode: 'event_access_changed' }
                                 : undefined
                         )
+                    }
                 }
             })
         }

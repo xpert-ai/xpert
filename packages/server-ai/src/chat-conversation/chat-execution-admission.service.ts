@@ -1,11 +1,13 @@
 // Invariants: all existing-conversation root entry points share the durable thread writer claim.
 // A runtime reply may queue, but cannot clear a pause, approve an interaction or reverse a user stop.
-import { Injectable } from '@nestjs/common'
+import { AgentEventBinding } from '../agent-event/agent-event.entity'
+import { FollowUpThreadBusy } from '../agent-event/follow-up-timer.constants'
+import { ForbiddenException, Injectable } from '@nestjs/common'
 import { getErrorMessage, RequestContext } from '@xpert-ai/plugin-sdk'
 import { TChatRequest, TChatCheckpointReference, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { DataSource, EntityManager, IsNull } from 'typeorm'
 import { randomUUID } from 'node:crypto'
-import { Observable } from 'rxjs'
+import { EMPTY, Observable } from 'rxjs'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
@@ -54,6 +56,8 @@ export class ChatExecutionAdmissionService {
         options: {
             resumeCheckpoint?: TChatCheckpointReference
             automatic?: boolean
+            once?: boolean
+            eventBinding?: { id: string; revision: number; fence: string }
             threadId?: string
             execution?: { id: string }
             xpertId?: string
@@ -62,6 +66,14 @@ export class ChatExecutionAdmissionService {
         },
         execute: (executionId?: string, request?: TChatRequest) => Promise<Observable<T>>
     ): Promise<Observable<T>> {
+        if (
+            options.once &&
+            (!options.execution?.id ||
+                !request.conversationId ||
+                request.action !== 'send' ||
+                !RequestContext.currentUserId())
+        )
+            throw resumeTargetDenied()
         if (!request.conversationId || request.action === 'follow_up' || !RequestContext.currentUserId())
             return execute(options.execution?.id)
         const conversation = await this.dataSource.getRepository(ChatConversation).findOneBy({
@@ -72,7 +84,7 @@ export class ChatExecutionAdmissionService {
         })
         // The handler retains authorization for other established actor types (e.g. end users).
         if (!conversation) {
-            if (request.action === 'resume') throw resumeTargetDenied()
+            if (options.once || request.action === 'resume') throw resumeTargetDenied()
             return execute(options.execution?.id)
         }
         if (request.action === 'resume' && options.xpertId && conversation.xpertId !== options.xpertId)
@@ -81,6 +93,26 @@ export class ChatExecutionAdmissionService {
         let executionId = request.action === 'resume' ? undefined : (options.execution?.id ?? randomUUID())
         let admittedRequest = request
         const claimed = await this.dataSource.transaction(async (manager) => {
+            if (options.eventBinding) {
+                const binding = await manager.findOne(AgentEventBinding, {
+                    where: {
+                        id:options.eventBinding.id, revision:options.eventBinding.revision,
+                        tenantId: conversation.tenantId,
+                        organizationId: conversation.organizationId,
+                        userId: conversation.createdById,
+                        xpertId: options.xpertId,
+                        state: 'enabled'
+                    },
+                    select: { id: true },
+                    lock: { mode: 'pessimistic_read' }
+                })
+                if (!binding) throw new ForbiddenException('event_access_changed')
+                const [claim] = await manager.query(
+                    `SELECT p.id FROM agent_event_partition p JOIN agent_event_inbox i ON i.partition=p.id
+                     WHERE i.binding=$1 AND i.id=$2 AND i.state='processing' AND p.fence=$3 AND p.expires>now()
+                     FOR SHARE OF p`, [binding.id, executionId, options.eventBinding.fence])
+                if (!claim) throw new ForbiddenException('event_claim_expired')
+            }
             if (request.action === 'resume') {
                 const target = await resolveResumeTarget(
                     manager,
@@ -95,6 +127,28 @@ export class ChatExecutionAdmissionService {
                 admittedRequest = { ...request, target }
             }
             const thread = await lockRuntimeThread(manager, conversation, threadId)
+            if (options.once) {
+                const existing = await manager.getRepository(XpertAgentExecution).findOneBy({ id: executionId })
+                if (existing) {
+                    if (
+                        existing.threadId !== threadId ||
+                        existing.createdById !== conversation.createdById ||
+                        existing.tenantId !== conversation.tenantId ||
+                        existing.xpertId !== options.xpertId ||
+                        (options.agentKey && existing.agentKey !== options.agentKey)
+                    )
+                        throw resumeTargetDenied()
+                    // Admission and the writer claim commit together. Never replay an uncertain model/tool call.
+                    return 'already_admitted'
+                }
+            }
+            if (
+                options.eventBinding &&
+                (thread.status === 'paused' || thread.status === 'pausing' || thread.runtimeContinuationBlockedAt)
+            ) {
+                throw new ForbiddenException('event_thread_requires_user')
+            }
+            if (options.eventBinding && (thread.runControl || thread.status === 'busy')) throw new FollowUpThreadBusy()
             if (
                 options.automatic &&
                 (thread.runControl?.executionId !== executionId ||
@@ -112,7 +166,7 @@ export class ChatExecutionAdmissionService {
                 )
             if (request.action === 'resume') return false
             if (!thread.runControl) {
-                await manager
+                const insert = manager
                     .getRepository(XpertAgentExecution)
                     .createQueryBuilder()
                     .insert()
@@ -128,7 +182,12 @@ export class ChatExecutionAdmissionService {
                         status: XpertAgentExecutionStatusEnum.RUNNING
                     })
                     .orIgnore()
-                    .execute()
+                if (options.once) {
+                    const inserted = await insert.returning('id').updateEntity(false).execute()
+                    if (!inserted.raw.length) throw resumeTargetDenied()
+                } else {
+                    await insert.execute()
+                }
                 thread.runControl = { executionId, state: 'running' }
                 thread.status = 'busy'
                 await manager.save(thread)
@@ -136,6 +195,7 @@ export class ChatExecutionAdmissionService {
             }
             return false
         })
+        if (claimed === 'already_admitted') return EMPTY
         // Reject duplicate decisions before entering the cleanup path for an admitted run.
         if (request.action === 'resume' && !options.execution?.id)
             await this.control.start(threadId, executionId, options.context, true)

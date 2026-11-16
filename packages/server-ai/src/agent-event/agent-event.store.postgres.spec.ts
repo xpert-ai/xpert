@@ -677,7 +677,7 @@ integration('Event Inbox PostgreSQL', () => {
             searchTitles: async (ctx) => (ctx.bindingId === own.id ? [{ subject: 'first' }] : []),
             describe: async () => ({
                 title: 'Quarterly comparison',
-                conversation: { conversationId: conversation },
+                conversation: { conversationId: conversation, threadId: branch },
                 result: { action: label, fields: [{ label, value: 'Visible' }] }
             })
         }
@@ -692,11 +692,12 @@ integration('Event Inbox PostgreSQL', () => {
             foreign = await pub(other, 'private')
         const old = await pub(second, 'old')
         let revoked = false
+        const branch = randomUUID()
         let readable = true
         const access = {
-            conversationAction: async (b: AgentEventBinding, id: string) => {
+            conversationAction: async (b: AgentEventBinding, id: string, threadId?: string) => {
                 if (!readable || b.id !== own.id || id !== conversation) throw new ForbiddenException()
-                return { type: 'open_conversation', conversationId: id, assistantId: b.xpertId, threadId: id }
+                return { type: 'open_conversation', conversationId: id, assistantId: b.xpertId, threadId: threadId ?? id }
             },
             assertAccessible: async (b: AgentEventBinding) => {
                 if (revoked && b.id === own.id) throw new ForbiddenException()
@@ -739,8 +740,8 @@ integration('Event Inbox PostgreSQL', () => {
         expect(a.items?.[0]).not.toHaveProperty('conversationAction')
         for (const host of [context, agent]) {
             expect(
-                (await view.data(host, { selectionId: first.receiptId })).item?.conversationAction?.conversationId
-            ).toBe(conversation)
+                (await view.data(host, { selectionId: first.receiptId })).item?.conversationAction
+            ).toMatchObject({ conversationId: conversation, threadId: branch })
         }
         readable = false
         expect((await view.data(context, { selectionId: first.receiptId })).item).not.toHaveProperty(

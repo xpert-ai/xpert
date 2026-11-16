@@ -98,6 +98,7 @@
   ],
   "checks": [
     "ai/xpert-task/migrations/checks/20261112000100-conversation-monitor-differences.sql",
+    "ai/xpert-task/migrations/checks/20261116033000-auto-task-occurrence-source.sql",
     "core/database/platform-baseline/current.sql",
     "core/database/platform-baseline/types.sql",
     "ai/rag-vstore/migrations/checks/20261020120000-vector-store-tables.sql",

@@ -17,12 +17,13 @@ export class EventBindingAccessService {
         private readonly queries: QueryBus
     ) {}
 
-    async conversationAction(binding: AgentEventBinding, conversationId: string) {
+    async conversationAction(binding: AgentEventBinding, conversationId: string, threadId?: string) {
         const family = await this.published.getAccessiblePublishedXpertFamilyIds(binding.xpertId)
         const conversation = await this.queries.execute(
             new AssertChatConversationAccessQuery(
                 {
                     id: conversationId,
+                    ...(threadId !== undefined ? { threadId } : {}),
                     tenantId: binding.tenantId,
                     organizationId: binding.organizationId,
                     xpertId: In(family),
@@ -36,7 +37,7 @@ export class EventBindingAccessService {
             type: 'open_conversation',
             assistantId: binding.xpertId,
             conversationId: conversation.id,
-            threadId: conversation.threadId
+            threadId: threadId ?? conversation.threadId
         })
     }
 

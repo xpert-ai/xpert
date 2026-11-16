@@ -136,7 +136,7 @@ export class AgentEventStore {
         })
     }
 
-    async complete(claim: EventClaim, decision?: EventDecision) {
+    async complete(claim: EventClaim, decision?: EventDecision, waitForThread = false) {
         const result = decision ? agentEventDecisionSchema.parse(decision) : null
         return this.db.transaction(async (tx) => {
             const [valid] = await tx.query(
@@ -146,16 +146,24 @@ export class AgentEventStore {
             )
             if (!valid) return false
             const [, updated] = await tx.query(
-                `UPDATE agent_event_inbox SET state=COALESCE($2,CASE WHEN attempt>=$6 THEN 'isolated' ELSE 'retry_wait' END),
-                due=now()+least(300,power(2,least(attempt,8))) * interval '1 second',
+                `UPDATE agent_event_inbox SET state=COALESCE($2,CASE WHEN NOT $7 AND attempt>=$6 THEN 'isolated' ELSE 'retry_wait' END),
+                attempt=CASE WHEN $7 THEN greatest(0,attempt-1) ELSE attempt END,
+                due=now()+(CASE WHEN $7 THEN 30 ELSE least(300,power(2,least(attempt,8))) END) * interval '1 second',
                 decision=$3,error=$4,"updatedAt"=now(),"updatedById"=NULL WHERE id=$1 AND partition=$5 AND state='processing'`,
                 [
                     claim.receiptId,
                     result?.status ?? null,
                     result,
-                    result ? (result.status === 'handled' ? null : result.reasonCode) : 'source_unavailable',
+                    result
+                        ? result.status === 'handled'
+                            ? null
+                            : result.reasonCode
+                        : waitForThread
+                          ? 'thread_busy'
+                          : 'source_unavailable',
                     claim.partition,
-                    maxAttempts
+                    maxAttempts,
+                    waitForThread
                 ]
             )
             if (!updated) return false

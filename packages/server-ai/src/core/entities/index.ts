@@ -18,6 +18,7 @@ import { ProjectPipelineEntities } from '../../xpert-project/pipeline/persistenc
 import { TemplateUpgradeEntity } from '../../xpert/template-lifecycle/template-upgrade.entity'
 import { TemplateInstallationEntity } from '../../plugin-resource/template-installation/template-installation.entity'
 import { McpAppHistory } from '../../mcp-app-runtime/mcp-app-history.entity'
+import { FollowUpTimer } from '../../agent-event/follow-up-timer.entity'
 import { AGENT_EVENT_ENTITIES } from '../../agent-event/agent-event.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../../realtime-voice/voice.entity'
@@ -202,6 +203,7 @@ export const ALL_AI_ENTITIES = [
     TemplateInstallationEntity,
     McpAppHistory,
     ...AGENT_EVENT_ENTITIES,
+    FollowUpTimer,
     ...GROUP_ENTITIES,
     RealtimeVoiceSession,
     RealtimeVoiceTask,

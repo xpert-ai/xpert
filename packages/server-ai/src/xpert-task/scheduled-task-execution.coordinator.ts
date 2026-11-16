@@ -38,6 +38,7 @@ export class TypeOrmScheduledTaskExecutionStore implements ScheduledTaskExecutio
             .where('execution.status IN (:...statuses)', {
                 statuses: [ScheduledTaskExecutionStatus.PENDING, ScheduledTaskExecutionStatus.RUNNING]
             })
+            .andWhere('execution.taskSource = :source', { source: 'xpert_task' })
             .andWhere('execution.leaseExpiresAt <= :now', { now })
             .orderBy('execution.leaseExpiresAt', 'ASC')
             .take(limit)

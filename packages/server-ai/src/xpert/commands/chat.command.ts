@@ -38,6 +38,9 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
                 fromEndUserId?: string
                 /** Trusted provenance and presentation; independent of routing, model role and permissions. */
                 messageEnvelope?: TChatMessageEnvelope
+                /** Host-reserved, single-use execution ID for a durable timer occurrence. */
+                once?: boolean
+                eventBinding?: { id: string; revision: number; fence: string }
                 execution?: { id: string; metadata?: IXpertAgentExecution['metadata'] }
                 streamPersistence?: XpertChatStreamPersistenceOptions
                 /**
