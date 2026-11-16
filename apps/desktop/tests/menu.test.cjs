@@ -64,14 +64,21 @@ function updaterFixture(t, { enabled = true, available = false, fail = false } =
   updater.checkForUpdates = async () => {
     calls.push('check')
     if (fail) throw new Error('private feed URL')
-    updater.emit(available ? 'update-available' : 'update-not-available', { version: '1.1.0' })
+    return { isUpdateAvailable: available, updateInfo: { version: available ? '1.1.0' : '1.0.0' } }
   }
   updater.downloadUpdate = async () => {
     calls.push('download')
     updater.emit('update-downloaded', { version: '1.1.0' })
   }
   updater.quitAndInstall = () => calls.push('install')
-  const updates = new DesktopUpdater({ updater, enabled, currentVersion: '1.0.0', resolveFeed: async () => ({}) })
+  const updates = new DesktopUpdater({
+    updater,
+    enabled,
+    currentVersion: '1.0.0',
+    getSources: async () => [
+      { name: 'github', latest: () => (available ? 'desktop-v1.1.0' : 'desktop-v1.0.0'), feed: () => ({}) }
+    ]
+  })
   t.after(() => updates.dispose())
   return { updater, updates, calls }
 }
@@ -106,7 +113,6 @@ test('manual checks coalesce, wait for background checks and require explicit do
       finishCheck = resolve
     })
   const background = updates.check()
-  await Promise.resolve()
   const dialogs = []
   let response = 0
   const check = createUpdateMenuAction({
@@ -120,8 +126,8 @@ test('manual checks coalesce, wait for background checks and require explicit do
   const first = check()
   assert.equal(check(), first)
   assert.equal(dialogs.length, 0)
-  updater.emit('update-available', { version: '1.1.0' })
-  finishCheck()
+  await new Promise(setImmediate)
+  finishCheck({ isUpdateAvailable: true, updateInfo: { version: '1.1.0' } })
   await Promise.all([first, background])
   assert.equal(dialogs.length, 1)
   assert.equal(dialogs[0].message, 'Bosi 1.1.0 is available.')

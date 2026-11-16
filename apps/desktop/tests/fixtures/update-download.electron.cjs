@@ -21,13 +21,14 @@ app
   .then(async () => {
     const bytes = Buffer.alloc(2 * 1024 * 1024, 'fixture')
     let corrupt = true,
-      requests = 0,
+      requests = [],
       installed = false,
       drained = false
     const filename = `Bosi-999.0.0-mac-${process.arch}.zip`
     const sha512 = createHash('sha512').update(bytes).digest('base64')
     server = createServer((request, response) => {
-      if (request.url.startsWith('/' + metadataName('darwin', process.arch))) {
+      const [, source, asset] = new URL(request.url, 'http://localhost').pathname.split('/')
+      if (asset === metadataName('darwin', process.arch)) {
         response.setHeader('Content-Type', 'application/yaml')
         response.end(
           JSON.stringify({
@@ -39,10 +40,10 @@ app
         )
         return
       }
-      if (request.url.startsWith('/' + filename)) {
-        requests++
+      if (asset === filename) {
+        requests.push(source)
         response.setHeader('Content-Length', bytes.length)
-        const body = corrupt ? Buffer.alloc(bytes.length, 'corrupt') : bytes
+        const body = corrupt || source === 'primary' ? Buffer.alloc(bytes.length, 'corrupt') : bytes
         let offset = 0
         const timer = setInterval(() => {
           response.write(body.subarray(offset, offset + 65536))
@@ -60,7 +61,7 @@ app
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
     const feed = {
       provider: 'generic',
-      url: `http://127.0.0.1:${server.address().port}/`,
+      url: `http://127.0.0.1:${server.address().port}/primary/`,
       channel: `desktop-${process.arch}`
     }
     const configPath = join(directory, 'app-update.yml')
@@ -90,7 +91,14 @@ app
       updater,
       enabled: true,
       currentVersion: '0.1.0',
-      resolveFeed: async () => feed,
+      getSources: async () => [
+        { name: 'aliyun', latest: () => 'desktop-v999.0.0', feed: () => feed },
+        {
+          name: 'github',
+          latest: () => 'desktop-v999.0.0',
+          feed: () => ({ ...feed, url: new URL('../alternate/', feed.url).href })
+        }
+      ],
       beforeInstall: async () => {
         drained = true
       }
@@ -101,7 +109,7 @@ app
     })
     await controller.check()
     assert.equal(controller.snapshot().status, 'available')
-    assert.equal(requests, 0, 'checking must not download')
+    assert.equal(requests.length, 0, 'checking must not download')
     await controller.download()
     assert.equal(controller.snapshot().status, 'error', 'checksum mismatch must reject the download')
     assert.equal(controller.snapshot().operation, 'download')
@@ -115,11 +123,11 @@ app
       'real network download must produce intermediate progress'
     )
     assert.equal(installed, false, 'completion must wait for confirmation')
-    assert.equal(requests, 2)
+    assert.deepEqual(requests, ['primary', 'alternate', 'primary', 'alternate'])
     await controller.install()
     assert.equal(installed, true)
     console.log(
-      'PASS: real Electron updater feed, download progress, SHA-512 rejection, retry and explicit install handoff'
+      'PASS: real Electron updater feed, SHA-512 rejection on both sources, verified alternate download and explicit install handoff'
     )
   })
   .then(
