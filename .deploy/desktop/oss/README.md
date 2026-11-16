@@ -44,6 +44,9 @@ GitHub 发布正式版后，`Build Bosi Desktop apps` 会调用 `Mirror Bosi rel
 }
 ```
 
+大安装包按 2 MiB 分片上传。传输中断时，工作流重试受影响的分片，全部分片合并并校验后才更新公开索引。
+如需在任务失败时立即清理未合并的分片，发布角色可在同一目录增加 `oss:AbortMultipartUpload`；也可由 Bucket 生命周期规则定期清理未完成的分片。
+
 ## GitHub Actions 设置
 
 在两个仓库的 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `BOSI_OSS_DOMAIN`。填写相同的小写域名 `xpert-bosi-releases.oss-cn-hangzhou.aliyuncs.com`。桌面打包任务和官网构建任务都在 environment 之外读取它。官网建议在首次补传后启用。
