@@ -10,13 +10,16 @@ import {
     ContentResourceProviderRegistry,
     RequestContext,
     type ContentCatalogApi,
+    type ContentPrincipal,
     type ContentDocumentScope,
     type ContentResourceReference,
     type ContentSourceInput,
     type IContentResourceProvider
 } from '@xpert-ai/plugin-sdk'
 import type { ContentCatalogItem, ContentResourceSnapshot, ContentTransferSnapshot } from '@xpert-ai/contracts'
-import { Repository } from 'typeorm'
+import { In, Not, Repository } from 'typeorm'
+import { catalogCursor, parseCatalogCursor, type CatalogListInput } from './catalog-pagination'
+import { contentCoverageSchema } from './catalog-coverage.schema'
 import { t } from 'i18next'
 import { ContentIdentityService } from '../content-identity.service'
 import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
@@ -37,6 +40,8 @@ export class ContentCatalogService implements ContentCatalogApi {
         private readonly operations: ContentOperations
     ) {}
 
+    private readonly refreshes = new Map<string, Promise<void>>()
+
     private async check(scope: ContentDocumentScope, write = false) {
         const { actor } = scope
         if (
@@ -45,14 +50,14 @@ export class ContentCatalogService implements ContentCatalogApi {
             (RequestContext.currentUserId() && RequestContext.currentUserId() !== actor.userId)
         )
             throw this.denied()
-        await this.identities.principal(actor)
+        const principal = await this.identities.principal(actor)
         const access = scope.assistantId
             ? await this.projects.assertAssistant({ ...scope, assistantId: scope.assistantId })
             : (await this.projects.listReadable({ actor, projectIds: [scope.projectId] }))[0]
         if (!access) throw this.denied()
         const canWrite = !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
         if (write && !canWrite) throw this.denied()
-        return { canWrite }
+        return { canWrite, principal }
     }
     private where(scope: ContentDocumentScope) {
         return {
@@ -87,10 +92,15 @@ export class ContentCatalogService implements ContentCatalogApi {
     private async catalogTypes(catalog: NonNullable<IContentResourceProvider['catalog']>, scope: ContentDocumentScope) {
         return [...catalog.types, ...((await catalog.listTypes?.(scope)) ?? [])]
     }
-    private async describe(scope: ContentDocumentScope, source: ContentResourceReference, write = false) {
-        const access = await this.check(scope, write)
+    private async describe(
+        scope: ContentDocumentScope,
+        source: ContentResourceReference,
+        write = false,
+        checked?: { canWrite: boolean; principal: ContentPrincipal }
+    ) {
+        const access = checked ?? (await this.check(scope, write))
         const { provider, catalog } = this.provider(source.providerKey, scope)
-        const principal = await this.identities.principal(scope.actor)
+        const principal = access.principal
         const permissions = await provider.authorize({
             ...source,
             actor: scope.actor,
@@ -143,6 +153,7 @@ export class ContentCatalogService implements ContentCatalogApi {
                     title: snapshot.title,
                     sourceRevision: snapshot.revision,
                     sourceLocation: snapshot.source,
+                    containedPaths: snapshot.containedPaths ?? [],
                     sourceUpdatedAt: new Date(snapshot.updatedAt),
                     deleted: snapshot.deleted,
                     // Retain write restrictions even for private sources; get/list still require explicit offlineAccess.
@@ -183,9 +194,16 @@ export class ContentCatalogService implements ContentCatalogApi {
     }
 
     async get(input: ContentDocumentScope & { contentId: string }): Promise<ContentCatalogItem> {
-        await this.check(input)
+        const access = await this.check(input)
         const entry = await this.entries.findOneBy({ ...this.where(input), id: input.contentId })
         if (!entry) throw this.denied()
+        return this.readEntry(input, entry, access)
+    }
+    private async readEntry(
+        input: ContentDocumentScope,
+        entry: ContentResourceEntry,
+        access: { canWrite: boolean; principal: ContentPrincipal }
+    ): Promise<ContentCatalogItem> {
         const source = { providerKey: entry.providerKey, resourceId: entry.resourceId }
         const available = this.providers
             .listRegistrations(input.actor.organizationId)
@@ -206,7 +224,7 @@ export class ContentCatalogService implements ContentCatalogApi {
                 availability: 'provider-unavailable'
             } as ContentCatalogItem
         }
-        const { snapshot, canWrite } = await this.describe(input, source)
+        const { snapshot, canWrite } = await this.describe(input, source, false, access)
         return {
             ...snapshot,
             contentId: entry.id,
@@ -237,8 +255,26 @@ export class ContentCatalogService implements ContentCatalogApi {
             throw new ConflictException(t('server-ai:Error.ContentVersionConflict'))
         return projection as import('@xpert-ai/contracts').ContentSearchProjection
     }
-    async list(input: Parameters<ContentCatalogApi['list']>[0]) {
+    async refresh(input: Parameters<ContentCatalogApi['refresh']>[0] & { typeId?: string }) {
         await this.check(input)
+        const key = JSON.stringify([
+            input.actor,
+            input.projectId,
+            input.assistantId,
+            input.typeId,
+            [...(input.excludedProviderKeys ?? [])].sort()
+        ])
+        const existing = this.refreshes.get(key)
+        if (existing) return existing
+        const work = this.refreshProviders(input)
+        this.refreshes.set(key, work)
+        try {
+            await work
+        } finally {
+            if (this.refreshes.get(key) === work) this.refreshes.delete(key)
+        }
+    }
+    private async refreshProviders(input: Parameters<ContentCatalogApi['refresh']>[0] & { typeId?: string }) {
         // Reconciliation covers creation from tools and independent Views, including missed browser events.
         for (const { type, strategy } of this.providers.listRegistrations(input.actor.organizationId)) {
             // Exclusion applies to discovery as well as returned rows. Consumers that
@@ -267,33 +303,95 @@ export class ContentCatalogService implements ContentCatalogApi {
                 if (cursor) seen.add(cursor)
             } while (cursor)
         }
-        const available = new Set(
-            this.providers
-                .listRegistrations(input.actor.organizationId)
-                .filter(({ strategy }) => strategy.catalog)
-                .map(({ type }) => type)
-        )
-        const rows = await this.entries.find({ where: this.where(input) })
+    }
+    async coverage(input: Parameters<ContentCatalogApi['coverage']>[0]) {
+        await this.check(input)
+        const rows = await this.entries.find({
+            where: {
+                ...this.where(input),
+                ...(input.excludedProviderKeys?.length ? { providerKey: Not(In(input.excludedProviderKeys)) } : {})
+            },
+            select: { sourceLocation: true, containedPaths: true }
+        })
+        // Suppression is deliberately independent of native read grants: a private or
+        // trashed resource must never reappear as an ordinary file in the library.
+        return rows.flatMap((row) => {
+            const { source, containedPaths } = contentCoverageSchema.parse({
+                source: row.sourceLocation ?? { kind: 'managed' },
+                containedPaths: row.containedPaths ?? []
+            })
+            return [
+                ...(containedPaths ?? []).map(({ path, recursive }) => ({ path, recursive })),
+                ...(source.kind === 'file'
+                    ? [{ path: source.path, recursive: false }]
+                    : source.kind === 'bundle'
+                      ? [{ path: source.rootPath, recursive: true }]
+                      : [])
+            ]
+        })
+    }
+    async list(input: CatalogListInput) {
+        const access = await this.check(input)
+        let after = parseCatalogCursor(input)
+        if (input.discovery !== 'indexed') await this.refresh(input)
+        if (input.contentIds?.length === 0) return { items: [], hasMore: false }
+        const limit = Math.min(100, Math.max(1, input.limit ?? 50))
+        let skip = input.cursor ? 0 : Math.max(0, input.offset ?? 0)
         const items: ContentCatalogItem[] = []
-        const selectedIds = input.contentIds ? new Set(input.contentIds) : undefined
-        for (const row of rows) {
-            if (input.excludedProviderKeys?.includes(row.providerKey)) continue
-            if (selectedIds && !selectedIds.has(row.id)) continue
-            // An uninstalled plugin retains its binding and source, but cannot reveal stale cached titles.
-            if (!available.has(row.providerKey) && row.offlineSnapshot?.offlineAccess !== 'project') continue
-            try {
-                const item = await this.get({ ...input, contentId: row.id })
-                if (item.deleted !== !!input.deleted || (input.typeId && item.typeId !== input.typeId)) continue
-                if (input.search && !item.title.toLocaleLowerCase().includes(input.search.toLocaleLowerCase())) continue
-                items.push(item)
-            } catch (error) {
-                if (!(error instanceof ForbiddenException || error instanceof NotFoundException)) throw error
+        let nextCursor: string | undefined
+        for (;;) {
+            const query = this.entries
+                .createQueryBuilder('entry')
+                .where(this.where(input))
+                .andWhere('entry.deleted = :deleted', { deleted: !!input.deleted })
+                .orderBy('entry.sourceUpdatedAt', 'DESC', 'NULLS LAST')
+                .addOrderBy('entry.id', 'ASC')
+                .take(limit + 1)
+            if (input.excludedProviderKeys?.length)
+                query.andWhere('entry.providerKey NOT IN (:...excluded)', { excluded: input.excludedProviderKeys })
+            if (input.contentIds) query.andWhere('entry.id IN (:...ids)', { ids: input.contentIds })
+            if (input.typeId) query.andWhere('entry.typeId = :type', { type: input.typeId })
+            if (input.search)
+                query.andWhere('POSITION(LOWER(:search) IN LOWER(entry.title)) > 0', { search: input.search })
+            if (after)
+                query.andWhere(
+                    after.at === null
+                        ? '(entry.sourceUpdatedAt IS NULL AND entry.id > :id)'
+                        : '(entry.sourceUpdatedAt < :at OR entry.sourceUpdatedAt IS NULL OR (entry.sourceUpdatedAt = :at AND entry.id > :id))',
+                    after
+                )
+            const rows = await query.getMany()
+            // Bounded concurrency keeps the candidate page ordered without serial N+1 waits.
+            // Only Project identity is reused within this request; every source still authorizes live.
+            for (let index = 0; index < rows.length; index += 4) {
+                const resolved = await Promise.all(
+                    rows.slice(index, index + 4).map(async (row) => {
+                        try {
+                            return { row, item: await this.readEntry(input, row, access) }
+                        } catch (error) {
+                            if (!(error instanceof ForbiddenException || error instanceof NotFoundException))
+                                throw error
+                            return { row, item: null }
+                        }
+                    })
+                )
+                for (const { row, item } of resolved) {
+                    after = { key: '', at: row.sourceUpdatedAt?.toISOString() ?? null, id: row.id }
+                    if (!item || item.deleted !== !!input.deleted || (input.typeId && item.typeId !== input.typeId))
+                        continue
+                    if (input.search && !item.title.toLocaleLowerCase().includes(input.search.toLocaleLowerCase()))
+                        continue
+                    if (skip > 0) {
+                        skip--
+                        continue
+                    }
+                    if (items.length === limit) return { items, hasMore: true, nextCursor }
+                    items.push(item)
+                    nextCursor = catalogCursor(input, row)
+                }
             }
+            if (rows.length < limit + 1) return { items, hasMore: false }
         }
-        items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.contentId.localeCompare(b.contentId))
-        const offset = Math.max(0, input.offset ?? 0),
-            limit = Math.min(100, Math.max(1, input.limit ?? 50))
-        return { items: items.slice(offset, offset + limit), hasMore: items.length > offset + limit }
     }
     async create(request: Parameters<ContentCatalogApi['create']>[0]) {
         const transfer =
