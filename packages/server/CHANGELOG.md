@@ -1,5 +1,30 @@
 # @xpert-ai/server-core
 
+## 3.36.0
+
+### Minor Changes
+
+- Add shared contracts and SDK support for operation-based collaboration, version-bound selections, authorized content transfer, provider-owned files, and isolated browser draft bindings. Keep domain persistence in the resource provider while reusing platform authorization and transport.
+
+    Preserve source-issued certification and exact values in analysis evidence, add bounded query reuse with current permission and source checks, and support explicitly accepted group result delegation. Restrict project member responses to public identity fields.
+
+    Adopt the published ChatKit and Workbench packages, integrate local draft storage in Cloud views, and expose approved tool calls to live MCP App views through the existing client-tool execution path.
+
+    Allow native ARM64 browser-video builds with a digest-pinned multi-platform Playwright base while retaining the existing AMD64 child image. Document collaborative artifacts, Sheets, trusted data, deployment and recovery in English and Chinese.
+
+### Patch Changes
+
+- Updated dependencies [c051e4f]
+- Updated dependencies [6889e73]
+- Updated dependencies
+- Updated dependencies [ab3a8ed]
+- Updated dependencies [4a9bad9]
+- Updated dependencies [4a288f9]
+    - @xpert-ai/contracts@3.36.0
+    - @xpert-ai/plugin-sdk@3.36.0
+    - @xpert-ai/server-common@3.36.0
+    - @xpert-ai/server-config@3.36.0
+
 ## 3.35.0
 
 ### Minor Changes
