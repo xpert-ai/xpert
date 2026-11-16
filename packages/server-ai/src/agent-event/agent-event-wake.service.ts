@@ -8,6 +8,7 @@ import { XpertChatCommand } from '../xpert/commands/chat.command'
 import { AgentEventBindingService } from './agent-event-binding.service'
 import type { EventClaim } from './agent-event.store'
 import type { AgentEventBinding } from './agent-event.entity'
+import { EVENT_RUN_ORIGIN } from './agent-event-run-context'
 
 const targetSchema = z
     .object({
@@ -86,6 +87,17 @@ export class AgentEventWakeService {
                     },
                     projectId: binding.projectId ?? undefined,
                     once: true,
+                    [EVENT_RUN_ORIGIN]: {
+                        receiptId,
+                        tenantId: binding.tenantId,
+                        organizationId: binding.organizationId,
+                        userId: binding.userId,
+                        workspaceId: binding.workspaceId,
+                        projectId: binding.projectId,
+                        xpertId: binding.xpertId,
+                        conversationId: conversation.id,
+                        threadId: target.threadId ?? conversation.threadId
+                    },
                     eventBinding: { id: binding.id, revision: binding.revision, fence },
                     execution: { id: receiptId },
                     streamPersistence: { transport: 'redis-stream' }

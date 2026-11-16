@@ -22,6 +22,7 @@ import { XpertChatCommand } from '../xpert/commands/chat.command'
 import { AGENT_EVENT_ENTITIES, AgentEventBinding } from './agent-event.entity'
 import { AgentEventBindingService } from './agent-event-binding.service'
 import { AgentEventStore } from './agent-event.store'
+import { eventOriginForRun } from './agent-event-run-context'
 import { AgentEventWakeService } from './agent-event-wake.service'
 import { sourceContext } from './agent-event.runtime'
 import { FollowUpTimerSource } from './follow-up-timer.source'
@@ -133,6 +134,13 @@ const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
             const commands: CommandBus = Object.create(CommandBus.prototype)
             commands.execute = jest.fn().mockImplementation(async (cmd: XpertChatCommand) => {
                 const stream = await admission.run(cmd.request, cmd.options, async () => {
+                    expect(
+                        eventOriginForRun(cmd.options, {
+                            ...ctx,
+                            conversationId: f.conversation.id,
+                            threadId: f.threadId
+                        })?.receiptId
+                    ).toBe(receipt.receiptId)
                     toolsByAgent[cmd.options.agentKey === 'buyer' ? 'buyer' : 'leader']()
                     return model()
                 })

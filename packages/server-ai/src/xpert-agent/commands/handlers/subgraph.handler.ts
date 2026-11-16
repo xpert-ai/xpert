@@ -1,3 +1,4 @@
+import { EVENT_RUN_ORIGIN, eventOriginForRun } from '../../../agent-event/agent-event-run-context'
 import { TemplateSubagentRuntimeService } from '../../template-subagents/template-subagent-runtime.service'
 import { createTemplateSubagentsMiddleware } from '../../template-subagents/template-subagents.middleware'
 import { resolveExecutionWorkflow } from '../../../shared/agent/execution-definition'
@@ -341,6 +342,17 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         const runtimeUserId = RequestContext.currentUserId()
         const runtimeOrganizationId = RequestContext.getOrganizationId() ?? null
+        const middlewareScope = {
+            tenantId: runtimeXpert.tenantId,
+            organizationId: runtimeOrganizationId,
+            userId: runtimeUserId,
+            workspaceId: runtimeXpert.workspaceId,
+            projectId: options.projectId,
+            conversationId: options.conversationId,
+            threadId: thread_id,
+            xpertId: runtimeXpert.id
+        }
+        const eventOrigin = eventOriginForRun(options, middlewareScope)
         const runtimeWorkspaceScope = resolveToolRuntimeScope(
             {
                 tenantId: runtimeXpert.tenantId,
@@ -534,6 +546,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         store: options.store,
                         xpert: runtimeXpert,
                         options: {
+                            [EVENT_RUN_ORIGIN]: eventOrigin,
                             leaderKey: agent.key,
                             isDraft: command.options.isDraft,
                             conversationId: options.conversationId,
@@ -619,6 +632,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         store: options.store,
                         xpert: runtimeXpert,
                         options: {
+                            [EVENT_RUN_ORIGIN]: eventOrigin,
                             leaderKey: parentKey,
                             isDraft: command.options.isDraft,
                             conversationId: options.conversationId,
@@ -845,18 +859,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...new Set([...getRuntimeConnectorBindingIds(options.runtimeCapabilities), ...templateSelection.bindingIds])
         ]
         const middlewareRuntimeScope: AgentMiddlewareRuntimeScope = {
-            tenantId: runtimeXpert.tenantId,
-            organizationId: runtimeOrganizationId,
-            userId: runtimeUserId,
-            workspaceId: runtimeXpert.workspaceId,
-            projectId: options.projectId,
-            xpertId: runtimeXpert.id,
+            ...middlewareScope,
             catalog: runtimeWorkspaceScope.catalog,
             scopeId: runtimeWorkspaceScope.scopeId,
             isolateByUser: runtimeWorkspaceScope.isolateByUser,
             xpertName: runtimeXpert.name,
-            conversationId: options.conversationId,
-            threadId: thread_id,
             agentKey,
             executionId: resolveExecutionId(),
             connectorBindingIds,
@@ -878,15 +885,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             executionId: execution.id,
             [RUNTIME_RESOURCE_SKILLS]:
                 options.executionDefinition?.skills[agent.key] ?? dynamicResources?.skillSources ?? [],
-            tenantId: runtimeXpert.tenantId,
-            organizationId: runtimeOrganizationId,
-            userId: runtimeUserId,
-            workspaceId: runtimeXpert.workspaceId,
-            projectId: options.projectId,
-            conversationId: options.conversationId,
+            ...middlewareScope,
+            eventReceiptId: eventOrigin?.receiptId,
             inputMessageId: options.inputMessageId,
-            threadId: thread_id,
-            xpertId: runtimeXpert.id,
             workspaceDataScope: runtimeXpert.workspaceDataScope,
             xpertFeatures: runtimeXpert.features ?? null,
             agentKey,
