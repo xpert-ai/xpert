@@ -91,6 +91,21 @@ test('staged NsJail runtime changes cannot skip the release check or use an unst
   )
 })
 
+test('staging a Sandbox Runtime Changeset requires a staged NsJail Changeset', async (t) => {
+  const f = fixture(t)
+  f.note('suite', ['@xpert-ai/sandbox-runtime'])
+  f.git('add', '.changeset/suite.md')
+  f.note('runner', [jail.name])
+  await assert.rejects(f.check, /@xpert-ai\/nsjail-runner: add an application Changeset for @xpert-ai\/sandbox-runtime/)
+
+  f.git('add', '.changeset/runner.md')
+  const { plan } = await f.check()
+  assert.deepEqual(
+    plan.matrix.include.map((image) => image.name),
+    [jail.name]
+  )
+})
+
 test('runtime repairs cannot reuse a branch note consumed on main or an unstaged replacement', async (t) => {
   const f = fixture(t)
   f.note('old-nsjail', [jail.name])
