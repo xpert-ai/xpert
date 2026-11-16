@@ -93,7 +93,7 @@ export const services = [
     health_check: '.deploy/nsjail-runner/check-image.cjs',
     inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/', ...nsjailRuntimeInputs],
     requiredReleaseInputs: ['.deploy/nsjail-runner/', ...nsjailRuntimeInputs],
-    shared: []
+    shared: ['packages/sandbox-runtime/package.json']
   }
 ]
 

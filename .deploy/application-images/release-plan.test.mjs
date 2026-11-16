@@ -610,6 +610,26 @@ test('the default policy does not accept versioning evidence hidden inside an ag
   f.note('downstream')
   assert.throws(() => f.plan(f.initial, f.commit(), 'push', 'refs/heads/main'), /before consuming/)
 })
+test('PR checks require a NsJail declaration when a Changeset releases Sandbox Runtime', (t) => {
+  const f = fixture(t)
+  const suite = '@xpert-ai/sandbox-runtime'
+  const prPlan = (head) => f.plan(f.initial, head, 'pull_request', 'refs/pull/1/merge')
+  f.note('suite', [suite])
+  const incomplete = f.commit()
+  assert.throws(
+    () => prPlan(incomplete),
+    /@xpert-ai\/nsjail-runner: add an application Changeset for @xpert-ai\/sandbox-runtime/
+  )
+
+  f.note('suite', [suite, jail.name])
+  const plan = prPlan(f.commit())
+  assert.deepEqual(
+    plan.validationMatrix.include.map((image) => image.name),
+    [jail.name]
+  )
+  assert.equal(plan.publish, false)
+})
+
 test('new shared contracts notes require explicit API and Web image declarations', (t) => {
   const f = fixture(t)
   f.note('shared', [contracts])
