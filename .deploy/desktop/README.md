@@ -79,6 +79,15 @@ feed for the running OS/architecture; platform releases in this shared repositor
 are ignored. No GitHub token or workspace credentials are used. Discovery uses
 strict HTTPS independently of connection settings and private-service certificate exceptions.
 
+When an OSS mirror is configured, the updater uses its Electron network session to
+read the exit country from Cloudflare's public `https://www.cloudflare.com/cdn-cgi/trace`
+endpoint. Mainland China (`CN`) checks OSS first. Other known regions check GitHub
+first. If the lookup times out or has no usable country, OSS goes first. An
+unreachable or incompatible index or architecture feed triggers the other source.
+A manual check also tries GitHub when OSS is at or behind the installed version.
+Downloads can retry the same release on the other host after verifying the
+installer filename, size and SHA-512 match the original feed.
+
 The account footer shows a download icon, expanding to **Update** on hover/focus.
 Downloading starts on click and displays percentage progress. Completion prompts
 **Install and restart** or **Later**. Installation first stops Desktop Shell tools,
@@ -190,4 +199,4 @@ Signing options target the installed electron-builder 26.x API; see the
 
 ## OSS release mirror
 
-Set up the domestic download domain, bucket policy, GitHub OIDC role and repository variables using the [Bosi OSS rollout guide](oss/README.md). A configured stable build uses the mirror for update discovery and packages. The manual mirror workflow on main can backfill an existing desktop tag without rebuilding.
+Set up the domestic download domain, bucket policy, GitHub OIDC role and repository variables using the [Bosi OSS rollout guide](oss/README.md). Stable builds use the regional selection described above for update discovery and packages. The manual mirror workflow on main can backfill an existing desktop tag without rebuilding.

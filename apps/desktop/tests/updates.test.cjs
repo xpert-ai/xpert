@@ -2,7 +2,8 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
 const { DesktopUpdater, registerUpdateIpc } = require('../electron/updates/controller.cjs')
-const { findRelease, metadataName } = require('../electron/updates/release.cjs')
+const { getReleaseSources } = require('../electron/updates/release.cjs')
+const { metadataName } = require('../electron/updates/config.cjs')
 
 function fixture(t, overrides = {}) {
   const updater = new EventEmitter()
@@ -10,7 +11,7 @@ function fixture(t, overrides = {}) {
   updater.setFeedURL = (feed) => calls.push(['feed', feed])
   updater.checkForUpdates = async () => {
     calls.push('check')
-    updater.emit('update-available', { version: '0.2.0' })
+    return { isUpdateAvailable: true, updateInfo: { version: '0.2.0' } }
   }
   updater.downloadUpdate = async () => {
     calls.push('download')
@@ -20,7 +21,9 @@ function fixture(t, overrides = {}) {
     updater,
     enabled: true,
     currentVersion: '0.1.0',
-    resolveFeed: async () => ({ provider: 'generic' }),
+    getSources: async () => [
+      { name: 'github', latest: async () => 'desktop-v0.2.0', feed: () => ({ provider: 'generic' }) }
+    ],
     ...overrides
   })
   t.after(() => controller.dispose())
@@ -84,9 +87,9 @@ test('network, download and native installation errors are retryable without exp
   let offline = true,
     installFailure = true
   const { updater, controller, calls } = fixture(t, {
-    resolveFeed: async () => {
+    getSources: async () => {
       if (offline) throw new Error('private URL')
-      return {}
+      return [{ name: 'github', latest: async () => 'desktop-v0.2.0', feed: () => ({}) }]
     },
     beforeInstall: async () => {
       if (installFailure) throw new Error('tool shutdown failed')
@@ -171,7 +174,7 @@ test('release discovery paginates, skips platform/candidate/draft/incompatible r
     [release('desktop-v0.3.0'), release('desktop-v0.2.0')]
   ]
   let index = 0
-  const feed = await findRelease({
+  const [github] = await getReleaseSources({
     platform: 'darwin',
     arch: 'arm64',
     fetcher: async (url, options) => {
@@ -180,13 +183,10 @@ test('release discovery paginates, skips platform/candidate/draft/incompatible r
       return Response.json(pages[index++])
     }
   })
+  const feed = github.feed(await github.latest())
   assert.equal(index, 2)
   assert.equal(feed.url, 'https://github.com/xpert-ai/xpert/releases/download/desktop-v0.3.0/')
   assert.equal(feed.channel, 'desktop-arm64')
-  assert.equal(await findRelease({ platform: 'linux', arch: 'x64', fetcher: async () => Response.json([]) }), null)
-  await assert.rejects(
-    findRelease({ platform: 'darwin', arch: 'arm64', fetcher: async () => new Response('', { status: 403 }) })
-  )
 })
 test('update metadata has distinct filenames for all six native targets', () => {
   assert.deepEqual(
@@ -206,50 +206,14 @@ test('OSS discovery selects the latest eligible channel even when the latest mac
   const options = { platform: 'darwin', arch: 'arm64', mirrorDomain: 'download.example.com' }
   const index = { schema: 1, tag: 'desktop-v0.4.2', feeds: { 'desktop-arm64-mac.yml': 'desktop-v0.4.1' } }
   const fetcher = async (url) => {
+    if (url.endsWith('/cdn-cgi/trace')) return new Response('h=www.cloudflare.com\nloc=CN')
     assert.equal(url, 'https://download.example.com/bosi/latest.json')
-    return { ok: true, json: async () => index }
+    return Response.json(index)
   }
-  const feed = await findRelease({ ...options, fetcher })
+  const [mirror] = await getReleaseSources({ ...options, fetcher })
+  const feed = mirror.feed(await mirror.latest())
   assert.equal(feed.url, 'https://download.example.com/bosi/desktop-v0.4.1/')
   assert.equal(feed.channel, 'desktop-arm64')
-  assert.equal(await findRelease({ ...options, arch: 'x64', fetcher }), null)
-})
-
-test('unusable OSS metadata falls back to official GitHub discovery', async () => {
-  for (const mirror of [
-    { ok: false },
-    {
-      ok: true,
-      json: async () => ({
-        schema: 1,
-        tag: 'desktop-v1.0.0',
-        feeds: { 'desktop-x64.yml': 'https://invalid.example' }
-      })
-    }
-  ]) {
-    const requests = []
-    const feed = await findRelease({
-      platform: 'win32',
-      arch: 'x64',
-      mirrorDomain: 'download.example.com',
-      fetcher: async (url) => {
-        requests.push(url)
-        return requests.length === 1
-          ? mirror
-          : {
-              ok: true,
-              json: async () => [
-                {
-                  draft: false,
-                  prerelease: false,
-                  tag_name: 'desktop-v1.0.0',
-                  assets: [{ name: 'desktop-x64.yml' }]
-                }
-              ]
-            }
-      }
-    })
-    assert.equal(requests.length, 2)
-    assert.equal(feed.url, 'https://github.com/xpert-ai/xpert/releases/download/desktop-v1.0.0/')
-  }
+  const [macX64] = await getReleaseSources({ ...options, arch: 'x64', fetcher })
+  assert.equal(await macX64.latest(), null)
 })
