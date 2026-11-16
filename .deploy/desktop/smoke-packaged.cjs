@@ -19,6 +19,7 @@ assert.equal(typeof packaged('@xpert-ai/desktop-protocol').parseCommand, 'functi
 assert.equal(typeof packaged('@xpert-ai/desktop-protocol').parseAudioCapturePayload, 'function')
 assert.equal(typeof packaged('./electron/audio-capture/controller.cjs').AudioCaptureController, 'function')
 if (process.platform === 'darwin') {
+  fs.accessSync(path.join(`${archive}.unpacked`, 'resources/computer-use/window-control'), fs.constants.X_OK)
   const helper = path.join(`${archive}.unpacked`, 'resources/audio-capture/audio-capture')
   fs.accessSync(helper, fs.constants.X_OK)
   const capability = JSON.parse(execFileSync(helper, ['--check'], { encoding: 'utf8', timeout: 10000 }))

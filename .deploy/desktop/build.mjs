@@ -27,6 +27,7 @@ writeFileSync(
   JSON.stringify({ ...manifest, types: './index.d.ts' }, null, 2) + '\n'
 )
 run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
+run('apps/desktop/scripts/build-computer-use.mjs', [])
 run('apps/desktop/scripts/build-windows-shell.mjs', [])
 const testDirectories = ['packages/desktop-protocol/test', 'apps/desktop/tests', 'apps/desktop/tests/audio-capture']
 if (process.platform === 'darwin') testDirectories.push('apps/desktop/native/audio-capture')
