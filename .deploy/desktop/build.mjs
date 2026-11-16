@@ -22,10 +22,10 @@ for (const [format, output] of [
   })
 }
 const manifest = JSON.parse(readFileSync('packages/contracts/package.json', 'utf8'))
-writeFileSync(
-  'packages/contracts/dist/package.json',
-  JSON.stringify({ ...manifest, types: './index.d.ts' }, null, 2) + '\n'
-)
+// pnpm links Desktop directly to dist, so its package entries are relative to dist.
+manifest.types = './index.d.ts'
+manifest.exports['.'] = { types: manifest.types, module: manifest.module, default: manifest.main }
+writeFileSync('packages/contracts/dist/package.json', JSON.stringify(manifest, null, 2) + '\n')
 run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
 run('apps/desktop/scripts/build-computer-use.mjs', [])
 run('apps/desktop/scripts/build-windows-shell.mjs', [])
