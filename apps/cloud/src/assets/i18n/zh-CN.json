@@ -1875,6 +1875,7 @@
       "DeleteSelected": "删除所选"
     },
     "Files": {
+      "PluginEditorUnavailable": "无法打开文件编辑器，请检查插件是否可用及项目访问权限。",
       "Pdf": {
         "Previous": "上一页",
         "Next": "下一页",

@@ -148,6 +148,10 @@ An explicitly narrower task retains its scope; it cannot establish full delivery
 
 Dispatch returns task/attempt/invocation identities, not completion. Use the
 platform's durable completion delivery or supported bounded waiting mechanism.
+An observation timeout is not the execution's configured deadline. Inspect progress
+and remaining budget before deciding to cancel or re-dispatch; a useful build should
+continue in its existing execution. Ending the coordinator's turn to await durable
+delivery is different from ending or cancelling the Coding CLI task and its services.
 On a completion event, reload persisted requirements and results, assess the
 evidence and continue the next appropriate task without another user message.
 When a Project dispatch registers durable result delivery to this conversation,

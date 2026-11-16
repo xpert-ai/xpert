@@ -3,6 +3,7 @@ import { registerLocalDraftTests } from './remote-component-local-draft.cases'
 import { registerViewStateTests } from './remote-view-state.cases'
 import { registerFileAccessTests } from './remote-component-file-access.cases'
 import { registerContextTests } from './remote-component-context.cases'
+import { registerEditorCloseTests } from './remote-editor-close.cases'
 jest.mock('@cloud/app/@core', () => {
   const { inject } = jest.requireActual('@angular/core')
 
@@ -621,6 +622,7 @@ describe('RemoteComponentRendererComponent', () => {
   registerLocalDraftTests(() => ({ api, manifest }))
 
   registerContextTests(() => ({ api, manifest }), flushRemoteEntry)
+  registerEditorCloseTests(() => manifest)
 
   it('ignores postMessage events from a different iframe source', async () => {
     const handler = jest.fn()

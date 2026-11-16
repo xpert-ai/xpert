@@ -1,9 +1,13 @@
 import unittest
 from pathlib import Path
+import shutil
+import socket
+import sys
 import tempfile
 from unittest.mock import patch
 from platform_services import infrastructure
-from processes import ServicePending, healthy, start_service
+from processes import ServicePending, healthy, launch_supervisor, service_pid, start_service, stop
+from progress import read_progress
 
 
 class ServiceWaitingTests(unittest.TestCase):
@@ -48,6 +52,51 @@ class ServiceWaitingTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'exited') as failure:
                 start_service({'state': '/state'}, 'api', 2)
         self.assertNotIsInstance(failure.exception, ServicePending)
+
+
+@unittest.skipUnless(sys.platform == 'linux' and shutil.which('supervisord'), 'Linux Supervisor integration')
+class LiveWaitingTests(unittest.TestCase):
+    def test_short_wait_then_resume_keeps_same_process_and_progress(self):
+        with tempfile.TemporaryDirectory(prefix='local-wait-') as folder:
+            root = Path(folder)
+            (root / 'logs').mkdir()
+            with socket.socket() as probe:
+                probe.bind(('127.0.0.1', 0))
+                port = probe.getsockname()[1]
+            (root / 'service.py').write_text(
+                'import sys, time\nfrom pathlib import Path\n'
+                f'sys.path.insert(0, {str(Path(__file__).parent)!r})\n'
+                'from progress import emit\n'
+                'from http.server import BaseHTTPRequestHandler, HTTPServer\n'
+                'emit("build", "running")\n'
+                f'while not Path({str(root / "ready")!r}).exists(): time.sleep(.05)\n'
+                'class Health(BaseHTTPRequestHandler):\n'
+                ' def do_GET(self):\n'
+                '  self.send_response(200); self.end_headers(); self.wfile.write(b"ok")\n'
+                ' def log_message(self, *args): pass\n'
+                'emit("serve", "running")\n'
+                f'HTTPServer(("127.0.0.1", {port}), Health).serve_forever()\n'
+            )
+            config = {'state': folder, 'platform': folder, 'scripts': folder,
+                      'python': sys.executable, 'ports': {'api': port},
+                      'supervisord': shutil.which('supervisord'), 'supervisorctl': shutil.which('supervisorctl')}
+            owner = launch_supervisor(config, foreground=True)
+            try:
+                with self.assertRaises(ServicePending) as pending:
+                    start_service(config, 'api', 1)
+                pid = pending.exception.pid
+                self.assertGreater(pid, 0)
+                self.assertEqual(read_progress(config, 'api')['lastPhase']['phase'], 'build')
+                (root / 'ready').touch()
+                start_service(config, 'api', 15)
+                self.assertEqual(service_pid(config, 'api'), pid)
+                self.assertTrue(healthy(config, 'api'))
+                self.assertEqual(read_progress(config, 'api')['lastPhase']['phase'], 'serve')
+            finally:
+                stop(config)
+                if owner.poll() is None:
+                    owner.terminate()
+                owner.wait(timeout=30)
 
 
 if __name__ == '__main__':

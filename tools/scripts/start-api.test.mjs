@@ -47,6 +47,28 @@ test('prepared builds must verify before migration and still apply/verify on eve
   assert.equal(failure.calls.length, 1)
 })
 
+test('phase timing identifies failed startup without exposing command or error values', async () => {
+  const lines = []
+  const fixture = recordRuns(3)
+  await assert.rejects(runApiWorkflow({ ...fixture, log: (line) => lines.push(line) }), /failed/)
+  const events = lines
+    .filter((line) => line.startsWith('XPERT_DEV_PHASE '))
+    .map((line) => JSON.parse(line.slice('XPERT_DEV_PHASE '.length)))
+  assert.deepEqual(
+    events.map(({ phase, status }) => [phase, status]),
+    [
+      ['build_libraries', 'running'],
+      ['build_libraries', 'completed'],
+      ['build_api', 'running'],
+      ['build_api', 'completed'],
+      ['schema_apply', 'running'],
+      ['schema_apply', 'failed']
+    ]
+  )
+  assert.ok(events.every(({ elapsedMs, at }) => elapsedMs >= 0 && Number.isFinite(Date.parse(at))))
+  assert.ok(!JSON.stringify(events).includes('Fixture failure'))
+})
+
 test('explicit build-only completes compilation without database changes or serving', async () => {
   const fixture = recordRuns()
   await runApiWorkflow({ ...fixture, mode: 'build' })

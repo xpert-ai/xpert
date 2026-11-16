@@ -687,6 +687,7 @@ export class AgentInvocationRuntime {
             invocation: {
                 ...record.invocation,
                 ...structuredClone(observation),
+                completedAt: record.invocation.completedAt,
                 executionTarget: record.invocation.executionTarget,
                 completionEvidence: record.invocation.completionEvidence,
                 reportedOutcome: record.invocation.reportedOutcome,
@@ -713,6 +714,8 @@ export class AgentInvocationRuntime {
                 updatedAt: new Date().toISOString()
             }
         }
+        if (!next.invocation.completedAt && invocationCanRelease(next.invocation))
+            next.invocation.completedAt = next.invocation.updatedAt
         if (!(await this.store.replace(next, record.invocation.revision))) {
             if (requireClaim) throw invocationError('ConcurrentUpdate')
             return undefined

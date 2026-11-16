@@ -104,6 +104,25 @@ natural-language changes in `feedback`; do not invent finding IDs. The platform
 supplies the exact report bound to the decision. Preserve the assigned reviewer.
 After repairs, a fresh independent review must assess the new candidate.
 
+For each blocking observation, pass the failed requirement, reproducible action,
+expected and observed behavior, and evidence path. Let the CLI investigate and
+repair within the original scope; do not prescribe unrelated changes. The host
+already carries the pinned report, so do not paste that whole report again into
+delegation instructions. An execution failure is not a negative business review.
+Revalidation should reproduce the reported failure on the new candidate and check
+affected behavior, explaining any checks reused from earlier evidence. If a check
+cannot run, report it as unverified rather than silently dropping the finding.
+
+Before the final user reply, reread the delivery summary and the relevant current
+child tasks. Verify the formal decision was recorded; a failed update or a completed
+Pipeline node does not prove the parent task is done. Fix a stale-state error using
+the fresh decision reference without rerunning finished implementation. If closure
+remains blocked, retain that limitation in the final reply. State what was actually
+tested or deployed, what reused earlier evidence, and any remaining defect or
+unfinished task. Do not infer whole-delivery duration or CLI retry counts from
+Pipeline node statistics; missing timing is unknown, and summed model input tokens
+are cumulative usage, not the size of one prompt.
+
 ## Recover delivery without repeating completed work
 
 Use `project_get_task` to distinguish execution failure from report or artifact
@@ -118,6 +137,11 @@ changed. No wildcards or directory scans are permitted. Successful report delive
 is preserved when only artifact export needs retrying. Recovery creates a new
 result revision and records its history; use that revision for subsequent review
 and acceptance. It does not accept the task.
+
+`delivery.mode=none` did not request artifact export. Do not offer delivery recovery
+as a way to add exports to that completed invocation. If later archiving is needed,
+use a separately scoped file-collection task and preserve the original acceptance;
+do not rerun business tests or claim they were rerun.
 
 If the report file never existed or the workspace is gone, recovery cannot invent
 it. The coordinator may request a focused report-only task based on retained

@@ -12,7 +12,8 @@ import {
     type ContentCatalogApi,
     type ContentDocumentScope,
     type ContentResourceReference,
-    type ContentSourceInput
+    type ContentSourceInput,
+    type IContentResourceProvider
 } from '@xpert-ai/plugin-sdk'
 import type { ContentCatalogItem, ContentResourceSnapshot, ContentTransferSnapshot } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
@@ -71,12 +72,20 @@ export class ContentCatalogService implements ContentCatalogApi {
     }
     async types(scope: ContentDocumentScope) {
         await this.check(scope)
-        return this.providers
-            .listRegistrations(scope.actor.organizationId)
-            .flatMap(({ type, strategy }) =>
-                (strategy.catalog?.types ?? []).map((item) => ({ ...item, providerKey: type }))
+        const types = await Promise.all(
+            this.providers.listRegistrations(scope.actor.organizationId).map(async ({ type, strategy }) =>
+                (strategy.catalog ? await this.catalogTypes(strategy.catalog, scope) : []).map((item) => ({
+                    ...item,
+                    providerKey: type
+                }))
             )
+        )
+        return types
+            .flat()
             .sort((a, b) => a.typeId.localeCompare(b.typeId) || a.implementationKey.localeCompare(b.implementationKey))
+    }
+    private async catalogTypes(catalog: NonNullable<IContentResourceProvider['catalog']>, scope: ContentDocumentScope) {
+        return [...catalog.types, ...((await catalog.listTypes?.(scope)) ?? [])]
     }
     private async describe(scope: ContentDocumentScope, source: ContentResourceReference, write = false) {
         const access = await this.check(scope, write)
@@ -93,7 +102,7 @@ export class ContentCatalogService implements ContentCatalogApi {
         const snapshot = contentSnapshotSchema.parse(await catalog.describe(input)) as ContentResourceSnapshot
         if (snapshot.projectId !== scope.projectId) throw this.denied()
         if (
-            !catalog.types.some(
+            !(await this.catalogTypes(catalog, scope)).some(
                 (type) =>
                     type.typeId === snapshot.typeId &&
                     type.modelId === snapshot.modelId &&
@@ -237,7 +246,8 @@ export class ContentCatalogService implements ContentCatalogApi {
             if (
                 !strategy.catalog ||
                 input.excludedProviderKeys?.includes(type) ||
-                (input.typeId && !strategy.catalog.types.some((item) => item.typeId === input.typeId))
+                (input.typeId &&
+                    !(await this.catalogTypes(strategy.catalog, input)).some((item) => item.typeId === input.typeId))
             )
                 continue
             let cursor: string | undefined
@@ -316,7 +326,7 @@ export class ContentCatalogService implements ContentCatalogApi {
         }
         await this.check(input, true)
         const { catalog } = this.provider(input.providerKey, input)
-        const implementation = catalog.types.find(
+        const implementation = (await this.catalogTypes(catalog, input)).find(
             (type) => type.implementationKey === input.implementationKey && type.creatable !== false
         )
         if (

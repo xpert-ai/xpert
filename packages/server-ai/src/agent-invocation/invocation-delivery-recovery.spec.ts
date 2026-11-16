@@ -40,8 +40,9 @@ async function fixture() {
         id: 'invocation',
         revision: 3,
         status: 'succeeded',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: '2026-10-06T00:00:00Z',
+        updatedAt: '2026-10-06T00:00:30Z',
+        completedAt: '2026-10-06T00:00:30Z',
         scope: {
             tenantId: 'tenant',
             organizationId: 'org',
@@ -86,6 +87,7 @@ it('recovers delivery with a new result revision and audit history, without reru
     const recovered = await f.api.recoverDelivery(f.invocation.id, { expectedRevision: 3, paths: ['plugin.tgz'] })
     expect(recovered).toMatchObject({
         status: 'succeeded',
+        completedAt: f.invocation.completedAt,
         revision: 4,
         result: {
             text: f.report.text,
@@ -94,6 +96,7 @@ it('recovers delivery with a new result revision and audit history, without reru
         }
     })
     expect(recovered.result.deliveryHistory[0].report.status).toBe('failed')
+    expect(recovered.updatedAt).not.toBe(recovered.completedAt)
     expect(f.runner.collectArtifacts).toHaveBeenCalledWith(f.invocation.handle.runner, {
         mode: 'files',
         paths: ['plugin.tgz', 'output/report.md']

@@ -28,6 +28,34 @@ const input = {
     projectId,
     assistantId: 'assistant'
 }
+it('discovers scoped file models without changing the resource identity or bypassing project authorization', async () => {
+    const f = fixture()
+    const type = {
+        typeId: 'xpert.presentation',
+        modelId: 'pptx.ooxml',
+        schemaVersion: '1',
+        implementationKey: 'pptx.ooxml',
+        defaultEditorKey: 'pptx.editor',
+        creatable: false
+    }
+    const listTypes = jest.fn(async () => [type])
+    Object.assign(f.catalog, { listTypes })
+    const types = await f.service.types(input)
+    expect(types).toContainEqual({ ...type, providerKey: 'decks' })
+    expect(listTypes).toHaveBeenCalledWith(input)
+    Object.assign(f.snapshot, {
+        typeId: type.typeId,
+        modelId: type.modelId,
+        schemaVersion: type.schemaVersion,
+        defaultEditorKey: type.defaultEditorKey,
+        editProtocol: { id: 'platform.file.cas', version: '1' }
+    })
+    const item = await f.service.register({ ...input, source: { providerKey: 'decks', resourceId: 'deck-1' } })
+    expect(item.resourceRef).toEqual({ providerKey: 'decks', resourceId: 'deck-1' })
+    expect(item.modelId).toBe('pptx.ooxml')
+    f.projects.assertAssistant.mockRejectedValueOnce(new ForbiddenException())
+    await expect(f.service.types(input)).rejects.toBeInstanceOf(ForbiddenException)
+})
 function fixture() {
     const snapshot = {
         projectId,

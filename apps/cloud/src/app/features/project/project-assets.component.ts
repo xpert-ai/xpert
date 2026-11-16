@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { PluginFileEditorComponent } from '../../@shared/files/plugin-file-editor.component'
 import { ActivatedRoute } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -23,6 +25,7 @@ import { XpertProjectFacade } from './project.facade'
       class="block h-full min-h-0 w-full"
       layout="library"
       [rootId]="projectId"
+      [pluginFileOpener]="openPluginFile"
       [navigationTitle]="'XP.XProject.ProjectLibrary' | translate: { Default: 'Project files' }"
       [treeTitle]="'XP.XProject.ProjectFiles' | translate: { Default: 'Project files' }"
       [searchPlaceholder]="'XP.XProject.SearchProjectFiles' | translate: { Default: 'Search project files' }"
@@ -36,6 +39,19 @@ import { XpertProjectFacade } from './project.facade'
   `
 })
 export class XpertProjectAssetsComponent {
+  readonly #dialog = inject(Dialog)
+  readonly openPluginFile = async (path: string) => {
+    if (!path.toLowerCase().endsWith('.pptx')) return false
+    this.#dialog.open(PluginFileEditorComponent, {
+      data: { projectId: this.projectId, path },
+      width: '96vw',
+      height: '94vh',
+      maxWidth: 'none',
+      disableClose: true,
+      closeOnNavigation: false
+    })
+    return true
+  }
   readonly #route = inject(ActivatedRoute)
   readonly #api = inject(XpertProjectApiService)
   readonly facade = inject(XpertProjectFacade)

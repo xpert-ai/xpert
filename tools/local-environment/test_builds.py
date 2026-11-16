@@ -134,12 +134,35 @@ class BuildReuseTests(unittest.TestCase):
                 self.write('dist/apps/api/main.js', 'compiled API')
                 self.write(generated, 'generated during API build')
                 return subprocess.CompletedProcess(command, 0)
+            if 'local-shell-sandbox' in command:
+                self.write('dist/packages/plugins/local-shell-sandbox/index.cjs.js', 'compiled Local Shell')
+                return subprocess.CompletedProcess(command, 0)
             return real_run(command, **kwargs)
         with patch('builds.subprocess.run', side_effect=run):
             self.assertEqual(ensure_build(self.config, 'api'), 'built')
         self.assertEqual(check_build(self.config, 'api'), (True, 'verified'))
         self.write(generated, 'changed after build')
         self.assertEqual(check_build(self.config, 'api'), (False, 'outputs_changed'))
+
+    def test_failed_local_shell_build_cannot_publish_api_receipt(self):
+        self.write('apps/api/project.json', json.dumps({'targets': {'build': {'options': {}}}}))
+        self.write('packages/server-ai/project.json', json.dumps({'targets': {
+            'build-remote-components': {'outputs': []}
+        }}))
+        real_run = subprocess.run
+        def run(command, **kwargs):
+            if '--build-only' in command:
+                for directory in OUTPUTS['api']:
+                    (self.root / directory).mkdir(parents=True, exist_ok=True)
+                self.write('dist/apps/api/main.js', 'compiled API')
+                return subprocess.CompletedProcess(command, 0)
+            if 'local-shell-sandbox' in command:
+                raise subprocess.CalledProcessError(7, command)
+            return real_run(command, **kwargs)
+        with patch('builds.subprocess.run', side_effect=run):
+            with self.assertRaises(subprocess.CalledProcessError):
+                ensure_build(self.config, 'api')
+        self.assertFalse(receipt_path(self.config, 'api').exists())
 
     def test_toolchain_or_compiler_environment_change_invalidates(self):
         self.publish()

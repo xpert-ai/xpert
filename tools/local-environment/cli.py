@@ -10,10 +10,12 @@ import sys
 import time
 
 from configuration import assert_project, default_state, load, prepare
-from platform_services import assert_bootstrapped, bootstrap_source, configure_oidc, infrastructure, initialize, run_command, verify_local_terminal
+from platform_services import configure_oidc, infrastructure, initialize, run_command, verify_local_terminal
 from processes import SERVICES, ServicePending, healthy, launch_supervisor, owns_supervisor, redacted_tail, service_pid, start_service, stop
 from runtime import architecture, atomic_json, lock_file
 from builds import ensure_build
+from source_bootstrap import assert_bootstrapped, bootstrap_source
+from progress import read_progress
 
 
 def arguments():
@@ -62,7 +64,7 @@ def arguments():
 
 def status(config):
     services = {name: {'pid': service_pid(config, name), 'port': config['ports'][name],
-                       'healthy': healthy(config, name)} for name in SERVICES}
+                       'healthy': healthy(config, name), 'progress': read_progress(config, name)} for name in SERVICES}
     state = Path(config['state'])
     restore_pending = (state / 'restore-pending.json').exists()
     ready = all(service['healthy'] for service in services.values()) and not restore_pending
@@ -71,8 +73,10 @@ def status(config):
     marker = Path(config['runtime']) / '.xpert-runtime-ready.json'
     revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=config['platform'],
                               capture_output=True, text=True, check=True).stdout.strip()
-    result = {'status': 'platform_ready' if ready else ('infrastructure_ready' if infra_ready else 'not_ready'), 'mode': 'process',
+    api_ready = infra_ready and services['api']['healthy'] and not restore_pending
+    result = {'status': 'platform_ready' if ready else ('api_ready' if api_ready else 'infrastructure_ready' if infra_ready else 'not_ready'), 'mode': 'process',
         'platform': config['platform'], 'state': str(state), 'projectRoot': config.get('projectRoot'), 'services': services,
+        'bootstrapProgress': read_progress(config, 'bootstrap'),
         'supervision': {'mode': config.get('supervisorMode', 'detached'), 'owned': supervisor is not None,
             **({key: supervisor[key] for key in ('pid', 'startTime', 'bootId')} if supervisor else {})},
         'sourceRevision': revision, 'runtime': json.loads(marker.read_text()), 'node': config['node'],
@@ -145,7 +149,7 @@ def main():
             bootstrap_source(config)
         elif args.action == 'build':
             assert_bootstrapped(config)
-            for name in ([args.service] if args.service else ['web', 'api']):
+            for name in ([args.service] if args.service else ['api', 'web']):
                 ensure_build(config, name)
         elif args.action in ('start', 'restart'):
             if args.timeout <= 0:
@@ -158,7 +162,7 @@ def main():
             try:
                 infrastructure(config, min(args.timeout, 120))
                 if not args.infra_only:
-                    names = [args.service] if args.service else ['web', 'api']
+                    names = [args.service] if args.service else ['api', 'web']
                     if any(name in ('api', 'web') for name in names):
                         assert_bootstrapped(config)
                         configure_oidc(config)
@@ -171,6 +175,7 @@ def main():
                 print(json.dumps({'status': 'pending', 'service': pending.service, 'pid': pending.pid,
                     'resumable': True, 'state': str(state), 'platform': str(platform),
                     'nextAction': 'start', 'serviceStillRunning': pending.pid > 0,
+                    'progress': read_progress(config, pending.service),
                     'message': 'Repeat start with the same options to wait for the owned service and continue remaining stages; do not repeat restart.'}))
                 return 75
         elif args.action == 'stop':

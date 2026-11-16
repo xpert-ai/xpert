@@ -17,6 +17,7 @@ import {
 import { ContentEditorPreferences } from './catalog/editor-preferences.service'
 import { ContentResourceService } from './content-resource.service'
 import { ContentDocumentAccess } from './documents/document-access.service'
+import { ContentFileEditors } from './content-file-editors.service'
 
 /** The platform routes metadata and bytes; concrete edit semantics stay in the editor plugin. */
 @Injectable()
@@ -27,7 +28,8 @@ export class ContentEditorsService implements ContentEditorsApi {
         private readonly resources: ContentResourceService,
         private readonly providers: ContentResourceProviderRegistry,
         private readonly access: ContentDocumentAccess,
-        private readonly defaults: ContentEditorPreferences
+        private readonly defaults: ContentEditorPreferences,
+        private readonly workspace: ContentFileEditors
     ) {}
     preferences(input: Parameters<ContentEditorsApi['preferences']>[0]) {
         return this.defaults.get(input)
@@ -143,7 +145,24 @@ export class ContentEditorsService implements ContentEditorsApi {
         if (!source.files || !isFileContentEditor(editor)) throw this.unavailable()
         const file = await source.files.read(scope)
         await editor.validateFile(file.buffer)
-        return { ...result, ...file }
+        return { ...result, ...file, collaboration: !!source.createSession }
+    }
+    async resolveFile(input: Parameters<ContentEditorsApi['resolveFile']>[0]) {
+        const source = await this.workspace.owner(input)
+        if (source) return this.resolve({ ...input, source })
+        const { buffer: _buffer, revision: _revision, ...resolution } = await this.workspace.read(input)
+        return resolution
+    }
+    readFile(input: Parameters<ContentEditorsApi['readFile']>[0]) {
+        return this.workspace.read(input)
+    }
+    writeFile(input: Parameters<ContentEditorsApi['writeFile']>[0]) {
+        return this.workspace.write(input)
+    }
+    async createSession(input: ContentEditorInput) {
+        const { source, scope } = await this.authorized(input)
+        if (!source.createSession) throw this.unavailable()
+        return source.createSession(scope)
     }
     async write(input: Parameters<ContentEditorsApi['write']>[0]) {
         const { source, scope, editor, result } = await this.authorized(input, true)

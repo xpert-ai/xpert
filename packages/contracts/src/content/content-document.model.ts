@@ -99,6 +99,9 @@ export interface TextContentEditorRegistration extends ContentEditorMetadata {
 export interface FileContentEditorRegistration extends ContentEditorMetadata {
   kind: 'file'
   concurrency: 'versioned'
+  /** Explicit model identity for catalogued files. Owners retain file identity, ACL and CAS writes. */
+  resourceType?: import('./content-resource.model').ContentTypeImplementation &
+    import('./content-resource.model').ContentModelIdentity
 }
 export type ContentEditorRegistration =
   | TextContentEditorRegistration

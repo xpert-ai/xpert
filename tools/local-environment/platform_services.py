@@ -11,7 +11,7 @@ import urllib.request
 
 from configuration import child_environment, write_private
 from processes import healthy, sql, start_service, start_supervisor
-from runtime import atomic_json, digest, install_node
+from runtime import atomic_json
 
 
 def infrastructure(config, timeout=120):
@@ -44,50 +44,6 @@ def infrastructure(config, timeout=120):
             'serverVersion': sql(config, 'SHOW server_version'),
             'extensions': sql(config, 'SELECT extname || chr(58) || extversion FROM pg_extension ORDER BY extname').splitlines()})
     start_service(config, 'redis', max(0, deadline - time.monotonic()))
-
-
-def bootstrap_source(config):
-    state = Path(config['state'])
-    (state / 'source-bootstrap.json').unlink(missing_ok=True)
-    node = install_node(Path(config['runtime']).parents[1], env=child_environment(config))
-    config['node'] = str(node / 'bin/node')
-    config['corepack'] = str(node / 'bin/corepack')
-    atomic_json(state / 'environment.json', config)
-    steps = [
-        ['install', '--frozen-lockfile', '--reporter=append-only'],
-        # This optional provider owns a native PTY. Explicitly build only its
-        # declared scripts; don't broaden the checkout's install-script policy.
-        ['--dir', 'node_modules/node-pty', 'run', 'install'],
-        ['--dir', 'node_modules/node-pty', 'run', 'postinstall'],
-        ['nx', 'build', 'server'], ['nx', 'build', 'plugin-sdk'],
-        ['nx', 'build', 'local-shell-sandbox']
-    ]
-    log = state / 'logs/bootstrap.log'
-    with log.open('a') as stream:
-        for args in steps:
-            stream.write('STEP: corepack pnpm ' + ' '.join(args) + '\n')
-            stream.flush()
-            result = subprocess.run([config['corepack'], 'pnpm', *args],
-                cwd=config['platform'], env=child_environment(config), stdout=stream, stderr=subprocess.STDOUT)
-            if result.returncode:
-                raise RuntimeError(f'Source bootstrap failed; inspect {log}')
-        result = subprocess.run([config['node'], 'packages/plugins/local-shell-sandbox/tools/check-terminal.cjs'],
-            cwd=config['platform'], env=child_environment(config), stdout=stream, stderr=subprocess.STDOUT)
-        if result.returncode:
-            raise RuntimeError(f'Local Shell PTY failed its smoke test; inspect {log}')
-    atomic_json(state / 'source-bootstrap.json', {'completed': True, 'platform': config['platform'],
-        'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=config['platform'], text=True).strip(),
-        'dependencyLock': digest(Path(config['platform']) / 'pnpm-lock.yaml'), 'ptyVerified': True})
-
-
-def assert_bootstrapped(config):
-    marker = Path(config['state']) / 'source-bootstrap.json'
-    if not marker.exists():
-        raise RuntimeError('Run bootstrap successfully before starting API/Web')
-    built = json.loads(marker.read_text())
-    revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=config['platform'], text=True).strip()
-    if built.get('revision') != revision or built.get('dependencyLock') != digest(Path(config['platform']) / 'pnpm-lock.yaml'):
-        raise RuntimeError('Checkout or dependency lock changed; run bootstrap before starting API/Web')
 
 
 def configure_oidc(config):

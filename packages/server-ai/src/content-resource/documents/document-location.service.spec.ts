@@ -176,6 +176,31 @@ describe('Durable document moves', () => {
         expect(operation).toBeNull()
         expect(await readFile(path.join(root, 'old.md'), 'utf8')).toBe('accepted content')
     })
+    it('moves an opaque file without manufacturing a text document', async () => {
+        records = []
+        await service.move(input)
+        expect(operation?.documents).toEqual([
+            expect.objectContaining({
+                kind: 'file',
+                id: input.source.resourceId,
+                hash: documentHash(Buffer.from('accepted content')),
+                from: 'old.md',
+                to: 'new.md'
+            })
+        ])
+        expect(operation?.status).toBe('projected')
+        expect(room.status).toBe('active')
+        expect(await readFile(path.join(root, 'new.md'), 'utf8')).toBe('accepted content')
+    })
+    it('recovers an opaque file rename after a lost acknowledgment', async () => {
+        records = []
+        lostAcknowledgement = true
+        await expect(service.move(input)).rejects.toThrow('process stopped')
+        expect(operation?.status).toBe('prepared')
+        await service.repair()
+        expect(operation?.status).toBe('projected')
+        expect(records).toEqual([])
+    })
     it('preserves a live room when a destination name is already occupied', async () => {
         await writeFile(path.join(root, 'new.md'), 'another document')
         await expect(service.move(input)).rejects.toBeInstanceOf(ConflictException)

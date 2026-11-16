@@ -73,11 +73,19 @@ export class ProjectTaskDecisionService {
         if (previous) {
             if (decisionRef(previous) !== input.decisionRef)
                 throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
+            const replay = projectTaskDecisionInputSchema.strip().parse(previous)
             // The original command owns replay authorization and rejects changed outcome/reason/checks.
+            // Explicit fields preserve the built contract's required shape in this non-strict Zod consumer.
             return this.decide(
                 projectId,
                 {
-                    ...(projectTaskDecisionInputSchema.strip().parse(previous) as ProjectTaskDecisionInput),
+                    requestId: replay.requestId,
+                    taskId: replay.taskId,
+                    expectedRevision: replay.expectedRevision,
+                    implementationExecutionId: replay.implementationExecutionId,
+                    specificationDigest: replay.specificationDigest,
+                    evidence: replay.evidence,
+                    reviewExecutionId: replay.reviewExecutionId,
                     outcome: input.outcome,
                     rationale: input.rationale,
                     checks: input.checks ?? []

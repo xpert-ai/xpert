@@ -6,6 +6,7 @@ import { ConversationShareManagementController } from './conversation-sharing/sh
 import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { ContentResourceModule } from '../content-resource/content-resource.module'
 import { ContentDocumentsController } from './content-documents.controller'
+import { ContentFilesController } from './content-files.controller'
 import { ThreadReadDiagnosticsInterceptor } from './thread-activity/thread-read-diagnostics.interceptor'
 import { ThreadRecoveryController } from './thread-recovery/thread-recovery.controller'
 import { AssistantTemplateSetupRuntimeController } from './assistant-template-setup.controller'
@@ -135,6 +136,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         SharedConversationController,
         ConversationShareManagementController,
         ContentDocumentsController,
+        ContentFilesController,
         AssistantTemplateSetupRuntimeController,
         ...GROUP_CONTROLLERS,
         ConversationArtifactsController,

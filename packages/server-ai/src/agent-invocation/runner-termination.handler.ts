@@ -84,6 +84,7 @@ export class RecordRunnerTerminationHandler implements ICommandHandler<RecordRun
                     observedAt: now
                 }
                 if (!invocationCanRelease(next)) throw invocationError('InvalidRequest')
+                next.completedAt = current.completedAt ?? now
             }
             if (!(await this.store.replace({ ...record, invocation: next }, current.revision))) continue
             if (command.action.type === 'confirm') await this.project(next)

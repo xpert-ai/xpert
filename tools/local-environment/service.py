@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 from configuration import child_environment, load
 from builds import ensure_build, build_environment
+from progress import emit
 
 
 def main():
@@ -26,10 +27,10 @@ def main():
     if service in ('api', 'web'):
         ensure_build(config, service)
     if service == 'web':
-        # Finish compilation before serving so the compiler and the full API
-        # don't retain their heaps at the same time in a resource-limited environment.
+        # A finite build avoids retaining a frontend compiler after readiness.
         env = build_environment(config, service)
         command = [config['node'], str(Path(config['scripts']) / 'preview-web.mjs'), str(config['ports']['web'])]
+        emit('serve', 'running')
     os.execvpe(command[0], command, env)
 
 

@@ -196,6 +196,8 @@ export interface AgentInvocation extends AgentRuntimeObservation {
   /** Host timestamps in ISO 8601 format. */
   createdAt: string
   updatedAt: string
+  /** First host-confirmed terminal observation; delivery recovery does not extend runtime. Absent on old records. */
+  completedAt?: string
 }
 
 /** Checks confirmed completion; unknown remains non-terminal. */
