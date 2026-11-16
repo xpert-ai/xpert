@@ -20,7 +20,32 @@ import type {
 } from './assistant-profile-types'
 import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 
+export type AgentDockTarget = { kind: 'assistant'; id: string; threadId: string | null } | { kind: 'group'; id: string }
+export interface AgentDockPreferences {
+  enabled: boolean
+  edge: 'left' | 'right'
+  autoHide: boolean
+  placement: 'window' | 'screen'
+  display: string
+  strip: boolean
+  results: boolean
+  size: number
+}
+export interface ActivityIslandPreferences {
+  enabled: boolean
+  idle: boolean
+  external: boolean
+  haptics: boolean
+  width: number
+  height: number
+}
+export interface DockChoices {
+  scope: string | null
+  entries: { token: string; name: string; glyph: string; image: string | null; selected: boolean }[]
+}
 export interface ConnectionConfig {
+  activityIsland?: ActivityIslandPreferences
+  agentDock?: AgentDockPreferences
   locale: Locale
   apiUrl: string
   webUrl: string
@@ -37,11 +62,13 @@ export interface Profile {
     avatarUrl: string | null
     preferredLanguage?: Locale | null
   }
-  organizations: { id: string; name: string }[]
+  organizations: { id: string; name: string; imageUrl?: string | null }[]
   organizationId: string | null
 }
 export interface AppState {
   config: ConnectionConfig
+  needsComputerSetup: boolean
+  needsLanguageSelection: boolean
   connectionDefaults: Pick<ConnectionConfig, 'apiUrl' | 'webUrl' | 'frameUrl'>
   profile: Profile | null
   localLoginAvailable: boolean
@@ -49,6 +76,7 @@ export interface AppState {
 export interface Bot {
   avatar?: import('@xpert-ai/contracts').TAvatar | null
   assistantId?: string
+  workspaceId?: string
   businessArea?: { id: string; name: string } | null
   id: string
   createdAt?: string | null
@@ -166,6 +194,26 @@ export interface HostMethods {
   }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: undefined; output: PluginLibrary }
+  organizationPluginAccess: { input: string; output: boolean }
+  installOrganizationPlugin: {
+    input: { organizationId: string; url: string; ref: string; subdirectory?: string }
+    output: { name: string; existing: boolean }
+  }
+  installOrganizationPluginZip: {
+    input: { organizationId: string; bytes: Uint8Array<ArrayBuffer> }
+    output: HostMethods['installOrganizationPlugin']['output']
+  }
+  workspaceConnectors: { input: WorkspaceTarget; output: WorkspaceConnectorItem[] }
+  connectWorkspaceApiKey: {
+    input: WorkspaceTarget & { provider: string; methodId: string; values: Record<string, string> }
+    output: { connected: boolean }
+  }
+  disconnectWorkspaceConnector: { input: WorkspaceTarget & { bindingId: string }; output: void }
+  skillCatalog: {
+    input: WorkspaceTarget & { search: string; offset: number }
+    output: { items: SkillCatalogItem[]; total: number }
+  }
+  installWorkspaceSkill: { input: WorkspaceTarget & { indexId: string }; output: { installed: boolean } }
 
   preparePluginConnection: {
     input: { assistantId: string; provider: string }
@@ -216,7 +264,11 @@ export interface HostMethods {
   assistantTriggerManageUrl: { input: { botId: string }; output: { url: string } }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
-  openProfileView: { input: { botId: string; viewKey: string }; output: ProfileViewSession }
+  personalInboxViews: { input: void; output: XpertExtensionViewManifest[] }
+  openProfileView: {
+    input: { botId: string; viewKey: string } | { scope: 'personal-inbox'; viewKey: string }
+    output: ProfileViewSession
+  }
   closeProfileView: { input: string; output: { closed: boolean } }
   profileViewRequest: { input: ProfileViewRequest; output: unknown }
   workbenchSession: { input: WorkbenchSessionInput; output: WorkbenchSession }
@@ -292,6 +344,8 @@ export interface HostMethods {
   shellOperations: { input: undefined; output: ShellResult[] }
   shellCancel: { input: string; output: ShellResult }
   state: { input: undefined; output: AppState }
+  finishComputerSetup: { input: undefined; output: AppState }
+  confirmInitialLanguage: { input: Locale; output: AppState }
   refreshProfile: { input: undefined; output: AppState }
   configure: { input: ConnectionConfig; output: AppState }
   login: { input: { email: string; password: string }; output: AppState }
@@ -302,6 +356,7 @@ export interface HostMethods {
   createGroup: { input: { title: string; assistantId: string }; output: { id: string; title: string } }
   groupPreference: { input: { id: string; key: 'pinned' | 'archived'; value: boolean }; output: unknown }
   listBots: { input: undefined; output: Bot[] }
+  listBotPage: { input: string | undefined; output: { bots: Bot[]; next: string | null; awaitingSavedBot: boolean } }
   voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
   voiceStart: {
     input: { botId: string; assistantId: string; threadId: string | null; originMode: 'web' | 'desktop' }
@@ -332,7 +387,7 @@ export interface HostMethods {
   }
   templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
   catalogAvatar: { input: string; output: string | null }
-  listCatalog: { input: Exclude<CatalogKind, 'plugins'>; output: CatalogItem[] }
+  listCatalog: { input: CatalogItem['kind']; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
@@ -345,6 +400,7 @@ export interface HostMethods {
     output: import('./catalog-types').ApplicationToolsetSelection
   }
   discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
+  discoveryWorkspaces: { input: undefined; output: DiscoveryWorkspace[] }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
   templateOverview: { input: { id: string }; output: import('@xpert-ai/contracts').AssistantTemplateOverview }
   templateSetup: {
@@ -409,6 +465,18 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      onDockNavigate?: (binding: string, callback: (target: AgentDockTarget) => void) => () => void
+      onIslandReview?: (callback: (target: { botId: string; threadId: string }) => void) => () => void
+      dockSettings: {
+        onChange(callback: () => void): () => void
+        displays(): Promise<{ id: string; label: string; internal: boolean }[]>
+        choices(): Promise<DockChoices>
+        select(scope: string, token: string, selected: boolean): Promise<DockChoices>
+      }
+      supportsWindowControl: boolean
+      windowControl(method: 'status'): Promise<{ screen: boolean; accessibility: boolean }>
+      windowControl(method: 'active'): Promise<{ title: string; name: string } | null>
+      windowControl(method: 'stop' | 'permission' | 'managePermission' | 'run', value?: unknown): Promise<unknown>
       templateLinks?: {
         read: () => Promise<{ id: string; origin: string } | null>
         dismiss: (id: string) => Promise<boolean>
@@ -446,7 +514,10 @@ import type {
   ApplicationInput,
   ApplicationSetup,
   CatalogItem,
-  CatalogKind,
+  WorkspaceConnectorItem,
+  WorkspaceTarget,
+  DiscoveryWorkspace,
+  SkillCatalogItem,
   ExpertItem,
   InitializeApplicationInput,
   WorkspaceOption

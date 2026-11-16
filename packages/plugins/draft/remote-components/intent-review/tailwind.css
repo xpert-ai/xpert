@@ -1,0 +1,15 @@
+@import '@xpert-ai/shadcn-ui/styles.css';
+@source './src/**/*.{ts,tsx}';
+@layer base {
+  body {
+    margin: 0;
+    color: var(--foreground);
+    background: var(--background);
+    font-family: system-ui, sans-serif;
+  }
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+}

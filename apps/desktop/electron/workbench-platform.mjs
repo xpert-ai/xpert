@@ -29,6 +29,11 @@ export function platformCommandUrl(webUrl, payload) {
     path = `xpert/x/${segment(payload.assistantId)}/agents`
   else if (payload.target === 'workspace.connectors.manage' && id(payload.workspaceId) && id(payload.organizationId)) {
     path = `xpert/w/${segment(payload.workspaceId)}/connectors`
+    if (payload.provider !== undefined) {
+      if (typeof payload.provider !== 'string' || !payload.provider.trim() || payload.provider.length > 256) return null
+      query.set('provider', payload.provider)
+      query.set('workspaceId', payload.workspaceId)
+    }
     query.set('organizationId', payload.organizationId)
   } else if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
   else if (

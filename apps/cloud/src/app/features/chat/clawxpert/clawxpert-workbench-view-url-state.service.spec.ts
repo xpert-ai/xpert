@@ -9,7 +9,8 @@ import {
 import { Subject } from 'rxjs'
 import {
   ClawXpertWorkbenchViewUrlState,
-  CLAWXPERT_WORKBENCH_ROUTE_ACTIVE
+  CLAWXPERT_WORKBENCH_ROUTE_ACTIVE,
+  WORKBENCH_VIEW_MENU_CLICK
 } from './clawxpert-workbench-view-url-state.service'
 
 describe('ClawXpertWorkbenchViewUrlState', () => {
@@ -17,6 +18,7 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
   let navigationEvents: Subject<NavigationEnd>
   let router: {
     url: string
+    currentNavigation: jest.Mock
     events: ReturnType<Subject<NavigationEnd>['asObservable']>
     parseUrl: (url: string) => UrlTree
     navigateByUrl: jest.Mock<Promise<boolean>, [UrlTree, NavigationBehaviorOptions]>
@@ -25,6 +27,7 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
   beforeEach(() => {
     navigationEvents = new Subject<NavigationEnd>()
     router = {
+      currentNavigation: jest.fn(),
       url: '/chat/clawxpert/c/thread-1?mode=focus&view=review#details',
       events: navigationEvents.asObservable(),
       parseUrl: (url) => serializer.parse(url),
@@ -50,6 +53,18 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
   afterEach(() => {
     navigationEvents.complete()
     TestBed.resetTestingModule()
+  })
+
+  it('reissues explicit menu selections at the same URL without replaying ordinary navigations', () => {
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    router.currentNavigation.mockReturnValue({ extras: { info: WORKBENCH_VIEW_MENU_CLICK } })
+    navigationEvents.next(new NavigationEnd(1, router.url, router.url))
+    expect(state.menuRequestId()).toBe('1')
+    navigationEvents.next(new NavigationEnd(2, router.url, router.url))
+    expect(state.menuRequestId()).toBe('2')
+    router.currentNavigation.mockReturnValue(null)
+    navigationEvents.next(new NavigationEnd(3, router.url, router.url))
+    expect(state.menuRequestId()).toBe('2')
   })
 
   it('preserves explicit dismissal across refresh and Back/Forward without reopening the default View', async () => {

@@ -92,7 +92,7 @@ See [Bounded task observation](../runtime-task/README.md) for the unified `task_
 
 ## Typed results and delivery
 
-`AgentInvocationResult` retains text for existing consumers and adds optional typed items (`analysis`, `changes`, `tests`, `file`), committed artifact references and a separate export status. Adapters normalize their own final output; the host does not parse provider protocols. The SDK schemas define the portable result envelope and relative file selections.
+`AgentInvocationResult` retains text for existing consumers and adds optional typed items (`analysis`, `changes`, `tests`, `file`), committed artifact references and a separate export status. Adapters normalize their own final output; the host does not parse provider protocols. Ordinary replies need no report; explicitly requested reports are preserved as Markdown; SDK schemas cover transport metadata and explicit file selections, not report wording.
 
 File delivery defaults to `none`. Findings, code edits and test runs do not automatically create artifacts. A caller may request `files` or `archive`, optionally restricting the exact paths. The authorized execution runner validates that policy before reading the selected files. Unsupported export or collection failure preserves the execution result and reports its separate export status.
 
@@ -110,25 +110,38 @@ The SDK contract supports host-managed Computer and Sandbox instances without na
 
 Execution grant lifetime follows the CLI session or managed invocation, independently of browser/Desktop login and viewing/control connections. Terminal completion, cancellation, expiry or invalid permissions still require host reconciliation. A stop request is not proof of termination: only `exited` confirms the process stopped, and `unknown` must remain visible.
 
-### Task result files
+### Markdown reports and delivery recovery
 
-`AgentExecutionRunner.readTaskResultFile(receipt, reference)` is the host's optional result-file reader, called by a Runtime adapter after verified CLI completion. It extends the existing runner capability; it is not a model-facing tool or a Project acceptance operation. A runner without this method does not advertise result-file submission. The concrete consumers are the Computer JSONL and OpenCode adapters in the `agent-runtimes` plugin.
+Ordinary tasks may return text, structured data or an empty reply without a report
+or file export. The adapter preserves reply text without a format requirement.
+Replies above the transport cap have empty `text` and `textTruncated: true`, never
+a misleading partial assessment. Independent review requires assessment text in
+the reply or a selected file; it does not require a file.
 
-The data path is: CLI writes a result envelope → final reply submits its reference → adapter verifies completion → scoped runner reads and validates the file → adapter normalizes and checkpoints the result → Project coordination evaluates acceptance or rework.
+Only an explicitly requested report uses the exact UTF-8 Markdown file selected by
+`input.delivery.reportPath`. It does not encode an outer JSON result envelope,
+copy platform identity fields or compute a digest. The adapter preserves the text;
+the host records identity, revision and SHA-256. The report transfer cap is 4 MiB.
 
-| Component | Responsibility |
-| --- | --- |
-| CLI | Use a JSON encoder to write the actual result and explicitly submit its file reference. |
-| Runtime adapter | Understand the CLI's completion protocol, recognize the final reference, call the host reader, and checkpoint the normalized result before cleanup. |
-| Host runner | Revalidate receipt ownership and the current environment instance; read the exact bounded file and verify its digest and envelope schema. |
-| Project coordinator and reviewer | Assess requirements and actual evidence; record acceptance or rework separately from execution completion. |
+`AgentExecutionRunner.readTaskReportFile(receipt, path)` rechecks receipt ownership,
+the selected report path and the current environment generation before reading a
+regular file. The existing bounded reader refuses traversal, symbolic/hard links,
+directories and invalid UTF-8. File presence is not process completion.
 
-The portable reference is `{ version: 1, path: "output/result.json", sha256: "<64 lowercase hex characters>" }`. Paths are relative to the receipt's host-selected working directory. The file contains the existing `AgentTaskResult` envelope (`version`, string `summary`, and typed `items`) as UTF-8 JSON. When the task requires a structured review in `summary`, encode that review as a JSON string inside the envelope; do not substitute a prose assertion that a report exists.
+`result.report` exists only for a selected report file; `result.export` describes
+requested artifact delivery independently of execution. With no pending file
+delivery, recovery returns the existing invocation without I/O or a new revision.
+If the original runner cannot reread the requested files, recovery returns
+`DeliveryRecoveryUnavailable` without recording a retry.
+An unreadable report cannot become a prose success assertion. A failed transfer
+leaves the finished execution intact, so the coordinator can recover delivery with
+`AgentInvocationApi.recoverDelivery(id, {expectedRevision, paths?})` or the Project
+Tasks tool `project_recover_task_delivery`. The API reauthorizes access, performs
+scoped I/O and commits a new result revision with delivery history using CAS.
+It never launches the executor. A fixed dispatch selection cannot be broadened;
+when paths were unknown at dispatch the caller must select exact paths explicitly.
 
-Adapters that implement the `xpert-task-result-file` protocol accept one explicit final fenced reference, not an intermediate tool output or a file discovered by scanning the workspace. Only advertise that protocol when the scoped runner implements the reader. Inline result envelopes remain available when file submission is unsupported.
-
-The shared report transfer cap is `AGENT_TASK_RESULT_FILE_MAX_BYTES` (4 MiB), independent of artifact-export quotas. The host validates the same bytes it hashes and parses. An invalid explicit submission is a delivery failure; adapters must not silently reinterpret it as a successful prose result or rewrite the author's findings.
-
-`collectArtifacts` still exports requested deliverables under the persisted delivery policy. Reading a result file does not create an Artifact, change `delivery: none`, or grant a download. A matching SHA-256 establishes which bytes were submitted, not whether tests ran or business requirements passed. File presence does not establish CLI completion or task acceptance.
-
-See the [runner interface](../../../plugin-sdk/src/lib/agent/runtime/execution-runner.ts) and [result schemas](../../../plugin-sdk/src/lib/agent/runtime/results.ts). Release the compatible SDK and host implementation before enabling file submission in a consuming Runtime plugin; the interface alone does not install an environment reader.
+Task acceptance remains an explicit coordinator decision after reading the
+independent review. The decision pins report revision and digest; content changes
+invalidate its use as acceptance/rework evidence. Deploy the matching contracts,
+SDK, host and runtime plugin together. Old JSON result protocols are not supported.

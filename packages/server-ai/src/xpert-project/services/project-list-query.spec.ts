@@ -22,6 +22,8 @@ describe('available project pagination', () => {
             subQuery: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
             from: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            leftJoin: jest.fn().mockReturnThis(),
             innerJoin: jest.fn().mockReturnThis(),
             where: jest.fn().mockReturnThis(),
             andWhere: jest.fn().mockReturnThis(),
@@ -29,7 +31,7 @@ describe('available project pagination', () => {
             orderBy: jest.fn().mockReturnThis(),
             skip: jest.fn().mockReturnThis(),
             take: jest.fn().mockReturnThis(),
-            getManyAndCount: jest.fn().mockResolvedValue([[{ id: 'project-21' }], 45])
+            getManyAndCount: jest.fn().mockResolvedValue([[{ id: 'project-21', ownerId: 'user-1' }], 45])
         }
         const repository = { createQueryBuilder: jest.fn(() => query) } as unknown as Repository<XpertProject>
         const result = await findAvailableProjects(
@@ -50,7 +52,7 @@ describe('available project pagination', () => {
             }
         )
 
-        expect(result).toEqual({ items: [{ id: 'project-21' }], total: 45 })
+        expect(result).toEqual({ items: [{ id: 'project-21', ownerId: 'user-1', myRole: 'owner', canEdit: true, canManage: true }], total: 45 })
         expect(query.orderBy).toHaveBeenCalledWith({ 'project.updatedAt': 'DESC', 'project.id': 'DESC' })
         expect(query.skip).toHaveBeenCalledWith(20)
         expect(query.take).toHaveBeenCalledWith(20)

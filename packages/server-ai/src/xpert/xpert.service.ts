@@ -7,62 +7,39 @@ import {
     ChecklistItem,
     convertToUrlPath,
     DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
-    ICopilotStore,
     IPagination,
     ITagXpertUsage,
     IUser,
     IXpertPrincipalReference,
-    IXpertAgentExecution,
-    LongTermMemoryTypeEnum,
     normalizeMiddlewareNodes,
     normalizeXpertAgentConfig,
     TagCategoryEnum,
-    OrderTypeEnum,
     UserType,
-    TFile,
-    TFileDirectory,
-    TMemoryQA,
-    TMemoryUserProfile,
     TXpertPublishMarketplaceInput,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
-import { getErrorMessage } from '@xpert-ai/server-common'
 import { OptionParams, PaginationParams, RequestContext, Tag, transformWhere } from '@xpert-ai/server-core'
-import {
-    BadRequestException,
-    ForbiddenException,
-    HttpException,
-    HttpStatus,
-    Inject,
-    Injectable,
-    NotFoundException
-} from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { t } from 'i18next'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext as RuntimeRequestContext, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
-import { DeepPartial, FindOneOptions, FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
+import { DeepPartial, FindOneOptions, FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
-import { CopilotStoreBulkPutCommand } from '../copilot-store'
-import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
-import { GetXpertMemoryEmbeddingsQuery } from './queries'
 import { EventNameXpertValidate, XpertDraftValidateEvent } from './types'
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 import { FreeNodeValidator } from './validators'
 import { Xpert } from './xpert.entity'
 import { assertValidTagAssociations } from '../shared/tag-associations'
 import { normalizeXpertExecutionConfig } from './xpert-execution-config'
 
-const XPERT_MEMORY_WORKSPACE_PATH = '.xpert/memory'
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 @Injectable()
 export class XpertService extends XpertWorkspaceBaseService<Xpert> {
@@ -70,14 +47,11 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         @InjectRepository(Xpert)
         public readonly repository: Repository<Xpert>,
         workspaceAccessService: XpertWorkspaceAccessService,
-        private readonly storeService: CopilotStoreService,
         protected readonly commandBus: CommandBus,
         protected readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
         private readonly sandboxService: SandboxService,
-        @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient,
         private readonly sharing: AssistantSharingService
     ) {
         super(repository, workspaceAccessService)
@@ -723,132 +697,6 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return xpert
     }
 
-    async createMemory(xpertId: string, body: { type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile }) {
-        const xpert = await this.findOne(xpertId, { relations: ['agent'] })
-        const memory = xpert.memory
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        const execution: IXpertAgentExecution = {}
-        const embeddings = await this.queryBus.execute(
-            new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
-                xpertId,
-                tokenCallback: (token) => {
-                    execution.embedTokens += token ?? 0
-                }
-            })
-        )
-
-        await this.commandBus.execute(
-            new CopilotStoreBulkPutCommand(
-                body.type,
-                [body.value],
-                [xpertId, body.type || LongTermMemoryTypeEnum.QA],
-                embeddings
-            )
-        )
-    }
-
-    async createBulkMemories(
-        xpertId: string,
-        body: { type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile> },
-        keys?: string[]
-    ) {
-        const xpert = await this.findOne(xpertId, { relations: ['agent'] })
-        const memory = xpert.memory
-        const tenantId = RequestContext.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        const execution: IXpertAgentExecution = {}
-        const embeddings = await this.queryBus.execute(
-            new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
-                xpertId,
-                tokenCallback: (token) => {
-                    execution.embedTokens += token ?? 0
-                }
-            })
-        )
-        await this.commandBus.execute(
-            new CopilotStoreBulkPutCommand(
-                body.type,
-                body.memories,
-                [xpertId, body.type || LongTermMemoryTypeEnum.QA],
-                embeddings,
-                keys
-            )
-        )
-    }
-
-    async findAllMemory(id: string, types: string[]) {
-        const where = {} as FindOptionsWhere<ICopilotStore>
-        const _types = types
-        if (_types?.length > 1) {
-            where.prefix = In(_types.map((type) => `${id}${type ? `:${type}` : ''}`))
-        } else if (_types?.length === 1) {
-            const type = _types[0]
-            where.prefix = `${id}${type ? `:${type}` : ''}`
-        } else {
-            where.prefix = Like(`${id}%`)
-        }
-
-        try {
-            return await this.storeService.findAll({
-                where,
-                relations: ['createdBy'],
-                order: { createdAt: OrderTypeEnum.DESC }
-            })
-        } catch (err) {
-            throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
-        }
-    }
-
-    async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
-        const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).list(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            {
-                path,
-                deepth
-            }
-        )
-    }
-
-    async getMemoryFile(id: string, filePath: string): Promise<TFile> {
-        const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).readFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath
-        )
-    }
-
-    async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
-        const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).saveFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath,
-            content
-        )
-    }
-
-    async uploadMemoryFile(
-        id: string,
-        folderPath: string,
-        file: { originalname: string; buffer: Buffer; mimetype?: string }
-    ): Promise<TFile> {
-        const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).uploadFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            folderPath,
-            file
-        )
-    }
-
-    async deleteMemoryFile(id: string, filePath: string): Promise<void> {
-        const xpert = await this.findOne(id)
-        await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).deleteFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath
-        )
-    }
-
     async getTriggerProviders() {
         return this.triggerRegistry.list().map((provider) => ({
             ...provider.meta
@@ -857,22 +705,5 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async getSandboxProviders() {
         return this.sandboxService.listProviders()
-    }
-
-    private createWorkspaceVolumeClient(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
-        return new VolumeSubtreeClient(this.createVolumeHandle(xpert, userId), {
-            allowRootWorkspace: true
-        })
-    }
-
-    private createVolumeHandle(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
-        return this.volumeClient.resolve(
-            resolveXpertDataVolumeScope({
-                tenantId: xpert.tenantId,
-                userId,
-                xpertId: xpert.id,
-                workspaceDataScope: xpert.workspaceDataScope
-            })
-        )
     }
 }

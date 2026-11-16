@@ -27,7 +27,8 @@ export function bosiTemplate(base: TXpertTemplate): TXpertTemplate {
         capabilities: [
             ...(base.capabilities ?? []),
             { key: 'cloud-computer', required: false },
-            { key: 'desktop-shell', required: false }
+            { key: 'desktop-shell', required: false },
+            { key: 'desktop-computer-use', required: false }
         ]
     }
 }

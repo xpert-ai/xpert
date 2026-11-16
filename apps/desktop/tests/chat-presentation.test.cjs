@@ -147,6 +147,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
           return () => {}
         }
       },
+      './computer-use/WindowActivity': { WindowActivity: () => null },
       './shell/useShellIntegration': { useShellIntegration: () => shell },
       './voice/VoiceProvider': {
         useVoiceOptions: (target, onThread, enabled) => {

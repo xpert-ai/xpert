@@ -18,7 +18,6 @@ export class GetXpertRecoveryDefinitionHandler implements IQueryHandler<GetXpert
                 graph: true,
                 type: true,
                 agentConfig: true,
-                memory: true,
                 summarize: true,
                 features: true,
                 commandProfile: true,

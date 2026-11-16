@@ -27,11 +27,13 @@ export function SettingsSidebar({
   const groups = settingsGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) =>
-        [group.label, item.label, item.description, ...item.keywords].some((key) =>
-          t(key).toLocaleLowerCase().includes(needle)
+      items: group.items
+        .filter((item) => !item.macOnly || window.xpertDesktop?.supportsWindowControl)
+        .filter((item) =>
+          [group.label, item.label, item.description, ...item.keywords].some((key) =>
+            t(key).toLocaleLowerCase().includes(needle)
+          )
         )
-      )
     }))
     .filter((group) => group.items.length)
   return (

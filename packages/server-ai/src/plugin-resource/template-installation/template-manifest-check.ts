@@ -34,8 +34,6 @@ export function inspectTemplateManifest(template: TXpertTemplate): {
     readiness.legacy = normalized.legacy
     readiness.capabilities = summarizeAssistantDefinition(normalized.definition)
     const manifest = normalized.manifest
-    if (readiness.capabilities.seedMemoryCount)
-        readiness.checks.push(requirementCheck('memory', 'seed-memory', 'ready'))
     if (!manifest) return { readiness, normalized }
     readiness.manifestVersion = manifest.version
     if (manifest.files) {

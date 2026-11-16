@@ -7,10 +7,13 @@ import { createProjectRuntimeTools } from './runtime'
 import type { StructuredToolInterface } from '@langchain/core/tools'
 import { convertToOpenAITool } from '@langchain/core/utils/function_calling'
 
-import { DecideProjectTaskCommand, DispatchProjectTaskCommand } from '../../../runtime/project-task-dispatch.command'
+import {
+    DecideProjectTaskReferenceCommand,
+    DispatchProjectTaskCommand
+} from '../../../runtime/project-task-dispatch.command'
 import {
     ConversationResourceCard,
-    projectTaskDecisionInputSchema,
+    projectTaskDecisionToolInputSchema,
     projectTaskDispatchInputSchema
 } from '@xpert-ai/contracts'
 
@@ -118,25 +121,28 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
             name === 'project_dispatch_task'
                 ? { taskId: randomUUID(), bindingId: randomUUID(), expectedRevision: 1 }
                 : {
-                      taskId: randomUUID(),
-                      expectedRevision: 1,
-                      implementationExecutionId: randomUUID(),
-                      specificationDigest: `sha256:${'a'.repeat(64)}`,
-                      evidence: [{ type: 'invocation_result' as const, invocationId: randomUUID(), revision: 1 }],
+                      decisionRef: `pd1/${randomUUID()}/${randomUUID()}/${'a'.repeat(64)}`,
                       outcome: 'accept' as const,
                       rationale: 'Inspected the implementation',
                       checks: ['Verified the output']
                   }
-        const calls: Array<DispatchProjectTaskCommand | DecideProjectTaskCommand> = []
+        const calls: Array<DispatchProjectTaskCommand | DecideProjectTaskReferenceCommand> = []
         const execute = jest.fn(async (command: object) => {
-            if (!(command instanceof DispatchProjectTaskCommand) && !(command instanceof DecideProjectTaskCommand)) {
+            if (
+                !(command instanceof DispatchProjectTaskCommand) &&
+                !(command instanceof DecideProjectTaskReferenceCommand)
+            ) {
                 throw new Error('Unexpected command')
             }
             const schema =
                 command instanceof DispatchProjectTaskCommand
                     ? projectTaskDispatchInputSchema
-                    : projectTaskDecisionInputSchema
-            schema.parse(command.input)
+                    : projectTaskDecisionToolInputSchema
+            schema.parse(
+                command instanceof DispatchProjectTaskCommand
+                    ? command.input
+                    : (({ requestId: _id, ...input }) => input)(command.input)
+            )
             calls.push(command)
             return { status: 'queued' }
         })
@@ -151,7 +157,19 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
         const f = fixture()
         const tool = f.create()
         const parameters = convertToOpenAITool(tool).function.parameters
-        expect(parameters).toHaveProperty('properties.taskId')
+        expect(parameters).toHaveProperty(
+            name === 'project_dispatch_task' ? 'properties.taskId' : 'properties.decisionRef'
+        )
+        if (name === 'project_decide_task')
+            for (const key of [
+                'taskId',
+                'expectedRevision',
+                'specificationDigest',
+                'evidence',
+                'implementationExecutionId',
+                'reviewExecutionId'
+            ])
+                expect(parameters).not.toHaveProperty('properties.' + key)
         expect(parameters).not.toHaveProperty('properties.requestId')
         await expect(tool.invoke({ ...f.input, requestId: randomUUID() }, f.config)).rejects.toThrow()
         expect(f.execute).not.toHaveBeenCalled()
@@ -179,9 +197,10 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
         const f = fixture()
         const tool = f.create()
         await tool.invoke(f.input, f.config)
-        await tool.invoke({ ...f.input, expectedRevision: 2 }, f.config)
+        const changed = name === 'project_dispatch_task' ? { expectedRevision: 2 } : { rationale: 'Updated judgement' }
+        await tool.invoke({ ...f.input, ...changed }, f.config)
         expect(f.calls[1].input.requestId).toBe(f.calls[0].input.requestId)
-        expect(f.calls[1].input.expectedRevision).toBe(2)
+        expect(f.calls[1].input).toMatchObject(changed)
     })
 
     it('gives a new tool call its own operation and separates conversation, thread, project and Agent', async () => {

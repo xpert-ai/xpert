@@ -6,6 +6,7 @@ export const routeDecision = z.object({
   intent: intentSchema,
   features: z.array(z.string()).optional(),
   inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  sourceMessageId: z.string().optional(),
   executionId: z.string(),
   bundleId: z.string(),
   bundleHash: z.string(),

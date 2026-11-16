@@ -55,6 +55,17 @@ export function validateProjectPipelineDefinition(
   nodes.forEach((node, index) => {
     if (!stages.has(node.stageKey)) issue('STAGE_NOT_FOUND', 'nodes', index, 'stageKey')
     if ('laneKey' in node && !lanes.has(node.laneKey)) issue('LANE_NOT_FOUND', 'nodes', index, 'laneKey')
+    if (node.kind === 'work' && node.presentation?.foldIntoApproval) {
+      const approval = byKey.get(node.presentation.foldIntoApproval)
+      const entries = incoming.get(node.key) ?? []
+      if (approval?.kind !== 'human_gate' || !entries.length || entries.some((edge) => edge.from !== approval.key)) {
+        issue('APPROVAL_STEP_PARENT_INVALID', 'nodes', index, 'presentation', 'foldIntoApproval')
+      }
+      const lane = lanes.get(node.laneKey)
+      if (lane && !roles.get(lane.roleKey)?.allowedKinds.includes('service')) {
+        issue('APPROVAL_STEP_SERVICE_REQUIRED', 'nodes', index, 'presentation', 'foldIntoApproval')
+      }
+    }
     if (node.kind === 'human_gate' && !roles.get(node.candidateRoleKey)?.allowedKinds.includes('human')) {
       issue('HUMAN_ROLE_REQUIRED', 'nodes', index, 'candidateRoleKey')
     }

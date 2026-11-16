@@ -1,0 +1,179 @@
+.bosi-launch {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: #0b0c13;
+  color: #f6f2eb;
+  color-scheme: dark;
+  font-family: Inter, system-ui, 'PingFang SC', sans-serif;
+  --wire: #454452;
+  --guide: #474454;
+  --gold: #f7c781;
+  --mute: #a6a3ae;
+  transition: opacity 160ms ease-out;
+
+  &[data-leaving] {
+    opacity: 0;
+    pointer-events: none;
+  }
+  & .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .composition {
+    --arrival: 0;
+    --drift: 0px;
+    position: relative;
+    isolation: isolate;
+    width: min(1100px, calc(100% - 44px));
+    text-align: center;
+    padding: 45px 0 55px;
+  }
+  .scene-light {
+    position: absolute;
+    inset: -8% 0 -8%;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 36% 34%, rgb(66 103 119 / 12%), transparent 35%),
+      radial-gradient(ellipse at 57% 58%, rgb(98 64 125 / 12%), transparent 48%),
+      radial-gradient(ellipse at 68% 37%, rgb(143 89 56 / 8%), transparent 38%);
+    mask-image: radial-gradient(ellipse at center, #000 40%, transparent 74%);
+  }
+  .scene-light::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 76% 40%, rgb(236 171 99 / 27%), transparent 31%);
+    opacity: var(--arrival);
+  }
+  .score {
+    display: block;
+    width: min(100%, 760px);
+    overflow: visible;
+    margin: 0 auto;
+    transform: translateX(var(--drift));
+  }
+  .guides path {
+    fill: none;
+    stroke: var(--guide);
+    stroke-dasharray: 1 6;
+    stroke-linecap: round;
+    stroke-width: 1;
+  }
+  #launch-wires path,
+  #launch-traces path {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  #launch-wires path {
+    stroke: var(--wire);
+    stroke-width: 1.25;
+  }
+  #launch-wires #launch-return {
+    stroke: #504a58;
+    stroke-dasharray: 2 4.2;
+  }
+  #launch-traces path {
+    stroke-width: 2.05;
+  }
+  .origin circle,
+  .junction circle,
+  #launch-gate path {
+    stroke: #756861;
+    fill: #1f1f29;
+    stroke-width: 1.2;
+  }
+  .origin circle {
+    fill: #302720;
+    stroke: #d9ae74;
+  }
+  .origin use,
+  #launch-gate circle {
+    fill: var(--gold);
+  }
+  .agent .shell {
+    fill: url(#launch-cell);
+    stroke: #635f73;
+    stroke-width: 1.2;
+  }
+  .agent .symbol {
+    stroke: #ada7bb;
+    fill: none;
+    stroke-width: 1.65;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .orbit {
+    fill: none;
+    stroke: #686376;
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  .agent.awake .shell {
+    fill: var(--material);
+    stroke: var(--tone);
+  }
+  .agent.awake .symbol,
+  .agent.awake .orbit {
+    stroke: var(--tone);
+  }
+  #launch-gate.awake path {
+    fill: #423528;
+    stroke: var(--gold);
+  }
+  #launch-waves circle {
+    fill: none;
+    stroke-width: 1.3;
+  }
+  #launch-pulses path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-width: 2.7;
+  }
+  #launch-pulses .head {
+    fill: #fff7e8;
+  }
+  #launch-pulses .glint {
+    fill: #fff9ed;
+  }
+  .wordmark {
+    color: #faf5e9;
+    text-shadow: 0 0 calc(24px * var(--arrival)) rgb(252 199 129 / 55%);
+    margin: 4px 0 0;
+    font:
+      610 clamp(44px, 6.6vw, 66px)/1.1 Inter,
+      system-ui,
+      sans-serif;
+    letter-spacing: -0.07em;
+  }
+  .tagline {
+    margin: 12px 0 0;
+    min-height: 1.5em;
+    color: var(--mute);
+    font-size: clamp(13px, 1.7vw, 16px);
+    letter-spacing: 0.065em;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bosi-launch {
+    transition: none;
+  }
+}
+
+.bosi-launch .agent {
+  --tone: #90eadb;
+  --material: url(#launch-mint-cell);
+}
+.bosi-launch .agent[data-lane='lower'] {
+  --tone: #c9a9f5;
+  --material: url(#launch-violet-cell);
+}

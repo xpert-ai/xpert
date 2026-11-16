@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { ProjectReviewEnvironment } from '../review/project-review.environment'
 // Invariants: only the responsible caller or an authorized human can decide business completion.
 // A decision, its evidence and the task CAS commit together; retries return the original decision.
@@ -7,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { In, Repository } from 'typeorm'
 import {
     ProjectTaskDecisionInput,
+    ProjectTaskDecisionToolInput,
     projectTaskDecisionInputSchema,
     projectTaskDecisionSchema
 } from '@xpert-ai/contracts'
@@ -20,11 +22,22 @@ import { XpertProjectAccessService } from '../services/project-access.service'
 import { assertOrdinaryTask } from '../services/project-task-ownership'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
-import { coordinationContext, decisionImplementationTask, implementationReviews, reviewImplementationTask } from './project-task-review-subtasks'
+import {
+    coordinationContext,
+    decisionImplementationTask,
+    implementationReviews,
+    reviewImplementationTask
+} from './project-task-review-subtasks'
 import { implementationEvidence, reviewReport } from './project-task-evidence'
 import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
+import {
+    decisionBinding,
+    decisionRef,
+    parseDecisionRef,
+    ProjectTaskDecisionReferenceError
+} from './project-task-decision-reference'
 
 @Injectable()
 export class ProjectTaskDecisionService {
@@ -36,6 +49,68 @@ export class ProjectTaskDecisionService {
         private readonly reviews: ProjectReviewEnvironment
     ) {}
 
+    async decideReference(
+        projectId: string,
+        input: ProjectTaskDecisionToolInput & { requestId: string },
+        caller: ProjectTaskCaller
+    ) {
+        await this.access.assertCanEdit(projectId)
+        await this.context.resolve(projectId, caller)
+        const actor = this.context.actor()
+        const reference = parseDecisionRef(input.decisionRef)
+        const task = await this.tasks.findOne({
+            where: {
+                id: reference.taskId,
+                projectId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId
+            },
+            relations: ['steps']
+        })
+        if (!task) throw projectTaskRuntimeError('NotFound')
+        assertOrdinaryTask(task)
+        const previous = task.decisions?.find((item) => item.requestId === input.requestId)
+        if (previous) {
+            if (decisionRef(previous) !== input.decisionRef)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
+            const replay = projectTaskDecisionInputSchema.strip().parse(previous)
+            // The original command owns replay authorization and rejects changed outcome/reason/checks.
+            // Explicit fields preserve the built contract's required shape in this non-strict Zod consumer.
+            return this.decide(
+                projectId,
+                {
+                    requestId: replay.requestId,
+                    taskId: replay.taskId,
+                    expectedRevision: replay.expectedRevision,
+                    implementationExecutionId: replay.implementationExecutionId,
+                    specificationDigest: replay.specificationDigest,
+                    evidence: replay.evidence,
+                    reviewExecutionId: replay.reviewExecutionId,
+                    outcome: input.outcome,
+                    rationale: input.rationale,
+                    checks: input.checks ?? []
+                },
+                caller
+            )
+        }
+        const { binding } = await decisionBinding(this.tasks.manager, actor, task, reference.implementationExecutionId)
+        if (decisionRef(binding) !== input.decisionRef)
+            throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
+        const { reviewResult: _reviewResult, ...command } = binding
+        return this.decide(
+            projectId,
+            {
+                ...command,
+                requestId: input.requestId,
+                outcome: input.outcome,
+                rationale: input.rationale,
+                checks: input.checks ?? []
+            },
+            caller,
+            input.decisionRef
+        )
+    }
+
     /**
      * Record an authorized acceptance or rework decision together with the task status change.
      * Runtime inspection may reconcile execution state, so it runs before acquiring the Project lock.
@@ -45,23 +120,35 @@ export class ProjectTaskDecisionService {
      * A child decision does not finish its summary. A summary decision validates the pinned child
      * and commits both histories atomically; acceptance additionally requires completed siblings.
      */
-    async decide(projectId: string, input: ProjectTaskDecisionInput, caller?: ProjectTaskCaller) {
+    async decide(
+        projectId: string,
+        input: ProjectTaskDecisionInput,
+        caller?: ProjectTaskCaller,
+        observedReference?: string
+    ) {
         const actor = this.context.actor()
         // Even a replay must satisfy current project access and caller authorization.
         await this.access.assertCanEdit(projectId)
         const scope = caller ? await this.context.resolve(projectId, caller) : null
         const previousTask = await this.tasks.findOneBy({
-            id: input.taskId, projectId, tenantId: actor.tenantId, organizationId: actor.organizationId
+            id: input.taskId,
+            projectId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId
         })
         if (!previousTask) throw projectTaskRuntimeError('NotFound')
         assertOrdinaryTask(previousTask)
-        const previousDecision = previousTask.decisions?.map((item) => projectTaskDecisionSchema.parse(item))
+        const previousDecision = previousTask.decisions
+            ?.map((item) => projectTaskDecisionSchema.parse(item))
             .find((item) => item.requestId === input.requestId)
         // A committed request needs neither another inspection nor another Project lock.
         // Reject requestId reuse with a different actor or payload rather than treating it as a retry.
         if (previousDecision) {
-            if (previousDecision.actorId !== actor.userId || previousDecision.actorType !== (caller?.type ?? 'user') ||
-                !sameInvocationData(projectTaskDecisionInputSchema.strip().parse(previousDecision), input))
+            if (
+                previousDecision.actorId !== actor.userId ||
+                previousDecision.actorType !== (caller?.type ?? 'user') ||
+                !sameInvocationData(projectTaskDecisionInputSchema.strip().parse(previousDecision), input)
+            )
                 throw projectTaskRuntimeError('Conflict')
             return previousDecision
         }
@@ -72,27 +159,45 @@ export class ProjectTaskDecisionService {
             // Check persisted ownership and caller scope before contacting the captured runtime.
             // The transaction below still validates task/evidence associations against freshly read rows.
             const attempt = await this.tasks.manager.getRepository(XpertProjectTaskExecution).findOneBy({
-                id, projectId, tenantId: actor.tenantId, organizationId: actor.organizationId
+                id,
+                projectId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId
             })
             if (!attempt?.invocationId) throw projectTaskRuntimeError('Evidence')
             const row = await this.tasks.manager.getRepository(AgentInvocationEntity).findOneBy({
-                id: attempt.invocationId, tenantId: actor.tenantId, organizationId: actor.organizationId, ownerId: actor.userId
+                id: attempt.invocationId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                ownerId: actor.userId
             })
             if (!row || row.invocation.scope.projectId !== projectId) throw projectTaskRuntimeError('Evidence')
-            if (id === input.implementationExecutionId && scope &&
-                (scope.conversationId !== row.invocation.scope.conversationId || scope.callerAgentKey !== row.invocation.scope.callerAgentKey ||
-                    scope.callerXpertId !== row.invocation.scope.callerXpertId || scope.callerType !== row.invocation.scope.callerType))
+            if (
+                id === input.implementationExecutionId &&
+                scope &&
+                (scope.conversationId !== row.invocation.scope.conversationId ||
+                    scope.callerAgentKey !== row.invocation.scope.callerAgentKey ||
+                    scope.callerXpertId !== row.invocation.scope.callerXpertId ||
+                    scope.callerType !== row.invocation.scope.callerType)
+            )
                 throw projectTaskRuntimeError('Scope')
             const observed = await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id)
             inspected.set(row.id, observed.revision)
-            if (input.outcome === 'accept' && attempt.purpose?.type === 'review' && attempt.purpose.mode === 'execution') {
+            if (
+                input.outcome === 'accept' &&
+                attempt.purpose?.type === 'review' &&
+                attempt.purpose.mode === 'execution'
+            ) {
                 // Avoid environment I/O for an unfinished, malformed or already failing review.
                 // The environment adapter owns candidate verification; Project rechecks the same revision under its lock below.
-                if (observed.status !== 'succeeded' || !invocationCanRelease(observed)) throw projectTaskRuntimeError('State')
+                if (observed.status !== 'succeeded' || !invocationCanRelease(observed))
+                    throw projectTaskRuntimeError('State')
                 const report = reviewReport(attempt.purpose, observed.result?.text)
                 if (!report)
-                    throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(attempt.purpose, observed.result?.text))
-                if (report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
+                    throw projectTaskRuntimeError(
+                        'ReviewReport',
+                        diagnoseReviewReport(attempt.purpose, observed.result?.text)
+                    )
                 if (!(await this.reviews.verify(row.invocation.scope, row.id)))
                     throw projectTaskRuntimeError('ReviewCandidateChanged')
             }
@@ -123,9 +228,20 @@ export class ProjectTaskDecisionService {
                     throw projectTaskRuntimeError('Conflict')
                 return existing
             }
-            if (task.revision !== input.expectedRevision || !['review', 'blocked', 'in_progress', ...(task.kind === 'summary' ? ['todo'] : [])].includes(task.status))
+            if (
+                task.revision !== input.expectedRevision ||
+                !['review', 'blocked', 'in_progress', ...(task.kind === 'summary' ? ['todo'] : [])].includes(
+                    task.status
+                )
+            )
                 throw projectTaskRuntimeError('Conflict')
-            const implementation = await decisionImplementationTask(manager, task, actor, input.implementationExecutionId, input.outcome === 'accept')
+            const implementation = await decisionImplementationTask(
+                manager,
+                task,
+                actor,
+                input.implementationExecutionId,
+                input.outcome === 'accept'
+            )
             const { latest, invocation } = await implementationEvidence(
                 manager,
                 implementation,
@@ -148,8 +264,14 @@ export class ProjectTaskDecisionService {
                 throw projectTaskRuntimeError('State')
             // Children can be accepted independently without accepting their summary. Recheck the
             // host-pinned parent so reparenting or changed parent requirements cannot reuse old evidence.
-            if (implementation.id === task.id && latest.purpose?.type === 'implementation' &&
-                !sameInvocationData(await coordinationContext(manager, implementation, actor), latest.purpose.coordination))
+            if (
+                implementation.id === task.id &&
+                latest.purpose?.type === 'implementation' &&
+                !sameInvocationData(
+                    await coordinationContext(manager, implementation, actor),
+                    latest.purpose.coordination
+                )
+            )
                 throw projectTaskRuntimeError('Evidence')
             const reviews = await implementationReviews(manager, implementation, actor)
             const latestReview = reviews.find(
@@ -157,10 +279,14 @@ export class ProjectTaskDecisionService {
                     attempt.purpose?.type === 'review' &&
                     attempt.purpose.implementationExecutionId === input.implementationExecutionId
             )
+            if (observedReference && latestReview?.id !== input.reviewExecutionId)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
             const reviewer = latest.purpose?.type === 'implementation' ? latest.purpose.reviewer : undefined
-            if (input.outcome === 'accept' && reviewer && !latestReview) throw projectTaskRuntimeError('ReviewerRequired')
+            if (input.outcome === 'accept' && reviewer && !latestReview)
+                throw projectTaskRuntimeError('ReviewerRequired')
             if (input.outcome === 'accept' && latestReview && input.reviewExecutionId !== latestReview.id)
                 throw projectTaskRuntimeError('Evidence')
+            let reviewResult: { invocationId: string; revision: number; sha256: string } | undefined
             if (input.reviewExecutionId) {
                 const review = await manager.getRepository(XpertProjectTaskExecution).findOneBy({
                     ...where,
@@ -176,10 +302,15 @@ export class ProjectTaskDecisionService {
                 )
                     throw projectTaskRuntimeError('Evidence')
                 const reviewTask = await manager.getRepository(XpertProjectTask).findOne({
-                    where: { ...where, projectId, id: review.taskId }, relations: ['steps']
+                    where: { ...where, projectId, id: review.taskId },
+                    relations: ['steps']
                 })
-                if (!reviewTask || reviewTask.status === 'cancelled' ||
-                    (await reviewImplementationTask(manager, reviewTask, actor, review.purpose)).id !== implementation.id)
+                if (
+                    !reviewTask ||
+                    reviewTask.status === 'cancelled' ||
+                    (await reviewImplementationTask(manager, reviewTask, actor, review.purpose)).id !==
+                        implementation.id
+                )
                     throw projectTaskRuntimeError('Evidence')
                 const row = await manager
                     .getRepository(AgentInvocationEntity)
@@ -194,30 +325,57 @@ export class ProjectTaskDecisionService {
                     !sameInvocationData(reference.purpose, review.purpose)
                 )
                     throw projectTaskRuntimeError('Evidence')
-                // Read the verdict only from the same review revision returned by inspection.
+                // Read the report only from the same review revision returned by inspection.
                 if (inspected.get(row.id) !== row.invocation.revision) throw projectTaskRuntimeError('Conflict')
-                if (reviewer && (row.invocation.request.target.bindingId !== reviewer.bindingId ||
-                    (review.purpose.mode ?? 'evidence_only') !== reviewer.mode)) throw projectTaskRuntimeError('Evidence')
+                if (
+                    reviewer &&
+                    (row.invocation.request.target.bindingId !== reviewer.bindingId ||
+                        (review.purpose.mode ?? 'evidence_only') !== reviewer.mode)
+                )
+                    throw projectTaskRuntimeError('Evidence')
                 const report = reviewReport(review.purpose, row.invocation.result?.text)
-                // Explain delivery defects without repairing the report or changing the review verdict.
-                if (!report) throw projectTaskRuntimeError('ReviewReport', diagnoseReviewReport(review.purpose, row.invocation.result?.text))
-                if (input.outcome === 'accept' && report.verdict !== 'pass') throw projectTaskRuntimeError('Evidence')
+                // Explain missing report delivery without rewriting the report or deciding its meaning.
+                if (!report)
+                    throw projectTaskRuntimeError(
+                        'ReviewReport',
+                        diagnoseReviewReport(review.purpose, row.invocation.result?.text)
+                    )
+                reviewResult = {
+                    invocationId: row.id,
+                    revision: row.invocation.revision,
+                    sha256: createHash('sha256').update(report.markdown).digest('hex')
+                }
                 if (input.outcome === 'accept' && review.purpose.mode === 'execution') {
                     // Other owned work can still mutate the shared checkout. Fail closed until all attempts have stopped.
                     // This guards platform-managed work, not arbitrary filesystem writes after the point-in-time comparison.
-                    const attempts = await manager.getRepository(XpertProjectTaskExecution).findBy({ ...where, projectId })
-                    const ids = attempts.flatMap((attempt) => attempt.invocationId ? [attempt.invocationId] : [])
-                    const records = ids.length ? await manager.getRepository(AgentInvocationEntity).findBy({ ...where, id: In(ids) }) : []
-                    if (attempts.some((attempt) => attempt.invocationId
-                        ? !records.some((item) => item.id === attempt.invocationId && invocationCanRelease(item.invocation))
-                        : ['queued', 'running'].includes(attempt.status))) throw projectTaskRuntimeError('Busy')
+                    const attempts = await manager
+                        .getRepository(XpertProjectTaskExecution)
+                        .findBy({ ...where, projectId })
+                    const ids = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
+                    const records = ids.length
+                        ? await manager.getRepository(AgentInvocationEntity).findBy({ ...where, id: In(ids) })
+                        : []
+                    if (
+                        attempts.some((attempt) =>
+                            attempt.invocationId
+                                ? !records.some(
+                                      (item) =>
+                                          item.id === attempt.invocationId && invocationCanRelease(item.invocation)
+                                  )
+                                : ['queued', 'running'].includes(attempt.status)
+                        )
+                    )
+                        throw projectTaskRuntimeError('Busy')
                 }
             }
+            if (observedReference && decisionRef({ ...input, reviewResult }) !== observedReference)
+                throw new ProjectTaskDecisionReferenceError('ContextChanged', task.id)
             const decision = projectTaskDecisionSchema.parse({
                 ...input,
                 actorId: actor.userId,
                 actorType: caller?.type ?? 'user',
                 executionId: caller?.executionId,
+                reviewResult,
                 decidedAt: new Date().toISOString(),
                 taskRevision: task.revision + 1
             })
@@ -233,12 +391,19 @@ export class ProjectTaskDecisionService {
             if (updated.affected !== 1) throw projectTaskRuntimeError('Conflict')
             // A concurrent child change must roll back the parent decision as well.
             if (implementation.id !== task.id) {
-                const childDecision = projectTaskDecisionSchema.parse({ ...decision, taskId: implementation.id,
-                    expectedRevision: implementation.revision, taskRevision: implementation.revision + 1 })
+                const childDecision = projectTaskDecisionSchema.parse({
+                    ...decision,
+                    taskId: implementation.id,
+                    expectedRevision: implementation.revision,
+                    taskRevision: implementation.revision + 1
+                })
                 const changed = await manager.getRepository(XpertProjectTask).update(
                     { ...where, id: implementation.id, revision: implementation.revision },
-                    { status: input.outcome === 'accept' ? 'done' : 'todo', revision: implementation.revision + 1,
-                        decisions: [...(implementation.decisions ?? []), childDecision] }
+                    {
+                        status: input.outcome === 'accept' ? 'done' : 'todo',
+                        revision: implementation.revision + 1,
+                        decisions: [...(implementation.decisions ?? []), childDecision]
+                    }
                 )
                 if (changed.affected !== 1) throw projectTaskRuntimeError('Conflict')
             }

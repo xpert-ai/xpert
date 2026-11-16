@@ -53,19 +53,6 @@ export function describeAssistantTemplate(template: TXpertTemplate): AssistantTe
             manifest?.version ||
             definition.team.version,
         instructions: typeof instructions === 'string' ? instructions : '',
-        memories: (definition.memories ?? []).map(({ prefix, value }) => {
-            if (typeof value === 'string') return { title: prefix, content: value }
-            if (
-                value &&
-                typeof value === 'object' &&
-                'question' in value &&
-                'answer' in value &&
-                typeof value.question === 'string' &&
-                typeof value.answer === 'string'
-            )
-                return { title: value.question, content: value.answer }
-            return { title: prefix }
-        }),
         skills: summary.skills,
         agents: summary.agents,
         ...(manifest?.onboarding

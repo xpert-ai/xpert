@@ -21,6 +21,13 @@ function fixture() {
       calls.push({ url, options })
       if (url.includes('remote-component/entry'))
         return new Response('<!doctype html><script>window.parent.postMessage({type:"ready"},"*")</script>')
+      if (url.endsWith('/data?selectionId=receipt')) return Response.json({ item: {
+        id: 'receipt', conversationAction: { type: 'open_conversation', conversationId: 'chat', assistantId: 'source', threadId: 'thread' }
+      } })
+      if (url.includes('/slots/user.event-inbox/')) {
+        const inbox = { ...manifest, clientCommands: [{ key: 'open_conversation' }], hostType: 'user', key: 'platform.event-inbox__inbox', slot: 'user.event-inbox' }
+        return Response.json(enabled ? [inbox, { ...inbox, key: 'other' }] : [])
+      }
       if (url.includes('/slots/agent.profile.tabs/'))
         return Response.json(enabled ? [manifest, { ...manifest, key: 'hidden', visible: false }] : [])
       if (url.includes('/slots/agent.workbench/'))
@@ -166,11 +173,13 @@ test('workbench navigation resolves an authorized view alias without trusting pl
 })
 test('remote protocol validates envelopes and interaction locks use explicit booleans', () => {
   assert.ok(isProfileMessage({ channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }))
+  assert.ok(isProfileMessage({ channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready', instanceId: null }))
   for (const value of [
     null,
     {},
     { channel: 'wrong', protocolVersion: 1, type: 'ready' },
     { channel: 'xpertai.remote_component', protocolVersion: 2, type: 'ready' },
+    { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'requestData', instanceId: null },
     { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready', requestId: {} }
   ])
     assert.equal(isProfileMessage(value), false)
@@ -195,4 +204,30 @@ test('profile ownership prevents duplicate layouts and stale cleanup from retain
     active: 'expanded-trigger',
     locked: false
   })
+})
+
+test('personal inbox pins user/me, ignores unlisted views and revokes access on organization change', async () => {
+  const { service, calls } = fixture()
+  const [view, ...others] = await service.personalInboxViews()
+  assert.equal(others.length, 0)
+  await assert.rejects(service.openProfileView({ scope: 'personal-inbox', viewKey: 'other' }))
+  const session = await service.openProfileView({ scope: 'personal-inbox', viewKey: view.key })
+  try {
+    await service.profileViewRequest({ sessionId: session.sessionId, operation: 'data', query: { search: 'delivery' } })
+    assert(
+      calls.some((call) => String(call.url).includes('/api/view-hosts/user/me/views/platform.event-inbox__inbox/data?'))
+    )
+    const open = (payload) => service.profileViewRequest({
+      sessionId: session.sessionId, operation: 'command', commandKey: 'open_conversation', payload
+    })
+    assert.deepEqual(await open({ receiptId: 'receipt' }), {
+      type: 'open_conversation', conversationId: 'chat', assistantId: 'source', threadId: 'thread'
+    })
+    await assert.rejects(open({ receiptId: 'no-link' }))
+    await assert.rejects(open({ receiptId: 'receipt', conversationId: 'foreign' }))
+    service.profile.organizationId = 'another-org'
+    await assert.rejects(service.profileViewRequest({ sessionId: session.sessionId, operation: 'data' }))
+  } finally {
+    service.closeProfileView(session.sessionId)
+  }
 })

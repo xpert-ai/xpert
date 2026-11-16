@@ -7,7 +7,7 @@ import { nextActionableNode, blockedNodes } from './selection'
 import { PipelineStatistics } from './statistics'
 import { PipelineAnalytics } from './analytics'
 import { PipelineAttentionList } from './attention-list'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCw, Workflow, Clock3 } from 'lucide-react'
 import {
     Button,
@@ -34,6 +34,7 @@ import {
     type PipelineGraph,
     type PipelineSummary
 } from './bridge'
+import { approvalStageMap } from './approval-steps'
 import { Swimlane } from './swimlane'
 import { ExecutionTimeline } from './timeline'
 import { PipelineLifecycle } from './lifecycle'
@@ -72,9 +73,20 @@ export function PipelineView({
         [now, setNow] = useState(Date.now())
     const [actionBusy, setActionBusy] = useState(false)
     const [selectedLane, setSelectedLane] = useState(initialFocus.selectedLane ?? '')
+    const [expandApprovalSteps, setExpandApprovalSteps] = useState(initialFocus.showApprovalSteps)
     const [onlyBlocked, setOnlyBlocked] = useState(initialFocus.onlyBlocked ?? false),
         [detailLane, setDetailLane] = useState('')
     const [focusNode, setFocusNode] = useState<string | null>(null)
+    const stageMap = useMemo(() => graph && approvalStageMap(graph), [graph])
+    // Older views can point to a service lane without an explicit expansion preference.
+    const showApprovalSteps =
+        expandApprovalSteps ??
+        graph?.definition.lanes.some(
+            ({ key }) =>
+                graph.instance.id === initialFocus.pipelineInstanceId &&
+                (key === initialFocus.pipelineLane || key === initialFocus.selectedLane) &&
+                !stageMap?.graph.definition.lanes.some((lane) => lane.key === key)
+        )
     useEffect(() => {
         saveTaskViewState({
             pipelineInstanceId: instanceId ?? undefined,
@@ -82,9 +94,10 @@ export function PipelineView({
             pipelineMode: mode,
             pipelineLane: lane,
             selectedLane,
+            showApprovalSteps,
             onlyBlocked
         })
-    }, [instanceId, roundId, mode, lane, selectedLane, onlyBlocked])
+    }, [instanceId, roundId, mode, lane, selectedLane, showApprovalSteps, onlyBlocked])
     const catalogLoaded = useRef(false)
     const historyFirst = useRef<string | null>(null)
     const nextRequest = useRef<{ key: string; id: string } | null>(null)
@@ -179,6 +192,9 @@ export function PipelineView({
             if (revision === generation.current) setBusy(false)
         }
     }
+    const compact = mode === 'stage' && !onlyBlocked && !showApprovalSteps
+    const displayed = compact ? stageMap?.graph : graph
+    const visibleLane = displayed?.definition.lanes.some((l) => l.key === lane) ? lane : ''
     const node = graph?.nodes.find((node) => node.id === selected)
     usePipelineContext(graph, node)
     const refresh = async () => {
@@ -410,14 +426,34 @@ export function PipelineView({
                         {t.nextRound}
                     </Button>
                 )}
+                {mode === 'stage' && !onlyBlocked && !!stageMap?.steps.size && (
+                    <Button
+                        size="sm"
+                        variant={showApprovalSteps ? 'secondary' : 'outline'}
+                        aria-pressed={showApprovalSteps}
+                        onClick={() => {
+                            setExpandApprovalSteps(!showApprovalSteps)
+                            if (showApprovalSteps) {
+                                const lanes = stageMap.graph.definition.lanes
+                                if (!lanes.some((item) => item.key === lane)) setLane('')
+                                if (!lanes.some((item) => item.key === selectedLane)) setSelectedLane('')
+                            }
+                        }}
+                    >
+                        {t.showApprovalSteps}
+                    </Button>
+                )}
                 {graph && (
-                    <Select value={lane || '__all'} onValueChange={(value) => setLane(value === '__all' ? '' : value)}>
+                    <Select
+                        value={visibleLane || '__all'}
+                        onValueChange={(value) => setLane(value === '__all' ? '' : value)}
+                    >
                         <SelectTrigger className="w-40" aria-label={t.allLanes}>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="__all">{t.allLanes}</SelectItem>
-                            {graph.definition.lanes.map((lane) => (
+                            {displayed?.definition.lanes.map((lane) => (
                                 <SelectItem key={lane.key} value={lane.key}>
                                     {lane.label}
                                 </SelectItem>
@@ -493,10 +529,11 @@ export function PipelineView({
                                 ? initialFocus
                                 : undefined
                         }
-                        graph={graph}
+                        graph={displayed ?? graph}
+                        approvalSteps={compact ? stageMap?.steps : undefined}
                         locale={locale}
                         t={t}
-                        lane={lane}
+                        lane={visibleLane}
                         selected={selected}
                         select={(node) => setSelected(node.id)}
                         onLane={setDetailLane}
@@ -510,7 +547,9 @@ export function PipelineView({
                     <ExecutionTimeline graph={graph} locale={locale} t={t} lane={lane} now={now} onError={setError} />
                 )}
             </TabsContent>
-            <p className="border-t px-4 py-2 text-xs text-muted-foreground">{t.pan}</p>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+                {mode === 'stage' && graph?.nodeWorkbench && projectId ? t.panWorkbench : t.pan}
+            </p>
             {graph && (
                 <LaneDetails
                     graph={graph}
@@ -530,6 +569,8 @@ export function PipelineView({
                     key={`${graph.instance.id}:${graph.roundId}:${node.id}`}
                     graph={graph}
                     node={node}
+                    approvalSteps={stageMap?.steps.get(node.id)}
+                    openNode={setSelected}
                     locale={locale}
                     projectId={projectId}
                     t={t}

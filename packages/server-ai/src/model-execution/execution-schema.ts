@@ -1,45 +1,19 @@
 import { z } from 'zod/v3'
 import { AiModelTypeEnum, ModelFeature, modelExecutionParametersSchema } from '@xpert-ai/contracts'
+import { executionSourceContextSchema } from '../shared/execution-source.schema'
+
+// Preserve existing imports; the shared validators do not depend on this model layer.
+export {
+    executionToolSchema,
+    executionEnvironmentSchema,
+    executionSourceSchema
+} from '../shared/execution-source.schema'
+export { executionJson } from '../shared/execution-json'
+export { cliReceiptSchema } from '../shared/cli-execution.schema'
 
 const id = z.string().uuid()
 const name = z.string().min(1).max(500)
-export const executionToolSchema = z
-    .object({ id: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/), version: z.string().regex(/^\d+\.\d+\.\d+$/) })
-    .strict()
-export const executionEnvironmentSchema = z.union([
-    z.object({ type: z.enum(['computer', 'sandbox']), environmentId: id, instanceId: name }).strict(),
-    z.object({ type: z.literal('remote'), bindingId: id, revision: name }).strict()
-])
-export const executionSourceSchema = z.discriminatedUnion('type', [
-    z.object({ type: z.literal('cli_session'), cliSessionId: id }).strict(),
-    z.object({ type: z.literal('agent_invocation'), invocationId: id, bindingId: id, bindingRevision: name }).strict(),
-    z
-        .object({
-            type: z.literal('shell_execution'),
-            executionId: id,
-            shellExecutionId: id,
-            parentExecutionId: id,
-            generation: z.number().int().positive(),
-            profileRevision: name
-        })
-        .strict()
-])
-export const executionContextSchema = z
-    .object({
-        tenantId: id,
-        runtimeOrganizationId: id,
-        actorUserId: id,
-        billableUserId: id,
-        xpertId: id,
-        assistantVersion: name,
-        assistantName: name.optional(),
-        conversationId: id,
-        threadId: name.optional(),
-        source: executionSourceSchema,
-        environment: executionEnvironmentSchema,
-        tool: executionToolSchema
-    })
-    .strict()
+export const executionContextSchema = executionSourceContextSchema.extend({ billableUserId: id }).strict()
 export const executionModelSchema = z
     .object({
         id: name,
@@ -87,13 +61,5 @@ export const executionLimitsSchema = z
             v.leaseSeconds <= v.maxDurationSeconds
     )
     .transform(({ maxInputTokens: _legacyInputLimit, maxOutputTokens: _legacyOutputLimit, ...limits }) => limits)
-export const cliReceiptSchema = z.object({ environmentId: id, instanceId: name, receiptId: name }).strict().nullable()
 
-/** Parse persisted JSON once at the TypeORM boundary, then use concrete contracts throughout services. */
-export function executionJson<T>(schema: z.ZodType<T>) {
-    return {
-        to: (value: T) => (value === undefined ? undefined : schema.parse(value)),
-        from: (value: unknown) => schema.parse(value)
-    }
-}
 export const executionModelsSchema = z.array(executionModelSchema).min(1).max(128)

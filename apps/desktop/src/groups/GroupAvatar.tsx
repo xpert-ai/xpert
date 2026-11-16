@@ -34,7 +34,7 @@ export function GroupAvatar({ members, memberCount }: Pick<GroupSummary, 'member
         ? ['left-0 top-0', 'bottom-0 right-0']
         : ['left-0 top-0', 'right-0 top-0', 'bottom-0 left-0', 'bottom-0 right-0']
   return (
-    <span aria-hidden="true" data-slot="group-avatar" className="relative block size-full">
+    <span aria-hidden="true" data-slot="group-avatar" className="relative block size-full text-[length:33.333cqi]">
       {!slots && <Users className="size-full p-2 text-muted-foreground" />}
       {visible.map((member, index) => (
         <span key={member.id} className={`absolute size-[56%] rounded-full ring-2 ring-background ${positions[index]}`}>

@@ -131,6 +131,9 @@ export function destinationInput(value: Destination | undefined) {
     return value
 }
 
+const firstRunSchema = z.object({ date: z.string().date(), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/) })
+export type FirstRun = z.infer<typeof firstRunSchema>
+
 export const detailSchema = z.object({
     item: z
         .object({
@@ -140,6 +143,7 @@ export const detailSchema = z.object({
             monitor: z.boolean().optional(),
             destination: destinationSchema.optional(),
             intervalMinutes: z.number().int().optional(),
+            firstRun: firstRunSchema.optional(),
             nextRunAt: z.string().nullish(),
             options: scheduleSchema.nullish(),
             timeZone: z.string().nullish(),

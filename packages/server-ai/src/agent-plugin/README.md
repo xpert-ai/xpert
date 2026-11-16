@@ -2,7 +2,7 @@
 
 Git, ZIP and default imports install packages in the authenticated tenant or organization scope. ChatKit lists the current organization's installations plus inherited tenant packages; an organization package with the same manifest name takes precedence, including when disabled. Users need access to the published Assistant, not authoring membership in its workspace.
 
-An imported package has a stable, versioned catalog reference immediately. Optional administrator configuration uses `POST /agent-plugins/bindings` without workspace targets. New configurations set `definition.availability = "scope"`. The read-only Desktop catalog is `GET /agent-plugins/catalog`. Legacy workspace endpoints remain for older clients, but are no longer part of the installation flow.
+An imported package has a stable, versioned catalog reference immediately. Optional administrator configuration uses `POST /agent-plugins/bindings` without workspace targets. New configurations set `definition.availability = "scope"`. The read-only Desktop catalog is `GET /agent-plugins/catalog`. Bosi onboarding and the conversation composer select a versioned installation reference without creating workspace plugin bindings.
 
 Catalog reads do not install skills, toolsets or Connector bindings. When a user selects an authorized plugin, the runtime prepares its skills and MCP toolsets for the Assistant's workspace. Preparation is serialized per binding across API instances. Workspace projection records are implementation details and do not restrict plugin visibility. Tenant packages retain their tenant ownership; runtime resources and connections belong to the consuming organization and workspace.
 

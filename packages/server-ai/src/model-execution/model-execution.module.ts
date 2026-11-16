@@ -83,6 +83,7 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
         ModelExecutionMeteringService
     ],
     exports: [
+        ModelExecutionSourceService,
         AssistantExecutionPolicyService,
         ModelExecutionPolicyService,
         ModelExecutionGrantService,

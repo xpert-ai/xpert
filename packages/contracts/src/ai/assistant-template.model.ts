@@ -11,5 +11,4 @@ export interface AssistantTemplateMetadata {
 
 export type AssistantTemplateDefinition = TXpertTeamDraft & {
   template?: AssistantTemplateMetadata
-  memories?: { prefix: string; value: unknown }[]
 }

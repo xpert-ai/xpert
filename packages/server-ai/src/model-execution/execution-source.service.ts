@@ -9,7 +9,7 @@ import { sameInvocationData } from '../agent-invocation/invocation-runtime'
 import { parseInvocationModelSource } from './invocation-model-source'
 import { Inject, Optional, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import type { ModelExecutionContext, ModelExecutionSource } from '@xpert-ai/contracts'
+import type { ExecutionSourceContext, ExecutionSource } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../agent-invocation/invocation.entity'
 import { executionError } from './execution-errors'
@@ -28,7 +28,7 @@ export class ModelExecutionSourceService {
     async invocationModelSource(
         actor: { tenantId: string; organizationId: string; userId: string },
         conversationId: string,
-        source: Extract<ModelExecutionSource, { type: 'agent_invocation' }>
+        source: Extract<ExecutionSource, { type: 'agent_invocation' }>
     ) {
         const row = await this.invocations.findOneBy({
             id: source.invocationId,
@@ -58,7 +58,7 @@ export class ModelExecutionSourceService {
         return { id: modelSource.xpertId, workspaceId: scope.workspaceId }
     }
 
-    async assertCurrent(context: ModelExecutionContext, preparing = false) {
+    async assertCurrent(context: ExecutionSourceContext, preparing = false) {
         const where = {
             tenantId: context.tenantId,
             organizationId: context.runtimeOrganizationId,

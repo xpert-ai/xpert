@@ -1,5 +1,7 @@
-import type { AnalyticsBinding, AnalyticsField, AnalyticalDataset, AnalyticsValue } from '@xpert-ai/contracts'
+import type { AnalyticsBinding, AnalyticalDataset, AnalyticsValue } from '@xpert-ai/contracts'
 import type { AnalyticsProviderResult } from './analytics-provider'
+import { parseAnalyticsCertification } from './analytics-certification'
+import { isAnalyticsCell, isAnalyticsDate } from './analytics-value'
 
 export function resolveAnalyticsParameters(binding: AnalyticsBinding, controls: Record<string, AnalyticsValue>) {
   const allowed = new Set(binding.parameters.map((parameter) => parameter.controlId))
@@ -16,7 +18,7 @@ export function resolveAnalyticsParameters(binding: AnalyticsBinding, controls: 
     }
     const valid =
       parameter.type === 'date'
-        ? typeof value === 'string' && validDate(value)
+        ? typeof value === 'string' && isAnalyticsDate(value)
         : typeof value === parameter.type && (typeof value !== 'number' || Number.isFinite(value))
     if (!valid || (parameter.allowedValues && !parameter.allowedValues.includes(value)))
       throw new Error('ANALYTICS_PARAMETER_INVALID')
@@ -44,7 +46,8 @@ export function normalizeAnalyticsResult(
     Object.fromEntries(
       fields.map((field, index) => {
         const cell = row[keys[index]]
-        if (cell === undefined || !validCell(field, cell)) throw new Error('ANALYTICS_FIELD_TYPE_MISMATCH')
+        if (cell === undefined || !isAnalyticsCell(field.logicalType, cell, field.nullable))
+          throw new Error('ANALYTICS_FIELD_TYPE_MISMATCH')
         return [field.id, cell]
       })
     )
@@ -83,44 +86,11 @@ export function normalizeAnalyticsResult(
       providerId: binding.providerId,
       sourceVersion: result.sourceVersion,
       upstreamExecutionId: result.upstreamExecutionId,
-      auditRef: result.auditRef
+      auditRef: result.auditRef,
+      // Certification belongs to the executing source; authored binding metadata is not proof.
+      ...(result.certification !== undefined
+        ? { certification: parseAnalyticsCertification(result.certification) }
+        : {})
     }
-  }
-}
-
-function validDate(value: string) {
-  return (
-    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    Number.isFinite(Date.parse(value)) &&
-    new Date(value).toISOString().slice(0, 10) === value
-  )
-}
-function validCell(field: AnalyticsField, cell: AnalyticsValue): boolean {
-  if (cell === null) return field.nullable
-  switch (field.logicalType) {
-    case 'string':
-      return typeof cell === 'string'
-    case 'boolean':
-      return typeof cell === 'boolean'
-    case 'float64':
-      return typeof cell === 'number' && Number.isFinite(cell)
-    case 'int64':
-      return (
-        typeof cell === 'string' &&
-        /^-?\d{1,19}$/.test(cell) &&
-        BigInt(cell) >= -(2n ** 63n) &&
-        BigInt(cell) < 2n ** 63n
-      )
-    case 'decimal':
-      return typeof cell === 'string' && /^-?\d+(\.\d+)?$/.test(cell)
-    case 'date':
-      return typeof cell === 'string' && validDate(cell)
-    case 'timestamp':
-      return (
-        typeof cell === 'string' &&
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(cell) &&
-        validDate(cell.slice(0, 10)) &&
-        Number.isFinite(Date.parse(cell))
-      )
   }
 }

@@ -13,6 +13,7 @@ export const CLAWXPERT_WORKBENCH_VIEW_SELECTION_QUERY_PARAM = 'viewSelection'
 export const CLAWXPERT_WORKBENCH_VIEW_PARAMETERS_QUERY_PARAM = 'viewParameters'
 export const CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM = 'viewProject'
 export const CLAWXPERT_WORKBENCH_ROUTE_ACTIVE = new InjectionToken<() => boolean>('ClawXpert workbench route active')
+export const WORKBENCH_VIEW_MENU_CLICK = Symbol('Workbench view menu click')
 
 @Injectable({ providedIn: 'root' })
 export class ClawXpertWorkbenchViewUrlState {
@@ -25,6 +26,7 @@ export class ClawXpertWorkbenchViewUrlState {
   readonly #viewLayout = signal(readWorkbenchViewLayout(this.#router, this.#router.url))
   readonly #viewQuery = signal(readWorkbenchViewQuery(this.#router, this.#router.url))
   readonly #projectId = signal(readWorkbenchViewProject(this.#router, this.#router.url))
+  readonly #menuRequestId = signal<string | undefined>(undefined)
   #pendingViewKey: string | null | undefined
   #navigationVersion = 0
 
@@ -35,6 +37,7 @@ export class ClawXpertWorkbenchViewUrlState {
   /** Selection and parameters associated with the active extension view. */
   readonly viewQuery = this.#viewQuery.asReadonly()
   readonly projectId = this.#projectId.asReadonly()
+  readonly menuRequestId = this.#menuRequestId.asReadonly()
 
   constructor() {
     this.#router.events
@@ -42,8 +45,11 @@ export class ClawXpertWorkbenchViewUrlState {
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         takeUntilDestroyed()
       )
-      .subscribe(() => {
+      .subscribe((event) => {
         if (!this.#routeActive()) return
+        if (this.#router.currentNavigation()?.extras.info === WORKBENCH_VIEW_MENU_CLICK) {
+          this.#menuRequestId.set(String(event.id))
+        }
         this.#pendingViewKey = undefined
         this.#viewClosed.set(
           this.#router.parseUrl(this.#router.url).queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] === ''

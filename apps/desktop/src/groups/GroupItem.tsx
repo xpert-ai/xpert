@@ -11,6 +11,7 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import { MoreHorizontal, Pin, Archive } from 'lucide-react'
 import { t } from '../i18n'
+import { SidebarAvatar } from '../avatar/SidebarAvatar'
 import { GroupAvatar } from './GroupAvatar'
 import type { GroupSummary } from './types'
 
@@ -51,15 +52,9 @@ export function GroupItem({
             onClick={() => onSelect(group.id)}
             className="relative shrink-0 cursor-default rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className={`block ${compact ? 'size-10' : pinned ? 'size-14' : 'size-12'}`}>
+            <SidebarAvatar mode={mode} unread={group.unread}>
               <GroupAvatar members={group.members} memberCount={group.memberCount} />
-            </span>
-            {group.unread && (
-              <span
-                aria-label={t('Unread')}
-                className="absolute bottom-0 right-0 size-2 rounded-full border border-background bg-primary"
-              />
-            )}
+            </SidebarAvatar>
           </button>
           {!compact && (
             <button

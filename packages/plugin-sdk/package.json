@@ -33,6 +33,11 @@
       "import": "./dist/data-workbench.esm.js",
       "default": "./dist/data-workbench.cjs.js"
     },
+    "./remote-component": {
+      "types": "./dist/remote-component.d.ts",
+      "import": "./dist/remote-component.esm.js",
+      "default": "./dist/remote-component.cjs.js"
+    },
     "./artifact-document": {
       "types": "./dist/artifact-document.d.ts",
       "import": "./dist/artifact-document.esm.js",

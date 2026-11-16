@@ -82,7 +82,10 @@ const schemas = [
             predecessorIds: json,
             assigneeXpertId: { ...uuid, nullable: true }
         },
-        relations: { steps: { type: 'one-to-many', target: 'XpertProjectTaskStep', inverseSide: 'task' } }
+        relations: {
+            steps: { type: 'one-to-many', target: 'XpertProjectTaskStep', inverseSide: 'task' },
+            executions: { type: 'one-to-many', target: 'XpertProjectTaskExecution', inverseSide: 'task' }
+        }
     }),
     new EntitySchema<XpertProjectTaskStep>({
         name: 'XpertProjectTaskStep',
@@ -222,11 +225,13 @@ integration('explicit task delegation / PostgreSQL', () => {
             status varchar, "runControl" jsonb, error varchar, operation jsonb, metadata jsonb DEFAULT '{}', "encryptedRunContext" varchar);
             CREATE TABLE chat_conversation (id uuid PRIMARY KEY, purpose varchar, "threadId" varchar, "projectId" uuid, "tenantId" uuid, "organizationId" uuid,
             "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, error varchar, operation jsonb);
-            CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar,
+            CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar, metadata jsonb,
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
         await database.query(readFileSync(join(__dirname, '../../execution-control/migration.sql'), 'utf8'))
         await database.query(readFileSync(join(__dirname, '../../../../server/src/task-control/migration.sql'), 'utf8'))
-        await database.query(readFileSync(join(__dirname, '../../chat-conversation/control-view/migration.sql'), 'utf8'))
+        await database.query(
+            readFileSync(join(__dirname, '../../chat-conversation/control-view/migration.sql'), 'utf8')
+        )
         await database.query(migration)
         const reliable = readFileSync(
             join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),
@@ -239,7 +244,10 @@ integration('explicit task delegation / PostgreSQL', () => {
         await database.query(decisions)
         await database.query(decisions)
         await database.query('ALTER TABLE xpert_project_task ADD COLUMN "parentTaskId" uuid NULL')
-        const reviewSubtasks = readFileSync(join(__dirname, '../migrations/20261110000000-task-review-subtasks.sql'), 'utf8')
+        const reviewSubtasks = readFileSync(
+            join(__dirname, '../migrations/20261110000000-task-review-subtasks.sql'),
+            'utf8'
+        )
         await database.query(reviewSubtasks)
         await database.query(reviewSubtasks)
     })
@@ -373,16 +381,24 @@ integration('explicit task delegation / PostgreSQL', () => {
     it('keeps resumed Project reservation, persisted invocation and runner identity aligned', async () => {
         const originalExecutionId = scope.parentExecutionId
         await taskControl.register({
-            tenantId: scope.tenantId, organizationId: scope.organizationId,
-            kind: 'execution', resourceId: randomUUID(), executionId: originalExecutionId, threadId: caller.threadId
+            tenantId: scope.tenantId,
+            organizationId: scope.organizationId,
+            kind: 'execution',
+            resourceId: randomUUID(),
+            executionId: originalExecutionId,
+            threadId: caller.threadId
         })
         const resumedExecutionId = randomUUID()
         await database.transaction((manager) => taskControl.bind(originalExecutionId, resumedExecutionId, manager))
         scope.parentExecutionId = resumedExecutionId
         caller.executionId = resumedExecutionId
         const result = await service.dispatch(scope.projectId, input, caller)
-        const attempt = await database.getRepository(XpertProjectTaskExecution).createQueryBuilder('attempt')
-            .addSelect('attempt.dispatchIntent').where('attempt.id = :id', { id: result.taskExecutionId }).getOneOrFail()
+        const attempt = await database
+            .getRepository(XpertProjectTaskExecution)
+            .createQueryBuilder('attempt')
+            .addSelect('attempt.dispatchIntent')
+            .where('attempt.id = :id', { id: result.taskExecutionId })
+            .getOneOrFail()
         const { invocation } = await store.read(result.invocationId, scope)
         const intent = service.intent(attempt)
         expect(intent.scope.parentExecutionId).toBe(resumedExecutionId)
@@ -399,22 +415,35 @@ integration('explicit task delegation / PostgreSQL', () => {
     })
 
     it.each(['pipeline', 'ordinary', 'provider'] as const)(
-        'only exempts a native Pipeline coordinator from the Computer reservation (%s)', async (controlKind) => {
+        'only exempts a native Pipeline coordinator from the Computer reservation (%s)',
+        async (controlKind) => {
             const task = await database.getRepository(XpertProjectTask).findOneByOrFail({ id: input.taskId })
             const coordinator = await database.getRepository(XpertProjectTask).save({
-                ...task, id: randomUUID(), controlKind, status: 'in_progress'
+                ...task,
+                id: randomUUID(),
+                controlKind,
+                status: 'in_progress'
             })
             await database.getRepository(XpertProjectTaskExecution).save({
-                id: randomUUID(), tenantId: scope.tenantId, organizationId: scope.organizationId,
-                projectId: scope.projectId, createdById: scope.userId, taskId: coordinator.id,
-                conversationId: scope.conversationId, threadId: caller.threadId, agentExecutionId: caller.executionId,
-                status: 'running', attempt: 1
+                id: randomUUID(),
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                projectId: scope.projectId,
+                createdById: scope.userId,
+                taskId: coordinator.id,
+                conversationId: scope.conversationId,
+                threadId: caller.threadId,
+                agentExecutionId: caller.executionId,
+                status: 'running',
+                attempt: 1
             })
             if (controlKind === 'pipeline') {
                 const result = await service.dispatch(scope.projectId, input, caller)
                 expect(result.status).toBe('running')
                 expect(start).toHaveBeenCalledTimes(1)
-                await expect(service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)).rejects.toThrow()
+                await expect(
+                    service.dispatch(scope.projectId, { ...input, requestId: randomUUID() }, caller)
+                ).rejects.toThrow()
                 expect(start).toHaveBeenCalledTimes(1)
             } else {
                 await expect(service.dispatch(scope.projectId, input, caller)).rejects.toThrow()

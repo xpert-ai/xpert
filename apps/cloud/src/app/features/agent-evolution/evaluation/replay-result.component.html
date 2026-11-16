@@ -68,6 +68,9 @@
               <div>{{ pair.key }}: {{ pair.value }}</div>
             }
           </dd>
+        } @else {
+          <dt>{{ prefix + 'FrozenInput' | translate }}</dt>
+          <dd>{{ 'XP.AgentEvolution.ReplayHistory.SnapshotMissing' | translate }}</dd>
         }
         @if (item.traceRef) {
           <dt>{{ prefix + 'Trace' | translate }}</dt>
@@ -86,7 +89,7 @@
       <button z-button zType="outline" (click)="openCase(null)">{{ prefix + 'BackResult' | translate }}</button>
     </div>
   }
-} @else {
+} @else if (slice() === null) {
   <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
     <div>
       <h2 class="flex flex-wrap items-center gap-2 text-lg font-semibold">
@@ -187,8 +190,15 @@
       }
     </div>
   }
+}
+@if (!caseId()) {
   <div class="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
-    <h3 class="font-semibold">{{ prefix + 'CaseResults' | translate }}</h3>
+    <h3 class="font-semibold">
+      {{ prefix + 'CaseResults' | translate }}
+      @if (sliceLabel(); as label) {
+        · {{ label }}
+      }
+    </h3>
     <div class="flex flex-wrap gap-1 rounded-md bg-muted p-1">
       @for (f of filters(); track f) {
         <button

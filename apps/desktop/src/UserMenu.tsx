@@ -10,20 +10,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@xpert-ai/shadcn-ui'
-import { ExternalLink, LogOut, MoreHorizontal, Settings2 } from 'lucide-react'
+import { Bell, ExternalLink, Inbox, LogOut, MoreHorizontal, Settings2 } from 'lucide-react'
 import { openWorkspace } from './host'
 import type { Profile } from './types'
+
+const menuItemClassName = 'rounded-lg px-3 py-2.5'
 
 export function UserMenu({
   profile,
   webUrl,
   compact = false,
+  onInbox,
   onSettings,
   onLogout
 }: {
   profile: Profile
   webUrl: string
   compact?: boolean
+  onInbox: (opener: HTMLElement | null) => void
   onSettings: () => void
   onLogout: () => void
 }) {
@@ -69,12 +73,19 @@ export function UserMenu({
           <span className="mt-1 block truncate text-xs font-normal text-muted-foreground">{organization?.name}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {profile.organizationId && (
+          <DropdownMenuItem className={menuItemClassName} onSelect={() => onInbox(notificationOpener.current)}>
+            <Inbox />
+            {t('My events')}
+          </DropdownMenuItem>
+        )}
         {notifications.available && (
           <DropdownMenuItem
-            className="rounded-lg px-3 py-2.5"
+            className={menuItemClassName}
             onSelect={() => notifications.open(notificationOpener.current)}
           >
-            {t('Notifications')}{' '}
+            <Bell />
+            {t('Notifications')}
             {notifications.count > 0 && (
               <span className="ml-auto rounded-full bg-muted px-2 text-xs">
                 {notifications.count}
@@ -83,16 +94,16 @@ export function UserMenu({
             )}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="rounded-lg px-3 py-2.5" onSelect={() => openWorkspace(webUrl)}>
+        <DropdownMenuItem className={menuItemClassName} onSelect={() => openWorkspace(webUrl)}>
           <ExternalLink />
           {t('Open Xpert workspace')}
         </DropdownMenuItem>
-        <DropdownMenuItem className="rounded-lg px-3 py-2.5" onSelect={onSettings}>
+        <DropdownMenuItem className={menuItemClassName} onSelect={onSettings}>
           <Settings2 />
           {t('Settings')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" className="rounded-lg px-3 py-2.5" onSelect={onLogout}>
+        <DropdownMenuItem variant="destructive" className={menuItemClassName} onSelect={onLogout}>
           <LogOut />
           {t('Sign out')}
         </DropdownMenuItem>

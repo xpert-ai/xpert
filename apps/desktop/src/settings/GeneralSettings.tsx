@@ -69,10 +69,7 @@ export function GeneralSettings({
           {t('Language')}
         </h2>
         <div className="overflow-hidden rounded-xl border">
-          <SettingsRow
-            title={t('Interface language')}
-            description={t('After sign-in, your account language takes priority.')}
-          >
+          <SettingsRow title={t('Interface language')} description={t('Your language choice is saved on this device.')}>
             <div className="w-48">
               <ThemeSelect
                 hideLabel
@@ -83,9 +80,6 @@ export function GeneralSettings({
               />
             </div>
           </SettingsRow>
-          <p className="mx-5 border-t py-4 text-[0.8125rem] leading-5 text-muted-foreground">
-            {t('On first launch, the language follows your system preferences.')}
-          </p>
         </div>
       </section>
       <section aria-labelledby="settings-display-heading">
@@ -108,7 +102,7 @@ export function GeneralSettings({
           </SettingsRow>
           <SettingsRow
             title={t('Assistant list density')}
-            description={t('Set the spacing between assistants in the sidebar.')}
+            description={t('Adjust avatar size and row spacing in the sidebar.')}
           >
             <SettingsChoice
               label={t('Assistant list density')}

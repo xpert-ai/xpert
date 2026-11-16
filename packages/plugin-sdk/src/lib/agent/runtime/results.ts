@@ -4,7 +4,13 @@ import { agentResultPathSchema, type AgentOutputDelivery } from '@xpert-ai/contr
 /** Opt in to the host's authorized, on-demand result View from middleware metadata. */
 export const AGENT_TASK_RESULTS_FEATURE = 'agent_task_results'
 
-export { agentResultPathSchema, agentOutputDeliverySchema, type AgentOutputDelivery } from '@xpert-ai/contracts'
+export {
+  agentResultPathSchema,
+  agentOutputDeliverySchema,
+  agentDeliveryRecoverySchema,
+  type AgentDeliveryRecovery,
+  type AgentOutputDelivery
+} from '@xpert-ai/contracts'
 
 const common = {
   id: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),
@@ -42,26 +48,12 @@ export const agentResultItemSchema = z.discriminatedUnion('type', [
 ])
 export type AgentResultItem = z.output<typeof agentResultItemSchema>
 
-/** Explicit final response envelope shared by adapters; ordinary prose is never classified heuristically. */
-export const agentTaskResultSchema = z
-  .object({ version: z.literal(1), summary: z.string().max(64000), items: z.array(agentResultItemSchema).max(32) })
-  .strict()
-  .refine(
-    (value) => new Set(value.items.map((item) => item.id)).size === value.items.length,
-    'Result item IDs must be unique'
-  )
-export type AgentTaskResult = z.output<typeof agentTaskResultSchema>
-
-/** Bound structured report transfer independently of the host's artifact-export quota. */
-export const AGENT_TASK_RESULT_FILE_MAX_BYTES = 4 * 1024 * 1024
-
-/** Explicit final submission of an envelope file. Its digest pins bytes, not a business verdict. */
-export const agentTaskResultFileSchema = z.object({
-  version: z.literal(1),
-  path: agentResultPathSchema,
-  sha256: z.string().regex(/^[a-f0-9]{64}$/)
-}).strict()
-export type AgentTaskResultFile = z.output<typeof agentTaskResultFileSchema>
+/** Report bytes are transported independently of artifact quotas and business acceptance. */
+export const AGENT_TASK_REPORT_MAX_BYTES = 4 * 1024 * 1024
+export type AgentTaskReport = { text: string; sha256: string }
+export type AgentReportDelivery =
+  | { status: 'completed'; sha256: string; path?: string }
+  | { status: 'failed'; code: 'report_unavailable' | 'report_empty' | 'report_too_large'; path?: string }
 
 /** Persist only after the platform has committed the artifact; never accept an ID invented by a model. */
 export interface AgentResultArtifact {

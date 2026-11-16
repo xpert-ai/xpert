@@ -1,7 +1,6 @@
 import type { ProjectConfigurationApi } from '@xpert-ai/plugin-sdk'
 import { Injectable, ForbiddenException, Inject, forwardRef } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { ScheduleTaskStatus } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { XpertTaskService } from '../../../xpert-task/xpert-task.service'
 import { CreateXpertTaskCommand } from '../../../xpert-task/commands'
@@ -36,7 +35,7 @@ export class ProjectConfigurationAutomationAdapter {
         const values = { ...rest, options: { ...options, frequency: options.frequency, time: options.time } }
         if (taskId) {
             await this.assertTask(projectId, taskId)
-            await this.tasks.updateHttpTask(taskId, { ...values, status: ScheduleTaskStatus.SCHEDULED })
+            await this.tasks.updateHttpTask(taskId, values)
         } else await this.commands.execute(new CreateXpertTaskCommand({ ...values, projectId }))
         return null
     }

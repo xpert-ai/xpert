@@ -23,19 +23,22 @@ The Agent tool requires an explicit `title` on every update; copy the current ti
 
 ## Drafts and formal versions
 
-| Operation               | Behavior                                                                            |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| Create or Agent edit    | Saves the current working draft, advances its revision, preserves Artifact identity |
-| Style-only edit         | Preserves omitted fields and existing Bindings; still runs data and HTML checks     |
-| Source or metric change | Requires discovery, preview and receipts for the complete replacement Binding set   |
-| Human publication       | Confirms a frozen draft revision and creates an immutable version transactionally   |
-| Historical viewing      | Reads the old definition and dependencies, then queries with current access         |
+| Operation                  | Behavior                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Create or Agent edit       | Saves the current working draft, advances its revision, preserves Artifact identity                                |
+| Style-only edit            | Preserves omitted fields and existing Bindings; still runs data and HTML checks                                    |
+| Source or metric change    | Requires discovery, preview and receipts for the complete replacement Binding set                                  |
+| Human publication          | Confirms a frozen draft revision and creates an immutable version transactionally                                  |
+| Historical viewing         | Reads the old definition and dependencies, then queries with current access                                        |
+| Restore history to a draft | Requeries and validates the historical content, then saves a draft revision without changing the published version |
 
 `dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy and `saveArguments`. Copy an absent formal-version base as actual JSON `null`, never a string such as `None`. When correcting an argument error, retain the other intended changes, including the new title. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, show the normal select-before-editing prompt. Select in the cascade picker or use `dashboard_list` to resolve the target; never guess from history or recency.
 
 Platform `artifact_draft` stores the latest content reference, checksum, revision and formal-version base. Save and publish share the Artifact row lock and compare-and-set checks. Changed bases cause conflicts, not silent overwrites, rebases or duplicate dashboards. An identical confirmed-publication retry reuses the version.
 
-Agents have no formal publication tool. Changes made during a confirmation cause publication to fail rather than publish unreviewed content. Intermediate draft revisions are not browsable history. There is no one-click rollback, version comparison or collaborative merge UI.
+Agents have no formal publication tool. Changes made during a confirmation cause publication to fail rather than publish unreviewed content. Intermediate draft revisions are not browsable history.
+
+From a historical published version's **More** menu, choose restoration to a draft and confirm the current draft revision and published base. Restoration requeries sources, validates historical content and dependencies, and saves a new draft revision through CAS. The published version and sharing target remain unchanged until human publication. Cancellation writes nothing; a changed base causes a conflict. There is no general version-diff or real-time collaborative merge UI.
 
 ## Resource cards and Workbench
 
@@ -52,6 +55,8 @@ This is distinct from ordinary generated-file preview: the JSON definition is no
 The personal dashboard owner or Project manager enables sharing in Workbench, following the latest formal version or pinning one. Draft-only dashboards cannot be shared, and sharing itself never publishes.
 
 The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Personal dashboards retain owner access. Project members consume formal versions, editors author drafts, and managers publish or share. An explicit organization share may grant published-definition viewing to non-Project members; see [Project integration](./project-integration). Queries use the viewer's permissions, not the creator's identity.
+
+These organization share links retain viewer-permission semantics. Providing bounded query results to a group requires a separately issued and explicitly accepted delegation; see [Trusted data and artifact conversion](/en/guides/collaborative-artifacts/trusted-data). Ordinary sharing does not enable it automatically.
 
 Platform `ArtifactPresentationRegistry` selects a provider by plugin and resource type. The plugin interprets the saved package and read-only `query` / `query-binding` operations; the platform owns link policy, formal targets, identity and isolation.
 

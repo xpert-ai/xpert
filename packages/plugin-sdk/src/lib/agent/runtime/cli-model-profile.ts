@@ -34,6 +34,16 @@ export interface CliModelProfile {
   requiredCapabilities: ModelFeature[]
   /** Modes this profile explicitly implements; unsupported modes must not be silently ignored. */
   permissionModes?: readonly CliPermissionMode[]
+  /** Native authentication stays in the owner Computer; the host never receives credentials. */
+  native?: {
+    versions: readonly string[]
+    homeDirectory: string
+    statusArguments: readonly string[]
+    loginArguments: readonly string[]
+    logoutArguments: readonly string[]
+    testArguments: readonly string[]
+    configure(input: { home: string; permissionMode: CliPermissionMode }): CliModelConfiguration
+  }
   chatBridge?: { versions: readonly string[]; requiredCapabilities: ModelFeature[] }
   /** Optional host-managed background transport. Arguments are trusted profile code, never model input. */
   background?: {
@@ -60,5 +70,5 @@ export const CliModelProfilesCapability = createRuntimeCapability<CliModelProfil
 
 /** Additional execution sources can validate lifecycle without making OS depend on Pro entities. */
 export const ShellModelExecutionSourceCapability = createRuntimeCapability<{
-  assertCurrent(context: import('@xpert-ai/contracts').ModelExecutionContext, preparing?: boolean): Promise<void>
+  assertCurrent(context: import('@xpert-ai/contracts').ExecutionSourceContext, preparing?: boolean): Promise<void>
 }>('platform.model_execution.shell_source')

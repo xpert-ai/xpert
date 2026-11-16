@@ -13,7 +13,6 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { Queue } from 'bull'
 import { WorkbenchFilesController } from '../../ai/workbench-files.controller'
 import { WorkbenchFilesAuthGuard } from '../../ai/workbench-files-auth.guard'
 import { GroupAccessService } from '../../chat-group/group-access.service'
@@ -197,7 +196,6 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
                             {} as ChatMessageService,
                             commands,
                             queries,
-                            {} as Queue,
                             volumes,
                             projects as unknown as XpertProjectAccessService,
                             {} as ChatConversationThreadService

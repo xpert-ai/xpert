@@ -81,7 +81,8 @@ describe('shared project task View', () => {
         })
         expect(projectTypes.entry).toHaveBeenCalledWith(
             { projectId: 'p', actor: { tenantId: 't', organizationId: 'o', userId: 'u' } },
-            { xpertId: 'assistant', pipelineNodeId }
+            { xpertId: 'assistant', pipelineNodeId },
+            'navigation'
         )
         expect(result.data).toEqual({
             target: 'workbench.view',

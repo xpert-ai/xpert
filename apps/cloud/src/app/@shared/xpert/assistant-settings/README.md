@@ -47,7 +47,7 @@ For manual `Dialog.open`, import `XpertSettingsDialogComponent` and provide `Xpe
 | Workbench & layout | Agent Settings                    | first layout and default extension view                                                                    |
 | File uploads       | Features                          | enabled, file types, upload count; hidden source mode is preserved                                         |
 | Speech             | Features                          | TTS and speech recognition models                                                                          |
-| Memory & context   | Features                          | summary, profile/Q&A memory, memory replies; link to existing memory management                            |
+| Memory & context   | Features                          | conversation summary and file memory; enable Standard replies in Capabilities                              |
 | External experts   | Agent canvas external Xpert nodes | Search and assign a published workspace expert to an agent; inspect or remove assignment                   |
 | Sub-agents         | Agent canvas internal Agent nodes | Add/edit title, description, prompt, model, parent, independent context and always-available setting       |
 | Capabilities       | Agent Settings + Features         | optional capabilities, concurrency, recursion limit and sandbox provider                                   |
@@ -67,21 +67,20 @@ The four layout previews live in `assets/images/assistant-settings/`. All text u
 
 `xpert-settings-dialog.component.css` defines two tokens on the dedicated CDK panel class. The shared dialog surface still owns clipping, background, borders and elevation. No global theme radius is changed.
 
-| Token / utility                         | Value                                                                          | Applies to                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| `--assistant-settings-dialog-radius`    | `24px`                                                                         | CDK dialog surface                                                             |
-| `--assistant-settings-item-radius`      | `12px`                                                                         | Search, navigation, model selectors/lists, file rows, layout and trigger cards |
-| `text-base` / `text-lg` / `text-sm`     | Theme defaults                                                                 | Body / headings / descriptions; no font token overrides                        |
-| `px-4 sm:px-5 py-3`                     | `12px` vertical; `16px` mobile / `20px` desktop horizontal                     | Header and content                                                             |
-| `p-3`                                   | `12px`                                                                         | Sidebar                                                                        |
-| `py-2`                                  | `8px` per side                                                                 | Feature sections and footer; first feature omits top padding                   |
-| `px-2.5 py-0.5 min-h-8`                 | `10px` horizontal / `2px` vertical; `32px` minimum height; no gap between rows | Navigation rows                                                                |
-| `px-3 py-2`                             | `12px` horizontal / `8px` vertical                                             | Trigger, layout and statistics cards                                           |
-| `space-y-3` / `space-y-4` / `space-y-5` | `12px` / `16px` / `20px`                                                       | Feature details / grouped fields / larger sections                             |
-| `h-10` / `size-10`                      | `40px`                                                                         | Normal text buttons / square close button                                      |
-| `h-8` / `min-h-10`                      | `32px` / `40px`                                                                | Search field / file type rows                                                  |
-| Dialog size                             | Maximum `1120 x 780px`                                                         | Desktop; keeps viewport margins and the existing mobile layout                 |
-| Sidebar width                           | `224px` / `240px`                                                              | Small desktop / large desktop                                                  |
+| Token / utility                         | Value                                                                             | Applies to                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `--assistant-settings-dialog-radius`    | `24px`                                                                            | CDK dialog surface                                                             |
+| `--assistant-settings-item-radius`      | `12px`                                                                            | Search, navigation, model selectors/lists, file rows, layout and trigger cards |
+| `text-base` / `text-lg` / `text-sm`     | Theme defaults                                                                    | Body / headings / descriptions; no font token overrides                        |
+| `px-4 sm:px-5 py-3`                     | `12px` vertical; `16px` mobile / `20px` desktop horizontal                        | Header and content                                                             |
+| `p-3`                                   | `12px`                                                                            | Sidebar                                                                        |
+| `py-2`                                  | `8px` per side                                                                    | Feature sections and footer; first feature omits top padding                   |
+| Navigation rows                         | `px-4 py-1`, minimum height `32px` on desktop and `44px` for coarse pointers      | Sidebar menu                                                                   |
+| `px-3 py-2`                             | `12px` horizontal / `8px` vertical                                                | Trigger, layout and statistics cards                                           |
+| `space-y-3` / `space-y-4` / `space-y-5` | `12px` / `16px` / `20px`                                                          | Feature details / grouped fields / larger sections                             |
+| `xpDialogCompactControls`               | Text buttons grow with their labels from a `30px` minimum. Search is `30px` high. | Text actions and search; both use a `44px` minimum for coarse pointers         |
+| Dialog size                             | Maximum `1120 x 780px`                                                            | Desktop; keeps viewport margins and the existing mobile layout                 |
+| Sidebar width                           | `224px` / `240px`                                                                 | Small desktop / large desktop                                                  |
 
 Spacing remains scoped to this dialog, including overrides for reused personalization and trigger components. Existing interfaces retain their own presentation. List item corners use `rounded-[var(--assistant-settings-item-radius)]`, so both radius values can be tuned in one place without following the app's root font size.
 

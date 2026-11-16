@@ -223,38 +223,17 @@ export interface RuntimeResourceBindingInput {
   definition: RuntimeResourceDefinition
 }
 
-/** Editor-facing workspace installation catalog. Never includes sources, MCP configuration or credentials. */
-export interface WorkspaceAgentPlugin {
+/** Installed package metadata visible in its organization or inherited from its tenant. */
+export interface InstalledAgentPlugin {
   id: string
   name: string
   description?: I18nText
   icon?: string
   version: string
-  status: 'available' | 'not_published' | 'disabled'
-  components: Array<{ kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert' | 'assistant_template'; name: string }>
-  expertReferences: string[]
-}
-
-export interface WorkspaceAgentPluginOptions {
-  workspaces: Array<{ id: string; name: string }>
-  experts: Array<{ id: string; name: string }>
-}
-
-/** Add one imported package to one editable workspace without changing other workspaces or conversations. */
-export interface WorkspaceAgentPluginAddInput {
-  packageId: string
-  experts: { [reference: string]: string }
-}
-
-export interface WorkspaceAgentPluginAddResult {
-  status: 'added' | 'already_added'
-  bindingId: string
-}
-
-/** Read-only installation catalog, independent of authoring workspace membership. */
-export interface InstalledAgentPlugin extends Omit<WorkspaceAgentPlugin, 'status'> {
   scope: 'tenant' | 'organization'
   status: 'available' | 'configuration_required' | 'disabled'
+  components: Array<{ kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert' | 'assistant_template'; name: string }>
+  expertReferences: string[]
 }
 
 /** Storage faults are distinct from dependency compatibility and installation snapshot changes. */

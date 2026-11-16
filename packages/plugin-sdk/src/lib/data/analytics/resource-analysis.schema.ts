@@ -29,11 +29,20 @@ export const resourceAnalysisFilterSchema: z.ZodType<ResourceAnalysisFilter> = z
  */
 export const resourceAnalysisPolicySchema: z.ZodType<ResourceAnalysisPolicy> = z
   .object({
+    execution: z.enum(['viewer_permissions', 'delegated_results']).optional(),
     mode: z.enum(['bindings', 'explore']),
     datasets: z
       .array(
         z
-          .object({ key, fields: z.array(key).min(1).max(64), filters: z.array(resourceAnalysisFilterSchema).max(20) })
+          .object({
+            key,
+            fields: z.array(key).min(1).max(64),
+            filters: z.array(resourceAnalysisFilterSchema).max(20),
+            controlValues: z
+              .record(key, z.array(scalar).min(1).max(50))
+              .refine((value) => Object.keys(value).length <= 32)
+              .optional()
+          })
           .strict()
       )
       .min(1)
@@ -42,6 +51,7 @@ export const resourceAnalysisPolicySchema: z.ZodType<ResourceAnalysisPolicy> = z
     maxRows: z.number().int().min(1).max(100)
   })
   .strict()
+  .refine((value) => value.execution === 'delegated_results' || value.datasets.every((item) => !item.controlValues))
   .refine((value) => new Set(value.datasets.map((item) => item.key)).size === value.datasets.length)
   .refine((value) =>
     value.datasets.every(

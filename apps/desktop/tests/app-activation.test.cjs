@@ -195,6 +195,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
           config: { apiUrl: 'http://localhost/', locale: 'en', theme: 'light' },
           profile: { user: { id: 'user', tenantId: 'tenant' }, organizationId: 'org', organizations: [] }
         }
+      if (method === 'listBotPage') return { bots, next: null, awaitingSavedBot: false }
       if (method === 'listBots')
         return delay
           ? new Promise((resolve, reject) => {
@@ -255,6 +256,8 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
       './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },
       './ConnectionSettings': { ConnectionSettings: () => null },
       './Login': { Login: () => null },
+      './computer-use/ComputerPermissions': { ComputerPermissions: () => null },
+      './FirstRunLanguage': { FirstRunLanguage: () => null },
       './CatalogDialog': { CatalogDialog: () => null }
     },
     globals

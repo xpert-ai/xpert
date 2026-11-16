@@ -1,6 +1,6 @@
 import { forwardRef, Global, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
-import { XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN } from '@xpert-ai/plugin-sdk'
+import { XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN, type AgentMiddlewareRuntimeServiceApi } from '@xpert-ai/plugin-sdk'
 import { ActorTokenRuntimeModule } from '../../../actor-token/actor-token-runtime.module'
 import { AgentMiddlewareRuntimeService } from './middleware-runtime.service'
 import { FileRuntimeModule } from '../../../file-understanding/runtime/file-runtime.module'
@@ -12,6 +12,7 @@ import { CollaborationModule } from '../../../collaboration/collaboration.module
 import { CopilotModule } from '../../../copilot/copilot.module'
 import { CopilotUsageModule } from '../../../copilot-usage'
 import { RuntimeCapabilityModule } from '../../runtime'
+import { AgentEvolutionModule } from '../../../agent-evolution/agent-evolution.module'
 import { ExecutionObservationModule } from '../../../xpert-agent-execution/observability/observation.module'
 
 @Global()
@@ -20,6 +21,7 @@ import { ExecutionObservationModule } from '../../../xpert-agent-execution/obser
         CqrsModule,
         RuntimeCapabilityModule,
         ExecutionObservationModule,
+        AgentEvolutionModule,
         WorkspaceFilesRuntimeModule,
         FileRuntimeModule,
         ConnectorModule,
@@ -34,7 +36,11 @@ import { ExecutionObservationModule } from '../../../xpert-agent-execution/obser
         AgentMiddlewareRuntimeService,
         {
             provide: XPERT_AGENT_MIDDLEWARE_RUNTIME_TOKEN,
-            useExisting: AgentMiddlewareRuntimeService
+            // Plugins supply ordinary invocation scope. Only the View host can supply authorized View access.
+            inject: [AgentMiddlewareRuntimeService],
+            useFactory: (runtime: AgentMiddlewareRuntimeService): AgentMiddlewareRuntimeServiceApi => ({
+                createScopedApi: (scope) => runtime.createScopedApi(scope)
+            })
         }
     ],
     exports: [

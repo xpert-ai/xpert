@@ -10,14 +10,7 @@ import { uploadYamlFile } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { pick } from 'lodash-es'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import {
-  getErrorMessage,
-  IfAnimation,
-  injectToastr,
-  IXpert,
-  LongTermMemoryTypeEnum,
-  XpertAPIService
-} from 'apps/cloud/src/app/@core'
+import { getErrorMessage, IfAnimation, injectToastr, IXpert, XpertAPIService } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { XpertBasicDialogComponent, XpertExportDslComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { EMPTY, firstValueFrom } from 'rxjs'
@@ -26,7 +19,7 @@ import { XpertAPIComponent } from '../api/api.component'
 import { XpertAppComponent } from '../app/app.component'
 import { XpertBasicComponent } from '../basic/basic.component'
 import { XpertComponent } from '../xpert.component'
-import { createOverwriteDraftFromDsl, groupImportedDslMemories, TImportedXpertDsl } from './import-dsl.util'
+import { createOverwriteDraftFromDsl, TImportedXpertDsl } from './import-dsl.util'
 
 @Component({
   selector: 'xpert-basic-manage',
@@ -201,7 +194,6 @@ export class XpertBasicManageComponent {
 
     let importedDsl: TImportedXpertDsl
     let overwriteDraft: ReturnType<typeof createOverwriteDraftFromDsl>
-    let groupedMemories: ReturnType<typeof groupImportedDslMemories>
 
     try {
       importedDsl = await uploadYamlFile<TImportedXpertDsl>(file)
@@ -209,7 +201,6 @@ export class XpertBasicManageComponent {
         ? await firstValueFrom(this.#xpertService.getSandboxProviders())
         : []
       overwriteDraft = createOverwriteDraftFromDsl(xpert, importedDsl, sandboxProviders)
-      groupedMemories = groupImportedDslMemories(importedDsl.memories)
     } catch (error) {
       this.#toastr.error(
         this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
@@ -225,7 +216,7 @@ export class XpertBasicManageComponent {
         params: {
           name: xpert.title || xpert.name,
           Default:
-            'Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.'
+            'Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.'
         }
       })
     )
@@ -234,49 +225,19 @@ export class XpertBasicManageComponent {
     }
 
     this.loading.set(true)
-    let draftSaved = false
 
     try {
       await firstValueFrom(this.#xpertService.saveDraft(xpert.id, overwriteDraft))
-      draftSaved = true
-
-      if (groupedMemories) {
-        await firstValueFrom(this.#xpertService.clearMemory(xpert.id))
-        for (const [type, memories] of Object.entries(groupedMemories)) {
-          if (!memories?.length) {
-            continue
-          }
-
-          await firstValueFrom(
-            this.#xpertService.bulkCreateMemories(xpert.id, {
-              type: type as LongTermMemoryTypeEnum,
-              memories
-            })
-          )
-        }
-      }
-
       this.xpertComponent.xpertService.refresh()
       this.#toastr.success('XP.Xpert.ImportOverwriteSuccess', {
         Default: 'DSL imported into the current draft. Publish is still required for it to take effect.'
       })
     } catch (error) {
-      if (draftSaved && groupedMemories) {
-        this.xpertComponent.xpertService.refresh()
-        this.#toastr.warning(
-          this.#translate.instant('XP.Xpert.ImportMemoryIncomplete', {
-            Default: 'The draft was imported, but memory replacement did not finish.'
-          }) +
-            ': ' +
-            getErrorMessage(error)
-        )
-      } else {
-        this.#toastr.error(
-          this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
-            ': ' +
-            getErrorMessage(error)
-        )
-      }
+      this.#toastr.error(
+        this.#translate.instant('XP.Xpert.ImportError', { Default: 'Failed to import DSL file' }) +
+          ': ' +
+          getErrorMessage(error)
+      )
     } finally {
       this.loading.set(false)
     }

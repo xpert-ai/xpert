@@ -3,6 +3,7 @@ import { useWorkspaceConnection } from './WorkspaceConnection'
 import { apiRootUrl } from '../electron/connection/urls.mjs'
 import { useDeliveredFile } from './files/DeliveredFile'
 import { createWorkbenchHandler } from './workbench'
+import { WindowActivity } from './computer-use/WindowActivity'
 import { useShellIntegration } from './shell/useShellIntegration'
 import { t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
@@ -178,7 +179,43 @@ export function ChatPanel({
           )
     }
     const options: ChatKitOptions = {
-      ...(!groupId ? shell.handlers : {}),
+      ...(!groupId
+        ? {
+            ...shell.handlers,
+            onClientTool: async (call) => {
+              if (call.name !== 'desktop_window_control') return shell.handlers.onClientTool!(call)
+              const id = call.tool_call_id || call.id
+              const args = call.params
+              const bridge = window.xpertDesktop
+              if (
+                disposed ||
+                !bridge ||
+                !bridge.supportsWindowControl ||
+                args?.assistantId !== activeAssistant ||
+                !activeThread ||
+                args.threadId !== activeThread ||
+                args.toolCallId !== id
+              )
+                return {
+                  tool_call_id: id,
+                  name: call.name,
+                  status: 'error',
+                  content: 'Window control is unavailable in this conversation.'
+                }
+              try {
+                const result = await bridge.windowControl('run', args)
+                return { tool_call_id: id, name: call.name, status: 'success', content: JSON.stringify(result) }
+              } catch {
+                return {
+                  tool_call_id: id,
+                  name: call.name,
+                  status: 'error',
+                  content: 'Window control stopped or unavailable.'
+                }
+              }
+            }
+          }
+        : {}),
       sessionKey,
       group: groupId ? { id: groupId } : undefined,
       frameUrl: config.frameUrl,
@@ -254,7 +291,10 @@ export function ChatPanel({
       'chatkit.thread.change',
       (event) => {
         if (!disposed) {
-          if (activeThread !== event.detail.threadId) activeConversation = undefined
+          if (activeThread !== event.detail.threadId) {
+            activeConversation = undefined
+            if (activeThread) void window.xpertDesktop?.windowControl?.('stop').catch(() => {})
+          }
           activeThread = event.detail.threadId
           setThreadId(event.detail.threadId)
           remember()
@@ -298,6 +338,7 @@ export function ChatPanel({
     element.addEventListener('chatkit.response.end', read, { signal: listeners.signal })
     return () => {
       disposed = true
+      void window.xpertDesktop?.windowControl?.('stop').catch(() => {})
       listeners.abort()
     }
     // Presentation changes are applied separately without resetting the logical session.
@@ -349,6 +390,7 @@ export function ChatPanel({
     >
       {connection.status}
       {delivery.dialog}
+      <WindowActivity />
       {shell.dialog}
       {customizeId && (
         <AssistantAppearanceDialog

@@ -76,6 +76,11 @@ export const routes: Routes = [
     component: ChatHomeComponent,
     children: [
       {
+        path: 'event-inbox',
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT])],
+        loadComponent: () => import('./event-inbox-page.component').then((m) => m.EventInboxPageComponent)
+      },
+      {
         path: 'groups',
         pathMatch: 'full',
         canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT]), redirectLegacyGroup],

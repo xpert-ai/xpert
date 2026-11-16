@@ -1,4 +1,4 @@
-// Invariants: only exact, tenant/organization-scoped execution ancestry admits ledger facts.
+// Invariants: only scoped execution ancestry or admitted operation reservations admit ledger facts.
 // Never join by thread, Assistant, model name or aggregate execution.tokens; historical gaps stay gaps.
 import { In, IsNull, type EntityManager } from 'typeorm'
 import {
@@ -11,6 +11,7 @@ import {
 import type { ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { MembershipPointLedger } from '../../../membership/membership-point-ledger.entity'
+import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
 
 import { postedPointsForFacts } from '../../../membership/posted-model-points'
 
@@ -25,15 +26,35 @@ export async function readPipelineModelUsage(
     const scope = { tenantId: context.actor.tenantId, organizationId: context.actor.organizationId ?? IsNull() }
     const parents = new Map<string, string | null>()
     let truncated = requested.length > MAX_FACTS
+    // Result continuations are separate root turns. Admission durably ties each call to its
+    // original operation without changing the execution tree or joining unrelated thread turns.
+    const reservations = requested.length
+        ? await manager.find(ProjectPipelineModelReservationEntity, {
+              withDeleted: true,
+              where: { ...scope, operationId: In(requested.slice(0, MAX_FACTS)) },
+              select: ['operationId', 'executionId'],
+              order: { id: 'ASC' },
+              take: MAX_FACTS + 1
+          })
+        : []
+    const origins = new Map<string, string>()
+    for (const row of reservations.slice(0, MAX_FACTS)) {
+        if (row.executionId !== row.operationId) origins.set(row.executionId, row.operationId)
+    }
+    truncated ||= reservations.length > MAX_FACTS
+    const allAdmitted = [...new Set([...requested, ...origins.keys()])]
+    truncated ||= allAdmitted.length > MAX_FACTS
+    const admitted = allAdmitted.slice(0, MAX_FACTS)
     let frontier = requested.length
         ? await manager.find(XpertAgentExecution, {
-              where: { ...scope, id: In(requested.slice(0, MAX_FACTS)) },
+              where: { ...scope, id: In(admitted) },
               select: ['id', 'parentId'],
               order: { id: 'ASC' }
           })
         : []
     while (frontier.length) {
-        for (const execution of frontier) parents.set(execution.id, execution.parentId ?? null)
+        for (const execution of frontier)
+            parents.set(execution.id, origins.get(execution.id) ?? execution.parentId ?? null)
         const children = await manager.find(XpertAgentExecution, {
             where: { ...scope, parentId: In(frontier.map((item) => item.id)) },
             select: ['id', 'parentId'],

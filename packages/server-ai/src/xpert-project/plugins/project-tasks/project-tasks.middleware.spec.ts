@@ -156,15 +156,12 @@ describe('built-in Project Tasks Plugin', () => {
         const middleware = strategy.createMiddleware({}, { ...context, projectId: undefined })
         const inputs = {
             [ProjectToolEnum.ListTasks]: {},
+            [ProjectToolEnum.RecoverDelivery]: { taskId: randomUUID(), executionId: randomUUID(), expectedRevision: 1 },
             [ProjectToolEnum.CreateTasks]: createInput(),
             [ProjectToolEnum.UpdateTasks]: { tasks: [{ id: randomUUID(), steps: [] }] },
             [ProjectToolEnum.UpdatePlan]: { taskId: randomUUID(), expectedRevision: 1 },
             [ProjectToolEnum.DecideTask]: {
-                taskId: randomUUID(),
-                expectedRevision: 1,
-                implementationExecutionId: randomUUID(),
-                specificationDigest: `sha256:${'a'.repeat(64)}`,
-                evidence: [{ type: 'invocation_result', invocationId: randomUUID(), revision: 1 }],
+                decisionRef: `pd1/${randomUUID()}/${randomUUID()}/${'a'.repeat(64)}`,
                 outcome: 'accept',
                 rationale: 'Inspected the current implementation',
                 checks: ['Verified test evidence']

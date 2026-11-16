@@ -1,9 +1,9 @@
 import { z } from 'zod/v3'
 
-export const bosiCapabilitySchema = z.enum(['cloud-computer', 'desktop-shell'])
+export const bosiCapabilitySchema = z.enum(['cloud-computer', 'desktop-shell', 'desktop-computer-use'])
 export const bosiSelectionSchema = z
     .object({
-        capabilities: z.array(bosiCapabilitySchema).max(2).default([]),
+        capabilities: z.array(bosiCapabilitySchema).max(bosiCapabilitySchema.options.length).default([]),
         modelId: z.string().trim().min(1).max(1000)
     })
     .strict()
@@ -15,7 +15,7 @@ export const bosiSetupQuerySchema = z
             .max(64)
             .optional()
             .transform((value) => (value ? value.split(',') : []))
-            .pipe(z.array(bosiCapabilitySchema).max(2))
+            .pipe(z.array(bosiCapabilitySchema).max(bosiCapabilitySchema.options.length))
     })
     .strict()
 export type BosiSetupQuery = z.output<typeof bosiSetupQuerySchema>
@@ -24,7 +24,7 @@ export const bosiProgressSchema = z
     .object({
         version: z.literal(1),
         phase: z.enum(['installing', 'welcome_pending', 'welcome_running', 'ready', 'welcome_failed']),
-        capabilities: z.array(bosiCapabilitySchema).max(2),
+        capabilities: z.array(bosiCapabilitySchema).max(bosiCapabilitySchema.options.length),
         modelId: z.string(),
         // Imported Assistant reference, before or after publication.
         draftId: z.string().optional(),

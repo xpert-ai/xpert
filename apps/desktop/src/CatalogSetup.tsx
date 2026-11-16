@@ -5,7 +5,6 @@ import { TemplateInstallationProgress, useTemplateInstallation } from './catalog
 import { getLocale, t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
-import { CatalogCombobox } from './CatalogCombobox'
 import { ModelCascader } from './catalog/ModelCascader'
 import { TemplateRequirements } from './catalog/TemplateRequirements'
 import { ApplicationToolsets } from './catalog/ApplicationToolsets'
@@ -19,13 +18,13 @@ import type {
   ApplicationToolsetSelection,
   CatalogItem,
   ExpertItem,
-  WorkspaceOption,
   TemplatePreflight
 } from './catalog-types'
 
 export function CatalogSetup({
   installationScope,
   organizationId,
+  workspaceId,
   item,
   creation = false,
   webUrl,
@@ -36,6 +35,7 @@ export function CatalogSetup({
   onItemUpdated
 }: {
   organizationId: string
+  workspaceId: string
   installationScope: string
   item: CatalogItem
   creation?: boolean
@@ -54,13 +54,11 @@ export function CatalogSetup({
       : undefined
   )
   const [setup, setSetup] = useState<ApplicationSetup | null>(null)
-  const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
   const [hasPrimaryLanguageModel, setHasPrimaryLanguageModel] = useState<boolean | null>(null)
   const [preflight, setPreflight] = useState<TemplatePreflight | null>(null)
   const [capabilities, setCapabilities] = useState<string[]>([])
   const [templateModel, setTemplateModel] = useState('')
   const [realtimeVoice, setRealtimeVoice] = useState<import('./catalog-types').VoiceSelection>()
-  const [workspaceId, setWorkspaceId] = useState('')
   const [title, setTitle] = useState(creation ? '' : item.name.slice(0, 100))
   const [prompt, setPrompt] = useState('')
   const [reason, setReason] = useState('')
@@ -115,16 +113,16 @@ export function CatalogSetup({
           setToolsets((current) => reconcileApplicationToolsets(result.toolsetRequirements, current))
           setInstalled(result.application.status === 'ready' ? result.application.botId : null)
         } else if (item.kind === 'templates') {
+          if (!workspaceId) {
+            setPreflight(null)
+            return
+          }
           const result = await invoke('templateSetup', {
             id: item.id,
             capabilities,
-            ...(workspaceId ? { workspaceId } : {})
+            workspaceId
           })
           if (!active) return
-          setWorkspaces(result.workspaces)
-          setWorkspaceId((current) =>
-            result.workspaces.some((workspace) => workspace.id === current) ? current : result.workspaces[0]?.id || ''
-          )
           setPreflight(result.preflight ?? null)
           const defaultModelId = result.preflight?.defaultModelId
           setTemplateModel((current) =>
@@ -360,22 +358,6 @@ export function CatalogSetup({
                       disabled={busy || !!installed || templateLocked}
                       onChange={(event) => setTitle(event.target.value)}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">{t('Target workspace')}</p>
-                    <CatalogCombobox
-                      label={t('Select a workspace you can edit')}
-                      searchLabel={t('Search workspaces')}
-                      items={workspaces}
-                      value={workspaceId}
-                      onChange={setWorkspaceId}
-                      disabled={busy || installation.state.busy}
-                    />
-                    {!error && !workspaces.length && (
-                      <p className="text-sm text-destructive">
-                        {t('No writable workspace is available. Create one in Xpert or request edit access.')}
-                      </p>
-                    )}
                   </div>
                   {creation && (
                     <div className="space-y-2">

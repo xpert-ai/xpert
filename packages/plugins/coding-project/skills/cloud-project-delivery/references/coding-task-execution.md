@@ -28,6 +28,20 @@ the requested behavior and the final deployment/review obligations intact.
 
 ## Repair and submit
 
+Keep one useful execution active through slow installation, compilation and live
+checks. A bounded shell/readiness wait is an observation window, not the task's
+execution deadline or proof of failure. Inspect the same process, recent logs and
+remaining budget; continue waiting while it progresses. Diagnose a concrete failure
+before restarting. At the real deadline or an unresolved blocker, return a precise
+checkpoint rather than repeating setup or claiming completion. The CLI decides
+these actions using the application's environment commands and selected skills.
+
+Reuse the selected checkout, verified dependencies, build outputs and exact candidate
+when resuming. Start only services needed by the requested check. A task limited to
+release materials or reports should reuse existing evidence and perform only the
+missing checks; it does not require a fresh full-stack build. A live deployment or
+independent execution review still needs actual runtime evidence for that candidate.
+
 Ordinary coding, packaging, deployment and environment failures belong to this
 execution. Keep a short hypothesis and perform the next discriminating check.
 Once the defect is identified, repair it and rerun the affected checks. Avoid
@@ -59,3 +73,21 @@ meaningful self-test results and remaining limitations. Environment health alone
 is not feature acceptance. The independent reviewer checks this final candidate;
 it does not repair it. After review feedback, the coordinator owns formal rework
 and the next review round. Do not accept your own task.
+
+## Project knowledge and source ownership
+
+When startup provides a host-prepared task context, read that manifest and its
+Project instruction/skill copies first. Resolve their paths from the stated
+original Project directory, including from a separate review workspace. Follow
+relative references within each complete skill package. For cross-skill references,
+use the installed package path from the manifest rather than assuming siblings.
+Absent domain knowledge is feedback to the coordinator for Project installation;
+other Projects and old workspace notes are not implicit dependencies.
+
+Use the current Project's selected checkout, commit and environment receipt.
+Preserve local changes. On continuation reuse its data and caches; on a new
+Project create its own mutable instance. Read the selected checkout's own
+instructions and inspect its startup command capabilities. A historical untracked
+script does not define the current tool contract. Coding CLI owns services it
+starts; their lifetime may end with the task. Record reproducible startup details
+for the independent reviewer without asking the host to relay service commands.

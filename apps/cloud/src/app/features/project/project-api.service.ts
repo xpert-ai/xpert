@@ -120,6 +120,15 @@ export class XpertProjectApiService {
     })
   }
 
+  nodeWorkbench(projectId: string, instanceId: string, roundId: string, pipelineNodeId: string) {
+    return this.#http.get<XpertProjectEntry>(
+      `${API_XPERT_PROJECT}/${projectId}/pipelines/${instanceId}/node-workbench`,
+      {
+        params: { roundId, pipelineNodeId }
+      }
+    )
+  }
+
   typeEntry(
     type: XpertProjectTypeRef,
     options: { projectId?: string; xpertId?: string; pipelineNodeId?: string } = {}

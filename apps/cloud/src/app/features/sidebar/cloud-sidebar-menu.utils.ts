@@ -354,6 +354,7 @@ export function isCloudWorkspaceShellMenuItem(item: CloudMenuItem) {
 function isWorkCloudMenuItem(item: CloudMenuItem) {
   const path = readMenuPath(item)
   return (
+    path === '/chat/event-inbox' ||
     path === '/chat' ||
     path === '/chat/clawxpert' ||
     path.startsWith('/chat/clawxpert/c') ||

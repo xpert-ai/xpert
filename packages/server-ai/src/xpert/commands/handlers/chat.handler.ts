@@ -16,7 +16,6 @@ import {
     appendMessagePlainText,
     CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED,
     ChatMessageEventTypeEnum,
-    TChatMessageStep,
     ChatMessageTypeEnum,
     CopilotChatMessage,
     createMessageAppendContextTracker,
@@ -27,7 +26,6 @@ import {
     IChatMessage,
     IXpertAgentExecution,
     IXpert,
-    LongTermMemoryTypeEnum,
     shortTitle,
     stringifyMessageContent,
     STATE_VARIABLE_HUMAN,
@@ -58,8 +56,6 @@ import { AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING, RequestContext } fr
 import { t } from 'i18next'
 import { catchError, concat, concatMap, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { uniq } from 'lodash'
-import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
-import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationGoalService } from '../../../chat-conversation/goal'
 import {
@@ -430,18 +426,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const runtimeAgentKey = options?.agentKey?.trim() || xpert.agent.key
         const forceWorkspaceSkillBlacklistMode = clawXpertBinding?.assistantId === xpertId
         const abortController = new AbortController()
-        /**
-         * @deprecated use memory middlewares
-         */
-        const memory = latestXpert.memory
-        /**
-         * @deprecated use memory middlewares
-         */
+        // Shared LangGraph store for agent middleware.
         const memoryStore: BaseStore | null = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore | null>(
             new CreateMemoryStoreCommand(
                 RequestContext.currentTenantId(),
                 RequestContext.getOrganizationId(),
-                latestXpert.memory?.copilotModel,
+                undefined,
                 {
                     abortController,
                     xpertId,
@@ -451,10 +441,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             )
         )
-        /**
-         * @deprecated use memory middlewares
-         */
-        let memories = null
 
         let conversation: IChatConversation
         let aiMessage: CopilotChatMessage & Pick<IChatMessage, 'outputCheckpoint'>
@@ -523,11 +509,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     input = state[STATE_VARIABLE_HUMAN]
                 }
             }
-
-            // Cancel summary job
-            if (!isDerivedThread && memory?.enabled && memory.profile?.enabled) {
-                await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
-            }
         } else {
             // New message in conversation
             if (request.conversationId) {
@@ -580,11 +561,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         )
                     )
                 }
-
-                // Cancel summary job
-                if (!isDerivedThread && memory?.enabled && memory.profile?.enabled) {
-                    await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
-                }
             } else {
                 if (request.action === 'retry') {
                     throw new BadRequestException('Retry requires conversationId')
@@ -615,11 +591,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 createdConversationForRequest = true
                 const primaryThread = await this.conversationThreadService?.ensurePrimary(conversation)
                 activeThreadId = primaryThread?.threadId ?? conversation.threadId
-
-                // Remember
-                if (memory?.enabled && memory.profile?.enabled && memoryStore) {
-                    memories = await getLongTermMemory(memoryStore, xpertId, input.input)
-                }
             }
 
             activeThreadId ??= options?.threadId?.trim() || conversation.threadId
@@ -1130,73 +1101,49 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
                 let result = ''
-                let agentObservable: Observable<MessageEvent> = null
 
-                // Memory Reply
-                const memoryReply = latestXpert.features?.memoryReply
-                if (!options.resumeCheckpoint && memoryReply?.enabled && memoryStore) {
-                    const items = await memoryStore.search([xpertId, LongTermMemoryTypeEnum.QA], { query: input.input })
-                    const memoryReplies = items.filter((item) => item.score >= (memoryReply.scoreThreshold ?? 0.8))
-                    if (memoryReplies.length > 0) {
-                        // If a memory matched, simulate an AI text message with the answer
-                        agentObservable = new Observable<MessageEvent>((subscriber) => {
-                            subscriber.next({
-                                data: {
-                                    type: ChatMessageTypeEnum.MESSAGE,
-                                    data: memoryReplies[0].value?.answer
-                                }
-                            } as MessageEvent)
-                            subscriber.complete()
-                        })
-                    }
-                }
-
-                if (!agentObservable) {
-                    // No memory reply then create agents graph
-                    const { projectId: sandboxProjectId, sandboxEnvironmentId } = resolveAgentSandboxScope(
-                        request,
-                        conversation,
-                        options
-                    )
-                    agentObservable = await this.commandBus.execute<
-                        XpertAgentChatCommand,
-                        Promise<Observable<MessageEvent>>
-                    >(
-                        new XpertAgentChatCommand(state, runtimeAgentKey, xpert, {
-                            ...(options ?? {}),
-                            ...(primaryModelSelection
+                const { projectId: sandboxProjectId, sandboxEnvironmentId } = resolveAgentSandboxScope(
+                    request,
+                    conversation,
+                    options
+                )
+                const agentObservable = await this.commandBus.execute<
+                    XpertAgentChatCommand,
+                    Promise<Observable<MessageEvent>>
+                >(
+                    new XpertAgentChatCommand(state, runtimeAgentKey, xpert, {
+                        ...(options ?? {}),
+                        ...(primaryModelSelection
+                            ? {
+                                  primaryCopilotModel: primaryModelSelection.model,
+                                  primaryModelId: primaryModelSelection.id,
+                                  primaryAgentKey: latestXpert.agent?.key,
+                                  primaryModelSource: primaryModelSelection.source
+                              }
+                            : {}),
+                        thread_id: activeThreadId,
+                        projectId: sandboxProjectId,
+                        sandboxEnvironmentId,
+                        store: memoryStore,
+                        conversationId: conversation.id,
+                        isDraft: options?.isDraft,
+                        toolPreferences: userPreference?.toolPreferences ?? null,
+                        runtimeCapabilities,
+                        runtimeResources,
+                        planMode: isPlanModeEnabledFromState(state),
+                        execution: { id: executionId, category: 'agent' },
+                        inputMessageId,
+                        resume:
+                            request.action === 'resume' && !options.resumeCheckpoint
                                 ? {
-                                      primaryCopilotModel: primaryModelSelection.model,
-                                      primaryModelId: primaryModelSelection.id,
-                                      primaryAgentKey: latestXpert.agent?.key,
-                                      primaryModelSource: primaryModelSelection.source
+                                      decision: request.decision,
+                                      ...(request.patch ? { patch: request.patch } : {})
                                   }
-                                : {}),
-                            thread_id: activeThreadId,
-                            projectId: sandboxProjectId,
-                            sandboxEnvironmentId,
-                            store: memoryStore,
-                            conversationId: conversation.id,
-                            isDraft: options?.isDraft,
-                            toolPreferences: userPreference?.toolPreferences ?? null,
-                            runtimeCapabilities,
-                            runtimeResources,
-                            planMode: isPlanModeEnabledFromState(state),
-                            execution: { id: executionId, category: 'agent' },
-                            inputMessageId,
-                            resume:
-                                request.action === 'resume' && !options.resumeCheckpoint
-                                    ? {
-                                          decision: request.decision,
-                                          ...(request.patch ? { patch: request.patch } : {})
-                                      }
-                                    : undefined,
-                            memories,
-                            checkpointId: checkpointId,
-                            retryInputCheckpointId: request.action === 'retry' ? checkpointId : undefined
-                        })
-                    )
-                }
+                                : undefined,
+                        checkpointId: checkpointId,
+                        retryInputCheckpointId: request.action === 'retry' ? checkpointId : undefined
+                    })
+                )
 
                 let _execution = null
                 let operation: TSensitiveOperation = null
@@ -1243,7 +1190,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
                                 const { messageContext } = messageAppendContextTracker.resolve({
                                     incoming: event.data.data,
-                                    fallbackSource: typeof event.data.data === 'string' ? 'memory_reply' : undefined,
                                     fallbackStreamId: aiMessage?.id ?? executionId
                                 })
 
@@ -1437,18 +1383,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                           operation,
                                           error: _execution?.error || error
                                       }
-
-                                // Schedule summary job
-                                if (
-                                    !isDerivedThread &&
-                                    memory?.enabled &&
-                                    memory.profile?.enabled &&
-                                    convStatus === 'idle'
-                                ) {
-                                    await this.commandBus.execute(
-                                        new ScheduleSummaryJobCommand(conversation.id, userId, memory)
-                                    )
-                                }
 
                                 finishChatMetrics(metricStatus)
 
@@ -1884,10 +1818,6 @@ function withPreferenceSkillState(
         skillSelectionMode:
             normalizedWorkspaceId && forceWorkspaceSkillBlacklistMode ? 'workspace_blacklist' : undefined
     }
-}
-
-async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-    return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
 }
 
 function resolveRetryHumanInput(sourceInputs: unknown, fallbackInput: TChatRequestHuman): TChatRequestHuman {

@@ -45,6 +45,17 @@ Local `mint dev` preview may not provide Git or deployment dates. In that case, 
 
 本地 `mint dev` 预览可能不提供 Git 或部署日期，此时即使开启配置也不会显示日期。可以用带 `lastUpdatedDate` 的临时页面验证渲染，验证后删除临时页面；自动日期仍需在部署站点确认。
 
+## Collaborative artifacts
+
+The feature guides describe supported behavior and operational boundaries. Keep the English and Chinese routes aligned; do not add execution logs or local acceptance records to these pages.
+
+| Topic                                         | English                                                                       | 中文                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Shared resources, Canvas and conversion       | [Collaborative artifacts](./en/guides/collaborative-artifacts/overview.mdx)   | [协作成果与白板](./zh-Hans/guides/collaborative-artifacts/overview.mdx)         |
+| Workbook edits, drafts, history and formats   | [Sheets collaboration](./en/guides/collaborative-artifacts/sheets.mdx)        | [Sheets 协作](./zh-Hans/guides/collaborative-artifacts/sheets.mdx)              |
+| Certification, delegation, evidence and media | [Trusted data](./en/guides/collaborative-artifacts/trusted-data.mdx)          | [可信数据与成果转换](./zh-Hans/guides/collaborative-artifacts/trusted-data.mdx) |
+| Migrations, backups and recovery              | [Deployment and recovery](./en/guides/collaborative-artifacts/operations.mdx) | [部署与恢复](./zh-Hans/guides/collaborative-artifacts/operations.mdx)           |
+
 ## Artifacts Dashboard functional documentation
 
 Current behavior is documented under `en/guides/artifacts-dashboard/` and
@@ -134,6 +145,10 @@ ownership, durable control, local pause/resume and termination behavior. Append
 completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
+
+## Event Inbox
+
+The [user guide](./en/guides/event-inbox.mdx) and [中文用户指南](./zh-Hans/guides/event-inbox.mdx) cover the three entry points, receipt visibility, and opening a conversation. For binding configuration, rollback, and diagnostics, see [平台操作文档](./operations/event-inbox.md). Track remaining deployment checks in the [pilot acceptance plan](./plans/2026-11-15-always-on-event-inbox.md) and future capabilities in the [Always-on Agents proposal](./proposal/always-on-agents.md).
 
 ## Knowledgebase functional documentation
 

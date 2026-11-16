@@ -1,4 +1,6 @@
 const zh = {
+    showApprovalSteps: '展开审批后续步骤',
+    approvalSteps: '审批后续步骤',
     executionStart: '开始时间',
     executionDuration: '执行时长',
     executionElapsed: '已运行',
@@ -80,7 +82,8 @@ const zh = {
     unpricedCalls: '未定价调用',
     serviceExecutor: '服务操作',
     statistics: '统计',
-    statisticsScope: '所选轮次的节点和关联执行记录，不随泳道或时间轴筛选变化。',
+    statisticsScope:
+        '所选轮次的节点及直接关联执行，不随泳道或时间轴筛选变化。执行次数与耗时不包含其委派的子任务；模型用量另按注明的范围统计。',
     executionHistoryScope: '此来源保留逻辑任务的历史执行，可能跨越多个轮次；执行次数、耗时和用量不等同于仅本轮新增。',
     additionalAttempts: '同任务再次执行',
     confirmedRetries: '已确认技术重试',
@@ -94,7 +97,7 @@ const zh = {
     duration: '平均执行耗时',
     durationTotal: '累计执行耗时',
     durationP95: 'P95 执行耗时',
-    durationHint: '仅统计有明确起止时间的终态执行。并行时长可重叠；缺失数据不按 0 计算。',
+    durationHint: '仅统计有明确起止时间的终态执行，不代表整个交付的历时。并行时长可重叠；缺失数据不按 0 计算。',
     actualExecutors: '实际执行者',
     executorUnknown: '未记录执行者',
     providerUnknown: '未记录运行提供者',
@@ -195,6 +198,7 @@ const zh = {
     allTime: '全部时间',
     now: '现在',
     noTasks: '此节点没有关联任务',
+    panWorkbench: '点击节点查看详情，再点「打开节点工作台」进入对应工作单。',
     pan: '拖动平移；点击节点查看任务与证据',
     scope: '当前轮次',
     noMatch: '当前时间范围内没有执行记录',
@@ -203,6 +207,8 @@ const zh = {
     sourceMissing: '暂时无法读取来源，保留上次保存的状态。'
 }
 const en: { [K in keyof typeof zh]: string } = {
+    showApprovalSteps: 'Expand approval steps',
+    approvalSteps: 'Approval follow-up steps',
     executionStart: 'Started',
     executionDuration: 'Duration',
     executionElapsed: 'Elapsed',
@@ -286,7 +292,8 @@ const en: { [K in keyof typeof zh]: string } = {
     unpricedCalls: 'Unpriced calls',
     serviceExecutor: 'Service operation',
     statistics: 'Statistics',
-    statisticsScope: 'Selected-round nodes and linked executions, independent of lane and timeline filters.',
+    statisticsScope:
+        'Selected-round nodes and directly linked executions, independent of lane and timeline filters. Counts and durations exclude delegated child tasks; model usage follows its separately stated scope.',
     executionHistoryScope:
         'This source retains logical task execution history across rounds. Execution counts, duration and usage may include earlier rounds.',
     additionalAttempts: 'Additional task executions',
@@ -303,7 +310,7 @@ const en: { [K in keyof typeof zh]: string } = {
     durationTotal: 'Cumulative execution duration',
     durationP95: 'P95 execution duration',
     durationHint:
-        'Only terminal executions with recorded start and end times. Parallel durations overlap; missing values are not zero.',
+        'Only terminal executions with recorded start and end times, not end-to-end delivery time. Parallel durations overlap; missing values are not zero.',
     actualExecutors: 'Actual executors',
     executorUnknown: 'Executor not recorded',
     providerUnknown: 'Provider not recorded',
@@ -409,6 +416,7 @@ const en: { [K in keyof typeof zh]: string } = {
     allTime: 'All time',
     now: 'Now',
     noTasks: 'No tasks linked to this node',
+    panWorkbench: 'Select a node to see its details, then choose “Open node workspace” to view its workbench.',
     pan: 'Drag to pan; select a node for tasks and evidence',
     scope: 'Current round',
     noMatch: 'No executions in this time range',

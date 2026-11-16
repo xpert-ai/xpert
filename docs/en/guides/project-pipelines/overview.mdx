@@ -36,6 +36,7 @@ A definition chooses one authority. Labels, icons and object names do not drive 
 Open **Project tasks → Pipeline** in the Project workspace or conversation Workbench. Existing instances appear directly. Only the configuration button or an explicit configuration intent opens the dialog; saving does not start work.
 
 - Stage swimlanes arrange roles as rows and stages as columns. Select a lane or filter the visible scope. The execution timeline shows order and recorded duration.
+- To fold a service work node into its approval card, set `"presentation": { "foldIntoApproval": "approve" }` on the work node in the managed template. Replace `approve` with the key of the human approval that directly precedes the step on every incoming path. The executor must be a service. Steps without this declaration appear independently, even when they only record a decision. Open the approval card for outcomes and execution details, or choose **Expand approval steps** to see the original lanes. The blocked filter also shows the original nodes.
 - Stage labels and allowlisted `icon` values come from configuration. Work nodes reuse stage icons; control nodes retain type icons.
 - Providers supply readable branch labels, with wrapping for long text. Managed router outcome labels still have follow-up work; automatic translation of every machine key is not promised.
 - Control nodes are placed near adjacent work nodes rather than in a separate flow-control lane. Layout does not change domain ownership.

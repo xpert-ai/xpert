@@ -3,3 +3,5 @@ export * from './runtime-capability'
 export * from './provider.decorator'
 export * from './provider.registry'
 export * from './client'
+
+export * from './operations-client'

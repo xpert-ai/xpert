@@ -1,7 +1,7 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GENERAL_PROJECT_TYPE, type XpertProjectListFilter } from '@xpert-ai/contracts'
 import { XpertProjectTypeService } from './services/project-type.service'
-import { findMyProjects, findAvailableProjects, type GroupProjectAvailability } from './services/project-list-query'
+import { findMyProjects, findAvailableProjects, findAvailableProjectTypes, type AvailableProjectQuery } from './services/project-list-query'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -281,21 +281,38 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         }
     }
 
-    async findAvailableForXpert(input: {
-        xpertId: string
-        filter?: XpertProjectListFilter
-        status?: 'active' | 'archived' | 'all'
-        skip?: number
-        take?: number
-        group?: GroupProjectAvailability
-    }) {
+    async listProjectExpertCandidates(id: string, page: number, search: string, viewAssistantId?: string) {
+        const { project } = await this.accessService.assertCanManage(id)
+        const linked = await this.findOne({ where: { id }, relations: ['xperts'] })
+        await this.xpertBindingService.normalize(linked)
+        const { items, total } = await this.publishedXpertAccess.pageAccessiblePublishedResources({
+            where: { organizationId: project.organizationId ?? null, latest: true },
+            excludeIds: linked.xperts.map((assistant) => assistant.id),
+            order: { name: 'ASC', id: 'ASC' },
+            skip: (page - 1) * 20,
+            take: 20,
+            search
+        }, viewAssistantId)
+        return { items: items.map((item) => ({ id: item.id, name: item.title || item.name })), total, page }
+    }
+
+    async findAvailableForXpert(input: AvailableProjectQuery) {
         return findAvailableProjects(this.repository, await this.resolveAccessibleCurrentXpert(input.xpertId), input)
     }
 
-    async addXpert(id: string, xpertId: string) {
+    async listAssistantProjects(input: AvailableProjectQuery) {
+        const assistant = await this.resolveAccessibleCurrentXpert(input.xpertId)
+        const [page, types] = await Promise.all([
+            findAvailableProjects(this.repository, assistant, input),
+            findAvailableProjectTypes(this.repository, assistant, input.manageableOnly)
+        ])
+        return { ...page, types, assistantName: assistant.title || assistant.name }
+    }
+
+    async addXpert(id: string, xpertId: string, viewAssistantId?: string) {
         const { project } = await this.accessService.assertCanManage(id)
         const withXperts = await this.findOne({ where: { id }, relations: ['xperts'] })
-        const xpert = await this.resolveAccessibleCurrentXpert(xpertId)
+        const xpert = await this.resolveAccessibleCurrentXpert(xpertId, viewAssistantId)
         if ((xpert.organizationId ?? null) !== (project.organizationId ?? null)) {
             throw new BadRequestException(
                 t('server-ai:Error.ProjectXpertOrganizationMismatch', {
@@ -361,16 +378,13 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
         return project
     }
 
-    private async resolveAccessibleCurrentXpert(xpertId: string): Promise<IXpert> {
-        const requestedXpert = await this.publishedXpertAccess.getAccessiblePublishedXpert(xpertId, {
-            relations: ['agent']
-        })
+    private async resolveAccessibleCurrentXpert(xpertId: string, viewAssistantId?: string): Promise<IXpert> {
+        const resolve = (id: string) => viewAssistantId !== undefined
+            ? this.publishedXpertAccess.getAccessiblePublishedResource(id, viewAssistantId)
+            : this.publishedXpertAccess.getAccessiblePublishedXpert(id, { relations: ['agent'] })
+        const requestedXpert = await resolve(xpertId)
         const currentXpert = await this.xpertBindingService.resolveCurrent(requestedXpert)
-        if (currentXpert.id === requestedXpert.id) return requestedXpert
-
-        return this.publishedXpertAccess.getAccessiblePublishedXpert(currentXpert.id, {
-            relations: ['agent']
-        })
+        return currentXpert.id === requestedXpert.id ? requestedXpert : resolve(currentXpert.id)
     }
 
     /**

@@ -1,10 +1,10 @@
-import type { CliPermissionMode, ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type { CliPermissionMode, ExecutionEnvironment } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { AgentInvocationScope, AgentInvocationResult, AgentJson } from './types'
-import type { AgentArtifactSelection, AgentTaskResult, AgentTaskResultFile } from './results'
+import type { AgentArtifactSelection, AgentTaskReport } from './results'
 
 /** A host-managed process location. Remote service runtimes can use their own session/run handles. */
-export type AgentRunnerEnvironment = Extract<ModelExecutionEnvironment, { type: 'computer' | 'sandbox' }>
+export type AgentRunnerEnvironment = Extract<ExecutionEnvironment, { type: 'computer' | 'sandbox' }>
 
 /** A durable process receipt, not a second Agent task or a credential. Host methods must revalidate ownership. */
 interface AgentRunnerReceiptBase {
@@ -16,8 +16,6 @@ interface AgentRunnerReceiptBase {
   environment: AgentRunnerEnvironment
   /** Opaque host process reference, not necessarily an operating-system PID. */
   processId: string
-  /** Model execution grant ID only; never store its bearer secret in the receipt. */
-  grantId: string
   /** Actual business cwd selected by the host; retained verbatim for historical receipts. */
   workingDirectory: string
   /** Tool selected from the approved binding and host policy, independent of the model provider. */
@@ -32,7 +30,12 @@ interface AgentRunnerReceiptBase {
 }
 
 /** V1 retains its original cwd; V2 separates per-invocation records from the business cwd. */
-export type AgentRunnerReceipt = AgentRunnerReceiptBase & ({ version: 1 } | { version: 2; executionDirectory: string })
+export type AgentRunnerReceipt = AgentRunnerReceiptBase &
+  ({ version: 1 } | { version: 2; executionDirectory: string }) &
+  (
+    | { grantId: string; nativeLeaseId?: never; connection?: { mode: 'platform'; revision: number } }
+    | { grantId?: never; nativeLeaseId: string; connection: { mode: 'native'; revision: number } }
+  )
 
 export interface AgentRunnerExitEvidence {
   version: 1
@@ -60,11 +63,8 @@ export interface AgentExecutionRunner {
     receipt: AgentRunnerReceipt,
     selection?: AgentArtifactSelection
   ): Promise<NonNullable<AgentInvocationResult['artifacts']>>
-  /** Read a submitted result envelope after checking receipt ownership, instance, byte limit, digest and schema.
-   * Adapters call after verified CLI completion and checkpoint the result before cleanup.
-   * Absence means file submission is unsupported; reading does not export files or accept the task.
-   */
-  readTaskResultFile?(receipt: AgentRunnerReceipt, reference: AgentTaskResultFile): Promise<AgentTaskResult>
+  /** Read one explicitly selected UTF-8 Markdown report after receipt and filesystem authorization. */
+  readTaskReportFile?(receipt: AgentRunnerReceipt, path: string): Promise<AgentTaskReport>
   /** Revoke model access and request process termination. Only exited confirms termination. */
   stop(
     receipt: AgentRunnerReceipt

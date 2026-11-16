@@ -41,9 +41,6 @@ export function TemplateManifestDetails({
           {readiness.capabilities.skills.map((skill, index) => (
             <div key={index}>Skill · {skill.componentKey}</div>
           ))}
-          <div>
-            {t('Seed memories')}: {readiness.capabilities.seedMemoryCount}
-          </div>
           {readiness.capabilities.sandbox && <div>{t('Server sandbox')}</div>}
         </div>
       )}

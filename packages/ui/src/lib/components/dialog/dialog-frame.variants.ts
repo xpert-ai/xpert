@@ -29,6 +29,7 @@ export const dialogControlVariants = cva('text-[14px] leading-[20px] px-[12px]',
   variants: {
     kind: {
       single: 'h-[36px] min-h-[36px] py-0 pointer-coarse:h-[44px] pointer-coarse:min-h-[44px]',
+      compactSearch: 'h-[30px] py-0 pointer-coarse:min-h-[44px]',
       multiple: 'h-auto min-h-[36px] py-[7px] pointer-coarse:min-h-[44px] pointer-coarse:py-[11px]',
       textarea: 'h-auto min-h-[80px] py-[8px]'
     }

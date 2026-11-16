@@ -27,7 +27,8 @@ Both light and dark appearance modes use this theme.
 
 Use **用户菜单 → 设置 → 桌面外观** to customize the theme. Desktop options include
 27 semantic color tokens (independent light/dark palettes), base font size, local
-font families, 0–24px radius and assistant-list density. Appearance mode,
+font families, 0–24px radius and assistant-list density. With the default 16px desktop font,
+list avatars measure 40px in Compact, 48px in Comfortable and 56px in Spacious. Appearance mode,
 density and palette selection use accessible icon toggle groups; remaining
 dropdowns use shadcn Select. Settings occupies the full window. The sidebar groups **General**, **Desktop appearance** and
 **Chat appearance** under **Basic settings**, and **Service connection** and **Local terminal**
@@ -74,6 +75,16 @@ After building the renderer, run `node scripts/test-certificates.mjs` from
 native settings reload against a temporary local self-signed HTTPS server.
 This requires OpenSSL and Electron; it uses isolated profiles and fixture
 credentials, without changing system certificate trust or the daily app account.
+
+For personal Assistant setup, optional services, and appearance customization, see [Desktop onboarding and public appearance](../../docs/en/guides/bosi-desktop-onboarding.md) · [桌面端首次设置与公开形象](../../docs/zh-Hans/guides/bosi-desktop-onboarding.md).
+
+Bosi on macOS 14 and later supports the following features.
+
+| Feature         | English                                                                               | 简体中文                                                             |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Activity Island | [View activity and pending requests](../../docs/en/guides/bosi-macos-island.md)       | [灵动岛](../../docs/zh-Hans/guides/bosi-macos-island.md)             |
+| Agent Dock      | [Open Assistants from the screen edge](../../docs/en/guides/bosi-macos-agent-dock.md) | [智能体停靠栏](../../docs/zh-Hans/guides/bosi-macos-agent-dock.md)   |
+| Computer Use    | [Control a selected window](../../docs/en/guides/bosi-macos-computer-use.md)          | [本机窗口操作](../../docs/zh-Hans/guides/bosi-macos-computer-use.md) |
 
 ## Run
 
@@ -247,16 +258,17 @@ the platform's registration and verification flow, return to Desktop to sign in.
 
 Use the existing Xpert email and password to sign in. The application then loads
 the user's organizations and accessible published Agents from the existing
-`/api/mobile/bootstrap` and `/api/mobile/xperts` APIs. Select a workspace and Bot.
-The `+` button opens **发现与添加**, a searchable catalog with three tabs:
+`/api/mobile/bootstrap` and `/api/mobile/xperts` APIs. The sidebar initially shows all accessible assistants in the organization. Its workspace selector filters the assistant list and sets the destination in **发现与添加**, available from the `+` menu:
 
 - **专家:** use accessible experts immediately, or submit an access request and reason.
 - **应用:** use installed applications, or review installation requirements and select
   the available embedding/vision models before host-managed initialization.
-- **智能体模板:** choose a writable workspace and assistant name, then initialize and
-  publish the template. Platform default models and template dependencies still apply.
+- **Skills:** search the skill index and install a skill in the current editable workspace.
+- **插件:** accounts with organization installation permission can browse inherited tenant and organization plugins and install an Agent Plugin into the current organization from a local ZIP package (up to 100 MiB) or a Git repository. Members select available plugins directly in the conversation Plugins menu.
+- **连接器:** workspace managers can configure and disconnect shared connections. Enter API keys in Bosi or open the selected provider in Xpert for OAuth and application credentials.
+- **智能体模板:** name the assistant and create it in the current editable workspace. Platform default models and template dependencies still apply.
 
-Successful installation refreshes the Sidebar and opens the assistant in ChatKit.
+With all workspaces selected, choose an editable workspace in discovery before writing. A completed template installation can be opened in ChatKit.
 
 Application cards use `config.presentation.screenshots` as a lightly blurred background with a theme-aware text scrim. Select the application name or **View details** to browse full screenshots, including for installed applications. The detail carousel supports previous/next buttons, numbered indicators and arrow keys, without autoplay. Missing screenshots keep the plain card; failed images can be retried in the detail view. Screenshot URLs are normalized at the host boundary, accepting inline images, HTTPS and loopback development URLs; root-relative assets resolve against the configured Web URL.
 
@@ -411,7 +423,7 @@ remaining integration limits, and [design-qa.md](design-qa.md) for visual QA.
 
 ### Internationalization
 
-New installations initialize from the first supported language in the operating system's preferred language list (the browser's language list in the development preview). English (`en`) remains the fallback and source language. Saved desktop language choices are retained before sign-in; legacy configurations without a valid language use the environment default. After sign-in, session restoration or profile refresh, the account's supported `preferredLanguage` takes precedence. Accounts without a supported language keep the desktop setting. The desktop includes Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`) and Japanese (`ja`); `jp`, `ja-JP`, `zh-CN` and `zh-TW` inputs normalize to the corresponding supported locale.
+On first launch, Bosi asks you to choose a language before sign-in. The picker preselects the first supported language in the operating system's preferred language list (the browser's language list in the development preview). Select **Continue** to save the language on this device. Existing installations with saved desktop settings skip this step. English (`en`) remains the fallback and source language. Saved desktop language choices are retained before sign-in; legacy configurations without a valid language use the environment default. After sign-in, session restoration or profile refresh, the account's supported `preferredLanguage` takes precedence. Accounts without a supported language keep the desktop setting. The desktop includes Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`) and Japanese (`ja`); `jp`, `ja-JP`, `zh-CN` and `zh-TW` inputs normalize to the corresponding supported locale.
 
 Choose **User menu → Settings → General → Interface language**. Changes preview immediately; Cancel changes restores the saved language and Save persists it locally. This does not edit the platform account preference, which is reapplied on the next sign-in or profile refresh. Changing only the language retains authentication, organization, selected assistant and the existing ChatKit element. Login, discovery, installation, tooltips, accessibility labels, form validation, host errors and native application menus use the shared resources in `electron/i18n/`. Native menus update when the saved or account language changes.
 

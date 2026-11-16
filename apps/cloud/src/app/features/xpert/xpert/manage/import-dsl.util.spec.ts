@@ -1,11 +1,5 @@
-import {
-  IXpert,
-  LongTermMemoryTypeEnum,
-  TXpertTeamDraft,
-  XpertParameterTypeEnum,
-  XpertTypeEnum
-} from '../../../../@core'
-import { createOverwriteDraftFromDsl, groupImportedDslMemories } from './import-dsl.util'
+import { IXpert, TXpertTeamDraft, XpertParameterTypeEnum, XpertTypeEnum } from '../../../../@core'
+import { createOverwriteDraftFromDsl } from './import-dsl.util'
 
 describe('import dsl util', () => {
   const createCurrentXpert = (): IXpert =>
@@ -235,9 +229,7 @@ describe('import dsl util', () => {
       connections: []
     } as unknown as TXpertTeamDraft
 
-    const overwritten = createOverwriteDraftFromDsl(currentXpert, importedDsl, [
-      { type: 'local-shell-sandbox' }
-    ])
+    const overwritten = createOverwriteDraftFromDsl(currentXpert, importedDsl, [{ type: 'local-shell-sandbox' }])
 
     expect(overwritten.team.features?.sandbox).toEqual({
       enabled: true,
@@ -377,51 +369,5 @@ describe('import dsl util', () => {
     expect(() => createOverwriteDraftFromDsl(currentXpert, importedDsl)).toThrow(
       'DSL type does not match the current xpert'
     )
-  })
-
-  it('groups imported memories by the memory type encoded in the prefix', () => {
-    const grouped = groupImportedDslMemories([
-      {
-        prefix: 'xpert-import:qa',
-        value: {
-          question: 'Q1',
-          answer: 'A1'
-        }
-      },
-      {
-        prefix: 'xpert-import:profile',
-        value: {
-          profile: 'Prefers concise answers'
-        }
-      }
-    ])
-
-    expect(grouped).toEqual({
-      [LongTermMemoryTypeEnum.QA]: [
-        {
-          question: 'Q1',
-          answer: 'A1'
-        }
-      ],
-      [LongTermMemoryTypeEnum.PROFILE]: [
-        {
-          profile: 'Prefers concise answers'
-        }
-      ]
-    })
-  })
-
-  it('throws when a memory prefix cannot be mapped to a supported type', () => {
-    expect(() =>
-      groupImportedDslMemories([
-        {
-          prefix: 'xpert-import:unsupported',
-          value: {
-            answer: 'A1',
-            question: 'Q1'
-          }
-        }
-      ])
-    ).toThrow('Unsupported memory type in prefix: xpert-import:unsupported')
   })
 })

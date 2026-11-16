@@ -13,7 +13,6 @@ import {
     TAvatar,
     TCopilotModel,
     TCopilotModelOptions,
-    TLongTermMemory,
     TSummarize,
     TXpertAgent,
     TXpertAgentConfig,
@@ -59,9 +58,6 @@ export class XpertDslDTO {
 
     @Expose()
     agentConfig?: TXpertAgentConfig
-
-    @Expose()
-    memory?: TLongTermMemory
 
     @Expose()
     summarize?: TSummarize
@@ -144,9 +140,6 @@ export class XpertDraftDslDTO implements TXpertTeamDraft {
 
     @Expose()
     template?: import('@xpert-ai/contracts').AssistantTemplateMetadata
-
-    @Expose()
-    memories?: any[]
 
     constructor(partial: Partial<XpertDraftDslDTO>) {
         Object.assign(this, partial)
@@ -312,22 +305,6 @@ export class KnowledgebaseDslDTO {
     name: string
 
     constructor(partial: Partial<KnowledgebaseDslDTO>) {
-        Object.assign(this, partial)
-    }
-}
-
-@Exclude()
-export class MemoryDslDTO {
-    @Expose()
-    key?: string
-
-    @Expose()
-    prefix: string
-
-    @Expose()
-    value: any
-
-    constructor(partial: Partial<MemoryDslDTO>) {
         Object.assign(this, partial)
     }
 }

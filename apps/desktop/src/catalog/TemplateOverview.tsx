@@ -6,7 +6,7 @@ import { invoke } from '../host'
 import { t, useLocale } from '../i18n'
 
 const sections = [
-  ['memories', 'Memories', 'What it knows at the start'],
+  ['instructions', 'Role & working instructions', 'Getting started'],
   ['skills', 'Skills', 'Playbooks it can run'],
   ['routines', 'Routines', 'Work it can run on a schedule'],
   ['integrations', 'Integrations', 'Apps and services it can use']
@@ -69,7 +69,7 @@ export function TemplateOverview({ id, onInstall }: { id: string; onInstall: () 
         <Copy>{detail.description}</Copy>
         <Button onClick={onInstall}>{t('Import Assistant')}</Button>
       </header>
-      <Tabs defaultValue="memories" orientation="vertical" className="mt-6 gap-6">
+      <Tabs defaultValue="instructions" orientation="vertical" className="mt-6 gap-6">
         <TabsList className="w-52 shrink-0 self-start justify-start rounded-xl bg-muted/40 p-1">
           {sections.map(([key, label, hint]) => (
             <TabsTrigger
@@ -84,21 +84,9 @@ export function TemplateOverview({ id, onInstall }: { id: string; onInstall: () 
             </TabsTrigger>
           ))}
         </TabsList>
-        <TabsContent value="memories" className="min-w-0 flex-1 space-y-7 rounded-xl bg-muted/30 p-6">
+        <TabsContent value="instructions" className="min-w-0 flex-1 space-y-7 rounded-xl bg-muted/30 p-6">
           <Block title={t('Role & working instructions')}>
             <Copy>{detail.instructions || detail.description}</Copy>
-          </Block>
-          <Block title={`${t('Initial knowledge')} · ${detail.memories.length}`}>
-            {detail.memories.length ? (
-              detail.memories.map((memory, index) => (
-                <div key={index} className="space-y-2 border-b pb-4">
-                  <h4 className="font-medium">{memory.title}</h4>
-                  <Copy>{memory.content || t('Structured initial knowledge is included in this template.')}</Copy>
-                </div>
-              ))
-            ) : (
-              <Copy>{t('No initial memories declared.')}</Copy>
-            )}
           </Block>
           {detail.onboarding && (
             <Block title={t('Getting started')}>

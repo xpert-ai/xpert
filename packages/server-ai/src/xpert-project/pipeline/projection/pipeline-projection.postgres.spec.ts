@@ -398,7 +398,8 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
             access as never,
             taskGraph,
             {} as never,
-            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector())
+            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector()),
+            { listForActor: () => [] } as never
         )
         const previous = process.env.XPERT_PIPELINE_DISPATCH_ENABLED
         try {
@@ -578,7 +579,8 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
             access as never,
             taskGraph,
             {} as never,
-            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector())
+            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector()),
+            { listForActor: () => [] } as never
         )
         const read = taskGraph.graphWithinTransaction.bind(taskGraph)
         jest.spyOn(taskGraph, 'graphWithinTransaction').mockImplementationOnce(async (context, manager) => {
@@ -915,7 +917,8 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
             access as never,
             tasks,
             {} as never,
-            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector())
+            new ProjectPipelineContributionRegistry(new DiscoveryService(new ModulesContainer()), new Reflector()),
+            { listForActor: () => [] } as never
         )
         const current = await query.graph(context, first.instanceId)
         const history = await query.graph(context, first.instanceId, { roundId: oldId })

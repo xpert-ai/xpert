@@ -82,7 +82,11 @@ export const analyticsControlsSchema = z.record(key, value).default({})
 export const analyticsQueryRequestSchema = z
   .object({
     binding: analyticsBindingSchema,
-    controls: analyticsControlsSchema
+    controls: analyticsControlsSchema,
+    cache: z
+      .object({ maxAgeMs: z.number().int().min(0).max(60000), forceRefresh: z.boolean().optional() })
+      .strict()
+      .optional()
   })
   .strict() as z.ZodType<AnalyticsQueryRequest, z.ZodTypeDef, unknown>
 

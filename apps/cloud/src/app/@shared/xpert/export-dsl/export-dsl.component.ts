@@ -1,7 +1,7 @@
 import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
-import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,7 +26,6 @@ export class XpertExportDslComponent {
   readonly loading = signal(false)
 
   readonly isDraft = signal(this.#data.isDraft)
-  readonly includeMemory = model(false)
 
   close() {
     this.#dialogRef.close()
@@ -36,7 +35,6 @@ export class XpertExportDslComponent {
     this.loading.set(true)
     this.exportXpertDsl(this.xpertId(), {
       isDraft: this.isDraft(),
-      includeMemory: this.includeMemory(),
       slug: this.#data.slug
     }).subscribe({
       next: () => {
@@ -54,8 +52,7 @@ export class XpertExportDslComponent {
     this.loading.set(true)
     this.#xpertAPI
       .exportDSLAsTemplate(this.xpertId(), {
-        isDraft: this.isDraft(),
-        includeMemory: this.includeMemory()
+        isDraft: this.isDraft()
       })
       .subscribe({
         next: () => {
@@ -73,8 +70,8 @@ export class XpertExportDslComponent {
 
 export function injectExportXpertDsl() {
   const xpertAPI = inject(XpertAPIService)
-  return (xpertId: string, params: { isDraft: boolean; includeMemory: boolean; slug?: string }) => {
-    return xpertAPI.exportDSL(xpertId, { isDraft: params.isDraft, includeMemory: params.includeMemory }).pipe(
+  return (xpertId: string, params: { isDraft: boolean; slug?: string }) => {
+    return xpertAPI.exportDSL(xpertId, { isDraft: params.isDraft }).pipe(
       tap((result) => {
         const blob = new Blob([result.data], { type: 'text/plain;charset=utf-8' })
         const url = window.URL.createObjectURL(blob)

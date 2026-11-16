@@ -8,7 +8,6 @@ import { ChatExecutionAdmissionService } from './chat-execution-admission.servic
 import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { FileChangeStatsService } from './file-change-stats.service'
 import { RedisModule, SharedModule, StorageFileModule } from '@xpert-ai/server-core'
-import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -20,7 +19,6 @@ import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationGoal, ChatConversationGoalService } from './goal'
 import { QueryHandlers } from './queries/handlers'
-import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
 import { ExecutionControlModule } from '../execution-control/execution-control.module'
 import { SseStreamModule } from '../shared/stream'
@@ -72,9 +70,6 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
         CqrsModule,
         CopilotCheckpointModule,
 
-        BullModule.registerQueue({
-            name: 'conversation-summary'
-        }),
         forwardRef(() => StorageFileModule),
         forwardRef(() => ChatMessageModule),
         ExecutionControlModule,
@@ -103,7 +98,6 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
         ChatTaskSummaryService,
         FileChangeStatsService,
         WorkbenchAssistantConversationNavigationService,
-        ConversationSummaryProcessor,
         ...CommandHandlers,
         ...QueryHandlers
     ],

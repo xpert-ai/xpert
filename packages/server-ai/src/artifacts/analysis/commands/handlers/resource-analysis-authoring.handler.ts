@@ -7,7 +7,7 @@ import { t } from 'i18next'
 import { ArtifactsService } from '../../../artifacts.service'
 import { ArtifactTypesService } from '../../../types/artifact-types.service'
 import { ArtifactContentAccess } from '../../../artifact-content-access'
-import { isResourceAnalysisFilterValue } from '@xpert-ai/plugin-sdk/analytics'
+import { isResourceAnalysisFilterValue, resolveAnalyticsParameters } from '@xpert-ai/plugin-sdk/analytics'
 
 import { ResourceAnalysisAuthoringCommand } from '../resource-analysis-authoring.command'
 
@@ -61,6 +61,25 @@ export class ResourceAnalysisAuthoringHandler implements ICommandHandler<Resourc
                     throw new ForbiddenException(t('server-ai:Error.ResourceAnalysisInvalid'))
             }
             for (const item of policy.datasets) {
+                const entry = resolvedAnalytics.entries.find((entry) => entry.binding.id === item.key)
+                if (policy.execution === 'delegated_results') {
+                    const allowed = new Set(entry.binding.parameters.map((parameter) => parameter.controlId))
+                    const defaults = await resolvedAnalytics.normalizeControls(item.key, {})
+                    const base = { ...defaults }
+                    for (const [control, values] of Object.entries(item.controlValues ?? {})) {
+                        if (!allowed.has(control))
+                            throw new ForbiddenException(t('server-ai:Error.ResourceAnalysisInvalid'))
+                        base[control] = values[0]
+                    }
+                    // Validate every accepted value against the immutable binding contract before issuing consent.
+                    resolveAnalyticsParameters(entry.binding, base)
+                    for (const [control, values] of Object.entries(item.controlValues ?? {}))
+                        for (const value of values)
+                            resolveAnalyticsParameters(
+                                entry.binding,
+                                await resolvedAnalytics.normalizeControls(item.key, { ...base, [control]: value })
+                            )
+                }
                 await this.analytics.authorizeGroupSharing(
                     actor,
                     resolvedAnalytics.entries.find((entry) => entry.binding.id === item.key).binding

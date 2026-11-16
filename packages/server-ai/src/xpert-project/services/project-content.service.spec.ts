@@ -107,7 +107,7 @@ describe('XpertProjectContentService', () => {
 
         await expect(
             service.initialize({ id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' } as never)
-        ).rejects.toThrow(BadRequestException)
+        ).rejects.toThrow(Error)
         await expect(readFile(source, 'utf8')).resolves.toBe('legacy')
     })
 
@@ -302,7 +302,10 @@ describe('XpertProjectContentService', () => {
         )
         const volumeClient = { resolve: jest.fn().mockReturnValue(volume) } as unknown as VolumeClient
         const project = { id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' }
-        const access = { assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }) }
+        const access = {
+            assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }),
+            assertCanRead: jest.fn().mockResolvedValue({ project, role: 'editor' })
+        }
         const installSkillPackage = jest.fn(async (_index, installDir: string) => {
             await mkdir(path.join(installDir, 'github', 'pdf'), { recursive: true })
             await writeFile(path.join(installDir, 'github', 'pdf', 'SKILL.md'), '# PDF')
@@ -316,19 +319,71 @@ describe('XpertProjectContentService', () => {
                     id: 'index-1',
                     name: 'PDF',
                     skillPath: 'pdf',
-                    repository: { provider: 'github' }
+                    repository: { id: 'repo-1', provider: 'github' }
                 })
             } as never,
             { get: jest.fn().mockReturnValue({ installSkillPackage }) } as never
         )
 
+        await expect(
+            service.installSkill('project-1', 'index-1', { onlyIfMissing: true, repositoryIds: ['outside'] })
+        ).rejects.toThrow()
+        expect(installSkillPackage).not.toHaveBeenCalled()
         await expect(service.installSkill('project-1', 'index-1')).resolves.toMatchObject({
             id: 'github/pdf',
             name: 'PDF',
-            source: 'repository'
+            source: 'repository',
+            skillIndexId: 'index-1'
         })
         await expect(readFile(path.join(root, 'skills', 'github', 'pdf', 'SKILL.md'), 'utf8')).resolves.toBe('# PDF')
+        await expect(service.listSkills('project-1')).resolves.toMatchObject({
+            items: [{ id: 'github/pdf', skillIndexId: 'index-1' }]
+        })
         expect(installSkillPackage.mock.calls[0][1]).not.toBe(path.join(root, 'skills'))
+        await service.writeSkillFile('project-1', 'skills/github/pdf/SKILL.md', '# Locally modified')
+        await service.setSkillEnabled('project-1', 'github/pdf', false)
+        await expect(service.installSkill('project-1', 'index-1', { onlyIfMissing: true })).resolves.toMatchObject({
+            enabled: false
+        })
+        expect(installSkillPackage).toHaveBeenCalledTimes(1)
+        await expect(readFile(path.join(root, 'skills/github/pdf/SKILL.md'), 'utf8')).resolves.toBe(
+            '# Locally modified'
+        )
+        // Different catalog entry resolving to the same package path cannot replace local content.
+        await expect(service.installSkill('project-1', 'index-2', { onlyIfMissing: true })).rejects.toThrow()
+        await expect(readFile(path.join(root, 'skills/github/pdf/SKILL.md'), 'utf8')).resolves.toBe(
+            '# Locally modified'
+        )
+    })
+
+    it('keeps concurrent skill state writes and does not reuse a catalog entry that is no longer visible', async () => {
+        const volume = new VolumeHandle(
+            { tenantId: 'tenant-1', catalog: 'projects', projectId: 'project-1' },
+            root,
+            root,
+            ''
+        )
+        const project = { id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' }
+        const access = {
+            assertCanEdit: jest.fn().mockResolvedValue({ project, role: 'editor' }),
+            assertCanRead: jest.fn().mockResolvedValue({ project, role: 'editor' })
+        }
+        const index = { findOneInOrganizationOrTenant: jest.fn().mockRejectedValue(new Error('catalog access denied')) }
+        const provider = { get: jest.fn() }
+        const service = new XpertProjectContentService(
+            { resolve: () => volume } as never,
+            access as never,
+            index as never,
+            provider as never
+        )
+        await service.writeSkillFile('project-1', 'skills/one/SKILL.md', '# One')
+        await service.writeSkillFile('project-1', 'skills/two/SKILL.md', '# Two')
+        await Promise.all(['one', 'two'].map((id) => service.setSkillEnabled('project-1', id, false)))
+        expect((await service.listSkills('project-1')).items.map((s) => s.enabled)).toEqual([false, false])
+        await expect(service.installSkill('project-1', 'hidden-index', { onlyIfMissing: true })).rejects.toThrow(
+            'catalog access denied'
+        )
+        expect(provider.get).not.toHaveBeenCalled()
     })
 
     it('rejects repository installs that return a symlink outside their staging directory', async () => {

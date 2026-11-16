@@ -1,3 +1,4 @@
+import { hasPendingInvocationDelivery, recoverInvocationDelivery } from './invocation-delivery-recovery'
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
@@ -16,6 +17,9 @@ import { executionRuntimeTargetsEqual } from '@xpert-ai/contracts'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
+    AgentExecutionRunnerCapability,
+    agentDeliveryRecoverySchema,
+    AgentDeliveryRecovery,
     projectPipelineInvocationScopeSchema,
     agentOutputDeliverySchema,
     agentInvocationDispatchContextSchema,
@@ -132,9 +136,46 @@ export class AgentInvocationRuntime {
         return {
             start: (request) => this.start(request, context),
             inspect: (id) => this.control(id, context, 'inspect'),
+            recoverDelivery: (id, input) => this.recoverDelivery(id, context, input),
             cancel: (id) => this.control(id, context, 'cancel'),
             respond: (id, interactionId, response) => this.control(id, context, 'respond', { interactionId, response })
         }
+    }
+
+    private async recoverDelivery(id: string, access: AgentInvocationAccess, input: AgentDeliveryRecovery) {
+        const parsed = agentDeliveryRecoverySchema.safeParse(input)
+        if (!parsed.success) throw invocationError('InvalidRequest')
+        access = await this.stableAccess(access)
+        const record = await this.store.read(id, access.scope)
+        if (!record) throw invocationError('NotFound')
+        this.assertScope(record, access.scope)
+        await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        this.pinned(record)
+        if (
+            !invocationCanRelease(record.invocation) ||
+            record.invocation.status !== 'succeeded' ||
+            !record.invocation.result
+        )
+            throw invocationError('InvalidRequest')
+        if (record.invocation.revision !== parsed.data.expectedRevision) throw invocationError('ConcurrentUpdate')
+        if (!hasPendingInvocationDelivery(record.invocation)) return record.invocation
+        if (!record.invocation.handle?.runner) throw invocationError('DeliveryRecoveryUnavailable')
+        const runner = access.capabilities.get(AgentExecutionRunnerCapability)
+        if (!runner) throw invocationError('DeliveryRecoveryUnavailable')
+        const result = await recoverInvocationDelivery(record.invocation, runner, parsed.data)
+        // Revalidate current access after I/O and commit against the inspected revision.
+        await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
+        const next = {
+            ...record,
+            invocation: {
+                ...record.invocation,
+                result,
+                revision: record.invocation.revision + 1,
+                updatedAt: new Date().toISOString()
+            }
+        }
+        if (!(await this.store.replace(next, record.invocation.revision))) throw invocationError('ConcurrentUpdate')
+        return next.invocation
     }
 
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {
@@ -359,6 +400,8 @@ export class AgentInvocationRuntime {
             this.pinned(record)
             return record.invocation
         }
+        // The original supervisor owns this durable stop; ordinary reads still require authorization above.
+        if (record.invocation.runnerTermination) return record.invocation
         if (operation === 'cancel' && !record.invocation.control) {
             const task = await this.tasks?.find(access.scope, 'invocation', id)
             if (task) await this.tasks.change(task.id, 'terminated')
@@ -593,6 +636,7 @@ export class AgentInvocationRuntime {
             )
                 throw invocationError('CallConflict')
             if (invocationCanRelease(latest.invocation)) return latest
+            if (latest.invocation.runnerTermination) return latest
             if (hostEvidence && observation.controlEvidence?.source === 'native_graph' && !isBuiltinInlineGraph(latest))
                 throw invocationError('CallConflict')
             const checked = hostEvidence
@@ -643,9 +687,11 @@ export class AgentInvocationRuntime {
             invocation: {
                 ...record.invocation,
                 ...structuredClone(observation),
+                completedAt: record.invocation.completedAt,
                 executionTarget: record.invocation.executionTarget,
                 completionEvidence: record.invocation.completionEvidence,
                 reportedOutcome: record.invocation.reportedOutcome,
+                runnerTermination: record.invocation.runnerTermination,
                 hostResponse:
                     record.invocation.hostResponse?.claimed &&
                     observation.interaction &&
@@ -668,6 +714,8 @@ export class AgentInvocationRuntime {
                 updatedAt: new Date().toISOString()
             }
         }
+        if (!next.invocation.completedAt && invocationCanRelease(next.invocation))
+            next.invocation.completedAt = next.invocation.updatedAt
         if (!(await this.store.replace(next, record.invocation.revision))) {
             if (requireClaim) throw invocationError('ConcurrentUpdate')
             return undefined

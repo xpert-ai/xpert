@@ -1,15 +1,15 @@
 @if (enabled()) {
   <section class="mb-3 min-w-0" [attr.aria-label]="'XP.Groups.Title' | translate">
-    <div class="flex min-h-9 items-center gap-1 px-2">
+    <div class="flex items-center gap-1 pr-2">
       <button
         type="button"
-        class="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded-lg px-1 text-sm font-medium text-muted-foreground hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="sidebar-panel-row flex min-w-0 flex-1 items-center gap-2 rounded-lg font-medium text-muted-foreground hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         [attr.aria-expanded]="expanded()"
         [attr.aria-controls]="sectionId"
         (click)="expanded.set(!expanded())"
       >
         <i
-          class="ri-arrow-right-s-line transition-transform motion-reduce:transition-none"
+          class="ri-arrow-right-s-line sidebar-panel-icon transition-transform motion-reduce:transition-none"
           [class]="expanded() ? 'rotate-90' : ''"
           aria-hidden="true"
         ></i>
@@ -51,14 +51,11 @@
                 [attr.data-group-option]="group.id"
                 [attr.aria-current]="isActive(group) ? 'page' : null"
                 [disabled]="busy()"
-                class="flex min-h-9 pointer-coarse:min-h-[44px] min-w-0 flex-1 items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                class="flex sidebar-panel-row min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                 (click)="selectGroup(group.id)"
               >
-                <span
-                  class="flex size-[24px] shrink-0 items-center justify-center rounded-lg bg-hover-bg"
-                  aria-hidden="true"
-                >
-                  <i class="ri-group-line text-[20px] leading-none"></i>
+                <span class="sidebar-panel-icon rounded-lg bg-hover-bg" aria-hidden="true">
+                  <i class="ri-group-line"></i>
                 </span>
                 <span
                   class="min-w-0 flex-1 truncate"
@@ -118,14 +115,11 @@
         <button
           type="button"
           data-toggle-archived
-          class="mt-1 flex min-h-9 w-full items-center gap-2.5 rounded-lg px-3 text-sm text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          class="mt-1 flex sidebar-panel-row w-full items-center gap-2.5 rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           [attr.aria-pressed]="archived()"
           (click)="toggleArchived()"
         >
-          <i
-            class="ri-archive-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-            aria-hidden="true"
-          ></i
+          <i class="ri-archive-line sidebar-panel-icon" aria-hidden="true"></i
           >{{ (archived() ? 'XP.Groups.Active' : 'XP.Groups.Archived') | translate }}
         </button>
       </div>

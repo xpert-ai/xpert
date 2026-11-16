@@ -19,7 +19,8 @@
           "packages/plugin-sdk/src/connector.ts",
           "packages/plugin-sdk/src/model-provider-toolset.ts",
           "packages/plugin-sdk/src/model-provider-http-client.ts",
-          "packages/plugin-sdk/src/artifact-document.ts"
+          "packages/plugin-sdk/src/artifact-document.ts",
+          "packages/plugin-sdk/src/remote-component.ts"
         ],
         "generateExportsField": true,
         "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
@@ -38,6 +39,7 @@
           "@langchain/openai",
           "@langchain/langgraph",
           "@xpert-ai/contracts",
+          "@xpert-ai/contracts/context-event",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/cqrs",

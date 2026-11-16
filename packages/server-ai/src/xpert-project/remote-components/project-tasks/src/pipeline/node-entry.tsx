@@ -1,22 +1,55 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { openProjectWorkspace } from './navigation'
 import type { PipelineTexts } from './i18n'
 
-export function PipelineNodeEntry({ projectId, nodeId, t }: { projectId: string; nodeId: string; t: PipelineTexts }) {
+export function PipelineNodeEntry({
+    projectId,
+    nodeId,
+    instanceId,
+    roundId,
+    t
+}: {
+    projectId: string
+    nodeId: string
+    instanceId?: string
+    roundId?: string
+    t: PipelineTexts
+}) {
     const [busy, setBusy] = useState(false),
         [error, setError] = useState(false)
+    const pending = useRef<AbortController | null>(null)
+    useLayoutEffect(() => () => pending.current?.abort(), [])
+
     return (
         <div className="min-w-0">
             <Button
                 variant="default"
                 disabled={busy}
-                onClick={() => {
+                onClick={async () => {
+                    pending.current?.abort()
+                    const controller = new AbortController()
+                    pending.current = controller
                     setBusy(true)
                     setError(false)
-                    void openProjectWorkspace(projectId, 'application', t.actionFailed, nodeId)
-                        .catch(() => setError(true))
-                        .finally(() => setBusy(false))
+                    try {
+                        await openProjectWorkspace(
+                            projectId,
+                            'application',
+                            t.actionFailed,
+                            nodeId,
+                            instanceId,
+                            roundId,
+                            controller.signal
+                        )
+                    } catch {
+                        if (!controller.signal.aborted) setError(true)
+                    } finally {
+                        if (!controller.signal.aborted) {
+                            pending.current = null
+                            setBusy(false)
+                        }
+                    }
                 }}
             >
                 {t.nodeWorkspace}

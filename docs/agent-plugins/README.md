@@ -10,25 +10,21 @@ Non-assistant-role packages can also expose templates as [task sub-agents](./TEM
 
 ## Administrator workflow
 
-1. Open **Plugins → Agent Plugins** in the organization scope. The administrator must have management permission for the target workspace.
+1. Open **Plugins → Agent Plugins** as an administrator in the installation’s tenant or organization.
 2. Enter an HTTPS Git URL, an explicit ref, and an optional subdirectory, or upload a ZIP. The ZIP can contain the package contents directly or wrap them in a single top-level directory. The system retains the source, Git commit, content digest, and component diagnostics. A valid Skill is not discarded because another Skill or MCP configuration in the same package is invalid.
 3. Review the component list. MCP servers declaring `xpertai.connectors` automatically use Connector authorization. Legacy personal OAuth packages must publish a new version with Connector configuration; personal authorization is no longer offered. Map logical expert references in `xpertai` to published experts available in the current organization. Middleware providers must already be installed through native plugins, and their configuration must conform to the provider schema.
-4. Select the workspaces that may use the resources and publish the bindings. Existing middleware configurations or published digital experts can also be made available directly, without creating a plugin package.
+4. Configure the installed plugin in its tenant or organization if it needs expert mappings or middleware options. Separately published middleware presets and external expert bindings retain their workspace targets.
 5. To upgrade, import the new package first, then select **Replace version** in the publication form. Existing conversations continue using the old binding, while the refreshed catalog shows only the new version. Disabling the old binding blocks subsequent calls; users must remove it or select a replacement.
 
-Packages are organization-scoped. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
+Packages installed in a tenant are inherited by its organizations; an organization installation of the same package takes precedence. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
 
 Git imports fetch one snapshot without its full history. When a subdirectory is selected, imports request `blob:none` partial fetching and configure sparse checkout before checkout, so only that directory's file contents are fetched from servers supporting object filtering, including GitHub. Commit and directory-tree metadata are still downloaded. This also applies to the official `agent-plugins` batch and version updates. Root imports retain the complete snapshot; a Git server that ignores filtering can still transfer the full snapshot. Each operation uses a temporary checkout, with no persistent repository cache.
 
-## Workspace editor additions in Desktop
+## Plugins in Bosi Desktop
 
-Discover & add > Plugins uses a searchable workspace combobox containing only current-organization workspaces the actor can edit. It adds already imported organization packages without opening the administrator page. Required logical expert references must be mapped to accessible published experts before adding.
+Discover & add → Plugins shows the installed organization and inherited tenant plugins, including their configuration status. Open an assistant conversation and select a plugin from the composer's Plugins menu. This does not require selecting an editable workspace or adding the plugin to a workspace. Disabled plugins and existing connector authorization requirements still apply.
 
-- `GET /api/agent-plugins/workspace-options`: editable workspace and authorized expert choices.
-- `GET /api/agent-plugins/workspaces/:id`: safe display catalog and workspace publication status; no source paths, MCP configuration or credentials.
-- `POST /api/agent-plugins/workspaces/:id/plugins`: `{ packageId, experts }`; returns `added` or `already_added` and `bindingId`.
-
-Each read/write checks workspace edit permission and organization scope. Addition targets exactly one workspace, uses the existing resource installer, preserves other workspace bindings and existing published versions, and cannot re-enable a disabled binding. A package-family/workspace advisory lock serializes repeated additions. Git/ZIP import, replacement, disabling and shared connection administration retain their existing administrator checks. Connector dependencies may need a workspace administrator to configure them first. Adding a plugin does not select it in a conversation; users select available capabilities in ChatKit afterward.
+Standalone Skills and assistants created from templates are installed in the current editable workspace. A conversation selection does not install a standalone Skill or change the assistant template.
 
 ### Desktop connection handoff
 

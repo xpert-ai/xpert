@@ -117,7 +117,6 @@ export class SettingsAssistantCapabilitiesComponent {
     this.selected.update((selected) =>
       enabled ? [...new Set([...selected, key])] : selected.filter((item) => item !== key)
     )
-    this.editor.confirmDiscard.set(false)
   }
 
   reset() {

@@ -61,6 +61,7 @@ export const pipelineGraphSchema = z.object({
     tasks: graphSchema,
     statistics: projectPipelineStatisticsSchema.optional(),
     dispatchEnabled: z.boolean().optional(),
+    nodeWorkbench: z.object({ routeToExecutor: z.boolean().optional() }).optional(),
     permissions: z
         .object({ canEdit: z.boolean(), canManage: z.boolean() })
         .default({ canEdit: false, canManage: false }),

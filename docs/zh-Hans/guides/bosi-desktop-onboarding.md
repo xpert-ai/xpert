@@ -1,0 +1,118 @@
+---
+title: 'Bosi 桌面端首次设置与公开形象'
+---
+
+[English](/en/guides/bosi-desktop-onboarding)
+
+Bosi 是用户在当前组织中打开个人助手的桌面入口。桌面端沿用 `AssistantCode.CLAWXPERT` 的绑定，绑定范围为 `AssistantBindingScope.USER`，按租户、组织和用户区分。平台上的模板仍称为 ClawXpert，已有绑定可以继续使用。
+
+## 首次启动与创建助手
+
+在支持本机窗口操作的 Mac 上，首次启动时先选择语言，再按需授予**屏幕录制**和**辅助功能**权限。也可以稍后打开**设置 → Computer Use** 管理权限。详见[macOS 本机窗口操作](/zh-Hans/guides/bosi-macos-computer-use)。
+
+登录并选择组织后，桌面端会读取个人助手绑定。如果已有可访问的助手，Bosi 会直接打开它，沿用已安装的版本和能力。如果绑定指向的助手无法访问，或绑定查询失败，桌面端会显示错误，避免重复创建助手。
+
+尚未绑定个人助手的用户按以下步骤设置：
+
+1. **了解 Bosi**。查看 Bosi 可以协助完成的工作。
+2. **能力与服务**。从当前组织提供的插件和连接中按需选择。目录为空且没有可执行的操作时，桌面端会跳过这一步；加载失败时可重试，也可跳过。
+3. **选择电脑能力和模型**。如果组织提供云电脑，该选项默认开启；本机 Shell 和本机窗口操作默认关闭。本机 Shell 沿用命令审批流程。本机窗口操作需要支持视觉和工具调用的模型，每次任务都要通过原生窗口选择器指定窗口。服务端返回可用能力和兼容模型，桌面端还会检查当前客户端是否支持本机 Shell。模型选择器支持搜索，按提供方分组，并用标记提示模型特性和适合操作电脑的视觉模型。组织默认模型兼容时优先选用。
+4. **创建并开始欢迎对话**。桌面端安装并发布助手，打开初始对话，然后发起欢迎运行。欢迎提示要求助手简要介绍已启用的能力，并邀请用户定制名称和头像。
+
+`xpert-bosi-assistant` 模板派生自 `xpert-my-claw-xpert`，沿用其技能、记忆、规划和工作流。所选能力和桌面端欢迎指令通过平台共用的[助手能力机制](/zh-Hans/guides/assistant-capabilities)组合到助手中。
+
+设置页中的电脑画面是随应用附带的示意图。点击图中的应用只会切换说明文字，不会启动应用、安装软件或创建云电脑。启用云电脑且服务可用后，可从对话中的助手面板打开实时电脑视图。
+
+## 个人工作空间与可选服务
+
+首次读取目录或请求创建助手时，服务端会为当前用户预留一个只有本人可访问的私有工作空间，并将其记入绑定的 `desktopOnboarding` 检查点。共用的 `EnsurePersonalDefaultWorkspaceCommand` 在当前租户和组织内解析这个空间。该流程不会占用团队创作空间或更改用户的默认创作空间。已有助手继续使用原来的工作空间。
+
+引导页的目录来自当前组织提供的 Agent Plugin 包和已注册的 Connector 定义。如果只看到 Documents 等少数条目，说明当前范围提供的包和服务有限。组织级推荐配置不在此功能范围内。
+
+工作空间包目录与引导页使用不同的状态。包的 `not_published` 状态仍允许引导页提供安装选项，`available` 则表示该包已安装在这个工作空间。引导 API 会将底层状态转换为可选择、就绪、需要授权、已过期、需要配置或不可用。缺少专家映射或服务注册时，页面会给出原因。
+
+选择插件会调用现有的工作空间安装服务，并固定所安装资源的版本。取消选择只移除 Bosi 的默认选项，已安装的资源仍保留在工作空间中。更新选择时必须提交当前修订号，以防多个窗口互相覆盖更改。
+
+连接服务会打开已有的 Cloud 授权页，地址形式为 `/workspace-connection?workspaceId=...&bindingId=...&organizationId=...`。服务端核对预留的私有工作空间和连接归属；桌面端接收结果时核对组织、服务连接的代次以及本次连接尝试。URL 中不包含凭据。连接使用已有的工作空间 `shared` 授权模式，界面会提示用户，今后共享该工作空间时，服务访问权也可能随之共享。
+
+对话初始化器会把所选资源版本和有效连接应用到所有者的 Bosi 欢迎对话以及之后新建的对话，每个对话只应用一次。它跳过项目对话、其他用户的对话和已应用默认值的对话，并保留显式配置的运行时资源和连接设置。真正执行时仍会检查资源范围、版本和连接状态。
+
+## API 与中断恢复
+
+宿主请求使用已认证的租户、组织和用户上下文。请求体和查询参数不能覆盖授权范围。控制器通过共用的 Zod 校验管道验证输入。
+
+| 方法与路径                                                       | 用途                                                           |
+| ---------------------------------------------------------------- | -------------------------------------------------------------- |
+| `GET /api/assistant-binding/bosi/setup?capabilities=...`         | 读取绑定、恢复阶段、可用能力和兼容模型。                       |
+| `POST /api/assistant-binding/bosi/workspace`                     | 为单独执行工作空间步骤的客户端解析预留的个人工作空间。         |
+| `POST /api/assistant-binding/bosi/onboarding`                    | 预留私有工作空间，读取目录和当前选择。                         |
+| `POST /api/assistant-binding/bosi/onboarding/choice`             | 使用当前修订号保存插件或连接器的选择。                         |
+| `POST /api/assistant-binding/bosi/onboarding/connection`         | 创建或复用工作空间连接，返回授权目标。                         |
+| `POST /api/assistant-binding/bosi/onboarding/connection/resolve` | 校验预留的工作空间和连接，读取授权状态。                       |
+| `POST /api/assistant-binding/bosi/bootstrap`                     | 根据 `modelId` 和 `capabilities` 幂等地安装、发布并绑定 Bosi。 |
+| `POST /api/assistant-binding/bosi/welcome`                       | 启动或恢复欢迎运行。                                           |
+| `GET /api/xpert/:id/appearance`                                  | 读取公开名称、头像、编辑权限和形象修订号。                     |
+| `POST /api/xpert/:id/appearance`                                 | 使用该修订号保存公开名称和头像。                               |
+
+`capabilities` 支持 `cloud-computer`、`desktop-shell` 和 `desktop-computer-use`。在 setup 查询中，多个值用逗号分隔。执行 bootstrap 时，服务端会再次核对能力和模型的可用性。
+
+可为空的 JSON 检查点 `desktopBootstrap` 记录所选模型和能力、已导入的助手、初始线程，以及重试时复用的欢迎消息标识。阶段包括 `installing`、`welcome_pending`、`welcome_running`、`ready` 和 `welcome_failed`。数据库会话锁让同一租户、组织和用户的初始化请求依次执行。并发请求会收到 HTTP 409，客户端可刷新状态并接续已有操作。
+
+如果安装中断，会从已导入的草稿继续。欢迎运行使用常规的 Thread 和 Run 命令，并设置 `on_disconnect: continue`。服务端会将检查点与已持久化的运行状态核对。已有 AI 消息时，欢迎流程失败后会重试先前的执行；若在预检查阶段失败、尚未产生 AI 消息，则复用原线程和客户端消息标识。已完成的欢迎流程不会自动重复执行，重试也不会创建第二个助手。
+
+完整的 bootstrap 检查点仅保存在服务端。公开的 `progress` 只返回 `phase`、`capabilities`、`modelId` 和 `threadId`。草稿标识和欢迎运行标识保留在服务端。对话中的 `bosiDefaultsApplied` 标记也仅供服务端使用，沿用原有 JSON 键名，避免对旧对话重复应用默认设置。
+
+组织成员访问策略由共用的 `ResolveUserOrganizationAccessCommand` 解析，其中包含平台对超级管理员角色的处理。Bosi 另行核对绑定、工作空间和创作权限。初始化不会为用户新增成员记录或授予权限。
+
+## 公开名称与头像
+
+**定制形象**用于编辑助手的公开资料。对话框会提醒，所有使用该助手的人都能看到更改。拥有读取权限的用户可以预览形象；保存或上传需要当前组织下已有的工作空间创作权限。资料描述仍可在本地覆盖显示，修改公开名称则需要打开形象对话框。
+
+保存时会检查形象修订号，只更新 `title`、`titleCN` 和 `avatar`。工作流、指令和未发布的草稿都不受影响，也无需发布新的工作流版本。保存后，桌面端刷新助手列表和当前 ChatKit 配置。
+
+`TAvatar.appearance` 使用 `version: 1`，并通过 `kind` 明确区分 `character`、`pet` 和 `image`。形象和角色类型由 ChatKit types 定义，再通过契约包导出。旧版头像组件仍可使用原有的 `url` 静态预览和 Emoji 字段。[契约包](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/types.ts)
+
+角色和宠物 ID 使用可扩展的资源字符串，校验时限制长度和可用字符。宠物资源可以是带有资源 URL 的 `sprite-atlas`（精灵图集）或 `animated-image`（动画图片）。仅有 ID 的旧版宠物继续使用 ChatKit frame 的 `/pets/<id>/spritesheet.webp` 路径约定。
+
+桌面端从配置的 ChatKit frame 源站读取 `/pets/catalog.json` 作为宠物目录。目录及资源请求有上限，只允许访问同源且符合要求的宠物路径。发布 frame 的目录和资源即可分发新的内置宠物；用户上传的宠物无需注册为内置条目。
+
+形象库包含 Bosi 动画、卡通预设、可配置角色、宠物和支持方形裁剪的图片上传。上传使用平台文件存储，裁剪后的头像生成静态 PNG 预览。宠物导入支持动画图片、两个受支持版本的精灵图集，以及只包含一只宠物的 ZIP 包。该流程不使用 AI 生成图片。尺寸、清单字段、限制和校验规则见[宠物精灵图导入说明](https://github.com/xpert-ai/xpert/blob/develop/docs/pet-sprite-import.md)。
+
+### 角色编辑器
+
+角色编辑器通过预览按钮选择形状、表情、眉毛、嘴型、颜色和动作。可选 12 种形状、11 种眼型、5 种眉型和 5 种嘴型。面部设置包括眼睛大小（60%–150%）、眼距（55%–160%）、倾斜角度（−15° 至 15°），以及自动、深色或浅色描线。动作可选漂浮、弹跳、摇摆或静止，支持 0.5–2 倍速和自然眨眼。新增配置项为可选字段，旧版配置仍可使用。
+
+主预览区包含表情选择环、下方可旋转的形状选择弧，以及横向的配色与活动预览栏。将指针移到配色控件上会显示预设色板，点击中心可自定义颜色。鼠标和键盘均可让色板保持展开，按 Escape 或点击外部可关闭。左侧面板提供眉型、嘴型和动作设置，右侧提供名称、面部微调、实际尺寸预览和预设。
+
+八种活动状态预览只在编辑器内生效，不会写入助手的实时状态。桌面端的 SVG 预览与 ChatKit frame 应按同一配置渲染，并一致响应系统的「减少动态效果」设置。
+
+## 对话中的角色与摘要面板
+
+在助手对话的消息模式中，ChatKit 通过 `header.character` 显示居中的角色和紧凑的活动气泡。气泡显示真实的执行和审批状态，完整回复保留在消息区。记录模式沿用紧凑标题栏。新建桌面配置默认使用消息气泡，已有配置保留原来的消息展示方式。
+
+点击角色或摘要按钮都会打开右侧的同一个非模态面板。面板复用已有的任务摘要产物、分页和资源打开方式。展开期间居中角色隐藏，收起后恢复。点击面板外部、按 Escape 或点击关闭按钮均可收起；使用消息输入框时，输入焦点应留在输入框内。**定制形象**入口位于面板中。
+
+面板内的云电脑和本机 Shell 入口会显示实际可用性及连接状态。点击云电脑打开已注册的电脑视图，点击本机 Shell 打开已有的 Shell 面板。使用这些入口不会授予执行权限。ChatKit 发出 `assistant.customize` 和本地 `assistant.computer.open` 事件，由桌面端处理；frame 中的平台请求继续通过 Xpert SDK 发起。
+
+助手形象取自助手的公开资料。桌面端关闭了额外的全局漫游宠物，用户的全局宠物偏好不会替换助手的宠物。
+
+## 部署与验证
+
+先部署服务端和契约包，再部署 Cloud 授权页和 ChatKit frame，最后部署桌面端。如果部署环境自行管理数据库架构，没有使用 ORM 自动同步，请按顺序应用两项新增可空列的迁移：
+
+1. [初始化检查点迁移](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/assistant-binding/migrations/20261003-bosi-bootstrap.sql)。
+2. [引导偏好设置迁移](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/assistant-binding/migrations/20261004-bosi-onboarding.sql)。
+
+已有绑定无需回填。将内部检查点类型保留在服务端不会改变 JSON 存储键，也不需要额外迁移。旧服务端缺少初始化 API 时，桌面端会提示升级。
+
+开源版包含通用引导流程、模板组合机制、形象 API 和桌面界面。云电脑由 Pro 版通过能力注册提供。未部署该提供方时，界面会显示云电脑不可用。
+
+修改此流程后，应验证：
+
+- 租户、组织和用户隔离；复用旧绑定、并发创建、安装中断后恢复、欢迎运行重试及防重。
+- 插件选择的修订号检查、私有工作空间复用、连接授权，以及对话中显式设置的保留。
+- 云电脑和本机 Shell 的不同组合、不受支持的客户端、模型可用性，以及服务端重新校验。
+- 公开形象的编辑权限和修订冲突、上传失败、旧版头像、精灵图版本、切换宠物及跨客户端资料刷新。
+- Electron 中的真实活动状态变化、打开产物与电脑视图、面板关闭与焦点恢复、主题、窄窗口、键盘操作及减少动态效果。
+
+修改公共 frame 契约时，应运行相关的后端与桌面端测试及构建，同时检查 ChatKit types 和组件。运行时电脑操作和第三方授权须在配有对应服务的环境中验证。相关回归用例见[初始化与引导](https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/assistant-binding/bosi)、[公开形象](https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/xpert/assistant-appearance)和[桌面宿主测试](https://github.com/xpert-ai/xpert/tree/main/apps/desktop/tests)。

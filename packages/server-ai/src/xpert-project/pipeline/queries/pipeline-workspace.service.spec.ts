@@ -55,12 +55,13 @@ async function fixture() {
             { resolverRef: 'neutral.subject@1', objectKey: 'exact-object', version: '1', digest: 'a'.repeat(64) }
         ]
     }
-    const read = jest.fn(async (entity) =>
-        entity === ProjectPipelineDefinitionEntity
-            ? { definition }
-            : entity === ProjectPipelineRunEntity
-              ? { definitionId: 'definition' }
-              : round
+    const read = jest.fn(
+        async (entity): Promise<unknown> =>
+            entity === ProjectPipelineDefinitionEntity
+                ? { definition }
+                : entity === ProjectPipelineRunEntity
+                  ? { definitionId: 'definition' }
+                  : round
     )
     const module = await Test.createTestingModule({
         providers: [
@@ -103,7 +104,7 @@ it('opens the exact persisted subject through its actor-scoped adapter and check
         id: 'instance'
     })
     expect(f.resolve).toHaveBeenCalledWith('subject', 'neutral.subject@1', context.actor)
-    expect(f.entry).toHaveBeenCalledWith(context, 'exact-object')
+    expect(f.entry).toHaveBeenCalledWith(context, 'exact-object', 'assistant')
     expect(f.access.assertCanUseXpert).toHaveBeenCalledWith('project', 'assistant')
 })
 
@@ -177,4 +178,65 @@ it('rejects a subject entry that bypasses the authorized Assistant host', async 
     await expect(f.service.entry(context, { instanceId: 'instance' })).rejects.toThrow()
     expect(f.access.assertCanRead).toHaveBeenCalledWith('project')
     expect(f.access.assertCanUseXpert).not.toHaveBeenCalled()
+})
+
+it('selects the executor pinned to the selected run before resolving the order and ignores the source role as a destination', async () => {
+    const f = await fixture()
+    const spec = {
+        key: 'supply',
+        kind: 'work',
+        stageKey: 'review',
+        laneKey: 'owner',
+        executorSlot: 'buyer',
+        operationRef: 'neutral.supply@1',
+        completionRef: 'neutral.done@1'
+    }
+    const executorBindings: Record<string, { kind: string; selectionKey: string }> = {
+        buyer: { kind: 'assistant', selectionKey: 'assistant' }
+    }
+    f.resolve.mockReturnValue({
+        resolveEntry: f.entry,
+        nodeWorkbenches: [{ definitionKey: definition.key, version: definition.version, routeToExecutor: true }]
+    })
+    f.read.mockImplementation(async (entity) =>
+        entity === ProjectPipelineNodeEntity
+            ? { id: 'node', nodeKey: 'supply' }
+            : entity === ProjectPipelineDefinitionEntity
+              ? {
+                    definition: {
+                        ...definition,
+                        nodes: [spec, ...definition.nodes],
+                        edges: [{ from: 'supply', to: 'done' }],
+                        roundPolicy: { ...definition.roundPolicy, entryNodeKey: 'supply' }
+                    }
+                }
+              : entity === ProjectPipelineRunEntity
+                ? { definitionId: 'definition', bindingSnapshot: { executorBindings } }
+                : { ...f.round, id: 'old-round' }
+    )
+    const focus = { instanceId: 'instance', roundId: 'old-round', pipelineNodeId: 'node', xpertId: 'quality' }
+    await expect(f.service.entry(context, focus)).resolves.toMatchObject({
+        xpertId: 'assistant',
+        selectionId: 'exact-object',
+        parameters: { pipelineInstanceId: 'instance', pipelineRoundId: 'old-round', pipelineNodeId: 'node' }
+    })
+    expect(f.entry).toHaveBeenCalledWith(context, 'exact-object', 'quality', { executorXpertId: 'assistant' })
+    const sourceNavigation = await f.service.entry(context, focus, 'navigation')
+    expect(sourceNavigation).toEqual({
+        kind: 'node-navigation',
+        target: {
+            target: 'project.application',
+            projectId: 'project',
+            pipelineInstanceId: 'instance',
+            pipelineRoundId: 'old-round',
+            pipelineNodeId: 'node'
+        }
+    })
+    expect(f.access.assertCanUseXpert).toHaveBeenLastCalledWith('project', 'quality')
+    f.entry.mockResolvedValue({ xpertId: 'quality', viewKey: 'registered__business' })
+    await expect(f.service.entry(context, focus)).rejects.toThrow()
+    delete executorBindings.buyer
+    f.entry.mockClear()
+    await expect(f.service.entry(context, focus)).rejects.toThrow()
+    expect(f.entry).not.toHaveBeenCalled()
 })

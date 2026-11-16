@@ -1,4 +1,3 @@
-import { resolveI18nText } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     ConflictException,
@@ -9,15 +8,7 @@ import {
 import { ModuleRef } from '@nestjs/core'
 import { InjectRepository } from '@nestjs/typeorm'
 import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import {
-    PLUGIN_COMPONENT_TYPE,
-    RolesEnum,
-    isUserAddableAgentMiddleware,
-    type RuntimeResourceBindingInput,
-    type WorkspaceAgentPluginAddInput,
-    type WorkspaceAgentPluginAddResult,
-    type WorkspaceAgentPluginOptions
-} from '@xpert-ai/contracts'
+import { RolesEnum, isUserAddableAgentMiddleware, type RuntimeResourceBindingInput } from '@xpert-ai/contracts'
 import { Repository, type EntityManager } from 'typeorm'
 import { createHash } from 'node:crypto'
 import { mkdtemp, readdir, rm, stat } from 'node:fs/promises'
@@ -27,12 +18,9 @@ import { t } from 'i18next'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { parseAgentPlugin } from './agent-plugin-parser'
 import { extractPortableZip, portablePackageDigest, stagePortableGit } from './agent-plugin-source'
-import type { RuntimeComponent } from '../plugin-resource/installation/plugin-resource-installer.service'
 import Ajv from 'ajv'
-import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
-import { workspacePluginCatalog } from './workspace-plugin-catalog'
 import { agentPluginScope, agentPluginScopeWhere } from './agent-plugin-scope'
 import { importedPluginBinding } from './installed-plugin-catalog'
 import { lockPackageScope, packageIntact, stagePackageFiles, removePackageFiles } from './maintenance/package-storage'
@@ -137,94 +125,6 @@ export class AgentPluginService {
             )
             .map((pkg) => importedPluginBinding(pkg))
         return { packages: packages.map(({ rootPath, ...item }) => item), bindings: [...defaults, ...bindings] }
-    }
-
-    private async workspaceAccess() {
-        return this.modules.get(
-            (await import('../xpert-workspace/workspace-access.service')).XpertWorkspaceAccessService,
-            { strict: false }
-        )
-    }
-
-    private async assertWorkspaceEditor(workspaceId: string) {
-        const scope = resourceScope()
-        const access = await this.workspaceAccess()
-        const { workspace } = await access.assertCanWrite(workspaceId)
-        if (workspace.organizationId !== scope.organizationId)
-            throw new ForbiddenException(t('server-ai:Error.AgentResourceScopeMismatch'))
-        return scope
-    }
-
-    async workspaceOptions(): Promise<WorkspaceAgentPluginOptions> {
-        const scope = resourceScope()
-        const access = await this.workspaceAccess()
-        const accessible = await access.findAccessibleWorkspaces(undefined, { purpose: 'authoring' })
-        const workspaces: WorkspaceAgentPluginOptions['workspaces'] = []
-        for (const workspace of accessible) {
-            if (workspace.organizationId !== scope.organizationId) continue
-            const current = await access.getAccess(workspace.id)
-            if (current.capabilities.canWrite) workspaces.push({ id: workspace.id, name: workspace.name })
-        }
-        // Do not enumerate package or expert metadata for users without an editable workspace.
-        if (!workspaces.length) return { workspaces, experts: [] }
-        const experts = await this.modules
-            .get((await import('../xpert/published-xpert-access.service')).PublishedXpertAccessService, {
-                strict: false
-            })
-            .findAccessiblePublishedXperts({ where: { latest: true } })
-        return { workspaces, experts: experts.map(({ id, name, title }) => ({ id, name: title || name })) }
-    }
-
-    async workspaceCatalog(workspaceId: string, language?: string) {
-        const scope = await this.assertWorkspaceEditor(workspaceId)
-        const [packages, bindings] = await Promise.all([
-            this.packages.find({ where: scope, order: { createdAt: 'DESC' } }),
-            this.bindings.find({ where: scope, order: { createdAt: 'DESC' } })
-        ])
-        return { items: workspacePluginCatalog(packages, bindings, workspaceId, language) }
-    }
-
-    async addToWorkspace(
-        workspaceId: string,
-        input: WorkspaceAgentPluginAddInput
-    ): Promise<WorkspaceAgentPluginAddResult> {
-        const scope = await this.assertWorkspaceEditor(workspaceId)
-        // Serialize additions by package family and workspace across API instances. Other workspaces are never replaced.
-        return this.bindings.manager.transaction(async (manager) => {
-            const pkg = await manager.findOneBy(AgentPluginPackage, { ...scope, id: input.packageId })
-            if (!pkg) throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
-            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
-                `${scope.tenantId}:${scope.organizationId}`,
-                `${workspaceId}:${pkg.descriptor.name}`
-            ])
-            await this.assertWorkspaceEditor(workspaceId)
-            const packages = await this.packages.find({ where: scope })
-            const ids = new Set(
-                packages.filter((item) => item.descriptor.name === pkg.descriptor.name).map((item) => item.id)
-            )
-            const bindings = await this.bindings.find({ where: scope })
-            const current = bindings.filter(
-                (binding) =>
-                    binding.definition.kind === 'agent_plugin' &&
-                    ids.has(binding.definition.packageId) &&
-                    !binding.supersededById &&
-                    binding.workspaceIds.includes(workspaceId)
-            )
-            const existing = current.find((binding) => binding.enabled)
-            if (existing) return { status: 'already_added', bindingId: existing.id }
-            if (current.length) throw new ConflictException(t('server-ai:Error.AgentPluginWorkspaceDisabled'))
-            const saved = await this.createAuthorizedBinding(
-                {
-                    title: (
-                        resolveI18nText(pkg.descriptor.extension?.interface?.displayName) || pkg.descriptor.name
-                    ).slice(0, 200),
-                    workspaceIds: [workspaceId],
-                    definition: { kind: 'agent_plugin', packageId: pkg.id, experts: input.experts }
-                },
-                scope
-            )
-            return { status: 'added', bindingId: saved.id }
-        })
     }
 
     async importGit(input: { url: string; ref: string; subdirectory?: string }) {
@@ -369,7 +269,6 @@ export class AgentPluginService {
         return this.createAuthorizedBinding(input, scope)
     }
 
-    // Callers authorize either organization-wide management or a single-workspace editor addition first.
     private async createAuthorizedBinding(
         input: RuntimeResourceBindingInput,
         scope: ReturnType<typeof agentPluginScope>
@@ -426,57 +325,6 @@ export class AgentPluginService {
         const version = createHash('sha256')
             .update(JSON.stringify({ ...input, expertVersions, digest: pkg?.digest }))
             .digest('hex')
-        const installations: AgentResourceBinding['installations'] = {}
-        if (pkg && input.workspaceIds.length) {
-            const installer = this.modules.get(
-                (await import('../plugin-resource/installation/plugin-resource-installer.service')).PluginResourceInstallerService,
-                { strict: false }
-            )
-            for (const workspaceId of input.workspaceIds) {
-                const resources: AgentResourceBinding['installations'][string] = { skills: [], toolsets: [] }
-                if (definition.kind === 'agent_plugin' && definition.connectorServers)
-                    resources.connectors = await this.modules
-                        .get(AgentPluginConnectorService, { strict: false })
-                        .install(pkg, workspaceId, definition.connectorServers)
-                for (const component of this.components(pkg, version)) {
-                    const installed = await installer.installRuntimeComponent(component, workspaceId, null)
-                    if (!installed.runtimeId)
-                        throw new BadRequestException(t('server-ai:Error.AgentResourceInstallFailed'))
-                    if (component.component.componentType === PLUGIN_COMPONENT_TYPE.SKILL) {
-                        await this.packages.manager
-                            .getRepository((await import('../skill-package/skill-package.entity')).SkillPackage)
-                            .update({ id: installed.runtimeId, ...scope }, { runtimeResourceOnly: true })
-                        resources.skills.push(installed.runtimeId)
-                    } else {
-                        const server = pkg.descriptor.servers.find(
-                            (item) => item.key === component.component.componentKey
-                        )
-                        const toolsetRepo = this.packages.manager.getRepository(
-                            (await import('../xpert-toolset/xpert-toolset.entity')).XpertToolset
-                        )
-                        const toolset = await toolsetRepo.findOneByOrFail({ id: installed.runtimeId, ...scope })
-                        const oauth =
-                            definition.kind === 'agent_plugin' && definition.oauthServers?.includes(server.key)
-                        toolset.schema = JSON.stringify(
-                            portableMcpSchema(
-                                server,
-                                !!oauth,
-                                definition.kind === 'agent_plugin'
-                                    ? connectorMcpAuth(
-                                          resources.connectors?.[server.key],
-                                          definition.connectorServers?.[server.key]
-                                      )
-                                    : undefined
-                            )
-                        )
-                        toolset.options = { ...toolset.options, needSandbox: false, pluginManaged: false }
-                        await toolsetRepo.save(toolset)
-                        resources.toolsets.push(installed.runtimeId)
-                    }
-                }
-                installations[workspaceId] = resources
-            }
-        }
         return this.bindings.manager.transaction(async (manager) => {
             if (definition.kind === 'agent_plugin') {
                 await lockPackageScope(manager, scope)
@@ -498,7 +346,7 @@ export class AgentPluginService {
                 throw new ConflictException(t('server-ai:Error.AgentResourceRevisionConflict'))
             const next = await manager.save(
                 AgentResourceBinding,
-                this.bindings.create({ ...scope, ...values, version, installations, expertVersions, enabled: true })
+                this.bindings.create({ ...scope, ...values, version, installations: {}, expertVersions, enabled: true })
             )
             if (previous) {
                 previous.supersededById = next.id
@@ -524,27 +372,5 @@ export class AgentPluginService {
             binding.cleanupEligible = false
             return manager.save(AgentResourceBinding, this.bindings.create(binding))
         })
-    }
-
-    private components(pkg: AgentPluginPackage, version: string): RuntimeComponent[] {
-        const pluginName = `agent-plugin-${pkg.id}-${version.slice(0, 12)}`
-        return [
-            ...pkg.descriptor.skills.map((skill) => ({
-                componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-                componentKey: skill.key,
-                sourcePath: skill.path,
-                config: { path: skill.path },
-                metadata: { name: skill.key },
-                definitionHash: pkg.digest
-            })),
-            ...pkg.descriptor.servers.map((server) => ({
-                componentType: PLUGIN_COMPONENT_TYPE.MCP_SERVER,
-                componentKey: server.key,
-                sourcePath: 'mcp.json',
-                config: { ...server.config, type: 'http' },
-                metadata: { serverName: server.key },
-                definitionHash: pkg.digest
-            }))
-        ].map((component) => ({ pluginName, pluginVersion: pkg.digest, rootDir: pkg.rootPath, component }))
     }
 }

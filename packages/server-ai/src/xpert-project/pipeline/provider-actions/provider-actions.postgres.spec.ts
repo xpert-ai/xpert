@@ -641,6 +641,7 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
                 })
             } as never,
             { synchronize } as never,
+            { listForActor: () => [] } as never,
             { listForActor: () => [] } as never
         )
         const before = await query.graph(context, instanceId)
@@ -709,6 +710,7 @@ suite.each(['empty', 'orm-precreated'])('Provider action PostgreSQL outbox (%s)'
             access as never,
             tasks as never,
             { synchronize } as never,
+            { listForActor: () => [] } as never,
             { listForActor: () => [] } as never
         )
         const analytics = new ProjectPipelineAnalyticsService(

@@ -4,7 +4,7 @@
   [attr.data-conversation-id]="conversation().id"
 >
   <a
-    class="flex min-w-0 flex-1 min-h-9 pointer-coarse:min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="sidebar-panel-row flex min-w-0 flex-1 min-h-9 pointer-coarse:min-h-[44px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [routerLink]="route()"
     [queryParamsHandling]="preserveQueryParams() ? 'preserve' : null"
     [attr.aria-current]="active() ? 'page' : null"
@@ -13,7 +13,7 @@
     (click)="selected.emit()"
   >
     <i
-      class="inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
+      class="sidebar-panel-icon inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
       [class]="compact() ? 'ri-chat-3-line' : 'ri-file-text-line'"
       aria-hidden="true"
     ></i>

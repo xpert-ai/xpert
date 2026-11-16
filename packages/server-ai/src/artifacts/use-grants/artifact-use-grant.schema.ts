@@ -23,7 +23,7 @@ export const changeArtifactUseGrantSchema = z
     .strict()
 
 export const acceptArtifactUseGrantSchema = changeArtifactUseGrantSchema
-    .extend({ acceptAnalysis: z.boolean().default(false) })
+    .extend({ acceptAnalysis: z.boolean().default(false), acceptDelegatedResults: z.boolean().default(false) })
     .strict()
 
 export const readArtifactUseGrantSchema = z

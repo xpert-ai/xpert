@@ -1,9 +1,11 @@
 // Invariants: executable receipts and model grants are separate. Unknown dispatches are never replayed.
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
-import type { ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type { ComputerCliConnection, ExecutionEnvironment } from '@xpert-ai/contracts'
 import { Column, Entity, Index } from 'typeorm'
 import { z } from 'zod/v3'
-import { executionEnvironmentSchema, executionJson, executionToolSchema } from '../model-execution/execution-schema'
+import { computerCliConnectionSchema } from '../shared/cli-execution.schema'
+import { executionEnvironmentSchema, executionToolSchema } from '../shared/execution-source.schema'
+import { executionJson } from '../shared/execution-json'
 
 export const shellBindingSchema = z
     .object({
@@ -13,6 +15,9 @@ export const shellBindingSchema = z
         modelId: z.string().min(1),
         environment: executionEnvironmentSchema,
         workingDirectory: z.string().min(1),
+        cliConnections: z.record(computerCliConnectionSchema).optional(),
+        /** New Shells resolve only the CLI they start; absent preserves legacy snapshots/platform behavior. */
+        cliConnectionSelection: z.literal('on_cli_start').optional(),
         tokenBudget: z.number().int().positive().optional()
     })
     .strict()
@@ -41,8 +46,8 @@ export class ShellProcessExecution extends TenantOrganizationBaseEntity {
     @Column({ type: 'int', default: 0 }) maintenanceFence: number
     @Column({ type: 'jsonb', transformer: executionJson(shellBindingSchema) }) binding: Omit<
         z.output<typeof shellBindingSchema>,
-        'environment'
-    > & { environment: ModelExecutionEnvironment }
+        'environment' | 'cliConnections'
+    > & { environment: ExecutionEnvironment; cliConnections?: Record<string, ComputerCliConnection> }
     @Column({ type: 'jsonb', nullable: true, transformer: executionJson(shellRunnerSchema) }) runner: z.output<
         typeof shellRunnerSchema
     >
@@ -62,5 +67,6 @@ export class ShellCliExecution extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar' }) profileRevision: string
     @Column({ type: 'varchar', default: 'preparing' }) status: ShellExecutionStatus
     @Column({ type: 'uuid', nullable: true }) grantId: string | null
+    @Column({ type: 'uuid', nullable: true }) nativeLeaseId: string | null
     @Column({ type: 'int', nullable: true }) exitCode: number | null
 }

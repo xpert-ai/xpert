@@ -64,7 +64,16 @@ export class ZardInputDirective implements ControlValueAccessor {
         zBorderless: this.zBorderless()
       }),
       this.class(),
-      this.dialog ? dialogControlVariants({ kind: this.getType() === 'textarea' ? 'textarea' : 'single' }) : ''
+      this.dialog
+        ? dialogControlVariants({
+            kind:
+              this.dialog.compactControls?.() && this.elementRef.nativeElement.type === 'search'
+                ? 'compactSearch'
+                : this.getType() === 'textarea'
+                  ? 'textarea'
+                  : 'single'
+          })
+        : ''
     )
   )
 

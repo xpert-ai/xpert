@@ -6,6 +6,13 @@ const json: z.ZodType<AgentJson> = z.lazy(() =>
     z.union([z.null(), z.boolean(), z.number().finite(), z.string(), z.array(json), z.record(json)])
 )
 const controlFields = z.object({
+    runnerTermination: z
+        .object({
+            reason: z.enum(['authorization_revoked', 'lease_expired', 'runner_unavailable']),
+            requestedAt: z.string().datetime()
+        })
+        .strict()
+        .optional(),
     executionTarget: executionRuntimeTargetSchema.optional(),
     completionEvidence: z.union([z.literal(1), z.literal(2)]).optional(),
     reportedOutcome: z.enum(['succeeded', 'failed', 'cancelled']).optional(),
@@ -21,6 +28,12 @@ export function parseInvocationControlRecord(invocation: AgentInvocation): Agent
     return {
         ...invocation,
         ...parsed,
+        runnerTermination: parsed.runnerTermination
+            ? {
+                  reason: parsed.runnerTermination.reason,
+                  requestedAt: parsed.runnerTermination.requestedAt
+              }
+            : undefined,
         hostResponse: parsed.hostResponse
             ? {
                   interactionId: parsed.hostResponse.interactionId,

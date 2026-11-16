@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { z } from 'zod'
 import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
+import { MonitorStartFields, defaultFirstRun } from './MonitorStartFields'
 import { MonitorSettings } from './MonitorSettings'
 import { actionSchema, request, destinationInput, type Destination } from './bridge'
 import { texts } from './i18n'
@@ -15,7 +16,10 @@ export function CreateMonitor({ threadId, title, locale }: { threadId: string; t
     const [error, setError] = useState('')
     const [created, setCreated] = useState('')
     const requestId = useRef(crypto.randomUUID())
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const [timeZone, setTimeZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
+    const [firstRun, setFirstRun] = useState(() => defaultFirstRun(timeZone, intervalMinutes))
+    const [customStart, setCustomStart] = useState(false)
+
     async function submit() {
         setBusy(true)
         setError('')
@@ -31,6 +35,7 @@ export function CreateMonitor({ threadId, title, locale }: { threadId: string; t
                                 name: name.trim(),
                                 prompt: prompt.trim(),
                                 timeZone,
+                                firstRun,
                                 threadId,
                                 destination: destinationInput(destination),
                                 intervalMinutes,
@@ -94,8 +99,15 @@ export function CreateMonitor({ threadId, title, locale }: { threadId: string; t
                 intervalMinutes={intervalMinutes}
                 disabled={busy || !!created}
                 onTarget={setDestination}
-                onInterval={setInterval}
+                onInterval={(minutes) => {
+                    setInterval(minutes)
+                    if (!customStart && Number.isInteger(minutes) && minutes >= 1 && minutes <= 525600)
+                        setFirstRun(defaultFirstRun(timeZone, minutes))
+                }}
             />
+            <MonitorStartFields locale={locale} firstRun={firstRun} timeZone={timeZone} disabled={busy || !!created}
+                onChange={(start) => { setCustomStart(true); setFirstRun(start) }}
+                onZone={(zone) => { setCustomStart(true); setTimeZone(zone) }} />
             {error && (
                 <p role="alert" className="text-destructive">
                     {error}

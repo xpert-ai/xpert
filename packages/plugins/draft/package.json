@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-draft",
-  "version": "12.1.2",
+  "version": "12.1.3",
   "private": true,
   "xpert": {
     "plugin": {
@@ -25,6 +25,11 @@
     "@nestjs/config": "*",
     "@nestjs/core": "*",
     "@xpert-ai/chatkit-types": "catalog:",
-    "@xpert-ai/plugin-sdk": "workspace:^"
+    "@xpert-ai/plugin-sdk": "workspace:^",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@xpert-ai/shadcn-ui": "workspace:*"
   }
 }

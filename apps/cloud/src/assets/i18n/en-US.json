@@ -708,7 +708,7 @@
       "SummaryError": "Use whole numbers from 4–200 for the threshold and 0–200 for retained messages, leaving at least 4 messages to summarize.",
       "SummaryPrompt": "Summary prompt",
       "LongTermMemory": "Long-term memory",
-      "LongTermMemoryTip": "Retain user profiles and Q&A experience across conversations.",
+      "LongTermMemoryTip": "Let the primary agent save and recall memories across conversations.",
       "MemoryDelay": "Delay after conversation (seconds)",
       "ProfilePrompt": "User profile prompt",
       "QAPrompt": "Q&A memory prompt",
@@ -795,7 +795,7 @@
         "workbench": "Choose the message display, initial chat layout and default Workbench view.",
         "files": "Control which attachments users can add to conversations.",
         "speech": "Configure realtime calls, speech playback and speech recognition.",
-        "memory": "Manage context, long-term memory and memory-based replies.",
+        "memory": "Configure cross-conversation memory and conversation summaries.",
         "runtime": "Configure execution limits and the sandbox environment.",
         "personalization": "Set behavior guidelines and your profile for your current assistant binding.",
         "assistant": "Connect messaging channels and scheduled triggers for this assistant.",
@@ -836,7 +836,7 @@
         "video": "Video",
         "others": "Other files"
       },
-      "DiscardUnapplied": "You have unsaved changes. Continue editing, or discard them and close.",
+      "DiscardUnapplied": "Closing settings will discard your unsaved changes.",
       "StatisticsHint": "Daily message activity covers your conversations with this assistant.",
       "Delegation": {
         "AssignedExperts": "Assigned external experts",
@@ -1413,6 +1413,13 @@
         "state_blocked": "Blocked"
       },
       "TargetDetail": {
+        "ReplaySlices": "Replay results by case group",
+        "LatestReplay": "Latest replay",
+        "CaseGroup": "Case group",
+        "SampleCount": "Sample count",
+        "BaselineAccuracy": "Baseline accuracy",
+        "CandidateAccuracy": "Candidate accuracy",
+        "NoSliceResults": "No replay results have been recorded for these groups.",
         "PointerRevision": "Pointer revision",
         "Title": "Target details",
         "Breadcrumb": "Breadcrumb",
@@ -1566,6 +1573,7 @@
         "BackRuns": "Back to replay runs",
         "Raw": "Original run record",
         "RawOnly": "The original run record is available. Its associated candidate or structured results are unavailable.",
+        "sliceMissing": "This case group was not measured in this replay.",
         "missing": "This replay run was not found in the current scope.",
         "denied": "This account cannot read this evaluation in the current scope.",
         "failed": "The replay record could not be loaded. Try again.",
@@ -3943,6 +3951,7 @@
       "UrlOnlySSECompatibility": "URL-only configs are imported as SSE for legacy compatibility."
     },
     "Files": {
+      "PluginEditorUnavailable": "Unable to open the file editor. Check plugin availability and Project access.",
       "Pdf": {
         "Previous": "Previous page",
         "Next": "Next page",
@@ -4201,6 +4210,7 @@
       }
     },
     "MENU": {
+      "My events": "My events",
       "Connectors": "Connectors",
       "Skills": "Skills",
       "ExpertSkillsConnectors": "Experts · Skills · Connectors",
@@ -6504,6 +6514,7 @@
       "WorkspaceTabsLabel": "User group configuration"
     },
     "Scope": {
+      "SelectOrganization": "Select an organization",
       "TenantEyebrow": "Tenant Console",
       "OrganizationEyebrow": "Organization Scope"
     },
@@ -7267,7 +7278,7 @@
       "NoProcessorsAvailable": "No processor providers available",
       "NoChunkersAvailable": "No chunker providers available",
       "NoImageUnderstandingsAvailable": "No image understanding providers available",
-      "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.",
+      "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.",
       "ImportOverwriteSuccess": "DSL imported into the current draft. Publish is still required for it to take effect.",
       "ImportMemoryIncomplete": "The draft was imported, but memory replacement did not finish.",
       "ImportTypeMismatch": "DSL type does not match the current xpert",

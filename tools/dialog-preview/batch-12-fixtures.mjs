@@ -57,7 +57,6 @@ export function batchTwelveFixture(scene, busy, notify, close) {
       publishing: busy,
       savingDraft: () => false,
       invalidSections: () => [],
-      confirmDiscard: signal(false),
       saveError: () => null,
       publishError: () => null,
       draftOnly: false
@@ -78,7 +77,6 @@ export function batchTwelveFixture(scene, busy, notify, close) {
       invalid: () => false,
       saveCurrent: noop,
       saveChanges: noop,
-      continueEditing: noop,
       personalization: () => null
     }
   }

@@ -7,7 +7,6 @@ import { isAIMessage } from '@langchain/core/messages'
 import { interrupt, isGraphInterrupt } from '@langchain/langgraph'
 import {
     AiModelTypeEnum,
-    LongTermMemoryTypeEnum,
     templateDependencyLocksSchema,
     stringifyMessageContent,
     getXpertAgentRecursionLimit,
@@ -236,7 +235,6 @@ export class TemplateSubagentRuntimeService {
                                             executionDefinition: createTemplateExecutionDefinition({
                                                 source,
                                                 ownerId: owner.id,
-                                                memoryNamespace: invocationId,
                                                 draft,
                                                 skills: prepared.skills,
                                                 setup,
@@ -391,13 +389,6 @@ export function templateTaskState(
             workspace_path: workingDirectory,
             workspace_root: workspaceRoot,
             memory_workspace_path: `${workingDirectory}/.memory`
-        },
-        memories: (draft.memories ?? []).map((memory) => ({
-            namespace: ['template', LongTermMemoryTypeEnum.PROFILE],
-            key: memory.prefix,
-            value: { profile: JSON.stringify({ name: memory.prefix, value: memory.value }) },
-            createdAt: new Date(0),
-            updatedAt: new Date(0)
-        }))
+        }
     }
 }

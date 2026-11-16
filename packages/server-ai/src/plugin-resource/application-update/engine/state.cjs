@@ -90,7 +90,6 @@ function modelHash(team) {
     return hash(
         [
             selected.copilotModel,
-            selected.memory?.copilotModel,
             selected.features?.speechToText?.copilotModel,
             selected.features?.textToSpeech?.copilotModel
         ].map((model) => {
@@ -111,7 +110,6 @@ function authoringProperties(team) {
         options: team.options,
         features: team.features,
         agentConfig: team.agentConfig,
-        memory: team.memory,
         summarize: team.summarize
     }
 }

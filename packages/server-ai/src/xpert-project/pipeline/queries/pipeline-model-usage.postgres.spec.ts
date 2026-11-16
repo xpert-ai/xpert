@@ -5,6 +5,7 @@ import { AiModelTypeEnum, MembershipLedgerSourceEnum } from '@xpert-ai/contracts
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { MembershipPointLedger } from '../../../membership/membership-point-ledger.entity'
 import { readPipelineModelUsage } from './pipeline-model-usage'
+import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
 
 const url = process.env.XPERT_PIPELINE_TEST_DATABASE_URL
 if (url && !/^\/xpert_pipeline_test_[a-z0-9_]+$/.test(new URL(url).pathname))
@@ -31,6 +32,11 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
             schema,
             extra: { options: '-c search_path=' + schema + ',public' },
             entities: [
+                new EntitySchema<ProjectPipelineModelReservationEntity>({
+                    name: 'ProjectPipelineModelReservationEntity',
+                    target: ProjectPipelineModelReservationEntity,
+                    columns: { ...base, operationId: text, executionId: text }
+                }),
                 new EntitySchema<XpertAgentExecution>({
                     name: 'XpertAgentExecution',
                     target: XpertAgentExecution,
@@ -78,6 +84,7 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
         }
     })
     beforeEach(async () => {
+        await db.getRepository(ProjectPipelineModelReservationEntity).clear()
         await db.getRepository(MembershipPointLedger).clear()
         await db.getRepository(XpertAgentExecution).clear()
         await db.getRepository(XpertAgentExecution).insert([
@@ -119,6 +126,17 @@ integration('exact scoped execution ancestry and model ledger aggregation', () =
         })
     const read = (ids = [root]) =>
         db.transaction('REPEATABLE READ', (manager) => readPipelineModelUsage(manager, context, ids))
+
+    it('includes admitted continuation roots once without including unrelated conversation turns', async () => {
+        await record()
+        await record({ originExecutionId: unrelated })
+        await db.getRepository(ProjectPipelineModelReservationEntity).insert([
+            { ...context.actor, id: randomUUID(), operationId: root, executionId: unrelated },
+            { ...context.actor, id: randomUUID(), operationId: root, executionId: unrelated }
+        ])
+        expect(await read()).toMatchObject({ calls: 2, totalTokens: 200, executionsWithRecords: 1 })
+        expect(await read([child])).toMatchObject({ calls: 1, totalTokens: 100 })
+    })
 
     it('deduplicates shared descendants and excludes unrelated, other-organization and other-tenant facts', async () => {
         const foreign = randomUUID()

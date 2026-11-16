@@ -22,6 +22,7 @@ import {
 import {
     RequestContext,
     ProjectPipelineContributionRegistry,
+    ProjectPipelineRuntimeAdapterRegistry,
     ProjectPipelinesRuntimeCapability,
     type ProjectPipelineContext,
     type ProjectPipelinesApi
@@ -58,7 +59,8 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
         private readonly access: ProjectAccessRuntimeService,
         private readonly taskGraph: ProjectTaskGraphService,
         private readonly projection: ProjectPipelineProjectionService,
-        private readonly catalog: ProjectPipelineContributionRegistry
+        private readonly catalog: ProjectPipelineContributionRegistry,
+        private readonly adapters: ProjectPipelineRuntimeAdapterRegistry
     ) {}
 
     private async assertRead(context: ProjectPipelineContext) {
@@ -260,10 +262,25 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
         })
         const taskIds = new Set(saved.nodes.flatMap((node) => node.taskIds))
         const graph = saved.graph
+        const definition = saved.definition
+        const adapter =
+            definition.executionAuthority === 'platform'
+                ? this.adapters
+                      .listForActor(context.actor)
+                      .find((item) => item.kind === 'subject' && item.ref === definition.subjectResolverRef)
+                : undefined
+        const workspace =
+            adapter?.kind === 'subject' && adapter.resolveEntry
+                ? adapter.nodeWorkbenches?.find(
+                      (item) => item.definitionKey === definition.key && item.version === definition.version
+                  )
+                : undefined
+        const nodeWorkbench = workspace ? { routeToExecutor: workspace.routeToExecutor } : undefined
         return {
             projectId: context.projectId,
             instance: summary(saved.instance),
-            cursor: `${saved.round.id}:${saved.instance.revision}:${graph.cursor}:${saved.refresh?.updatedAt ?? ''}:${pipelineDigest({ attribution: saved.nodes.map((node) => [node.id, node.executionIds]), executionAttribution: saved.executionAttribution, dispatchEnabled, canEdit, canManage: access.canManage, actions: saved.actions, modelUsage: saved.modelUsage, nativeModelBudget: saved.nativeModelBudget, attentions: saved.attentions.map((attention) => ({ ...attention })) })}`,
+            nodeWorkbench,
+            cursor: `${saved.round.id}:${saved.instance.revision}:${graph.cursor}:${saved.refresh?.updatedAt ?? ''}:${pipelineDigest({ nodeWorkbench, attribution: saved.nodes.map((node) => [node.id, node.executionIds]), executionAttribution: saved.executionAttribution, dispatchEnabled, canEdit, canManage: access.canManage, actions: saved.actions, modelUsage: saved.modelUsage, nativeModelBudget: saved.nativeModelBudget, attentions: saved.attentions.map((attention) => ({ ...attention })) })}`,
             definition: saved.definition,
             runId: saved.runId,
             historical: saved.historical,

@@ -48,6 +48,7 @@ export function desktopThemeStyle(appearance: AppearanceConfig, mode: ColorMode)
   values['--desktop-row-padding'] = `${density === 'compact' ? 6 : density === 'spacious' ? 14 : 10}px`
   values['--desktop-row-gap'] = `${density === 'compact' ? 0 : density === 'spacious' ? 4 : 2}px`
   values['--desktop-avatar-gap'] = `${density === 'compact' ? 8 : density === 'spacious' ? 12 : 10}px`
+  values['--desktop-list-avatar-size'] = density === 'compact' ? '2.5rem' : density === 'spacious' ? '3.5rem' : '3rem'
   return { ...values, fontSize: `${appearance.desktop.baseSize}px` }
 }
 

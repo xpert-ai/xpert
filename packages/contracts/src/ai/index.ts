@@ -130,6 +130,8 @@ export * from './knowledge-keyword-analyzer.model'
 export * from './assistant-configuration.model'
 export * from './assistant-trigger.model'
 
+export * from './execution-source.model'
+export * from './cli-execution.model'
 export * from './model-execution.model'
 export * from './model-execution-parameters.model'
 export * from './computer-codex-isolation.model'

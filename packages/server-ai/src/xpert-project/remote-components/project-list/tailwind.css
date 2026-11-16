@@ -1,0 +1,9 @@
+@import '@xpert-ai/shadcn-ui/styles.css';
+@source "./src/**/*.{ts,tsx}";
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}

@@ -5,11 +5,10 @@ import { ICommand } from '@nestjs/cqrs'
  * @returns XpertDraftDslDTO
  */
 export class XpertExportCommand implements ICommand {
-	static readonly type = '[Xpert] Export DSL'
+    static readonly type = '[Xpert] Export DSL'
 
-	constructor(
-		public readonly id: string,
-		public readonly isDraft: boolean,
-		public readonly includeMemory?: boolean,
-	) {}
+    constructor(
+        public readonly id: string,
+        public readonly isDraft: boolean
+    ) {}
 }

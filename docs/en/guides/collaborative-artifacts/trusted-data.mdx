@@ -1,0 +1,76 @@
+---
+title: 'Trusted data and artifact conversion'
+description: 'Use certification, bounded result sharing and fixed evidence to produce reports, presentations and narrated video.'
+---
+
+Trusted data connects metric definitions, query results and downstream artifacts. Certification records authorized approval of a business definition; an execution receipt records a query; an evidence snapshot preserves a particular result. Successful queries or correctly rendered pages do not substitute for certification.
+
+## Metric certification and invalidation
+
+In Data Xpert metric management, users with certification permission certify metrics through a dedicated action. Ordinary creation or editing cannot grant certification directly.
+
+Certification binds a normalized definition hash, model and published version, certifier and timestamp. Changes to the workspace, model, business scope, calculation definition or other semantic inputs invalidate current certification. Renaming a display label or reordering JSON object keys does not revoke it unnecessarily. Reverting to an old definition still requires explicit recertification.
+
+| State                        | Meaning and action                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Verified certification       | The source checked the definition and dependency version for this query; validity is not permanent                       |
+| Legacy unverified            | An older certification lacks version-bound evidence and is marked `legacy_unverified`; recertify to obtain current proof |
+| Changed model or definition  | The old proof cannot support new queries; update the definition and recertify                                            |
+| Unverifiable or unauthorized | Managed results are withheld; restore a valid source or access before retrying                                           |
+
+Certification, revocation and definition invalidation append history events. Display-only edits do not invent certification events. History requires current resource access; a past approval does not prove current validity.
+
+## Read sources in a dashboard
+
+Dashboard Sources and analysis evidence retain source versions, query timestamps, field units, completeness and source-issued certification. `decimal` and `int64` travel as exact strings to avoid floating-point rounding.
+
+Evaluate these separately:
+
+- **Definition:** whether the source provides currently verifiable business certification. Ordinary SQL, temporary calculations and overridden measures do not automatically inherit metric certification.
+- **Execution:** whether the query succeeded and returned a complete result. Truncated, paged or sampled results cannot be presented as a complete total.
+- **Freshness:** when the query ran and the source was fetched. A page refresh timestamp is not the business data's last modification time.
+
+Sources check authorization, versions and certification before and after querying. A revocation or definition change during execution prevents delivery of the outdated result.
+
+## Refresh and result reuse
+
+Standard dashboards support 30/60-second refresh while the page is visible, alongside manual force refresh. This runs with the open page; it is not a background task that continues after the page closes.
+
+Result reuse is off by default and may retain results for at most 60 seconds under the query policy. Reuse is available only when the Provider can independently recheck current access and source version. Every hit is reauthorized. Cache entries are isolated by identity, query, parameters and source version, retain the original execution time, and never cache failures. Force refresh executes again.
+
+File sources still read and verify the current file, reusing only permitted parsing and aggregation results. Data Xpert sources continue to execute fresh queries; do not assume every Provider supports caching. See [Data contracts and rendering](/en/guides/artifacts-dashboard/data-and-rendering) for dashboard query and rendering interfaces.
+
+## Share bounded results with a group
+
+Ordinary sharing uses each viewer's own data permissions. The explicit `delegated_results` mode lets group members without underlying source access receive bounded results. It grants no connection credentials, source Project membership, editing rights or onward delegation.
+
+1. A source manager selects a fixed published artifact version, enables analysis in group sharing, and chooses delegated execution using their current source permissions.
+2. Select allowed datasets and fields, fixed row filters, analysis mode, detail access and an output row limit.
+3. The receiving group owner reviews the scope and explicitly accepts delegation. All group members are the audience, not only the accepting owner.
+4. The group's Assistant describes and queries the accepted resource reference, receiving only allowed rows, fields and provenance.
+
+Published parameter defaults apply unless the contract explicitly permits variable controls, which remain limited to listed values. The browser and Agent cannot replace SQL, source identity or native query declarations. `bindings` mode uses declared bindings; `explore` allows additional filtering, grouping, aggregation and sorting within the authorized fields without relaxing fixed filters. Each response is limited to 100 rows or the grant's smaller limit.
+
+Delegation is never enabled implicitly without explicit acceptance. The platform restores the issuer's current identity and checks authorization before and after execution and before delivery. A new published version does not expand an old grant. Expiry, revocation, source access changes or changes to the receiving group's Project binding block subsequent use. An ordinary organization share link does not automatically become a delegated-query link.
+
+## Capture and update analysis evidence
+
+In the analysis evidence view, choose a published dashboard and parameters, then save an evidence snapshot. It includes the fixed source version, normalized Datasets, fields and units, completeness, query times, captured certification and a checksum. It contains no credentials or replaceable native query payload.
+
+Facts cite exact datasets, rows and fields; inferences and unverified statements are identified separately. Capturing evidence grants no additional data access, and the checksum only verifies content consistency.
+
+Explicitly capture again when the source changes. This creates new evidence and shows bounded differences: comparison is positional, displays at most 50 changes, and limits each value to 300 characters. Row reordering is not business-key matching. The new snapshot does not automatically replace reports or overwrite human edits.
+
+## Generate reports, presentations and video
+
+From saved evidence, choose document, presentation or Motion draft generation. Each consumer uses the same snapshot's exact values and cell references. Retrying an identical request reuses the target. New evidence creates new artifacts, while existing artifacts retain their edits and history.
+
+The source-access guard for evidence-derived documents and presentations is pinned to the immutable first snapshot. Removing a provenance label from later content cannot remove the guard. Managed reads, conversion, rendering and downloads recheck Project and source access at their respective entry points. Recertifying an invalidated source does not revive an old snapshot; explicitly refresh and create new artifacts. Previously downloaded files cannot be remotely recalled.
+
+## Narration and rendering
+
+After configuring an authorized TTS `narrationModel` on the published Motion middleware, create a voiced draft from an unedited evidence video draft. The current implementation uses the first fixed observation, keeping speech input, caption and citations aligned. It accepts at most 600 characters and 120 seconds of audio, scheduling scenes from the actual audio duration.
+
+Narration creates a separate draft without modifying the original or claiming to read the entire dataset. The generated WAV is a fixed Sandbox render input. Repeated rendering reuses the audio without calling the speech model again. Failed or interrupted synthesis is not automatically repeated because provider billing may be uncertain.
+
+Server video export requires a healthy Browser Video Runtime with execution control and its queue. Editing generated content invalidates the bound audio/render checksum; create a new evidence voice-over draft for a different observation. Source refresh never silently rewrites a published video.

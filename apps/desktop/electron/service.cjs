@@ -7,6 +7,8 @@ const {
   isSupportedLocale,
   localizedText
 } = require('./i18n/index.mjs')
+const { dockPreferences, islandPreferences } = require('./overlay-preferences.cjs')
+const { readDockOffsets } = require('./agent-dock/model.cjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
@@ -74,6 +76,8 @@ function parseConfig(value, connectionDefaults) {
     allowUntrustedCertificates: value.allowUntrustedCertificates === true,
     theme: value.theme,
     appearance,
+    ...(value.activityIsland ? { activityIsland: islandPreferences(value.activityIsland) } : {}),
+    ...(value.agentDock ? { agentDock: dockPreferences(value.agentDock) } : {}),
     locale: normalizeLocale(value.locale)
   }
 }
@@ -98,7 +102,7 @@ function parseBootstrap(value) {
   const organizations = value.organizations.map((item) => {
     if (!item || typeof item.id !== 'string' || typeof item.name !== 'string')
       throw new ClientError('Invalid workspace information.')
-    return { id: item.id, name: item.name }
+    return { id: item.id, name: item.name, imageUrl: parseAvatarUrl(item.imageUrl) }
   })
   return {
     user: parseUser(value.user),
@@ -119,6 +123,7 @@ function parseBots(value, locale) {
       const avatar = item.avatar
       return {
         id: item.id,
+        ...(typeof item.workspaceId === 'string' && { workspaceId: item.workspaceId }),
         createdAt:
           typeof item.createdAt === 'string' && Number.isFinite(Date.parse(item.createdAt)) ? item.createdAt : null,
         name: [...(locale?.startsWith('zh') ? [item.titleCN] : []), item.title, item.name].find(
@@ -179,6 +184,10 @@ class DesktopService {
       this.config = defaults
       validSavedConfig = false
     }
+    // Existing installations already have settings. Fresh profiles wait for explicit confirmation.
+    this.needsLanguageSelection = saved?.needsLanguageSelection ?? !validSavedConfig
+    this.needsComputerSetup = saved?.needsComputerSetup === true
+    this.dockOffsets = readDockOffsets(saved?.dockOffsets)
     this.sidebars =
       saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
     this.credentials = validSavedConfig ? saved?.credentials || null : null
@@ -186,6 +195,7 @@ class DesktopService {
     this.bots = []
     this.sourceBots = []
     this.generation = 0
+    this.botListRevision = 0
     this.refreshing = null
     this.assistantActivity = new AssistantActivity(this)
     this.userNotifications = new UserNotifications(this, saved?.notificationDismissals)
@@ -194,6 +204,8 @@ class DesktopService {
   snapshot() {
     return {
       config: this.config,
+      needsLanguageSelection: this.needsLanguageSelection,
+      needsComputerSetup: Boolean(this.supportsWindowControl && this.needsComputerSetup),
       connectionDefaults: this.connectionDefaults,
       profile: this.profile,
       localLoginAvailable: this.canLoginLocal()
@@ -204,10 +216,17 @@ class DesktopService {
     return !!this.localLogin && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(this.config.apiUrl).hostname)
   }
 
-  persist() {
+  persist({
+    config = this.config,
+    needsLanguageSelection = this.needsLanguageSelection,
+    needsComputerSetup = this.needsComputerSetup
+  } = {}) {
     this.storage.write({
-      config: this.config,
+      config,
+      needsLanguageSelection,
+      needsComputerSetup,
       credentials: this.credentials,
+      dockOffsets: this.dockOffsets,
       sidebars: this.sidebars,
       notificationDismissals: this.userNotifications?.dismissals
     })
@@ -225,9 +244,28 @@ class DesktopService {
     return this.snapshot()
   }
 
+  confirmInitialLanguage(locale) {
+    if (!isSupportedLocale(locale)) throw new ClientError('Invalid language setting.')
+    if (!this.needsLanguageSelection) return this.snapshot()
+    const config = { ...this.config, locale: normalizeLocale(locale) }
+    const needsComputerSetup = this.supportsWindowControl === true
+    this.persist({ config, needsLanguageSelection: false, needsComputerSetup })
+    this.needsComputerSetup = needsComputerSetup
+    this.config = config
+    this.needsLanguageSelection = false
+    return this.snapshot()
+  }
+
+  finishComputerSetup() {
+    this.persist({ needsComputerSetup: false })
+    this.needsComputerSetup = false
+    return this.snapshot()
+  }
+
   configure(value) {
     const next = parseConfig(value, this.connectionDefaults)
     const connectionChanged = connectionPolicyKey(next) !== connectionPolicyKey(this.config)
+    if (!next.activityIsland && this.config.activityIsland) next.activityIsland = this.config.activityIsland
     if (connectionChanged) this.logout()
     this.config = next
     this.persist()
@@ -307,11 +345,12 @@ class DesktopService {
   }
 
   applyAccountLanguage() {
-    const locale = this.profile?.user.preferredLanguage
-    if (locale && locale !== this.config.locale) {
-      this.config = { ...this.config, locale }
-      this.persist()
-    }
+    const locale = this.profile.user.preferredLanguage
+    // Compare with the last account preference in this session so a refresh preserves later desktop edits.
+    if (locale === (this.credentials.lastAccountLocale ?? null)) return
+    this.credentials = { ...this.credentials, lastAccountLocale: locale }
+    if (locale) this.config = { ...this.config, locale }
+    this.persist()
   }
 
   async refreshProfile() {
@@ -359,26 +398,59 @@ class DesktopService {
     return this.snapshot()
   }
 
-  async listBots() {
-    if (!this.profile?.organizationId) return []
-    const generation = this.generation
-    const items = []
-    let total = 0
-    do {
-      const page = parseBots(
-        await this.request(`/api/mobile/xperts?limit=100&offset=${items.length}`),
-        this.config.locale
-      )
-      total = page.total
-      items.push(...page.items)
-      if (!page.items.length) break
-    } while (items.length < total)
-    if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
+  readBotPage(offset) {
+    return this.request(`/api/mobile/xperts?limit=100&offset=${offset}`).then((value) =>
+      parseBots(value, this.config.locale)
+    )
+  }
+
+  commitBots(items) {
     this.sourceBots = items
     this.bots = this.decorateBots(items)
     this.assistantActivity.sync()
     this.userNotifications.sync()
     return this.bots
+  }
+
+  async listBotPage(cursor) {
+    if (!this.profile?.organizationId) throw new ClientError('Select an organization first.', 403)
+    const generation = this.generation
+    const continuation = this.botListContinuation
+    if (
+      cursor !== undefined &&
+      (!continuation || continuation.cursor !== cursor || continuation.generation !== generation)
+    )
+      throw new ClientError('The workspace changed. Please retry.', 409)
+    const offset = cursor ? continuation.offset : 0
+    const revision = cursor ? this.botListRevision : ++this.botListRevision
+    this.botListContinuation = null
+    const page = await this.readBotPage(offset)
+    if (generation !== this.generation || revision !== this.botListRevision)
+      throw new ClientError('The workspace changed. Please retry.', 409)
+    const nextOffset = offset + page.items.length
+    const next = page.items.length && nextOffset < page.total ? require('node:crypto').randomUUID() : null
+    const bots = this.commitBots(offset ? this.sourceBots.concat(page.items) : page.items)
+    if (next) this.botListContinuation = { generation, cursor: next, offset: nextOffset }
+    const saved = this.sidebarState().lastSession?.botId
+    return { bots, next, awaitingSavedBot: Boolean(next && saved && !bots.some((item) => item.id === saved)) }
+  }
+
+  async listBots() {
+    if (!this.profile?.organizationId) return []
+    const generation = this.generation
+    const revision = ++this.botListRevision
+    this.botListContinuation = null
+    const items = []
+    let total = 0
+    do {
+      const page = await this.readBotPage(items.length)
+      if (generation !== this.generation || revision !== this.botListRevision)
+        throw new ClientError('The workspace changed. Please retry.', 409)
+      total = page.total
+      items.push(...page.items)
+      if (!page.items.length) break
+    } while (items.length < total)
+    return this.commitBots(items)
   }
 
   async chatSession(input) {
@@ -589,6 +661,11 @@ Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').creat
 Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').createAssistantTriggerMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./workspace-catalog.cjs').createWorkspaceCatalogMethods(ClientError))
+Object.assign(
+  DesktopService.prototype,
+  require('./workspace-connectors.cjs').createWorkspaceConnectorMethods(ClientError)
+)
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./usage.cjs').createUsageMethods(ClientError))

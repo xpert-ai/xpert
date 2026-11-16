@@ -3,7 +3,7 @@ export interface ProfileMessage {
   channel: typeof PROFILE_CHANNEL
   protocolVersion: 1
   type: string
-  instanceId?: string
+  instanceId?: string | null
   requestId?: string
   actionKey?: string
   parameterKey?: string
@@ -29,6 +29,8 @@ export function isProfileMessage(value: unknown): value is ProfileMessage {
     return false
   for (const key of ['instanceId', 'requestId', 'actionKey', 'parameterKey', 'targetId', 'commandKey', 'message']) {
     const field: unknown = Reflect.get(value, key)
+    // Built-in views announce readiness before the host assigns their instance ID.
+    if (key === 'instanceId' && value.type === 'ready' && field === null) continue
     if (field !== undefined && (typeof field !== 'string' || field.length > 2000)) return false
   }
   return true

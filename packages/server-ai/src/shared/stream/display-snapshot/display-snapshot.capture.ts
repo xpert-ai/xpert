@@ -109,7 +109,6 @@ export class DisplaySnapshotCapture {
             const incoming = cloneContent(delta.data.data)
             const { messageContext } = this.appendContext.resolve({
                 incoming,
-                fallbackSource: typeof incoming === 'string' ? 'memory_reply' : undefined,
                 fallbackStreamId: message.id
             })
             appendMessageContent(message, incoming, messageContext)

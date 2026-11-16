@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' data: https: http:; script-src 'self'; style-src 'self'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <title>Bosi Agent Dock</title>
+    <link rel="stylesheet" href="../overlay-avatar.css" />
+    <link rel="stylesheet" href="dock.css" />
+    <script defer src="../overlay-avatar.js"></script>
+    <script defer src="dock.js"></script>
+  </head>
+  <body>
+    <div id="strip"></div>
+    <main id="rail" aria-label="Agent Dock">
+      <div id="seats"></div>
+      <button id="add" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </button>
+      <svg id="handle" width="48" height="46" viewBox="0 0 48 46">
+        <defs><path id="curve" d="M11 10a24 24 0 0 1 24 24" /></defs>
+        <use id="arc" href="#curve" aria-hidden="true" />
+        <use
+          id="grip"
+          href="#curve"
+          role="slider"
+          tabindex="0"
+          aria-orientation="vertical"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        />
+      </svg>
+    </main>
+    <button id="result" type="button" hidden><span></span><strong></strong></button>
+    <section id="shelf" hidden>
+      <header><strong id="heading"></strong><button id="done"></button></header>
+      <div id="options"></div>
+    </section>
+  </body>
+</html>

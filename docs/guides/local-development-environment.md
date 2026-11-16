@@ -16,7 +16,7 @@
 - 依赖锁覆盖 Linux AMD64 和 ARM64，当前固定 PostgreSQL 17.11、pgvector
   0.8.1、Redis 7.4.7、Node 22.23.4。下载前置条件是 HTTPS 网络；缓存命中时
   仍校验 SHA-256。项目 Node 不替换镜像系统 Node。
-- 调用方提供足够的内存、磁盘和构建时间，以及持久的服务进程所有者。
+- 调用方提供足够的内存、磁盘和构建时间，并管理自己启动的服务。
   脚本管理选定实例的进程，不调整主机或容器的资源限制。
 - 此开发实例的 Local Shell 与 API 使用同一用户权限；适用于独立开发和
   测试，不提供多租户 Shell 隔离。
@@ -40,20 +40,29 @@ python3 "$platform_root/tools/local-environment/cli.py" \
 `prepare` 的 `--db-port`、`--redis-port`、`--api-port`、`--web-port` 指定四个
 互不重复的非特权端口。
 
-`bootstrap` 安装锁定源码依赖、基础库和 Local Shell 插件，显式构建其
-node-pty 并进行终端探测；不会全局放开依赖安装脚本。源码 revision 或依赖锁
-改变后，需要重新执行 bootstrap。日志保存在私有状态目录。
+`bootstrap` 准备锁定源码依赖与 node-pty。它按依赖锁、包清单、补丁、安装脚本、
+项目 Node 和安装布局验证依赖回执；输入未变时跳过安装。普通业务源码修改或
+Git 提交变化不触发重复安装。每次仍执行真实 PTY 探测，仅在失败时修复 node-pty，
+不会全局放开依赖安装脚本。PTY 修复失败后，重试可保留已成功的依赖安装。
+旧版本回执首次使用时需要重新 bootstrap。日志保存在私有状态目录。
 
-默认 `managed` 模式要求调用方持有前台 Supervisor 进程。可以在一个持续
-打开的终端执行以下命令，也可以交给外部进程管理器托管：
+源码编译统一由 `build` 或 `start` 完成；bootstrap 不再预先编译基础库和插件。
+API 构建包含 Local Shell 插件，任一步失败均不发布成功构建回执。
 
-```bash
-python3 "$platform_root/tools/local-environment/cli.py" \
-  --platform "$platform_root" --state "$environment_state" supervise
-```
+新环境默认使用 `detached` 模式，由 `start` 直接启动本地 Supervisor。
+Coding CLI 自行管理服务，接受任务结束或取消时进程被回收；后续任务检查并
+重新启动同一实例。已有环境可再次 prepare 并显式指定
+`--supervisor-mode detached`，仅调整后续启动方式，不重建数据或凭据。
+需要自行持有前台进程的调用方仍可选择 `managed` 并运行 `supervise`。
+详见[云电脑操作说明](computer-local-development.md)。
 
-`XPERT_SUPERVISOR_READY` 只表示 Supervisor 控制通道可用。保持该进程运行，
-在另一个终端或控制进程中启动、初始化和检查平台：
+Project 任务应增加全局参数 `--project-root "$project_root"`，使 prepare 与后续
+命令核对项目绑定；绑定后漏传该参数也会拒绝操作。源码 checkout 需位于该根
+目录内。新 Project 不复用旧实例的数据库或全局插件目录。
+同一插件的新版本保持包名和安装作用域，通过更新 API
+替换；不要先卸载旧版本。普通主机的已有非 Project 环境仍可不提供该参数。
+
+启动、初始化和检查平台：
 
 ```bash
 python3 "$platform_root/tools/local-environment/cli.py" \
@@ -64,17 +73,26 @@ python3 "$platform_root/tools/local-environment/cli.py" \
   --platform "$platform_root" --state "$environment_state" status --strict
 ```
 
-启动顺序为 PostgreSQL/Redis、Web、API。首次启动可因构建耗时返回退出码 75
+启动顺序为 PostgreSQL/Redis、API、Web。后端功能可显式使用 `start --service api`，
+避免无关的 Web 构建；此时就绪状态为 `api_ready`。完整平台验收仍要求 Web 就绪，
+`status --strict` 的四服务要求不变。完整启动时，API 会驻留在内存中参与后续 Web
+构建期间的资源占用；资源紧张而确需 Web 时，可先 `build --service web` 再完整启动。
+
+首次启动可因构建耗时返回退出码 75
 和 `status: pending`；它表示等待结束，后台服务仍可能运行，不能当成失败重启
 或当成成功验收。重复相同服务选择的 `start` 继续等待和推进后续阶段。
 数据库与 Redis 共用就绪等待预算；控制请求、数据库初始化等操作另有各自耗时，
 `--timeout` 不是整个命令的硬性墙钟上限。
 
-在允许后台进程持续运行的开发主机上，prepare 时可指定
-`--supervisor-mode detached`，由 `start` 启动后台 Supervisor。短命调用进程或会清理子进程的
-执行环境应使用 `managed` 并由外部持久进程托管。完整停止或主机/容器重启后，
-managed 模式需重新运行 `supervise`；私有状态与数据目录保留，旧 PID 文件
-不会授予新进程控制权。
+命令等待窗口与 Coding CLI 任务执行期限不同。构建仍有进展且执行预算允许时，
+保持任务活跃并继续观察原进程，不因一次短等待返回而结束整个任务或重启服务。
+明确失败时先诊断再决定修复；到达真实执行期限则记录阶段、路径和日志供续作。
+
+`detached` 只表示 Supervisor 在后台运行，不保证它能跨越 Coding CLI 的任务
+清理。完整停止、任务清理或主机/容器重启后，使用相同源码和状态目录重新 start；
+显式选择 `managed` 的调用方先自行运行 `supervise`。私有状态与数据目录保留，
+旧 PID 文件不会授予新进程控制权。独立验收任务应检查并按需启动，不要求上一个
+任务留下仍在运行的服务。
 
 ## 构建与服务管理
 
@@ -88,15 +106,21 @@ Web 使用 `development-light` 开发配置，有限编译完成后由 Angular �
 map，不代替生产 AOT 构建检查。API 即使复用编译结果，也必须逐次执行
 schema-sync apply、verify，成功后才能启动服务。
 
-| 命令 | 行为 |
-| --- | --- |
-| `start --infra-only` | 只启动和验证 PostgreSQL、Redis |
-| `build --service api\|web` | 单独构建并记录回执；等待编译完成后返回 |
-| `status --strict` | 检查 Supervisor 身份、监听进程归属与四服务响应，未全就绪返回非零 |
-| `logs --service api --lines 60` | 读取有限、脱敏日志，支持 web/bootstrap/terminal 等 |
-| `restart --service api` | 重启 API，保留其他服务和数据 |
-| `stop --service web` | 停止所选服务 |
-| `stop` | 逆依赖顺序停止服务及 Supervisor，保留数据与缓存 |
+现有日志增加 `XPERT_DEV_PHASE` 事件，记录依赖安装、构建、迁移校验、服务启动
+等阶段的状态与耗时。`status` 和 pending 结果只读取有限日志尾部，提供日志大小、
+更新时间与最近阶段，帮助 Agent 决定是否继续等待。最近事件可能已过时或被大量
+输出挤出日志尾部，必须结合进程身份与健康检查判断；它不触发自动重试或任务收尾。
+
+| 命令                            | 行为                                                             |
+| ------------------------------- | ---------------------------------------------------------------- |
+| `start --infra-only`            | 只启动和验证 PostgreSQL、Redis                                   |
+| `start --service api`           | 启动基础设施与 API，不构建或启动 Web                             |
+| `build --service api\|web`      | 单独构建并记录回执；等待编译完成后返回                           |
+| `status --strict`               | 检查 Supervisor 身份、监听进程归属与四服务响应，未全就绪返回非零 |
+| `logs --service api --lines 60` | 读取有限、脱敏日志，支持 web/bootstrap/terminal 等               |
+| `restart --service api`         | 重启 API，保留其他服务和数据                                     |
+| `stop --service web`            | 停止所选服务                                                     |
+| `stop`                          | 逆依赖顺序停止服务及 Supervisor，保留数据与缓存                  |
 
 Supervisor 控制前校验 Linux boot ID、PID/start time、cwd、命令与配置路径；
 健康检查同时验证监听者属于该服务进程树。未知进程、旧代进程或被他人占用的

@@ -13,6 +13,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     }
 }))
 
+jest.mock('../shared/volume', () => jest.requireActual('../shared/volume/volume'))
+
 jest.mock('../shared', () => ({
     ToolSchemaParser: {
         parseZodToJsonSchema: jest.fn()
@@ -46,17 +48,6 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     }
 }))
 
-jest.mock('./commands', () => ({
-    XpertAgentChatCommand: class XpertAgentChatCommand {
-        constructor(
-            public readonly state: Record<string, unknown>,
-            public readonly agentKey: string,
-            public readonly xpert: Record<string, unknown>,
-            public readonly options: Record<string, unknown>
-        ) {}
-    }
-}))
-
 jest.mock('./xpert-agent.entity', () => ({
     XpertAgent: class XpertAgent {}
 }))
@@ -68,8 +59,9 @@ import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import { AgentMiddlewareRegistry, type AgentMiddleware, type IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { type TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { getAgentMiddlewares } from '../shared/agent/middleware'
-import { FindXpertQuery } from '../xpert/queries'
-import { XpertAgentChatCommand } from './commands'
+import { XpertChatCommand } from '../xpert/commands/chat.command'
+import { AssertChatConversationAccessQuery } from '../chat-conversation/queries/conversation-assert-access.query'
+import { AssertXpertAgentExecutionAccessQuery } from '../xpert-agent-execution/queries/assert-access.query'
 import { XpertAgentService } from './xpert-agent.service'
 
 describe('XpertAgentService', () => {
@@ -149,105 +141,81 @@ describe('XpertAgentService', () => {
         }
     })
 
-    it('maps run requests to a new agent chat command', async () => {
-        await service.chatAgent(
-            {
-                action: 'run',
-                agentKey: 'agent-1',
-                xpertId: 'xpert-1',
-                state: {
-                    human: {
-                        input: 'Hello'
-                    }
-                }
-            },
-            {
-                language: 'en-US'
-            } as any
-        )
+    describe('Studio agent debugging', () => {
+        const scope = { xpertId: 'xpert-1', agentKey: 'archive-child' }
+        const state = { human: { input: '归档时间？' }, warehouse: { name: 'North' } }
+        const target = { executionId: 'execution-1' }
+        const resume = {
+            ...scope,
+            action: 'resume',
+            target,
+            decision: { type: 'confirm' },
+            patch: { agentKey: 'agent-2' },
+            state
+        } as const
+        const execution = { ...scope, threadId: 'thread-1' }
 
-        const query = queryBus.execute.mock.calls[0][0] as FindXpertQuery
-        expect(query).toBeInstanceOf(FindXpertQuery)
-        expect(query.conditions).toEqual({ id: 'xpert-1' })
-        expect(query.params).toEqual({ relations: ['agent'], isDraft: true })
-        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        it('starts the selected draft agent through the thread-owning chat command with its full input state', async () => {
+            await service.chatAgent({ action: 'run', ...scope, state }, {})
 
-        const command = commandBus.execute.mock.calls[0][0] as XpertAgentChatCommand
-        expect(command).toBeInstanceOf(XpertAgentChatCommand)
-        expect(command.state).toEqual({
-            human: {
-                input: 'Hello'
-            }
+            expect(xpertService.assertCanAuthorById).toHaveBeenCalledWith(scope.xpertId)
+            expect(commandBus.execute).toHaveBeenCalledWith(
+                new XpertChatCommand(
+                    { action: 'send', message: { input: state.human }, state },
+                    { ...scope, from: 'debugger', isDraft: true }
+                )
+            )
         })
-        expect(command.agentKey).toBe('agent-1')
-        expect(command.options.execution).toBeUndefined()
-        expect(command.options.resume).toBeUndefined()
-    })
 
-    it('maps resume requests to resume an existing execution', async () => {
-        await service.chatAgent(
-            {
+        it('resumes the selected agent in its original debug conversation with the decision and patch', async () => {
+            queryBus.execute.mockResolvedValueOnce(execution).mockResolvedValueOnce({ id: 'conversation-1' })
+            await service.chatAgent(resume, {})
+            expect(queryBus.execute).toHaveBeenCalledWith(
+                new AssertXpertAgentExecutionAccessQuery(target.executionId, 'contribute')
+            )
+            expect(queryBus.execute).toHaveBeenCalledWith(
+                new AssertChatConversationAccessQuery(
+                    {
+                        xpertId: scope.xpertId,
+                        from: 'debugger',
+                        threadId: execution.threadId
+                    },
+                    'contribute'
+                )
+            )
+            expect(commandBus.execute.mock.calls[0][0].request).toMatchObject({
                 action: 'resume',
-                agentKey: 'agent-1',
-                xpertId: 'xpert-1',
-                target: {
-                    executionId: 'execution-1'
-                },
-                decision: {
-                    type: 'confirm',
-                    payload: {
-                        approved: true
-                    }
-                },
-                patch: {
-                    agentKey: 'agent-2'
-                },
-                state: {
-                    human: {
-                        input: 'Continue'
-                    }
-                }
-            },
-            {} as any
-        )
-
-        const command = commandBus.execute.mock.calls[0][0] as XpertAgentChatCommand
-        expect(command.options.execution).toEqual({
-            id: 'execution-1',
-            category: 'agent'
+                conversationId: 'conversation-1',
+                target,
+                state,
+                decision: resume.decision,
+                patch: resume.patch
+            })
         })
-        expect(command.options.resume).toEqual({
-            decision: {
-                type: 'confirm',
-                payload: {
-                    approved: true
-                }
-            },
-            patch: {
-                agentKey: 'agent-2'
+
+        it.each([{ agentKey: 'another-agent' }, { xpertId: 'another-assistant' }, { parentId: 'parent' }])(
+            'rejects a resume aimed at a different debug run (%j)',
+            async (mismatch) => {
+                queryBus.execute.mockResolvedValueOnce({ ...execution, ...mismatch })
+                await expect(service.chatAgent(resume, {})).rejects.toThrow()
+                expect(commandBus.execute).not.toHaveBeenCalled()
             }
-        })
-    })
-
-    it('treats legacy agent payloads as run requests', async () => {
-        await service.chatAgent(
-            {
-                agentKey: 'agent-1',
-                xpertId: 'xpert-1',
-                executionId: 'execution-1',
-                reject: true,
-                state: {
-                    human: {
-                        input: 'Reject this'
-                    }
-                }
-            } as any,
-            {} as any
         )
 
-        const command = commandBus.execute.mock.calls[0][0] as XpertAgentChatCommand
-        expect(command.options.execution).toBeUndefined()
-        expect(command.options.resume).toBeUndefined()
+        it('requires author access before creating a debug thread', async () => {
+            xpertService.assertCanAuthorById.mockRejectedValueOnce(new Error('forbidden'))
+            await expect(service.chatAgent({ action: 'run', ...scope, state }, {})).rejects.toThrow('forbidden')
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        })
+
+        it('treats legacy payloads without an action as a new run', async () => {
+            await service.chatAgent({ ...scope, state, executionId: 'old-execution' } as never, {})
+            expect(commandBus.execute.mock.calls[0][0].request).toEqual({
+                action: 'send',
+                message: { input: state.human },
+                state
+            })
+        })
     })
 
     it('returns user-addable middleware from the middleware registry', () => {

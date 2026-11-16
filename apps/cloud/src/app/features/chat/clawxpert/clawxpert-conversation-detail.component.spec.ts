@@ -232,6 +232,7 @@ describe('ClawXpertConversationDetailComponent component.spec.ts', () => {
 
     expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: true })
     expect(getRuntimeInput().projectId?.()).toBeNull()
+    expect(getRuntimeInput().workbench?.().navigation?.projectId).toBe('auto-created-project')
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(chatkitElement)
     expect(projectApi.availableForXpert).not.toHaveBeenCalled()
   })

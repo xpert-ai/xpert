@@ -70,7 +70,8 @@ describe('Shell CLI ownership and lifecycle', () => {
     })
     it('keeps source ownership on the actor when the model grant has a separate payer', async () => {
         const f = setup()
-        await expect(f.service.assertCurrent({ ...context, billableUserId: 'payer' })).resolves.toBeUndefined()
+        const modelContext = { ...context, billableUserId: 'payer' }
+        await expect(f.service.assertCurrent(modelContext)).resolves.toBeUndefined()
     })
     it.each(['preparing', 'prepared', 'unknown', 'stopped', 'exited'])(
         'denies inference for a %s child',
@@ -86,19 +87,23 @@ describe('Shell CLI ownership and lifecycle', () => {
         await expect(f.service.assertCurrent(context, true)).resolves.toBeUndefined()
         await expect(f.service.assertCurrent(context)).rejects.toThrow()
     })
-    it('rejects a grant whose installed profile revision has changed', async () => {
-        const f = setup()
-        f.capabilities.register(CliModelProfilesCapability, {
-            get: () => ({ ...profile, revision: 'changed' })
-        })
-        await expect(f.service.assertCurrent(context)).rejects.toThrow()
-    })
-    it.each(['generation', 'revision', 'parent', 'receipt', 'heartbeat', 'deadline', 'environment'])(
+    it.each([false, true])(
+        'allows catalog revision drift during source validation (preparing=%s)',
+        async (preparing) => {
+            const f = setup()
+            f.capabilities.register(CliModelProfilesCapability, {
+                get: () => ({ ...profile, revision: 'changed' })
+            })
+            await expect(f.service.assertCurrent(context, preparing)).resolves.toBeUndefined()
+            expect(f.child.profileRevision).toBe(profile.revision)
+        }
+    )
+    it.each(['generation', 'receipt_revision', 'parent', 'receipt', 'heartbeat', 'deadline', 'environment'])(
         'rejects a changed %s',
         async (field) => {
             const f = setup()
             if (field === 'generation') f.child.generation++
-            if (field === 'revision') f.child.profileRevision = '2'
+            if (field === 'receipt_revision') f.child.profileRevision = '2'
             if (field === 'parent') f.parent.status = 'success'
             if (field === 'receipt') f.shell.runner = null
             if (field === 'heartbeat') f.shell.observedAt = new Date(Date.now() - 31000)

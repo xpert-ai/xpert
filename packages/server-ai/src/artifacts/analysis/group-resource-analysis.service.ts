@@ -10,13 +10,16 @@ import { ArtifactGroupContentService } from '../group-references/artifact-group-
 import { ArtifactTypesService } from '../types/artifact-types.service'
 import { resolveArtifactAnalytics } from './artifact-analytics'
 import { analyzeDataset, projectAnalysisDataset, validateAnalysisQuery } from './resource-analysis.query'
+import { DelegatedResourceAnalysisService } from './delegated-resource-analysis.service'
+import { assertDelegatedAnalysisControls } from './delegated-analysis-controls'
 
 @Injectable()
 export class GroupResourceAnalysisService {
     constructor(
         private readonly contents: ArtifactGroupContentService,
         private readonly types: ArtifactTypesService,
-        private readonly analytics: AnalyticsRuntimeService
+        private readonly analytics: AnalyticsRuntimeService,
+        private readonly delegation: DelegatedResourceAnalysisService
     ) {}
 
     private async load(actor: ContentActor, groupId: string, referenceId: string) {
@@ -42,11 +45,51 @@ export class GroupResourceAnalysisService {
             binding: entry.binding,
             approvedById: loaded.selected.grant.issuedById,
             revalidate: loaded.recheck,
-            normalizeControls: (controls: import('@xpert-ai/contracts').AnalyticsQueryRequest['controls']) =>
-                loaded.resolved.normalizeControls(datasetKey, controls),
+            execute: async <T>(query: (actor: ContentActor) => Promise<T>) => {
+                // Audience checks run in the caller's context, outside the temporary issuer identity.
+                await loaded.recheck()
+                const result =
+                    loaded.policy.execution === 'delegated_results'
+                        ? await this.delegation.execute(
+                              loaded.selected.grant,
+                              loaded.selected.artifact,
+                              entry.binding,
+                              query
+                          )
+                        : await query(actor)
+                await loaded.recheck()
+                return result
+            },
+            normalizeControls: async (controls: import('@xpert-ai/contracts').AnalyticsQueryRequest['controls']) => {
+                const normalized = await loaded.resolved.normalizeControls(datasetKey, controls)
+                if (loaded.policy.execution === 'delegated_results')
+                    assertDelegatedAnalysisControls(
+                        scope,
+                        normalized,
+                        await loaded.resolved.normalizeControls(datasetKey, {}),
+                        entry.binding
+                    )
+                return normalized
+            },
             project: (dataset: import('@xpert-ai/contracts').AnalyticalDataset) =>
                 projectAnalysisDataset(dataset, scope)
         }
+    }
+
+    /** Recheck delegated authority before a group answer releases previously queried evidence. */
+    async validateDelivery(actor: ContentActor, groupId: string, referenceId: string, datasetKey: string) {
+        const loaded = await this.load(actor, groupId, referenceId)
+        const entry = loaded.resolved.entries.find((entry) => entry.binding.id === datasetKey)
+        if (!entry || !loaded.policy.datasets.some((dataset) => dataset.key === datasetKey)) throw denied()
+        if (loaded.policy.execution === 'delegated_results') {
+            try {
+                await this.delegation.authorize(loaded.selected.grant, loaded.selected.artifact, entry.binding)
+            } catch {
+                // Source diagnostics are authorized for the issuer, not the receiving group.
+                throw new ForbiddenException(t('server-ai:Error.ResourceAnalysisSourceDenied'))
+            }
+        }
+        await loaded.recheck()
     }
 
     async describeAnalysis(

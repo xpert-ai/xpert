@@ -3,6 +3,24 @@ export type InstallShadcnThemeVarsOptions = {
   styleId?: string
 }
 
+/** Apply host appearance and language to a shadcn-based Workbench iframe. */
+export function applyRemoteComponentTheme(
+  locale: string,
+  theme?: {
+    mode?: string
+    density?: InstallShadcnThemeVarsOptions['density']
+    tokens?: Record<string, string | number>
+  }
+) {
+  const root = document.documentElement
+  for (const [key, value] of Object.entries(theme?.tokens ?? {})) {
+    root.style.setProperty(`--xui-${key.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())}`, String(value))
+  }
+  installShadcnThemeVars({ density: theme?.density ?? 'compact' })
+  root.classList.toggle('dark', theme?.mode === 'dark')
+  root.lang = locale
+}
+
 export function installShadcnThemeVars(options: InstallShadcnThemeVarsOptions = {}) {
   const styleId = options.styleId ?? 'xpert-shadcn-ui-theme-vars'
   if (typeof document === 'undefined') {

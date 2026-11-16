@@ -5,14 +5,25 @@ const result = z.object({ success: z.boolean() })
 const scalar = z.union([z.string(), z.number(), z.boolean(), z.null()])
 const workspace = z.object({
     success: z.literal(true),
-    data: z.object({
-        target: z.enum(['workbench.view', 'assistant.project']),
-        projectId: z.string().uuid(),
-        xpertId: z.string(),
-        viewKey: z.string().min(1),
-        selectionId: z.string().optional(),
-        parameters: z.record(z.union([scalar, z.array(scalar)])).optional()
-    })
+    data: z.union([
+        z.object({
+            target: z.enum(['workbench.view', 'assistant.project']),
+            projectId: z.string().uuid(),
+            xpertId: z.string(),
+            viewKey: z.string().min(1),
+            selectionId: z.string().optional(),
+            parameters: z.record(z.union([scalar, z.array(scalar)])).optional()
+        }),
+        z
+            .object({
+                target: z.literal('project.application'),
+                projectId: z.string().uuid(),
+                pipelineInstanceId: z.string().uuid(),
+                pipelineRoundId: z.string().uuid(),
+                pipelineNodeId: z.string().uuid()
+            })
+            .strict()
+    ])
 })
 
 /** The host resolves registered Project entries; callers cannot supply a URL, Assistant or business view. */
@@ -22,7 +33,8 @@ export async function openProjectWorkspace(
     failureMessage: string,
     pipelineNodeId?: string,
     instanceId?: string,
-    roundId?: string
+    roundId?: string,
+    signal?: AbortSignal
 ) {
     const id = z.string().uuid().parse(projectId)
     if (pipelineNodeId && destination !== 'application') throw Error(failureMessage)
@@ -39,8 +51,17 @@ export async function openProjectWorkspace(
                       input: focus
                   })
               ).data
-            : { target: 'project.pipelines', projectId: id }
+            : { target: 'project.pipelines' as const, projectId: id }
     if (resolved.projectId !== id) throw Error(failureMessage)
+    if (
+        resolved.target === 'project.application' &&
+        (resolved.pipelineNodeId !== focus.pipelineNodeId ||
+            resolved.pipelineInstanceId !== focus.instanceId ||
+            (focus.roundId && resolved.pipelineRoundId !== focus.roundId))
+    )
+        throw Error(failureMessage)
+    // Resolving the destination can outlive the node dialog that requested it.
+    if (signal?.aborted) return
     const response = result.safeParse(
         await request('invokeClientCommand', {
             commandKey: 'workbench.navigation.open',

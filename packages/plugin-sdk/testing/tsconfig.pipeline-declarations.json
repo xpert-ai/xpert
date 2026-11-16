@@ -13,5 +13,5 @@
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/dist/src/index.d.ts"]
     }
   },
-  "files": ["pipeline-declarations.consumer.ts"]
+  "files": ["pipeline-declarations.consumer.ts", "event-inbox-declarations.consumer.ts"]
 }

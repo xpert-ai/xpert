@@ -5,6 +5,7 @@ import {
     STATE_VARIABLE_HUMAN,
     TAgentMiddlewareSource,
     TChatOptions,
+    TChatRequest,
     TXpertAgentChatRequest,
     isUserAddableAgentMiddleware,
     normalizeMiddlewareOptions,
@@ -16,19 +17,21 @@ import {
     normalizePluginName,
     TenantOrganizationAwareCrudService
 } from '@xpert-ai/server-core'
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { AgentMiddlewareRegistry, type IAgentMiddlewareStrategy, RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { assign } from 'lodash'
-import { Observable } from 'rxjs'
 import { Repository } from 'typeorm'
 import { ToolSchemaParser } from '../shared/tools/utils'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { resolveXpertDataVolumeScope } from '../shared/volume'
 import { FindXpertQuery } from '../xpert/queries'
 import { XpertService } from '../xpert/xpert.service'
-import { XpertAgentChatCommand } from './commands'
+import { AssertChatConversationAccessQuery } from '../chat-conversation/queries/conversation-assert-access.query'
+import { AssertXpertAgentExecutionAccessQuery } from '../xpert-agent-execution/queries/assert-access.query'
+import { XpertChatCommand } from '../xpert/commands/chat.command'
 import { XpertAgent } from './xpert-agent.entity'
 
 @Injectable()
@@ -58,33 +61,54 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         return await this.repository.save(_entity)
     }
 
-    async chatAgent(params: TXpertAgentChatRequest, options: TChatOptions) {
-        const request = params
-        const xpertId = request.xpertId
-        const xpert = await this.queryBus.execute(
-            new FindXpertQuery({ id: xpertId }, { relations: ['agent'], isDraft: true })
-        )
-        return await this.commandBus.execute<XpertAgentChatCommand, Observable<MessageEvent>>(
-            new XpertAgentChatCommand(request.state ?? { [STATE_VARIABLE_HUMAN]: {} as any }, request.agentKey, xpert, {
-                ...options,
-                isDraft: true,
-                store: null,
-                execution:
-                    request.action === 'resume'
-                        ? {
-                              id: request.target.executionId,
-                              category: 'agent'
-                          }
-                        : undefined,
-                resume:
-                    request.action === 'resume'
-                        ? {
-                              decision: request.decision,
-                              ...(request.patch ? { patch: request.patch } : {})
-                          }
-                        : undefined,
-                from: 'debugger'
-            })
+    async chatAgent(request: TXpertAgentChatRequest, options: TChatOptions) {
+        const { xpertId, agentKey } = request
+        if (!agentKey?.trim()) {
+            throw new BadRequestException(t('server-ai:Error.AgentInvocationInvalidRequest'))
+        }
+        await this.xpertService.assertCanAuthorById(xpertId)
+
+        // Use the conversation run lifecycle so the selected draft agent has a real thread and checkpoint.
+        let chat: TChatRequest
+        if (request.action === 'resume' || (request.action === 'follow_up' && request.target?.executionId)) {
+            const executionId = request.target?.executionId
+            if (!executionId) {
+                throw new BadRequestException(t('server-ai:Error.AgentInvocationInvalidRequest'))
+            }
+            const execution = await this.queryBus.execute(
+                new AssertXpertAgentExecutionAccessQuery(executionId, 'contribute')
+            )
+            if (
+                !execution.threadId ||
+                execution.xpertId !== xpertId ||
+                execution.agentKey !== agentKey ||
+                execution.parentId
+            ) {
+                throw new ForbiddenException(t('server-ai:Error.ExecutionAccessDenied'))
+            }
+            const conversation = await this.queryBus.execute(
+                new AssertChatConversationAccessQuery(
+                    { threadId: execution.threadId, xpertId, from: 'debugger' },
+                    'contribute'
+                )
+            )
+            const continuation = { conversationId: conversation.id, target: { executionId }, state: request.state }
+            chat =
+                request.action === 'resume'
+                    ? { ...continuation, action: 'resume', decision: request.decision, patch: request.patch }
+                    : { ...continuation, action: 'follow_up', mode: request.mode, message: request.message }
+        } else {
+            chat = {
+                action: 'send',
+                state: request.state,
+                message:
+                    request.action === 'follow_up'
+                        ? request.message
+                        : { input: request.state?.[STATE_VARIABLE_HUMAN] ?? {} }
+            }
+        }
+        return this.commandBus.execute(
+            new XpertChatCommand(chat, { ...options, xpertId, agentKey, isDraft: true, from: 'debugger' })
         )
     }
 

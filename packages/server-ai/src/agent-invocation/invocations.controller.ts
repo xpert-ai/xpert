@@ -2,7 +2,7 @@ import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { Permissions } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { AgentJson, RequestContext } from '@xpert-ai/plugin-sdk'
+import { AgentJson, agentDeliveryRecoverySchema, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { z } from 'zod/v3'
 import { AgentInvocationEntity } from './invocation.entity'
@@ -29,6 +29,13 @@ export class AgentInvocationsController {
         return isNativeInvocation(entity.invocation)
             ? this.native.inspect(entity.invocation)
             : this.api(entity).inspect(id)
+    }
+    @Post(':id/recover-delivery') async recoverDelivery(@Param('id') id: string, @Body() body: unknown) {
+        const input = agentDeliveryRecoverySchema.safeParse(body)
+        if (!input.success) throw invocationError('InvalidRequest')
+        const entity = await this.findOwned(id)
+        if (isNativeInvocation(entity.invocation)) throw invocationError('Unsupported')
+        return this.api(entity).recoverDelivery(id, input.data)
     }
     @Post(':id/cancel') async cancel(@Param('id') id: string) {
         const entity = await this.findOwned(id)

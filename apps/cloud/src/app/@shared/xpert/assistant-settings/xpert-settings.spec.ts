@@ -9,6 +9,7 @@ import {
   type TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { createXpertSettingsForm, modelValidator } from './xpert-settings.form'
+import { isFileMemoryEnabled } from './settings-middleware.utils'
 import { applyXpertSettingsChanges } from './xpert-settings.patch'
 import { XpertSettingsEditor } from './xpert-settings.editor'
 import { DraftSaveQueue } from './draft-save-queue'
@@ -25,8 +26,7 @@ const draftFixture = (): TXpertTeamDraft => ({
     copilotModel: primary,
     agent: { key: 'leader', copilotModel: primary },
     agentConfig: { recursionLimit: 300 },
-    options: { scale: 0.8, workbench: { defaultViewKey: 'existing-view' } },
-    memory: { enabled: true, copilotModel: alternative, profile: { enabled: true, afterSeconds: 25, prompt: 'Keep' } }
+    options: { scale: 0.8, workbench: { defaultViewKey: 'existing-view' } }
   },
   nodes: [
     {
@@ -82,18 +82,17 @@ describe('unified Assistant settings draft merge', () => {
     expect(applyXpertSettingsChanges(draft, before, after, 'models').nodes).toBe(draft.nodes)
   })
 
-  it('does not rewrite unrelated long-term memory fields when toggling a profile', () => {
-    const draft = draftFixture(),
-      before = createXpertSettingsForm(draft.team).getRawValue()
+  it('toggles the primary memory middleware without duplicating it or changing its configuration', () => {
+    const draft = draftFixture()
+    const before = createXpertSettingsForm(draft.team).getRawValue()
     const after = structuredClone(before)
-    after.memory.longTerm.profileEnabled = false
-    const result = applyXpertSettingsChanges(draft, before, after, 'memory')
-    expect(result.team.memory).toEqual({
-      ...draft.team.memory,
-      profile: { ...draft.team.memory.profile, enabled: false }
-    })
-    expect(result.team.summarize).toBeUndefined()
-    expect(result.team.features).toBeUndefined()
+    after.memory.enabled = true
+    const on = applyXpertSettingsChanges(draft, before, after, 'memory')
+    expect(isFileMemoryEnabled(on)).toBe(true)
+    const off = applyXpertSettingsChanges(on, after, before, 'memory')
+    expect(isFileMemoryEnabled(off)).toBe(false)
+    expect(off.nodes).toEqual(on.nodes)
+    expect(applyXpertSettingsChanges(off, before, after, 'memory')).toEqual(on)
   })
 
   it('preserves the hidden attachment source mode and other feature settings', () => {
@@ -201,12 +200,10 @@ describe('settings validation', () => {
     form.controls.retainMessages.setValue(20)
     expect(form.valid).toBe(true)
   })
-  it('rejects fractional counts, out of range scores and enabled speech without models', () => {
+  it('rejects fractional counts, and enabled speech without models', () => {
     const form = createXpertSettingsForm({})
     form.controls.files.controls.maxNum.setValue(2.5)
     expect(form.controls.files.invalid).toBe(true)
-    form.controls.memory.controls.reply.controls.scoreThreshold.setValue(0.7)
-    expect(form.controls.memory.invalid).toBe(true)
     form.controls.speech.controls.ttsEnabled.setValue(true)
     expect(form.controls.speech.hasError('speechModel')).toBe(true)
   })

@@ -13,6 +13,5 @@ export interface AssistantCapabilitySummary {
     componentKey: string
     targetAgentKey?: string
   }[]
-  seedMemoryCount: number
   sandbox: boolean
 }

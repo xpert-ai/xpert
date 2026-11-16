@@ -1,0 +1,57 @@
+---
+title: 'Xpert Memory: Long-term memory'
+description: 'Enable memory across conversations, manage notes in Workbench or Studio, and check automatic reviews and Dream changes against the original conversation.'
+---
+
+Xpert Memory lets an assistant reuse confirmed preferences, rules, and references in later conversations. For example, if a user says “Archive the warehouse handover checklist every day at 18:00,” the assistant can look up that rule the next time someone asks about the archive schedule. Each note has a title, a summary, and a body. When a note cites a conversation, you can also inspect the original message.
+
+## Enable memory and open the library
+
+1. In **Assistant settings → Memory & context**, turn on **Long-term memory**, save the draft, and publish it in Studio. This connects the built-in file memory middleware to the primary agent. The separate conversation summary setting compresses earlier messages in the current conversation.
+2. Open **Memory** in the Workbench view list or **Memory** in the Studio sidebar. Both open the **Library**. Saving a note here updates live data immediately, without republishing the assistant.
+3. Check the assistant and project you have open. A user-isolated assistant keeps separate notes for each user. A shared assistant uses shared storage, and an assistant in a project uses project storage. To compare the same record in both views, use the same account and assistant, and open a conversation outside a project in Workbench to match Studio’s assistant scope.
+
+## Enable standard replies
+
+Enable **Standard replies** under **Assistant settings → Capabilities** and publish. This capability alone makes the library available in both Workbench and Studio. Standard replies require the default text output. Other agents in the same Assistant can use structured output. Open a note in the library, enter a question and any equivalent phrasings, and approve an exact passage from the note. A matching new private chat message receives the passage once without calling the main model to generate the answer. Conversation compression still runs when its threshold is met. Other questions follow the normal agent flow. Editing or archiving the note immediately invalidates the approval. Restoring the previous text requires a new approval.
+
+## What the assistant remembers
+
+A useful note changes a future decision. “Include open alerts in every shift handover” guides later handovers. “List the alerts this time” applies to the current task. The assistant recalls summaries of relevant notes and can read the full body when it needs a condition or exact wording. New instructions in the current turn take precedence.
+
+| Memory type | Example                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| User        | The user wants future weekly reports to start with risks, followed by progress.              |
+| Feedback    | The user corrected the handover procedure and asked for the change to apply from now on.     |
+| Project     | The project team confirmed that the warehouse handover checklist is archived daily at 18:00. |
+| Reference   | The duty roster to consult for future on-call assignments.                                   |
+
+You can say “Please remember this rule” so the assistant can save it directly with `memory_write`. With edit access, you can also use **+** in the **Library** to create a note, or select one to edit or archive. Archived notes are excluded from routine recall and remain available through the status filter. A manually created note may have no conversation source.
+
+## Inspect an automatic review
+
+At the end of a turn, the assistant can propose creating, correcting, or archiving a note even if nobody explicitly asked it to save anything. A proposal must identify a future use and quote the user or a tool result from that turn. Automatic review of private conversations is available for signed-in users in user-isolated assistants or projects. Private conversations do not automatically contribute these proposals to shared assistant storage.
+
+1. Open **Reviews** and select the entry for the correction. An explicit correction to an existing note becomes eligible for review about **15 seconds** after it enters the queue. Other candidates become eligible after about **30 minutes**. Completion time depends on the queue and model.
+2. Compare **Original note**, **Proposed change**, and **Reason**. Expand **Conversation evidence → View source** to check who supplied the information and where it applies. A claim about what worked needs a tool result from the same turn and execution. An assistant repeating the claim does not establish it.
+3. **Applied** means the change was written. **Unsupported**, **Unresolved**, and **Missing evidence** leave the current content in place. **Note changed** means someone edited the note after the proposal was made, so the review preserved the newer version. Users with edit access can open the current note to correct it.
+
+## Run Dream across the library
+
+With management access, open **Dream runs → Run Dream**. Dream calls the current assistant’s primary agent model directly, including when that agent inherits the assistant’s model. It compares batches of current notes against verifiable original messages, then checks each proposed change against its source quote and the note’s current revision. It can correct a note or archive one that the evidence explicitly makes obsolete. Details that still lack support go under **Needs confirmation** in the report.
+
+**Settings → Check conditions before each run** determines whether a requested run proceeds. It is on by default. The first run proceeds immediately. After that, all three defaults must be met since the last **Completed** or **Partial** run: at least **30 minutes** have elapsed, at least **1 note** has been created or updated, and at least **1 conversation** has generated a memory signal. A **Skipped** run lists the unmet conditions. Reaching the thresholds does not start a run on its own.
+
+## Example: Verify an archive time against the source
+
+1. Select a test note that cites a conversation. Open **View source** and find the user’s full correction: “Archive the warehouse handover checklist every day at 18:00.” Manually change the time in both the note’s summary and body to 20:00.
+2. Run Dream. If you are testing and there is no new conversation signal, you can temporarily turn off the pre-run check on the test assistant. Restore its previous setting when you finish.
+3. Under **Dream history**, select the time of this run. Check the three items below, then return to the **Library** to verify the saved summary and body. To verify from the other host, open the record with the same run time in the same scope.
+
+| Report field       | Expected result                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Before → After     | “Archive the warehouse handover checklist every day at 20:00.” changes to “Archive the warehouse handover checklist every day at 18:00.” |
+| Source quote       | The full rule specifying 18:00 appears verbatim in the original user message.                                                            |
+| Needs confirmation | Which time zone applies remains open. The body and summary contain only the rule the user supplied.                                      |
+
+This run can show **Partial**: the corrected time has been saved, and the time zone still needs confirmation. The report shows the applied change and the open question separately.

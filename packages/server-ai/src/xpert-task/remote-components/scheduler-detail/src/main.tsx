@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
-    Badge,
+    Badge, DatePicker, TimePicker, TimeZonePicker,
     Button,
     Input,
     Label,
@@ -13,6 +13,7 @@ import {
     SelectItem
 } from '@xpert-ai/shadcn-ui'
 import { connect, request, detailSchema, actionSchema, scheduleSchema, type Detail } from './bridge'
+import { MonitorStartFields, defaultFirstRun } from './MonitorStartFields'
 import { MonitorSettings } from './MonitorSettings'
 import { destinationInput } from './bridge'
 import { CreateMonitor } from './CreateMonitor'
@@ -30,6 +31,8 @@ export function App() {
     const [error, setError] = useState<string | null>(null),
         [notice, setNotice] = useState<string | null>(null)
     const [dirty, setDirty] = useState(false)
+    const [dateMissing, setDateMissing] = useState(false)
+    const dateTrigger = useRef<HTMLButtonElement>(null)
     const drafts = useRef(new Map<string, Detail>())
     const latest = useRef({ selection, dirty, draft }),
         generation = useRef(0)
@@ -48,6 +51,7 @@ export function App() {
                 generation.current++
                 setSelection(create ? null : id)
                 setPage(1)
+                setDateMissing(false)
                 setDetail(null)
                 setDraft(null)
                 setLoading(false)
@@ -101,7 +105,9 @@ export function App() {
                           ...(draft.monitor
                               ? {
                                     destination: destinationInput(draft.destination),
-                                    intervalMinutes: draft.intervalMinutes
+                                    intervalMinutes: draft.intervalMinutes,
+                                    timeZone: draft.timeZone,
+                                    firstRun: draft.firstRun
                                 }
                               : {}),
                           ...(!draft.options
@@ -217,6 +223,11 @@ export function App() {
                             className="space-y-4"
                             onSubmit={(event) => {
                                 event.preventDefault()
+                                if (draft.options && ['Once', 'Yearly'].includes(draft.options.frequency) && !draft.options.date) {
+                                    setDateMissing(true)
+                                    dateTrigger.current?.focus()
+                                    return
+                                }
                                 void action('save')
                             }}
                         >
@@ -252,6 +263,11 @@ export function App() {
                                         onTarget={(destination) => change({ destination })}
                                     />
                                 )}
+                                {draft.monitor && <MonitorStartFields locale={locale}
+                                    firstRun={draft.firstRun ?? defaultFirstRun(draft.timeZone || 'UTC', draft.intervalMinutes ?? 30)}
+                                    timeZone={draft.timeZone || 'UTC'} disabled={busy || loading || detail.status === 'archived'}
+                                    onChange={(firstRun) => change({ firstRun })}
+                                    onZone={(timeZone) => change({ timeZone, firstRun: draft.firstRun ?? defaultFirstRun(draft.timeZone || 'UTC', draft.intervalMinutes ?? 30) })} />}
                                 {!draft.monitor && !draft.options && (
                                     <p>
                                         {draft.scheduleDescription} · {draft.timeZone}
@@ -259,7 +275,7 @@ export function App() {
                                 )}
                                 {detail.nextRunAt && (
                                     <p>
-                                        {t.nextRun} · {new Date(detail.nextRunAt).toLocaleString(locale)}
+                                        {t.nextRun} · {new Date(detail.nextRunAt).toLocaleString(locale, { timeZone: detail.timeZone || 'UTC', timeZoneName: 'short' })}
                                     </p>
                                 )}
                                 {draft.options && (
@@ -291,18 +307,8 @@ export function App() {
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="time">{t.time}</Label>
-                                                <Input
-                                                    id="time"
-                                                    type="time"
-                                                    required
-                                                    value={draft.options.time}
-                                                    onChange={(e) =>
-                                                        change({ options: { ...draft.options!, time: e.target.value } })
-                                                    }
-                                                />
-                                            </div>
+                                            <TimePicker locale={locale} value={draft.options.time} disabled={busy || loading || detail.status === 'archived'}
+                                                onChange={(time) => change({ options: { ...draft.options!, time } })} />
                                         </div>
                                         {draft.options.frequency === 'Weekly' && (
                                             <div className="space-y-2">
@@ -346,30 +352,16 @@ export function App() {
                                                 />
                                             </div>
                                         )}
-                                        {['Once', 'Yearly'].includes(draft.options.frequency) && (
-                                            <div className="space-y-2">
-                                                <Label htmlFor="date">{t.date}</Label>
-                                                <Input
-                                                    id="date"
-                                                    type="date"
-                                                    required
-                                                    value={draft.options.date ?? ''}
-                                                    onChange={(e) =>
-                                                        change({ options: { ...draft.options!, date: e.target.value } })
-                                                    }
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="space-y-2">
-                                            <Label htmlFor="timezone">{t.timeZone}</Label>
-                                            <Input
-                                                id="timezone"
-                                                required
-                                                value={draft.timeZone || ''}
-                                                placeholder={Intl.DateTimeFormat().resolvedOptions().timeZone}
-                                                onChange={(e) => change({ timeZone: e.target.value })}
-                                            />
-                                        </div>
+                                        {['Once', 'Yearly'].includes(draft.options.frequency) && <DatePicker
+                                            locale={locale} value={draft.options.date} triggerRef={dateTrigger}
+                                            error={dateMissing && !draft.options.date ? t.dateRequired : undefined}
+                                            disabled={busy || loading || detail.status === 'archived'}
+                                            onChange={(date) => {
+                                                setDateMissing(false)
+                                                change({ options: { ...draft.options!, date } })
+                                            }} />}
+                                        <TimeZonePicker locale={locale} value={draft.timeZone || 'UTC'}
+                                            disabled={busy || loading || detail.status === 'archived'} onChange={(timeZone) => change({ timeZone })} />
                                     </>
                                 )}
                                 {dirty && (

@@ -1,3 +1,4 @@
+import { AgentEventModule } from './agent-event/agent-event.module'
 import { UserNotificationModule } from './user-notification/notification.module'
 import { ConversationArtifactPluginModule } from './ai/conversation-sharing/conversation-artifact-plugin.module'
 import { ManualRetentionModule } from './data-retention/manual-retention.module'
@@ -101,6 +102,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         EnvironmentModule,
         GraphragModule,
         HandoffQueueModule,
+        AgentEventModule,
         FileUploadTargetsModule,
         MetricsModule,
         VolumeModule,

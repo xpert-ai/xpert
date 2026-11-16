@@ -1,3 +1,8 @@
+import { ChatConversationModule } from '../chat-conversation/conversation.module'
+import { XpertMemoryUserInput } from './adapters/xpert-memory-user-input'
+import { FileMemoryUserInput } from '../plugins/file-memory/ports'
+import { XpertMemoryViewAccess } from './adapters/xpert-memory-view-access'
+import { ManagedQueueModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -7,39 +12,52 @@ import { Xpert } from '../xpert/xpert.entity'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { FileMemoryController } from './file-memory.controller'
 import { FileMemoryFacade } from './file-memory.facade'
-import { FileMemoryDreamService } from './dream.service'
-import { XpertFileMemoryMiddleware } from './file-memory.middleware'
-import { FileMemoryService } from './file-memory.service'
-import { FileMemoryWritebackRunner } from './file-memory.writeback-runner'
-import { FileMemoryConversationHistoryReader, FileMemoryDreamerInvoker, FileMemoryXpertScopeResolver } from './ports'
-import { FileMemoryRecallPlanner } from './recall-planner'
+import {
+    FileMemoryConversationHistoryReader,
+    FileMemoryDreamModel,
+    FileMemoryXpertScopeResolver
+} from '../plugins/file-memory/ports'
 import { XpertConversationHistoryReader } from './adapters/xpert-conversation-history-reader'
-import { XpertDreamerInvoker } from './adapters/xpert-dreamer-invoker'
+import { XpertDreamModel } from './adapters/xpert-dream-model'
 import { XpertFileMemoryScopeResolver } from './adapters/xpert-scope-resolver'
 
+import { FileMemoryPluginModule } from '../plugins/file-memory/file-memory-plugin.module'
+import { FileMemoryReviewRuntime, FileMemoryVolume, FileMemoryViewAccess } from '../plugins/file-memory/ports'
+import { XpertReviewRuntime } from './adapters/xpert-review-runtime'
+import { XpertMemoryVolume } from './adapters/xpert-memory-volume'
+
+const adapters = [
+    { provide: FileMemoryUserInput, useClass: XpertMemoryUserInput },
+    { provide: FileMemoryViewAccess, useClass: XpertMemoryViewAccess },
+    { provide: FileMemoryVolume, useClass: XpertMemoryVolume },
+    { provide: FileMemoryReviewRuntime, useClass: XpertReviewRuntime },
+    { provide: FileMemoryConversationHistoryReader, useClass: XpertConversationHistoryReader },
+    { provide: FileMemoryDreamModel, useClass: XpertDreamModel },
+    { provide: FileMemoryXpertScopeResolver, useClass: XpertFileMemoryScopeResolver }
+]
 @Module({
-    imports: [CqrsModule, TypeOrmModule.forFeature([ChatConversation, ChatMessage, Xpert]), XpertModule, XpertWorkspaceModule],
-    controllers: [FileMemoryController],
-    providers: [
-        FileMemoryService,
-        FileMemoryDreamService,
-        FileMemoryFacade,
-        FileMemoryRecallPlanner,
-        FileMemoryWritebackRunner,
-        XpertFileMemoryMiddleware,
-        {
-            provide: FileMemoryConversationHistoryReader,
-            useClass: XpertConversationHistoryReader
-        },
-        {
-            provide: FileMemoryDreamerInvoker,
-            useClass: XpertDreamerInvoker
-        },
-        {
-            provide: FileMemoryXpertScopeResolver,
-            useClass: XpertFileMemoryScopeResolver
-        }
+    imports: [
+        ChatConversationModule,
+        CqrsModule,
+        ManagedQueueModule,
+        TypeOrmModule.forFeature([ChatConversation, ChatMessage, Xpert]),
+        XpertModule,
+        XpertWorkspaceModule
     ],
-    exports: [FileMemoryService, FileMemoryDreamService, FileMemoryFacade, FileMemoryRecallPlanner, FileMemoryWritebackRunner, XpertFileMemoryMiddleware]
+    providers: adapters,
+    exports: [...adapters, ManagedQueueModule]
+})
+class FileMemoryHostModule {}
+
+@Module({
+    imports: [
+        XpertModule,
+        XpertWorkspaceModule,
+        FileMemoryHostModule,
+        FileMemoryPluginModule.register(FileMemoryHostModule)
+    ],
+    controllers: [FileMemoryController],
+    providers: [FileMemoryFacade],
+    exports: [FileMemoryPluginModule, FileMemoryFacade]
 })
 export class FileMemoryModule {}

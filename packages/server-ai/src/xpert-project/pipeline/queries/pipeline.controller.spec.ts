@@ -7,19 +7,23 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertProjectAccessService } from '../../services/project-access.service'
 import { ProjectPipelineController } from './pipeline.controller'
 import { ProjectPipelineQueryService } from './pipeline-query.service'
+import { ProjectPipelineWorkspaceService } from './pipeline-workspace.service'
 
 describe('pipeline history HTTP boundary', () => {
     const actor = { userId: randomUUID(), tenantId: randomUUID(), organizationId: randomUUID() }
     const instanceId = randomUUID(),
-        roundId = randomUUID()
+        roundId = randomUUID(),
+        nodeId = randomUUID()
     const access = { assertCanRead: jest.fn() }
     const query = { graph: jest.fn(), rounds: jest.fn() }
+    const workspaces = { entry: jest.fn() }
     let app: INestApplication, url: string
     beforeAll(async () => {
         const module = await Test.createTestingModule({
             controllers: [ProjectPipelineController],
             providers: [
                 { provide: ProjectPipelineQueryService, useValue: query },
+                { provide: ProjectPipelineWorkspaceService, useValue: workspaces },
                 { provide: XpertProjectAccessService, useValue: access }
             ]
         }).compile()
@@ -47,6 +51,18 @@ describe('pipeline history HTTP boundary', () => {
     afterEach(() => jest.restoreAllMocks())
     afterAll(async () => app?.close())
     const get = (suffix: string) => fetch(`${url}/project/pipelines/${instanceId}/${suffix}`)
+    const nodeFocus = `node-workbench?roundId=${roundId}&pipelineNodeId=${nodeId}`
+    it('resolves the requested workbench node and round within the authenticated project', async () => {
+        const entry = { projectId: 'project', kind: 'assistant', viewKey: 'order' }
+        workspaces.entry.mockResolvedValue(entry)
+        const response = await get(nodeFocus)
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual(entry)
+        expect(workspaces.entry).toHaveBeenCalledWith(
+            { projectId: 'project', actor },
+            { instanceId, roundId, pipelineNodeId: nodeId, requireNodeWorkbench: true }
+        )
+    })
     it('parses the round selector and bounded pagination with the authenticated scope', async () => {
         expect((await get(`graph?roundId=${roundId}`)).status).toBe(200)
         expect(query.graph).toHaveBeenCalledWith({ projectId: 'project', actor }, instanceId, { roundId })
@@ -62,15 +78,21 @@ describe('pipeline history HTTP boundary', () => {
         'rounds?limit=101',
         'rounds?limit=0',
         'rounds?after=invalid',
-        'rounds?actor=override'
+        'rounds?actor=override',
+        `node-workbench?roundId=${roundId}`,
+        `node-workbench?roundId=${roundId}&pipelineNodeId=invalid`,
+        `${nodeFocus}&projectId=override`
     ])('rejects invalid or scope-overriding queries: %s', async (suffix) => {
         expect((await get(suffix)).status).toBe(400)
         expect(query.graph).not.toHaveBeenCalled()
         expect(query.rounds).not.toHaveBeenCalled()
+        expect(workspaces.entry).not.toHaveBeenCalled()
     })
     it('checks Project view permission before loading history', async () => {
         access.assertCanRead.mockRejectedValue(new ForbiddenException())
         expect((await get('rounds')).status).toBe(403)
+        expect((await get(nodeFocus)).status).toBe(403)
         expect(query.rounds).not.toHaveBeenCalled()
+        expect(workspaces.entry).not.toHaveBeenCalled()
     })
 })

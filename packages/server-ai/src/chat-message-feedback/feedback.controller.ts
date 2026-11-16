@@ -98,40 +98,27 @@ export class ChatMessageFeedbackController {
     @HttpCode(HttpStatus.CREATED)
     @Post()
     async create(@Body() body: FeedbackMutationBody) {
-        const feedback = await this.service.createAuthorized({
+        return this.service.createAuthorized({
             conversationId: this.requireId(body?.conversationId),
             messageId: this.requireId(body?.messageId),
             ...(body?.rating !== undefined ? { rating: body.rating } : {}),
             ...(body?.content !== undefined ? { content: body.content } : {})
         })
-        this.triggerSummary(feedback.id)
-        return feedback
     }
 
     @HttpCode(HttpStatus.ACCEPTED)
     @Put(':id')
     async update(@Param('id', UUIDValidationPipe) id: string, @Body() body: FeedbackMutationBody) {
-        const feedback = await this.service.updateAuthorized(id, {
+        return this.service.updateAuthorized(id, {
             ...(body?.rating !== undefined ? { rating: body.rating } : {}),
             ...(body?.content !== undefined ? { content: body.content } : {})
         })
-        this.triggerSummary(feedback.id)
-        return feedback
     }
 
     @HttpCode(HttpStatus.ACCEPTED)
     @Delete(':id')
     async delete(@Param('id', UUIDValidationPipe) id: string) {
-        await this.service.deleteSummary(id)
         return this.service.deleteAuthorized(id)
-    }
-
-    private triggerSummary(id: string) {
-        this.service.triggerSummary(id).catch((error) => {
-            this.#logger.warn(
-                `Failed to trigger feedback summary for ${id}: ${error instanceof Error ? error.message : String(error)}`
-            )
-        })
     }
 
     private requireId(value: unknown) {

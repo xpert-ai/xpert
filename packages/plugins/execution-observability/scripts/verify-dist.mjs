@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { verifyRemoteReactComponent } from '../../../server-ai/scripts/build-remote-react.mjs'
+import { verifyRemoteReactComponent } from '../../../../tools/remote-components/build-remote-react.mjs'
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const workspace = resolve(pluginRoot, '../../..')
 await verifyRemoteReactComponent(resolve(pluginRoot, 'remote-components/timeline'))

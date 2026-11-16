@@ -4,11 +4,10 @@ import { Component, computed, effect, inject, output, signal } from '@angular/co
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { IfAnimations } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel, XpDensityDirective } from '@xpert-ai/headless-ui'
+import { attrModel, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../domain'
-import { XpertStudioFeaturesMemoryComponent } from './memory/memory.component'
 import { XpertStudioFeaturesSummaryComponent } from './summary/summary.component'
 import { XpertStudioFeaturesTitleComponent } from './title/title.component'
 import { XpertStudioFeaturesAttachmentComponent } from './attachment/attachment.component'
@@ -16,22 +15,16 @@ import { XpertStudioFeaturesOpenerComponent } from './opener/opener.component'
 import { XpertStudioFeaturesSuggestionComponent } from './suggestion/suggestion.component'
 import { XpertStudioFeaturesTTSComponent } from './tts/tts.component'
 import { XpertStudioFeaturesSTTComponent } from './stt/stt.component'
-import { XpertStudioFeaturesMemoryReplyComponent } from './memory-reply/memory-reply.component'
 import { XpertStudioFeaturesSandboxComponent } from './sandbox/sandbox.component'
 import { linkedXpertFeaturesModel, resolveSandboxFeatureForToggle } from './types'
 import { injectHelpWebsite } from '@cloud/app/@core'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-type ViewType =
-  | 'summarize'
-  | 'attachment'
-  | 'memory'
-  | 'title'
-  | 'opener'
-  | 'suggestion'
-  | 'tts'
-  | 'stt'
-  | 'memoryReply'
-  | 'sandbox'
+import {
+  isFileMemoryEnabled,
+  setFileMemoryEnabled
+} from '@cloud/app/@shared/xpert/assistant-settings/settings-middleware.utils'
+
+type ViewType = 'summarize' | 'attachment' | 'title' | 'opener' | 'suggestion' | 'tts' | 'stt' | 'sandbox'
 
 @Component({
   selector: 'xpert-studio-features',
@@ -44,14 +37,12 @@ type ViewType =
     ...ZardTooltipImports,
     XpDensityDirective,
     XpertStudioFeaturesSummaryComponent,
-    XpertStudioFeaturesMemoryComponent,
     XpertStudioFeaturesTitleComponent,
     XpertStudioFeaturesAttachmentComponent,
     XpertStudioFeaturesOpenerComponent,
     XpertStudioFeaturesSuggestionComponent,
     XpertStudioFeaturesTTSComponent,
     XpertStudioFeaturesSTTComponent,
-    XpertStudioFeaturesMemoryReplyComponent,
     XpertStudioFeaturesSandboxComponent,
     ZardSwitchComponent
   ],
@@ -72,8 +63,7 @@ export class XpertStudioFeaturesComponent {
 
   readonly summarize = computed(() => this.xpert()?.summarize)
   readonly enabledSummarize = computed(() => this.summarize()?.enabled)
-  readonly memory = computed(() => this.xpert()?.memory)
-  readonly enabledMemory = computed(() => this.memory()?.enabled)
+  readonly enabledMemory = computed(() => isFileMemoryEnabled(this.apiService._draft()))
   readonly features = linkedXpertFeaturesModel(this.apiService)
   readonly attachment = attrModel(this.features, 'attachment')
   readonly opener = attrModel(this.features, 'opener')
@@ -81,7 +71,6 @@ export class XpertStudioFeaturesComponent {
   readonly suggestion = attrModel(this.features, 'suggestion')
   readonly textToSpeech = attrModel(this.features, 'textToSpeech')
   readonly speechToText = attrModel(this.features, 'speechToText')
-  readonly memoryReply = attrModel(this.features, 'memoryReply')
   readonly sandbox = attrModel(this.features, 'sandbox')
   readonly enabledAttachment = computed(() => this.attachment()?.enabled)
   readonly fileTypes = computed(() => this.attachment()?.fileTypes)
@@ -92,7 +81,6 @@ export class XpertStudioFeaturesComponent {
   readonly suggestion_enabled = attrModel(this.suggestion, 'enabled')
   readonly textToSpeech_enabled = attrModel(this.textToSpeech, 'enabled')
   readonly speechToText_enabled = attrModel(this.speechToText, 'enabled')
-  readonly memoryReply_enabled = attrModel(this.memoryReply, 'enabled')
   readonly sandbox_enabled = attrModel(this.sandbox, 'enabled')
   readonly sandboxProviders = toSignal(
     toObservable(this.sandbox_enabled).pipe(
@@ -131,16 +119,8 @@ export class XpertStudioFeaturesComponent {
     })
   }
 
-  toggleMemory(enabled?: boolean) {
-    this.apiService.updateXpertTeam((xpert) => {
-      return {
-        ...xpert,
-        memory: {
-          ...(xpert.memory ?? {}),
-          enabled
-        }
-      }
-    })
+  toggleMemory(enabled: boolean) {
+    this.apiService._draft.update((draft) => setFileMemoryEnabled(draft, enabled))
   }
 
   toggleAttachment(enabled?: boolean) {

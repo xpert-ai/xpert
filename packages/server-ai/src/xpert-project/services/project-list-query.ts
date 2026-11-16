@@ -1,5 +1,5 @@
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { XpertProjectMembership } from '../entities/project-membership.entity'
+import { toProjectViewAccess } from './project-view-access'
 import {
     GENERAL_PROJECT_TYPE,
     type IXpert,
@@ -116,18 +116,7 @@ export async function findMyProjects(
  * Page readable Projects connected to the accessible Assistant's version family.
  * Filter before counting/paging and use a stable recent-first order for incremental UI loading.
  */
-export async function findAvailableProjects(
-    repository: Repository<XpertProject>,
-    xpert: IXpert,
-    input: {
-        xpertId: string
-        filter?: XpertProjectListFilter
-        status?: 'active' | 'archived' | 'all'
-        skip?: number
-        take?: number
-        group?: GroupProjectAvailability
-    }
-) {
+function availableProjectQuery(repository: Repository<XpertProject>, xpert: IXpert, input: AvailableProjectQuery) {
     const userId = RequestContext.currentUserId()
     const organizationId = RequestContext.getOrganizationId()
     const query = repository.createQueryBuilder('project')
@@ -155,27 +144,20 @@ export async function findAvailableProjects(
         linkedXpertSubquery.andWhere('linkedXpert.workspaceId IS NULL')
     }
     const linkedXpertExists = linkedXpertSubquery.getQuery()
-    const activeMembership = query
-        .subQuery()
-        .select('1')
-        .from(XpertProjectMembership, 'availableMembership')
-        .where('availableMembership.projectId = project.id')
-        .andWhere('availableMembership.userId = :userId', { userId })
-        .andWhere('availableMembership.deletedAt IS NULL AND availableMembership.removedAt IS NULL')
-    if (input.group) activeMembership.andWhere("availableMembership.role = 'manager'")
-    const activeMembershipExists = activeMembership.getQuery()
-    query
-        .where('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
+    query.leftJoin('project.memberships', 'membership', [
+        'membership.userId = :userId',
+        'membership.tenantId = project.tenantId',
+        'membership.organizationId IS NOT DISTINCT FROM project.organizationId',
+        'membership.removedAt IS NULL AND membership.deletedAt IS NULL'
+    ].join(' AND '), { userId })
+    const membershipCondition = input.manageableOnly || input.group ? "membership.role = 'manager'" : 'membership.id IS NOT NULL'
+    query.where('project.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
         .andWhere(`EXISTS ${linkedXpertExists}`)
-        .andWhere(
-            new Brackets((qb) => {
-                qb.where('project.ownerId = :userId').orWhere(`EXISTS ${activeMembershipExists}`)
-            })
-        )
+        .andWhere(`(project.ownerId = :userId OR ${membershipCondition})`)
     if (organizationId) query.andWhere('project.organizationId = :organizationId', { organizationId })
     else query.andWhere('project.organizationId IS NULL')
     if (input.status && input.status !== 'all') query.andWhere('project.status = :status', { status: input.status })
-    else if (!input.status) query.andWhere("project.status <> 'archived'")
+    if (input.manageableOnly || !input.status) query.andWhere("project.status IS DISTINCT FROM 'archived'")
     applyProjectListFilter(query, input.filter ?? {})
     if (input.group) {
         const { id, usage, projectType } = input.group
@@ -206,9 +188,44 @@ export async function findAvailableProjects(
             })
         )
     }
-    // Stable ordering is shared by the recent list and incrementally loaded groups.
+    return query
+}
+
+export interface AvailableProjectQuery {
+    xpertId: string
+    filter?: XpertProjectListFilter
+    manageableOnly?: boolean
+    status?: 'active' | 'archived' | 'all'
+    skip?: number
+    take?: number
+    group?: GroupProjectAvailability
+}
+
+export async function findAvailableProjects(repository: Repository<XpertProject>, xpert: IXpert, input: AvailableProjectQuery) {
+    const query = availableProjectQuery(repository, xpert, input)
+    query.addSelect(['membership.id', 'membership.role'])
     query.orderBy({ 'project.updatedAt': 'DESC', 'project.id': 'DESC' })
     query.skip(Math.max(input.skip ?? 0, 0)).take(Math.min(Math.max(input.take ?? 25, 1), 100))
-    const [items, total] = await query.getManyAndCount()
+    const [projects, total] = await query.getManyAndCount()
+    const userId = RequestContext.currentUserId()
+    const items = projects.map((project) => {
+        const myRole = project.ownerId === userId ? 'owner' : project.memberships?.[0]?.role
+        if (!myRole) throw new Error('Missing scoped Project membership')
+        const { canEdit, canManage } = toProjectViewAccess(myRole, project.status)
+        // The joined membership is an internal projection, not a list of Project members.
+        delete project.memberships
+        return Object.assign(project, { myRole, canEdit, canManage })
+    })
     return { items, total }
+}
+
+/** Type choices cover the entire readable directory, including types whose plugin has since been removed. */
+export function findAvailableProjectTypes(repository: Repository<XpertProject>, xpert: IXpert, manageableOnly?: boolean) {
+    return availableProjectQuery(repository, xpert, { xpertId: xpert.id, manageableOnly, status: 'all' })
+        .select('project.applicationKey', 'applicationKey')
+        .addSelect('project.projectTypeKey', 'projectTypeKey')
+        .addSelect('project.projectTypeSnapshot', 'snapshot')
+        .distinctOn(['project.applicationKey', 'project.projectTypeKey'])
+        .orderBy({ 'project.applicationKey': 'ASC', 'project.projectTypeKey': 'ASC', 'project.updatedAt': 'DESC', 'project.id': 'DESC' })
+        .getRawMany<{ applicationKey: string | null; projectTypeKey: string | null; snapshot: XpertProject['projectTypeSnapshot'] }>()
 }

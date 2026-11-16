@@ -90,27 +90,69 @@ The graph edit endpoint also rejects parent or dependency changes for a bound re
 
 ## Independent review work items and coordination
 
-Implementation dispatch can assign `purpose.reviewer: { bindingId, mode: "evidence_only" }`. The binding must be authorized and support the existing confined review adapter. A subsequent implementation attempt cannot silently omit that assignment. Acceptance requires a valid passing report from the assigned binding and mode; runtime success alone is insufficient.
+Implementation dispatch can assign `purpose.reviewer: { bindingId, mode: "evidence_only" }`. The binding must be authorized and support the existing confined review adapter. A subsequent implementation attempt cannot silently omit that assignment. Acceptance requires a readable report from the assigned binding and mode and an explicit coordinator decision; runtime success alone is insufficient.
 
 Dispatch a review against the implementation task with `reviewAsSubtask: true`. Under the project lock, the host creates a bound ordinary review task: a sibling under the implementation's summary, or a child of a standalone implementation. The receipt names this review task. Retrying the same request returns the existing attempt; an intentional new review attempt for the same candidate reuses the review task. A new implementation execution gets a new review work item, preserving earlier findings. A cancelled review task cannot be silently reopened.
 
-A confirmed successful review with a valid report completes the review work item for all three verdicts: `pass`, `changes_required`, and `indeterminate`. It never accepts the implementation. Invalid reports block the review task; newer attempts and task revisions fence late observations. `project_get_task` exposes scoped `reviewTasks` references without inspecting their Invocations. This uses the persisted task binding and adds no authority fields to `ProjectTaskNode`.
+A confirmed successful review with readable Markdown completes the review work item, including when it identifies defects or limitations. It never accepts the implementation. Invalid reports block the review task; newer attempts and task revisions fence late observations. `project_get_task` exposes scoped `reviewTasks` references without inspecting their Invocations. This uses the persisted task binding and adds no authority fields to `ProjectTaskNode`.
 
-For a child under an ordinary summary, the host pins `purpose.coordination` to the parent's current specification; callers cannot supply it. Children may receive explicit acceptance or rework decisions independently, without completing the summary. To complete the summary, call `project_decide_task` with the summary ID and revision, the child implementation execution and specification digest, and its current evidence and review. Other non-review children must already be completed. The parent decision and referenced child's decision/status are saved atomically. Rework is allowed while siblings remain unfinished. Parent requirement changes or moving the implementation to another parent invalidate the old coordination evidence.
+For a child under an ordinary summary, the host pins `purpose.coordination` to the parent's current specification; callers cannot supply it. Children may receive explicit acceptance or rework decisions independently, without completing the summary. To complete the summary, read it with `project_get_task`, assess the referenced implementation and review, then call `project_decide_task` with its `decisionOptions[].decisionRef`, `outcome` and `rationale`. `checks` is optional; the Agent does not assemble execution IDs, digests or evidence arrays. Other non-review children must already be completed. The parent decision and referenced child's decision/status are saved atomically. Rework is allowed while siblings remain unfinished. Parent requirement changes or moving the implementation to another parent invalidate the old coordination evidence.
 
 Ordinary `outcome: "rework"` records feedback and resets the affected task(s) to `todo`; it does not start another execution. Execution-mode review requires a host environment integration. The shared dispatch/acceptance workflow delegates protocol instructions and candidate comparison to Runtime; the default OS Runtime rejects execution-review admission and both operations. Shared contracts or historical read projections alone do not enable execution or acceptance.
 
 ## Feedback-linked rework
 
-When a persisted version 2 execution-review report provides structured findings, the coordinator can record a rework decision with its `reviewExecutionId`, then dispatch an implementation with `purpose.rework: { reviewExecutionId, findingIds: ["F1"] }`. Keep any assigned reviewer. Evidence-only version 1 reports contain text findings rather than stable finding IDs, so they use ordinary rework instructions instead.
+The independent reviewer submits ordinary Markdown. The coordinator reads it,
+records an explicit rework decision using the returned `decisionRef`, then dispatches
+`purpose.rework: {reviewExecutionId, feedback}`. Feedback is natural language;
+there are no model-generated finding IDs. The host validates the exact review
+subject and pins its result revision and digest. Rework receives that report and
+coordinator feedback, while a fresh review checks the repaired candidate.
 
-The host requires the task's latest decision to be that rework decision. Its implementation, specification digest and ordered evidence must match the referenced review. The review work item, invocation ownership and dispatch identity are checked before reading the confirmed report; every selected ID must exist in that report. The implementation prompt receives selected findings, the decision rationale, checks and limitations. Caller-supplied prose cannot replace those persisted records.
+If execution succeeded but report/artifact delivery failed, use
+`project_recover_task_delivery` with the current invocation revision. Recovery
+re-reads the original report path and/or selected files without another execution.
+Successful delivery parts remain unchanged. It creates a new result revision and
+records delivery history; it does not accept the task. Cancelled task results cannot be edited through the task recovery tool; completed
+review tasks may still recover pending report or artifact delivery.
 
-A failed or cancelled implementation may retry the same feedback chain only after its owned work is confirmed stopped. A running, unconfirmed or successful attempt cannot be reused as a failed retry. Same-request replay still returns the original attempt. A new candidate receives a fresh review, with validated previous feedback labeled as untrusted historical observations; the previous verdict never establishes acceptance of the new candidate.
+## Decision references
 
-This shared workflow only reads task decisions and Runtime results. It does not access Computer APIs, create a snapshot, start a review CLI, or verify a filesystem candidate. Supporting recorded version 2 feedback does not enable execution-review dispatch on a host without the required Runtime integration.
+The Agent-facing `project_decide_task` has three required arguments:
 
-Internally, `project-task-review-feedback.ts` validates the stored review and projects supported reports into structured feedback; report-version handling stays at this boundary. `project-task-rework.ts` checks the decision and retry chain and returns typed context. `project-task-feedback-prompt.ts` only formats that context, without database access or eligibility decisions. Reads retain the dispatch transaction's project lock, and database errors propagate instead of silently dropping feedback. These are host-internal helpers, not new plugin SDK APIs.
+```json
+{
+    "decisionRef": "<copy from project_get_task.decisionOptions>",
+    "outcome": "accept",
+    "rationale": "The independent report covers the requested behavior and limitations."
+}
+```
+
+Read the referenced implementation/review results before deciding. A reference is
+an observation of the task revision, implementation specification/result evidence,
+and current review execution/report revision and hash. It is neither a permission
+nor a business verdict. The host resolves the references and rechecks project and
+caller access, candidate contents, pending work and task concurrency. A summary
+reference also records its selected implementation child's decision atomically;
+other implementation children must already be completed for acceptance. A child
+reference alone never accepts its parent. Successful acceptance already records
+completion; do not follow it with ordinary status or checklist completion updates.
+
+References are deterministic and require no database table, signing key, cache or
+background poll. They become stale when the bound data changes. `ContextChanged`
+requires rereading the task and reassessing evidence, not guessing new arguments
+or restarting development. Pending reviews, missing reports and inaccessible
+results return actionable diagnostics in `decisionOptions`; they do not synthesize
+acceptance. A recreated Computer may require a new review of the unchanged candidate
+because an old runtime receipt cannot verify a new environment generation.
+
+Host-generated request IDs retain replay semantics: a repeated recorded tool call
+returns its original decision, while changing the conclusion under that identity
+is rejected. A lost response does not justify a new acceptance call before reading
+the decision history. The lower-level service/REST decision contract remains for
+existing trusted callers; do not use it as the Agent tool schema. This changes the
+Agent tool schema: refresh its tools and skills when upgrading. Previously queued
+old-format tool arguments are not automatically translated.
 
 ## Result acceptance
 
@@ -120,13 +162,18 @@ The review's Runtime success or a `pass` report alone does not accept its implem
 
 The Runtime reports execution facts only. Successful implementation moves the task to `review`; the Agent responsible for the delegation or an authorized human then calls `project_decide_task`. Ordinary update tools cannot mark a task with Runtime attempts as complete. Updates and dispatch share the project transaction lock to prevent a race in which an attempt appears between a completion check and the save. A decision records the task revision, latest implementation attempt, specification digest, result revision or Artifact version, checks performed, and rationale. The decision and status change are committed in one transaction; retrying the same requestId returns the original decision.
 
-Independent review reuses `project_dispatch_task` with an explicit `purpose.type=review`, implementation reference, and evidence references. Currently, it accepts only Computer OpenCode bindings. The reviewer runs in a separate directory with tools, MCP, plugins, and additional Agents disabled. It inspects fixed result evidence without modifying the implementation. The structured verdict is `pass`, `changes_required`, or `indeterminate`. Free text, outdated specifications, superseded implementations or results, and changed Artifact versions cannot support acceptance. A `workspace_snapshot` reference is rejected because no verifiable version resolver is available yet; a file path is not treated as authorization to access evidence.
+Independent review reuses `project_dispatch_task` with a host-validated review
+purpose and pinned candidate references. Evidence-only mode assesses supplied
+material with tools disabled; execution review runs authorized independent checks
+in a separate candidate workspace. Both return ordinary Markdown describing what
+was actually observed and what was not tested.
 
-This version provides static evidence review. Implementation results should include complete source code, test code, and execution reports. A `pass` verdict means that the fixed evidence supports the requirements; it does not mean the reviewer reran the tests or verified the files' authenticity. Reports must retain these limitations. The responsible Agent can use its authorized Computer tools to inspect actual outputs and rerun tests. If independent review has been delegated, acceptance must reference the latest valid passing review. It cannot omit reviewExecutionId, cite an earlier passing report, or bypass the requirement with free text.
-
-Background startup uses a persisted inspection fence lasting at most 120 seconds, preventing concurrent inspections from misclassifying intermediate process receipts as unknown. Cancellation remains available, and normal inspection resumes after the deadline. A missing CLI or version mismatch is recorded as failed only when execution has verifiably not started. Failures after a launch receipt has been saved remain unknown and are not automatically replayed.
-
-The Tasks and Timeline view shows the full Invocation status, actual start time, progress provenance, implementation and review attempts, reliable delivery and consumption status, results, and business decisions. Details refresh every five seconds while visible. Humans can open the responsible Agent's conversation, cancel a single run, retry failed result delivery, and record acceptance or rework decisions. Cancelling a run does not cancel the entire business task.
+When a review is delegated, acceptance references its latest matching execution.
+The coordinator reads the report and supplies the explicit decision and rationale.
+The host validates ownership, candidate/specification identity and result revisions;
+it does not extract a verdict from prose. Rework receives that exact report and
+natural-language feedback. Artifact and invocation references remain versioned;
+a raw workspace path never grants authority or establishes acceptance.
 
 ## Multiple Computer runtimes and explicit delivery
 
@@ -152,8 +199,11 @@ Both evidence-only and execution reviews retain their separate prompts and recei
 
 The task graph displays the latest implementation executor for ordinary tasks and the latest review executor for tasks with a host-owned review binding. Each selection stays within that task and execution purpose; a newer attempt without a known executor shows no executor rather than falling back to an older attempt. Legacy executions without a purpose count as implementation. This uses the existing server-side binding and adds no public graph fields, database writes or acceptance decisions.
 
-The existing execution-level `reviewVerdict` is a read projection from the associated Invocation, not a stored task decision. It is populated only after confirmed successful termination, matching task/project/Invocation identity and review purpose, and validation of the report's pinned implementation, specification and evidence. Evidence-only and execution reviews retain their respective report formats. Missing, mismatched or unfinished Invocations and invalid reports yield `null`, clearing any earlier projection. Reading a passing report does not complete the task; the owning acceptance flow still decides business completion. This adds no database column or task-node field.
+`reviewReportAvailable` is a read projection after confirmed completion and matching
+host-owned task, project, invocation and purpose. It only indicates delivery of a
+nonempty Markdown report. Cards display report availability; they do not infer a
+business verdict from the report. The explicit task decision owns acceptance.
 
 Creation and updates use ordinary tool steps, without a second Computer component or a creation resource card. Only a committed delegation emits an execution card; implementation and independent review retain separate identities. ChatKit displays execution cards during streaming and updates the original card on background results. `ProjectTaskCardProvider.createCard()` owns resource identity, labels, icons and navigation for both the initial dispatch receipt and subsequent `resolveMany()` refreshes; tools only emit the returned card.
 
-Review cards show the verdict only after validating its pinned implementation and evidence. Runtime success without a valid review report is not displayed as approval. Coding execution cards open the independent viewer by `invocationId`; timeline execution dots and the task Dialog resolve to that same invocation. Task titles open a centered task Dialog. Legacy task cards and executions without a Coding target retain the timeline fallback. Viewing an execution remains separate from opening its responsible Agent conversation. Public replies summarize task names and outcomes, keeping technical identifiers in tool records unless diagnostics are requested. Previously saved creation cards remain readable; no history migration is performed.
+Review cards show report delivery after validating their host associations. Runtime success without a valid review report is not displayed as approval. Coding execution cards open the independent viewer by `invocationId`; timeline execution dots and the task Dialog resolve to that same invocation. Task titles open a centered task Dialog. Legacy task cards and executions without a Coding target retain the timeline fallback. Viewing an execution remains separate from opening its responsible Agent conversation. Public replies summarize task names and outcomes, keeping technical identifiers in tool records unless diagnostics are requested. Previously saved creation cards remain readable; no history migration is performed.

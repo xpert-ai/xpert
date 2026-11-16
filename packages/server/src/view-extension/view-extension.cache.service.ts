@@ -183,6 +183,7 @@ export class ViewExtensionCacheService implements OnModuleInit {
 
 	private normalizeActivationState(context: XpertResolvedViewHostContext) {
 		return {
+			projectAccess: context.runtimeScope?.projectAccess,
 			capabilities: {
 				features: [...(context.capabilities?.features ?? [])].sort()
 			},

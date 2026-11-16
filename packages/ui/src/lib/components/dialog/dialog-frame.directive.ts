@@ -1,4 +1,4 @@
-import { computed, Directive, forwardRef, inject, input } from '@angular/core'
+import { booleanAttribute, computed, Directive, forwardRef, inject, input } from '@angular/core'
 import type { ClassValue } from 'clsx'
 import { mergeClasses } from '../../utils/merge-classes'
 import { ZardIconComponent } from '../icon/icon.component'
@@ -23,6 +23,7 @@ import {
 export class XpDialogLayoutDirective {
   readonly xpDialogLayout = input<'standard' | 'wide'>('standard')
   readonly purpose = input<XpDialogPurpose>('standard', { alias: 'xpDialogPurpose' })
+  readonly compactControls = input(false, { alias: 'xpDialogCompactControls', transform: booleanAttribute })
   readonly class = input<ClassValue>('')
   protected readonly classes = computed(() =>
     mergeClasses(dialogFrameVariants({ layout: this.xpDialogLayout() }), this.class())

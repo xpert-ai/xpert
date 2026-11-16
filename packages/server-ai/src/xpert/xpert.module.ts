@@ -1,3 +1,4 @@
+import { StudioMemoryHostDefinition } from '../view-extension/hosts/studio-memory-host.definition'
 import { AssistantPrincipalModule } from './assistant-principal/assistant-principal.module'
 import { ModelReplacementOperation } from './model-replacement/operation.entity'
 import { ModelReplacementService } from './model-replacement/replacement.service'
@@ -174,6 +175,7 @@ import { ApplicationRuntimeModule } from '../plugin-resource/application-runtime
         AnonymousStrategy,
         WorkflowTriggerRegistry,
         AgentViewHostDefinition,
+        StudioMemoryHostDefinition,
         ViewMiddlewareRuntimeService,
         XpertProfileIdentityService,
         XpertProfileIndicatorsService,

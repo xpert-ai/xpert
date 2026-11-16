@@ -52,7 +52,8 @@ function setup() {
             { catalog } as never,
             {} as never,
             { check: jest.fn() } as never,
-            defaults as never
+            defaults as never,
+            {} as never
         )
     }
 }

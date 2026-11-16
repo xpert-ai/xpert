@@ -1,3 +1,4 @@
+import type { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { NativeAgentCompiler } from '../../../agent-invocation/native-agent.compiler'
 jest.mock('yargs', () => ({
     __esModule: true,
@@ -139,9 +140,13 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
         const subscriber = {
             next: jest.fn()
         }
+        const executionControls = {
+            runAttached: <T>(_child: string, _parent: string, run: () => Promise<T>) => run()
+        } satisfies Pick<ExecutionControlStore, 'runAttached'>
         const subAgent = await new NativeAgentCompiler(
             commandBus as unknown as CommandBus,
-            queryBus as unknown as QueryBus
+            queryBus as unknown as QueryBus,
+            executionControls as ExecutionControlStore
         ).compile(
             {
                 key: 'agent-2',

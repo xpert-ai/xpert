@@ -7,7 +7,7 @@ import type {
   PluginApplicationToolsetSelection
 } from '@xpert-ai/contracts'
 
-export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'templates'
+export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'connectors' | 'skills' | 'templates'
 interface CatalogBase extends Bot {
   publisher: string
   categories: string[]
@@ -113,4 +113,37 @@ export interface TemplatePreflight {
   optionalCapabilities: { key: string; label: string; description: string }[]
   models: (ModelOption & { copilotModel: { copilotId: string; model: string } })[]
   defaultModelId?: string
+}
+
+export interface SkillCatalogItem {
+  id: string
+  name: string
+  description: string
+  publisher: string
+  installed: boolean | null
+}
+export interface DiscoveryWorkspace extends WorkspaceOption {
+  canWrite: boolean
+  canManage: boolean
+}
+
+export interface WorkspaceConnectorItem {
+  provider: string
+  name: string
+  description: string
+  icon: string | null
+  status: 'pending' | 'active' | 'expired' | 'error' | 'disconnected'
+  bindingId: string | null
+  available: boolean
+  keyMethods: {
+    id: string
+    label: string
+    fields: { name: string; label: string; required: boolean; secret: boolean; initial: string }[]
+  }[]
+  hasWebMethods: boolean
+}
+
+export interface WorkspaceTarget {
+  organizationId: string
+  workspaceId: string
 }

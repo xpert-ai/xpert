@@ -289,7 +289,7 @@ const jsonNode = (h, path, scope = '') => h.$(`${scope} [data-json-path="${path}
 const jsonBranch = (h, path, scope = '') => jsonNode(h, path, scope).querySelector(':scope > details')
 const jsonValue = (h, path, scope = '') => jsonNode(h, path, scope).querySelector(':scope > .json-leaf .json-value')
 
-test('validated SDK summaries show once with a collapsed JSON tree; generic JSON opens its first level', async () => {
+test('JSON reports show as ordinary JSON without interpreting summary or envelope fields', async () => {
     const h = harness()
     try {
         const raw = '```json\n' + JSON.stringify({ version: 1, summary: '真实执行结果', items: [] }) + '\n```'
@@ -298,11 +298,11 @@ test('validated SDK summaries show once with a collapsed JSON tree; generic JSON
                 [message('final', 1, raw), message('other', 2, '{"summary":"ordinary JSON"}')],
                 'succeeded',
                 'closed',
-                { text: '真实执行结果' }
+                { text: raw }
             )
         )
-        assert.equal(h.$('.public-message').textContent, '真实执行结果')
-        assert.equal(jsonBranch(h, '').open, false)
+        assert.equal(h.$('.public-message').hidden, true)
+        assert.equal(jsonBranch(h, '').open, true)
         assert.equal(jsonValue(h, '/version').textContent, '1')
         assert.equal(jsonValue(h, '/summary').textContent, '"真实执行结果"')
         assert.equal(jsonBranch(h, '/items').querySelector('summary').textContent, '"items": [] · 0 项')

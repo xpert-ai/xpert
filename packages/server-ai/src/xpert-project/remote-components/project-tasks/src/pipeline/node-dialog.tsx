@@ -1,3 +1,4 @@
+import type { ApprovalStep } from './approval-steps'
 import { pipelineExecutions } from './executions'
 import { executionSummary, executionDuration, formatExecutionDuration } from '../execution-summary'
 import { attemptTimes, isRunning } from '../model'
@@ -39,6 +40,8 @@ export function PipelineNodeDialog({
     graph,
     node,
     locale,
+    approvalSteps,
+    openNode,
     projectId,
     t,
     reload,
@@ -48,6 +51,8 @@ export function PipelineNodeDialog({
 }: {
     graph: PipelineGraph
     node: PipelineNode
+    approvalSteps?: ApprovalStep[]
+    openNode?: (id: string) => void
     locale: string
     projectId?: string
     t: PipelineTexts
@@ -106,6 +111,30 @@ export function PipelineNodeDialog({
                                     ))}
                                 </dl>
                             </section>
+                            {!!approvalSteps?.length && (
+                                <section aria-label={t.approvalSteps} className="space-y-2">
+                                    <h3 className="text-sm font-semibold">{t.approvalSteps}</h3>
+                                    {approvalSteps.map(({ node: step, outcomes, destination }) => (
+                                        <div
+                                            key={step.id}
+                                            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
+                                        >
+                                            <div>
+                                                <p>
+                                                    {outcomes.join(' / ')} → {destination.projection.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {t[step.projection.state.applicability]} ·{' '}
+                                                    {t[step.projection.state.runtime]}
+                                                </p>
+                                            </div>
+                                            <Button size="sm" variant="outline" onClick={() => openNode?.(step.id)}>
+                                                {step.projection.title}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </section>
+                            )}
                             <NodePresentation node={node} locale={locale} t={t} />
                             <PipelineAttention
                                 key={`attention:${node.id}`}
@@ -264,12 +293,14 @@ export function PipelineNodeDialog({
                             <Button variant="outline">{t.close}</Button>
                         </DialogClose>
                         {projectId &&
-                            !graph.historical &&
-                            node.projection.navigation?.kind === 'project_application' && (
+                            (graph.nodeWorkbench ||
+                                (!graph.historical && node.projection.navigation?.kind === 'project_application')) && (
                                 <PipelineNodeEntry
                                     key={`entry:${node.id}`}
                                     projectId={projectId}
                                     nodeId={node.id}
+                                    instanceId={graph.nodeWorkbench ? graph.instance.id : undefined}
+                                    roundId={graph.nodeWorkbench ? graph.roundId : undefined}
                                     t={t}
                                 />
                             )}

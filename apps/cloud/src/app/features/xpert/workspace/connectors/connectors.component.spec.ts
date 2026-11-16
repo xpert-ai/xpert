@@ -58,6 +58,7 @@ jest.mock('../home/home.component', () => ({
 class StubXpertConnectorsComponent {}
 
 async function setup(options?: {
+  desktopLink?: Record<string, string>
   canManage?: boolean
   definitions?: ConnectorStrategyDefinition[]
   bindings?: ConnectorBinding[]
@@ -68,7 +69,7 @@ async function setup(options?: {
   requiredIntegrationId?: string
   authorizationNavigation?: 'current-tab'
 }) {
-  const workspace = signal({ id: 'workspace-1' })
+  const workspace = signal({ id: 'workspace-1', organizationId: 'org-1' })
   const connectorSearchQuery = signal('')
   const closeDialog = jest.fn()
   const connectorService = {
@@ -142,7 +143,11 @@ async function setup(options?: {
         : []),
       {
         provide: XpertWorkspaceHomeComponent,
-        useValue: { workspace, connectorSearchQuery }
+        useValue: {
+          workspace,
+          connectorSearchQuery,
+          route: { snapshot: { queryParamMap: new Map(Object.entries(options?.desktopLink ?? {})) } }
+        }
       },
       {
         provide: XpertConnectorService,
@@ -825,6 +830,24 @@ describe('XpertConnectorsComponent', () => {
     expect(host.querySelector('[data-connector-action="copy-authorization-url"]')).not.toBeNull()
     fixture.destroy()
   })
+
+  it.each([
+    ['workspace-1', 'org-1', true, 'github'],
+    ['workspace-1', 'org-2', true, null],
+    ['workspace-2', 'org-1', true, null],
+    ['workspace-1', 'org-1', false, null]
+  ] as const)(
+    'checks the desktop provider target and management grant (%s, %s, %s)',
+    async (workspaceId, organizationId, canManage, expected) => {
+      const { component, fixture } = await setup({
+        canManage,
+        definitions: [githubDefinition],
+        desktopLink: { provider: 'github', workspaceId, organizationId }
+      })
+      expect(component.selectedProvider()).toBe(expected)
+      fixture.destroy()
+    }
+  )
 
   it('keeps shared credential management restricted to workspace managers', async () => {
     const { component, connectorService, fixture } = await setup({ canManage: false, bindings: [sharedBinding] })

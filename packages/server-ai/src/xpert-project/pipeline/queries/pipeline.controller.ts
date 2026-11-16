@@ -8,7 +8,9 @@ import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { ProjectPermission, XpertProjectGuard } from '../../guards'
 import { pipelineRefreshSchema } from '../projection/pipeline-projection.service'
 import { ProjectPipelineQueryService } from './pipeline-query.service'
+import { ProjectPipelineWorkspaceService } from './pipeline-workspace.service'
 
+const nodeFocusSchema = z.object({ roundId: z.string().uuid(), pipelineNodeId: z.string().uuid() }).strict()
 const listSchema = z
     .object({ after: z.string().uuid().optional(), limit: z.coerce.number().int().min(1).max(100).default(30) })
     .strict()
@@ -19,7 +21,10 @@ const invalid = () => new BadRequestException(t('server-ai:Error.ProjectPipeline
 @UseGuards(XpertProjectGuard)
 @Permissions(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 export class ProjectPipelineController {
-    constructor(private readonly pipelines: ProjectPipelineQueryService) {}
+    constructor(
+        private readonly pipelines: ProjectPipelineQueryService,
+        private readonly workspaces: ProjectPipelineWorkspaceService
+    ) {}
     private context(projectId: string) {
         return {
             projectId,
@@ -48,6 +53,16 @@ export class ProjectPipelineController {
         @Query(new ZodValidationPipe(graphSchema, invalid)) query: z.output<typeof graphSchema>
     ) {
         return this.pipelines.graph(this.context(id), instanceId, query)
+    }
+
+    @Get(':id/pipelines/:instanceId/node-workbench')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    nodeWorkbench(
+        @Param('id') id: string,
+        @Param('instanceId', new ZodValidationPipe(z.string().uuid(), invalid)) instanceId: string,
+        @Query(new ZodValidationPipe(nodeFocusSchema, invalid)) query: z.output<typeof nodeFocusSchema>
+    ) {
+        return this.workspaces.entry(this.context(id), { instanceId, ...query, requireNodeWorkbench: true })
     }
 
     @Get(':id/pipelines/:instanceId/rounds')

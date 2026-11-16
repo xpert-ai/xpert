@@ -89,9 +89,8 @@ export function getAssistantDescription(xpert: AssistantXpertLike) {
 }
 
 export function isAssistantRouteActive(url: string, xpert: AssistantXpertLike) {
-  const routeId = getAssistantRouteId(xpert)
-
-  return !!routeId && normalizeChatPath(url).startsWith(`/chat/x/${encodeURIComponent(routeId)}/c`)
+  const match = normalizeChatPath(url).match(/^\/chat\/x\/([^/]+)\/(?:p\/[^/]+\/)?c(?:\/[^/]+)?$/)
+  return !!match && [xpert.slug, xpert.id].some((id) => !!id && encodeURIComponent(id) === match[1])
 }
 
 function assistantMatchesTag(xpert: AssistantXpertLike, tagName: string) {
@@ -116,7 +115,7 @@ function normalizeAssistantTagValue(value: string) {
 }
 
 export function normalizeChatPath(url: string) {
-  const [pathname] = (url || '/chat').split('?')
+  const [pathname] = (url || '/chat').split(/[?#]/)
   if (!pathname || pathname === '/') {
     return '/chat'
   }

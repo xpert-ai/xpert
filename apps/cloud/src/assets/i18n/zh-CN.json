@@ -452,7 +452,7 @@
       "SummaryError": "触发消息数须为 4–200 的整数，保留消息数须为 0–200 的整数，且至少留出 4 条消息用于总结。",
       "SummaryPrompt": "总结提示词",
       "LongTermMemory": "长期记忆",
-      "LongTermMemoryTip": "跨对话保留用户画像与问答经验。",
+      "LongTermMemoryTip": "让主智能体在不同会话中保存和召回记忆。",
       "MemoryDelay": "对话结束后等待（秒）",
       "ProfilePrompt": "用户画像提示词",
       "QAPrompt": "问答记忆提示词",
@@ -539,7 +539,7 @@
         "workbench": "设置消息展示模式、首次聊天布局和默认工作台视图。",
         "files": "管理对话中允许上传的文件类型与数量。",
         "speech": "设置实时通话、语音播放和语音识别。",
-        "memory": "管理对话上下文、长期记忆，以及基于记忆的回复。",
+        "memory": "配置跨会话记忆和会话总结。",
         "runtime": "设置执行限制与沙盒运行环境。",
         "personalization": "设置助理的行为准则与用户档案，仅保存到当前用户的绑定偏好。",
         "assistant": "连接消息通道和定时触发器，管理助理的任务入口。",
@@ -580,7 +580,7 @@
         "video": "视频",
         "others": "其他文件"
       },
-      "DiscardUnapplied": "尚有未保存的修改。你可以继续编辑，或放弃这些修改并关闭。",
+      "DiscardUnapplied": "关闭后，本次未保存的设置将丢失。",
       "StatisticsHint": "每日消息活动仅统计当前用户与此助手的对话。",
       "Delegation": {
         "AssignedExperts": "已分配的外部专家",
@@ -911,6 +911,13 @@
         "state_blocked": "已阻止"
       },
       "TargetDetail": {
+        "ReplaySlices": "分组回放结果",
+        "LatestReplay": "最近一次回放",
+        "CaseGroup": "评测分组",
+        "SampleCount": "样本数",
+        "BaselineAccuracy": "基线正确率",
+        "CandidateAccuracy": "候选正确率",
+        "NoSliceResults": "暂无这些分组的回放结果。",
         "PointerRevision": "指针修订号",
         "Title": "目标详情",
         "Breadcrumb": "面包屑",
@@ -1064,6 +1071,7 @@
         "BackRuns": "返回回放记录",
         "Raw": "原始运行记录",
         "RawOnly": "可查看本次运行的原始记录。关联的候选或结构化评测结果暂不可用。",
+        "sliceMissing": "本次回放没有评测该分组。",
         "missing": "在当前范围内没有找到这条回放记录。",
         "denied": "当前账号无权在此范围读取这条评测记录。",
         "failed": "读取回放记录失败，请重试。",
@@ -1867,6 +1875,7 @@
       "DeleteSelected": "删除所选"
     },
     "Files": {
+      "PluginEditorUnavailable": "无法打开文件编辑器，请检查插件是否可用及项目访问权限。",
       "Pdf": {
         "Previous": "上一页",
         "Next": "下一页",
@@ -2374,6 +2383,7 @@
       }
     },
     "MENU": {
+      "My events": "我的事件",
       "Connectors": "连接器",
       "Skills": "技能",
       "ExpertSkillsConnectors": "专家·技能·连接器",

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Button, Input } from '@xpert-ai/shadcn-ui'
-import type { ProjectConfigurationOverview, ProjectConfigurationSection } from '@xpert-ai/contracts'
+import { Input } from '@xpert-ai/shadcn-ui'
+import type { ProjectConfigurationSection } from '@xpert-ai/contracts'
 import { TypeEditor } from './type'
 import { ExpertsEditor } from './experts'
 import { MembersEditor } from './members'
@@ -20,15 +20,7 @@ function DeleteEditor({ overview, locale, onDeleted }: EditorProps) {
     </div>
 }
 const panels = { type: TypeEditor, experts: ExpertsEditor, members: MembersEditor, skills: SkillsEditor, connectors: ConnectorsEditor, automations: AutomationsEditor, delete: DeleteEditor }
-export function ConfigurationEditor({ section, overview, locale, onClose, onDeleted }: {
-    section: ProjectConfigurationSection; overview: ProjectConfigurationOverview; locale: string; onClose: () => void; onDeleted: () => void
-}) {
-    const t = configurationI18n(locale), Panel = panels[section]
-    return <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-        <DialogContent showCloseButton={false} className="max-h-[90dvh] sm:max-w-3xl overflow-y-auto">
-            <DialogHeader><DialogTitle>{t.t(section)}</DialogTitle><DialogDescription>{overview.name}</DialogDescription></DialogHeader>
-            <Panel overview={overview} locale={locale} onDeleted={onDeleted} />
-            <DialogFooter><Button variant="outline" onClick={onClose}>{t.t('done')}</Button></DialogFooter>
-        </DialogContent>
-    </Dialog>
+export function ConfigurationEditor({ section, ...props }: EditorProps & { section: ProjectConfigurationSection }) {
+    const Panel = panels[section]
+    return <Panel {...props} />
 }

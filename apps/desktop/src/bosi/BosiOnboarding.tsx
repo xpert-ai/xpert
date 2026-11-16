@@ -202,27 +202,41 @@ export function BosiOnboarding({
         {step === 'capabilities' && (
           <div className="space-y-5 text-left">
             <div className="divide-y rounded-2xl border px-5">
-              {(['cloud-computer', 'desktop-shell'] as const).map((key) => {
+              {(['cloud-computer', 'desktop-shell', 'desktop-computer-use'] as const).map((key) => {
                 const option = setup?.capabilities?.find((item) => item.key === key)
-                const available = !!option?.available && (key !== 'desktop-shell' || !!shell?.available)
+                const macWindow = key === 'desktop-computer-use'
+                const available =
+                  (!macWindow || window.xpertDesktop?.supportsWindowControl) &&
+                  !!option?.available &&
+                  (key !== 'desktop-shell' || !!shell?.available)
                 const Icon = key === 'cloud-computer' ? Monitor : Laptop
                 return (
                   <div key={key} className="flex items-center gap-4 py-5">
                     <Icon className="size-6 shrink-0 text-muted-foreground" />
                     <div className="flex-1">
                       <Label htmlFor={key}>
-                        {t(key === 'cloud-computer' ? 'Bosi’s computer' : 'This computer Shell')}
+                        {t(
+                          macWindow
+                            ? 'Local window control'
+                            : key === 'cloud-computer'
+                              ? 'Bosi’s computer'
+                              : 'This computer Shell'
+                        )}
                       </Label>
                       <p className="mt-1 text-xs leading-5 text-muted-foreground">
                         {available
                           ? t(
-                              key === 'cloud-computer'
-                                ? 'Work with a server computer and its applications.'
-                                : 'Run local commands with the existing command approvals.'
+                              macWindow
+                                ? 'Operate a window you select for this task.'
+                                : key === 'cloud-computer'
+                                  ? 'Work with a server computer and its applications.'
+                                  : 'Run local commands with the existing command approvals.'
                             )
-                          : key === 'desktop-shell' && !shell?.available
-                            ? t('Desktop Shell requires the native macOS or Windows app.')
-                            : option?.reason || t('This capability is unavailable on this server.')}
+                          : macWindow && !window.xpertDesktop?.supportsWindowControl
+                            ? t('Local window control requires Bosi for macOS 14 or later.')
+                            : key === 'desktop-shell' && !shell?.available
+                              ? t('Desktop Shell requires the native macOS or Windows app.')
+                              : option?.reason || t('This capability is unavailable on this server.')}
                       </p>
                     </div>
                     <Switch
@@ -242,7 +256,7 @@ export function BosiOnboarding({
                 disabled={busy || !!setup?.progress}
                 value={model}
                 onChange={setModel}
-                computer={selected.includes('cloud-computer')}
+                computer={selected.includes('cloud-computer') || selected.includes('desktop-computer-use')}
                 defaultModelId={setup?.setup?.defaultModelId}
               />
               {setup?.setup?.reason && <p className="text-sm text-destructive">{setup.setup.reason}</p>}

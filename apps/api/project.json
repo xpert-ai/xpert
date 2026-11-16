@@ -19,6 +19,11 @@
         "assets": [
           "apps/api/src/assets",
           {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/agent-event/remote-components",
+            "output": "remote-components"
+          },
+          {
             "glob": "quickjs-worker.js",
             "input": "packages/server-ai/src/sandbox/commands/handlers",
             "output": "."
@@ -36,6 +41,16 @@
           {
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/xpert-project/remote-components",
+            "output": "remote-components"
+          },
+          {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/xpert-project/plugins/project-configuration/remote-components",
+            "output": "remote-components"
+          },
+          {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/plugins/file-memory/remote-components",
             "output": "remote-components"
           },
           {

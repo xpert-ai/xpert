@@ -43,18 +43,25 @@ export default {
             case 'type-save':
                 if (state.failType || input.revision !== state.type.revision) throw Error('Revision conflict')
                 state.type.effectiveValues = input.values; state.type.revision++; break
-            case 'experts': data = { items: state.experts.filter((item) => !state.item.experts.some((bound) => bound.id === item.id)), total: state.experts.length }; break
+            case 'experts': {
+                const available = state.experts.filter((item) => !state.item.experts.some((bound) => bound.id === item.id) && item.name.includes(input.search || ''))
+                const start = ((input.page || 1) - 1) * 20
+                data = { items: available.slice(start, start + 20), total: available.length }; break
+            }
             case 'expert-add': state.item.experts.push(state.experts.find((expert) => expert.id === input.xpertId)); break
             case 'expert-remove': state.item.experts = state.item.experts.filter((item) => item.id !== input.xpertId); break
-            case 'members': data = { items: state.users, total: state.users.length, invitations: state.invitations, canInvite: true }; break
+            case 'members': {
+                const items = state.users.filter((user) => !state.item.members.some((member) => member.id === user.id) && user.name.includes(input.search || ''))
+                data = { items, total: items.length, invitations: state.invitations, canInvite: true }; break
+            }
             case 'member-add': state.item.members.push({ ...state.users.find((item) => item.id === input.userId), role: input.role }); break
             case 'member-role': state.item.members.find((item) => item.id === input.userId).role = input.role; break
             case 'member-remove': state.item.members = state.item.members.filter((item) => item.id !== input.userId); break
             case 'member-owner': state.item.isOwner = false; state.item.members.forEach((item) => { if (item.role === 'owner') item.role = 'manager'; if (item.id === input.userId) item.role = 'owner' }); break
             case 'member-invite': state.invitations.push({ id: 'invite', ...input, status: 'pending' }); break
             case 'invitation-revoke': state.invitations = state.invitations.filter((item) => item.id !== input.invitationId); break
-            case 'skill-catalog': data = { items: state.skills, total: state.skills.length }; break
-            case 'skill-install': state.item.skills.push({ ...state.skills.find((item) => item.id === input.indexId), enabled: true }); break
+            case 'skill-catalog': { const items = state.skills.filter((skill) => skill.name.includes(input.search || '')); data = { items, total: items.length }; break }
+            case 'skill-install': state.item.skills.push({ ...state.skills.find((item) => item.id === input.indexId), skillIndexId: input.indexId, enabled: true }); break
             case 'skill-toggle': state.item.skills.find((item) => item.id === input.skillId).enabled = input.enabled; break
             case 'skill-remove': state.item.skills = state.item.skills.filter((item) => item.id !== input.skillId); break
             case 'connectors': data = { bindings: state.bindings, definitions: state.definitions }; break

@@ -340,6 +340,7 @@ export interface IChatConversationMarkReadRequest {
 
 export interface IChatConversationUnreadXpertsRequest {
   xpertIds: string[]
+  includePending?: boolean
 }
 
 // Types

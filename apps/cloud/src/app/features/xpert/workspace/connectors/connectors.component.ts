@@ -129,6 +129,7 @@ export class XpertConnectorsComponent {
   readonly #connectorForms = new Map<string, FormRecord<FormControl<string>>>()
   readonly #authorizationPollTimers = new Map<string, ReturnType<typeof setTimeout>>()
   readonly #authorizationPopups = new Map<string, Window>()
+  #handledProviderLink: string | null = null
   #currentWorkspaceId: string | null = null
 
   constructor() {
@@ -210,6 +211,24 @@ export class XpertConnectorsComponent {
       this.definitions.set(definitions)
       this.bindings.set(bindings)
       this.prepareConnectorForms(definitions, bindings)
+      // Only open the linked provider in the exact workspace that Desktop requested.
+      const query = this.homeComponent?.route?.snapshot.queryParamMap
+      const provider = query?.get('provider')
+      const link = JSON.stringify([workspaceId, provider])
+      if (
+        !this.connectionContext &&
+        this.#handledProviderLink !== link &&
+        provider &&
+        query?.get('workspaceId') === workspaceId &&
+        this.workspace()?.organizationId === query.get('organizationId') &&
+        this.canManageWorkspace()
+      ) {
+        const linked = definitions.find((item) => item.provider === provider)
+        if (linked) {
+          this.#handledProviderLink = link
+          this.openConnectorDialog(linked)
+        }
+      }
       const startConnection = this.connectionContext && !this.#connectionStarted
       if (this.connectionContext) this.#connectionStarted = true
       await this.recoverPendingAuthorizations(workspaceId, bindings)

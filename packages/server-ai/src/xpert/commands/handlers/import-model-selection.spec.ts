@@ -1,6 +1,5 @@
 import {
     buildHandler,
-    BadRequestException,
     XpertImportCommand,
     CopilotOneByRoleQuery,
     FindCopilotModelsQuery,
@@ -8,7 +7,6 @@ import {
     AiProviderRole,
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
-    type XpertDraftDslDTO,
     type IWFNMiddleware
 } from './import-handler.test-fixture'
 
@@ -121,8 +119,7 @@ describe('XpertImportHandler model selection', () => {
                         }
                     }
                 ],
-                connections: [],
-                memories: []
+                connections: []
             } as never)
         )
 
@@ -248,8 +245,7 @@ describe('XpertImportHandler model selection', () => {
                         }
                     }
                 ],
-                connections: [],
-                memories: []
+                connections: []
             } as never)
         )
 
@@ -416,8 +412,7 @@ describe('XpertImportHandler model selection', () => {
                             } as IWFNMiddleware
                         }
                     ],
-                    connections: [],
-                    memories: []
+                    connections: []
                 },
                 {
                     normalizeCopilotModels: true
@@ -677,8 +672,7 @@ describe('XpertImportHandler model selection', () => {
                             } as IWFNMiddleware
                         }
                     ],
-                    connections: [],
-                    memories: []
+                    connections: []
                 },
                 {
                     targetXpertId: 'xpert-1',
@@ -764,8 +758,7 @@ describe('XpertImportHandler model selection', () => {
                             }
                         },
                         nodes: [],
-                        connections: [],
-                        memories: []
+                        connections: []
                     },
                     {
                         normalizeCopilotModels: true

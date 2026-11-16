@@ -1,5 +1,5 @@
 import React from 'react'
-import type { TrailStep } from '../../../../../../../contracts/src/ai/conversation-trail.model'
+import type { TrailStep } from '@xpert-ai/contracts'
 
 export function ActivityGlyph({ activity, x, y }: { activity: TrailStep['activity']; x: number; y: number }) {
     return (

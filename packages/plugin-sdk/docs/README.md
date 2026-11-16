@@ -152,6 +152,29 @@ import {
 
 This entry point excludes the NestJS and Node.js dependencies used by the server SDK.
 
+Choose the client using the server-issued session's `engine` (omitted means legacy Yjs):
+
+| Engine       | Browser client                                 | Authoritative content and writes                                                    |
+| ------------ | ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `yjs`        | `createCollaborationClient` with a Yjs adapter | Platform CRDT state; plugin materializes business projections.                      |
+| `operations` | `createOperationCollaborationClient`           | Domain service and its operation log; platform carries revision notifications only. |
+
+Both reuse the transport adapter and presence utilities. These live in protocol-neutral
+modules; the operations client does not depend on the Yjs client. Existing public exports
+remain available from the entry point above.
+
+For `operations`, register an `ICollaborationOperationsProvider` with `authorize` and
+`getRevision`. Submit edits through the domain API, which owns validation, idempotency,
+conflict resolution, persistence and undo. After committing, call `notifyRevision`.
+On `onRevision`, invalidate/refetch domain state while preserving local drafts under the
+domain's conflict rules. Notifications may skip intermediate revisions; they are neither
+operation payloads nor save acknowledgements. Reconnect and periodic sync read the latest
+committed revision to repair missed notifications.
+
+`getDocumentState`, `applyUpdate` and `migrateDocument` are Yjs-only APIs. An operations
+session cannot use them to write content. Likewise, platform `sequenceNumber` and
+materialization fields must not be treated as the current domain revision.
+
 ### Native MCP invocation defaults
 
 A decorated tool can declare `mcp.defaultApprovalMode: 'allow' | 'confirm' | 'deny'`.

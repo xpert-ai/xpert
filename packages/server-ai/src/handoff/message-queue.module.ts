@@ -7,12 +7,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { RedisModule, TaskControlModule, ManagedQueueModule } from '@xpert-ai/server-core'
 import { ConfigModule } from '@xpert-ai/server-config'
 import { HANDOFF_QUEUE_SERVICE_TOKEN, HandoffProcessorRegistry } from '@xpert-ai/plugin-sdk'
-import {
-    XPERT_HANDOFF_QUEUE,
-    XPERT_HANDOFF_QUEUE_BATCH,
-    XPERT_HANDOFF_QUEUE_INTEGRATION,
-    XPERT_HANDOFF_QUEUE_REALTIME
-} from './constants'
+import { XPERT_HANDOFF_QUEUES } from './constants'
 import { HandoffQueueGatewayService } from './dispatcher/handoff-queue-gateway.service'
 import { HandoffRouteResolver } from './dispatcher/handoff-route-resolver.service'
 import { HandoffRoutingConfigService } from './dispatcher/handoff-routing-config.service'
@@ -42,19 +37,15 @@ import { AgentChatRealtimeService } from './agent-chat-realtime.service'
         CqrsModule,
         RedisModule,
         ConfigModule,
-        BullModule.registerQueue(
-            {
-                name: XPERT_HANDOFF_QUEUE
-            },
-            {
-                name: XPERT_HANDOFF_QUEUE_REALTIME
-            },
-            {
-                name: XPERT_HANDOFF_QUEUE_BATCH
-            },
-            {
-                name: XPERT_HANDOFF_QUEUE_INTEGRATION
-            }
+        BullModule.registerQueueAsync(
+            ...XPERT_HANDOFF_QUEUES.map((name) => ({
+                name,
+                useFactory: () => {
+                    // Independent deployments may share Redis without sharing executable chat work.
+                    const prefix = process.env.HANDOFF_QUEUE_PREFIX?.trim()
+                    return prefix ? { prefix } : {}
+                }
+            }))
         )
     ],
     providers: [

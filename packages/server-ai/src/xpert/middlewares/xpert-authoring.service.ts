@@ -915,7 +915,7 @@ export class XpertAuthoringService {
     }
 
     private async exportDraftDslYaml(xpertId: string) {
-        const draftDsl = await this.commandBus.execute(new XpertExportCommand(xpertId, true, false))
+        const draftDsl = await this.commandBus.execute(new XpertExportCommand(xpertId, true))
         return yaml.stringify(instanceToPlain(draftDsl))
     }
 

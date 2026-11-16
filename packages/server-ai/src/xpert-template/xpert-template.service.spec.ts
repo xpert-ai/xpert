@@ -259,8 +259,7 @@ it('saves an exported xpert template file and registers it in the template catal
             type: XpertTypeEnum.Agent
         },
         dslYaml,
-        isDraft: true,
-        includeMemory: false
+        isDraft: true
     })
     const catalog = readTemplatesCatalog(join(externalRoot, 'templates.json'))
     const detail = await service.getTemplateDetail(exportedTemplate.id, LanguagesEnum.English)
@@ -268,8 +267,7 @@ it('saves an exported xpert template file and registers it in the template catal
     expect(exportedTemplate).toMatchObject({
         id: 'xpert-xpert-1',
         filePath: 'templates/xpert-xpert-1.yaml',
-        isDraft: true,
-        includeMemory: false
+        isDraft: true
     })
     expect(readFileSync(join(externalRoot, exportedTemplate.filePath), 'utf8')).toBe(dslYaml)
     expect(catalog.templates['en-US'].categories).toEqual(expect.arrayContaining(['Xpert']))
@@ -310,8 +308,7 @@ it('deletes an exported xpert template file and removes its catalog records', as
             type: XpertTypeEnum.Agent
         },
         dslYaml: 'team:\n  name: Support Expert\n',
-        isDraft: false,
-        includeMemory: true
+        isDraft: false
     })
 
     await service.deleteExportedXpertTemplate(exportedTemplate)

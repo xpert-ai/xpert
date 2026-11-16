@@ -44,7 +44,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
     public async execute(command: XpertAgentChatCommand): Promise<Observable<MessageEvent>> {
         const { state, xpert, agentKey, options } = command
         // eslint-disable-next-line @typescript-eslint/no-unused-vars, prefer-const
-        let { language, execution, memories } = options
+        let { language, execution } = options
         const timeStart = Date.now()
 
         execution = await this.commandBus.execute(
@@ -100,8 +100,7 @@ export class XpertAgentChatHandler implements ICommandHandler<XpertAgentChatComm
                         thread_id,
                         execution,
                         subscriber,
-                        resume: options.resume,
-                        memories
+                        resume: options.resume
                     })
                 )
                 concat(

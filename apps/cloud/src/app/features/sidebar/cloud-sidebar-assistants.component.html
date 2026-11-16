@@ -404,20 +404,17 @@
   @if (canCreateDigitalExpert()) {
     <button
       type="button"
-      class="mb-2 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="mb-2 flex sidebar-panel-row w-full items-center gap-2.5 rounded-lg text-text-secondary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       (click)="openCreateDigitalExpert($event)"
     >
-      <i
-        class="ri-add-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-        aria-hidden="true"
-      ></i>
+      <i class="ri-add-line sidebar-panel-icon" aria-hidden="true"></i>
       {{ 'XP.Xpert.CreateDigitalExpert' | translate }}
     </button>
   }
   @if (!activeBusinessAreaFilter()) {
     <xp-sidebar-groups [query]="query" />
   }
-  <h3 class="mb-1 px-3 py-1 text-sm font-medium text-muted-foreground">{{ 'XP.MENU.Assistants' | translate }}</h3>
+  <h3 class="mb-1 px-[12px] py-1 text-sm font-medium text-muted-foreground">{{ 'XP.MENU.Assistants' | translate }}</h3>
   @if (showCategoryFilters()) {
     <div class="mb-3 flex flex-wrap gap-1 px-2">
       @for (categoryItem of categories(); track categoryItem.value) {
@@ -445,7 +442,7 @@
     <div
       role="button"
       tabindex="0"
-      class="flex min-h-9 pointer-coarse:min-h-[44px] cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-base text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="flex sidebar-panel-row cursor-pointer items-center gap-2.5 rounded-lg text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       [attr.data-sidebar-panel-title]="assistantLabel(xpert)"
       [attr.aria-label]="assistantLabel(xpert)"
       [xpSidebarPanelTrigger]="assistantContent"
@@ -457,7 +454,7 @@
     >
       <emoji-avatar
         xs
-        class="size-[24px]! shrink-0 overflow-hidden rounded-lg"
+        class="size-[20px]! shrink-0 overflow-hidden rounded-lg"
         [avatar]="xpert.avatar"
         [alt]="assistantLabel(xpert)"
         [fallbackLabel]="assistantLabel(xpert)"
@@ -508,13 +505,10 @@
   @if (shouldRender() && availableAssistant(xpert)) {
     <button
       type="button"
-      class="mb-1 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="mb-1 flex sidebar-panel-row w-full items-center gap-2.5 rounded-lg text-left text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       (click)="startAssistantConversation($event, xpert)"
     >
-      <i
-        class="ri-chat-new-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-      ></i
-      >{{ 'XP.Assistant.NewConversation' | translate }}
+      <i class="ri-chat-new-line sidebar-panel-icon"></i>{{ 'XP.Assistant.NewConversation' | translate }}
     </button>
 
     <div
@@ -531,7 +525,7 @@
         @for (item of filteredAssistantViews(xpert, query); track item.viewKey) {
           <button
             type="button"
-            class="flex min-h-9 pointer-coarse:min-h-[44px] w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 px-3 py-1.5 text-left text-base leading-5 transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="flex sidebar-panel-row w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 text-left transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg hover:text-text-primary focus-visible:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             [class]="
               isAssistantMenuItemActive(xpert, item)
                 ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
@@ -542,17 +536,9 @@
             (click)="openAssistantMenuItem($event, xpert, item)"
           >
             @if (item.icon) {
-              <xp-icon
-                class="flex size-[24px] shrink-0 items-center justify-center"
-                [icon]="item.icon"
-                [size]="20"
-                aria-hidden="true"
-              />
+              <xp-icon class="sidebar-panel-icon" [icon]="item.icon" [size]="16" aria-hidden="true" />
             } @else {
-              <i
-                class="ri-file-list-3-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-                aria-hidden="true"
-              ></i>
+              <i class="ri-file-list-3-line sidebar-panel-icon" aria-hidden="true"></i>
             }
             <span class="min-w-0 truncate">{{ item.title }}</span>
           </button>
@@ -579,7 +565,7 @@
           class="mt-4 min-w-0"
           [attr.aria-label]="'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' }"
         >
-          <div class="mb-1 px-3 py-1 text-sm font-medium leading-5 text-muted-foreground">
+          <div class="mb-1 px-[12px] py-1 text-sm font-medium leading-5 text-muted-foreground">
             {{ 'XP.Sidebar.RecentConversations' | translate: { Default: 'Recent conversations' } }}
           </div>
 
@@ -593,7 +579,7 @@
             </div>
           } @else if (assistantConversationState(xpert).items.length) {
             @for (group of assistantConversationGroups(xpert, query); track group.name) {
-              <div data-conversation-group-label class="px-3 py-2 text-sm text-muted-foreground">
+              <div data-conversation-group-label class="px-[12px] py-1 text-sm text-muted-foreground">
                 {{
                   (group.name === 'Pinned' ? 'XP.Sidebar.PinnedConversations' : 'XP.KEY_WORDS.Date_' + group.name)
                     | translate: { Default: group.name }
@@ -644,13 +630,10 @@
       <button
         type="button"
         data-sidebar-panel-action
-        class="mt-1 flex min-h-9 pointer-coarse:min-h-[44px] w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-base leading-5 text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="mt-1 flex sidebar-panel-row w-full items-center gap-2.5 rounded-lg text-left text-text-secondary hover:text-text-primary focus-visible:text-text-primary transition-colors duration-150 motion-reduce:transition-none hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         (click)="openAssistantSettings($event, xpert)"
       >
-        <i
-          class="ri-equalizer-line inline-flex size-[24px] shrink-0 items-center justify-center text-[20px] leading-none"
-        ></i
-        >{{ 'XP.XpertSettings.Title' | translate }}
+        <i class="ri-equalizer-line sidebar-panel-icon"></i>{{ 'XP.XpertSettings.Title' | translate }}
       </button>
     }
   }

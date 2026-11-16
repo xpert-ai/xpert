@@ -28,7 +28,7 @@ export function createChatkitWorkbenchNavigation(options: {
   views: Pick<ViewExtensionApiService, 'getSlotViews'>
   url: Pick<
     ClawXpertWorkbenchViewUrlState,
-    'viewKey' | 'viewQuery' | 'viewLayout' | 'projectId' | 'viewClosed' | 'setViewState'
+    'viewKey' | 'viewQuery' | 'viewLayout' | 'projectId' | 'viewClosed' | 'menuRequestId' | 'setViewState'
   >
   selectProject: (projectId: string, view?: WorkbenchExtensionViewOpenRequest) => Promise<boolean> | void
 }) {
@@ -39,7 +39,9 @@ export function createChatkitWorkbenchNavigation(options: {
     const maximizeDefault =
       !routedViewKey && options.initialLayout() === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized
     const layout = maximizeDefault ? 'maximized' : options.url.viewLayout()
+    const requestId = options.url.menuRequestId()
     return {
+      ...(requestId ? { requestId } : {}),
       // Legacy deep links carry a separately scoped Project; never apply that
       // query to the current session before its destination has been authorized.
       projectId: options.url.projectId() ?? options.projectId(),

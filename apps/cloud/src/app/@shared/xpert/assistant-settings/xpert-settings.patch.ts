@@ -1,3 +1,4 @@
+import { setFileMemoryEnabled } from './settings-middleware.utils'
 import { isEqual } from 'lodash-es'
 import { normalizeXpertAgentConfig, type TXpertFeatures, type TXpertTeamDraft } from '@xpert-ai/contracts'
 import { clearLegacyInheritedPrimaryAgentModel } from './primary-agent-model.util'
@@ -105,27 +106,7 @@ export function applyXpertSettingsChanges(
       const b = before.memory,
         a = after.memory
       if (!isEqual(b.summary, a.summary)) team.summarize = { ...team.summarize, ...delta(b.summary, a.summary) }
-      if (!isEqual(b.longTerm, a.longTerm)) {
-        const change = delta(b.longTerm, a.longTerm)
-        team.memory = { ...team.memory }
-        if ('enabled' in change) team.memory.enabled = change.enabled
-        if ('profileEnabled' in change || 'profilePrompt' in change || 'afterSeconds' in change) {
-          team.memory.profile = { ...team.memory.profile }
-          if ('profileEnabled' in change) team.memory.profile.enabled = change.profileEnabled
-          if ('profilePrompt' in change) team.memory.profile.prompt = change.profilePrompt
-          if ('afterSeconds' in change) team.memory.profile.afterSeconds = change.afterSeconds
-        }
-        if ('qaEnabled' in change || 'qaPrompt' in change) {
-          team.memory.qa = { ...team.memory.qa }
-          if ('qaEnabled' in change) team.memory.qa.enabled = change.qaEnabled
-          if ('qaPrompt' in change) team.memory.qa.prompt = change.qaPrompt
-        }
-      }
-      if (!isEqual(b.reply, a.reply))
-        team.features = {
-          ...features(),
-          memoryReply: { enabled: false, ...team.features?.memoryReply, ...delta(b.reply, a.reply) }
-        }
+      if (b.enabled !== a.enabled) return setFileMemoryEnabled(result, a.enabled)
       break
     }
     case 'runtime': {

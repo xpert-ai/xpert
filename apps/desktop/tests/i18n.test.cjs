@@ -12,6 +12,7 @@ const {
   localizedText
 } = require('../electron/i18n/index.mjs')
 const { DesktopService, DEFAULT_CONFIG, parseConfig } = require('../electron/service.cjs')
+const { createStorage } = require('../electron/storage.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const { menuTemplate } = require('../electron/menu.cjs')
 const branding = require('../electron/branding.json')
@@ -178,6 +179,62 @@ test('new installs and missing legacy locales use supported system languages in 
   assert.equal(saved.config.locale, 'ja')
 })
 
+test('first-run language confirmation survives restarts and preserves existing installations', async (t) => {
+  const directory = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'bosi-language-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const storage = createStorage(directory, { isEncryptionAvailable: () => false })
+  const create = () => new DesktopService({ storage, systemLanguages: ['ja-JP'] })
+  const first = create()
+  assert.equal((await first.state()).needsLanguageSelection, true)
+  assert.equal(first.config.locale, 'ja')
+  first.persist()
+  const resumed = create()
+  assert.equal(resumed.snapshot().needsLanguageSelection, true)
+  assert.equal((await dispatch(resumed, 'confirmInitialLanguage', 'unknown')).ok, false)
+  const result = await dispatch(resumed, 'confirmInitialLanguage', 'zh-Hant')
+  assert.equal(result.value.needsLanguageSelection, false)
+  assert.equal(result.value.config.locale, 'zh-Hant')
+  assert.equal(create().logout().needsLanguageSelection, false)
+  assert.equal(create().confirmInitialLanguage('en').config.locale, 'zh-Hant')
+  storage.write({ config: { ...DEFAULT_CONFIG, locale: 'en' } })
+  assert.equal(create().snapshot().needsLanguageSelection, false)
+})
+
+test('supported Macs resume the permission page after language selection and remember completion', async () => {
+  let saved
+  const storage = {
+    read: () => saved,
+    write: (state) => {
+      saved = state
+    }
+  }
+  const create = () => Object.assign(new DesktopService({ storage }), { supportsWindowControl: true })
+  const first = create()
+  assert.equal(first.snapshot().needsComputerSetup, false)
+  assert.equal(first.confirmInitialLanguage('zh-Hans').needsComputerSetup, true)
+  const resumed = create()
+  assert.equal(resumed.snapshot().needsLanguageSelection, false)
+  assert.equal(resumed.snapshot().needsComputerSetup, true)
+  assert.equal((await dispatch(resumed, 'finishComputerSetup')).value.needsComputerSetup, false)
+  assert.equal(create().snapshot().needsComputerSetup, false)
+  saved = { config: DEFAULT_CONFIG }
+  assert.equal(create().snapshot().needsComputerSetup, false)
+})
+
+test('a failed first-run language save leaves the selection pending for retry', () => {
+  const service = new DesktopService({
+    storage: {
+      read: () => null,
+      write() {
+        throw new Error('write failed')
+      }
+    }
+  })
+  const before = service.snapshot()
+  assert.throws(() => service.confirmInitialLanguage('ja'), /write failed/)
+  assert.deepEqual(service.snapshot(), before)
+})
+
 test('sign-in and restored sessions prefer the account language over the system and saved desktop language', async () => {
   for (const [preferredLanguage, expected] of [
     ['zh-CN', 'zh-Hans'],
@@ -234,6 +291,39 @@ test('restored account preferences update an old English default and refresh wit
   assert.equal((await service.refreshProfile()).config.locale, 'ja')
   assert.equal(service.profile.organizationId, 'org')
   assert.equal(service.generation, generation)
+})
+
+test('refreshing the workspace menu preserves a saved desktop language across session restoration', async () => {
+  let saved = { config: DEFAULT_CONFIG, credentials: { token: 'fixture', refreshToken: 'refresh-fixture' } }
+  let preferredLanguage = 'en-US'
+  const storage = {
+    read: () => structuredClone(saved),
+    write: (value) => {
+      saved = structuredClone(value)
+    }
+  }
+  const create = () =>
+    new DesktopService({
+      storage,
+      fetcher: async () =>
+        Response.json({
+          user: { id: 'user', preferredLanguage },
+          organizations: [{ id: 'org', name: 'Workspace' }]
+        })
+    })
+
+  const desktop = create()
+  assert.equal((await desktop.state()).config.locale, 'en')
+  desktop.configure({ ...desktop.config, locale: 'zh-Hans' })
+  preferredLanguage = 'en'
+  assert.equal((await desktop.refreshProfile()).config.locale, 'zh-Hans')
+  assert.equal(saved.config.locale, 'zh-Hans')
+
+  const restored = create()
+  assert.equal((await restored.state()).config.locale, 'zh-Hans')
+  assert.equal((await restored.refreshProfile()).profile.organizationId, 'org')
+  preferredLanguage = 'zh-TW'
+  assert.equal((await restored.refreshProfile()).config.locale, 'zh-Hant')
 })
 
 test('host errors carry safe English message keys and interpolate translated validation labels', async () => {

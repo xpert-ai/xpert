@@ -4,6 +4,10 @@ export interface IChatConversationUnreadXpertSummary {
   xpertId: string
   /** Includes running conversations other than the most recently updated one. */
   hasActiveRuns?: boolean
+  /** Total private threads waiting for a human response, including those outside the preview. */
+  pendingThreadCount?: number
+  /** Pending threads in the bounded preview. Rank is one-based across the requested Assistants, newest first. */
+  pendingThreads?: { threadId: string; kind: 'question' | 'approval'; rank?: number }[]
   unreadMessages: number
   unreadConversations: number
   latestUnreadAt?: Date | string | null

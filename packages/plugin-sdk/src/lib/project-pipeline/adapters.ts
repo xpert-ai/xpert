@@ -1,5 +1,6 @@
 import type {
   ProjectPipelineEvidenceRef,
+  ProjectPipelineNodeWorkbench,
   ProjectPipelineJsonValue,
   ProjectPipelineSubjectVersion,
   ProjectPipelineWorkContext,
@@ -19,12 +20,21 @@ export type { ProjectPipelineOperationReceipt } from '@xpert-ai/contracts'
 
 /** Runtime adapters are registered separately from catalog declarations and resolved in the actor scope. */
 export interface ProjectPipelineSubjectResolver {
+  /** Definition versions whose individual nodes have subject-scoped workbench entries. */
+  readonly nodeWorkbenches?: ReadonlyArray<
+    ProjectPipelineNodeWorkbench & {
+      definitionKey: string
+      version: string
+    }
+  >
   resolve(context: ProjectPipelineContext, objectKey: string): Promise<ProjectPipelineSubjectVersion>
   checkCurrent(context: ProjectPipelineContext, version: ProjectPipelineSubjectVersion): Promise<boolean>
   /** Read-only business entry for a saved subject. Reauthorize its Project and actor; never return a URL. */
   resolveEntry?(
     context: ProjectPipelineContext,
-    objectKey: string
+    objectKey: string,
+    hostXpertId?: string,
+    nodeTarget?: { executorXpertId?: string }
   ): Promise<XpertProjectViewSelection & { xpertId: string }>
 }
 

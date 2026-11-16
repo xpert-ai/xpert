@@ -15,6 +15,7 @@ describe('CollaborationGateway', () => {
         const scope = { actor, projectId: 'project', assistantId: 'assistant' }
         const session = { sessionId: 'session', documentId: 'doc' }
         const service = {
+            removePresenceForSession: async () => undefined,
             onBroadcast: (callback) => {
                 listener = callback
                 return () => undefined
@@ -68,6 +69,7 @@ describe('CollaborationGateway', () => {
             actor: { presenceId: 'reader', actorType: 'user', displayName: 'Reader', color: '#111111' }
         }
         const service = {
+            removePresenceForSession: async () => undefined,
             onBroadcast: jest.fn((callback) => {
                 listener = callback
                 return () => undefined
@@ -120,6 +122,7 @@ describe('CollaborationGateway', () => {
             organizationId: 'organization'
         }
         const collaboration = {
+            removePresenceForSession: async () => undefined,
             onBroadcast: jest.fn(() => () => undefined),
             resolveSession: jest.fn(async () => session),
             getStateForSession: jest.fn(async () => ({ updateBase64: '', stateVectorBase64: '' })),
@@ -142,4 +145,33 @@ describe('CollaborationGateway', () => {
             payload: { selfClientId: 'socket-self', items: [] }
         })
     })
+})
+
+it('uses operation revisions at connect/reconnect and refuses binary update messages', async () => {
+    const session = { engine: 'operations', documentId: 'doc' }
+    const service = {
+        removePresenceForSession: async () => undefined,
+        onBroadcast: () => () => undefined,
+        resolveSession: async () => session,
+        getRevisionForSession: jest.fn(async () => ({ documentId: 'doc', revision: 3 })),
+        getStateForSession: jest.fn(),
+        applyUpdateForSession: jest.fn(),
+        listPresenceForSession: async () => []
+    }
+    const client = {
+        id: 'client',
+        handshake: { auth: { sessionId: 's', clientKey: 'k', documentId: 'doc' }, query: {} },
+        join: jest.fn(),
+        emit: jest.fn(),
+        disconnect: jest.fn()
+    }
+    const gateway = new CollaborationGateway(service as never)
+    await gateway.handleConnection(client as never)
+    expect(client.emit).toHaveBeenCalledWith('revision', { documentId: 'doc', revision: 3 })
+    await gateway.sync({}, client as never)
+    expect(service.getRevisionForSession).toHaveBeenCalledTimes(2)
+    await gateway.update({ updateBase64: 'AA==' }, client as never)
+    expect(service.getStateForSession).not.toHaveBeenCalled()
+    expect(service.applyUpdateForSession).not.toHaveBeenCalled()
+    gateway.onModuleDestroy()
 })

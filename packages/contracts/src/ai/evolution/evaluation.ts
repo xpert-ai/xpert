@@ -122,6 +122,13 @@ export interface EvaluationRun {
   candidateBundle: CapabilityVersionBundle
   status: 'running' | 'passed' | 'failed'
   metrics: EvaluationMetrics
+  /** Paired accuracy is null for an empty slice. Older runs have no slice summary. */
+  sliceMetrics?: Array<{
+    slice: string
+    totalCases: number
+    baselineAccuracy: number | null
+    candidateAccuracy: number | null
+  }>
   gate: EvaluationGateResult
   caseResults: ReplayCaseResult[]
   startedAt: string

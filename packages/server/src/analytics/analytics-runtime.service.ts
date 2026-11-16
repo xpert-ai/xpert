@@ -25,6 +25,7 @@ import {
 	resolveAnalyticsParameters,
 	type AnalyticsRuntimeApi,
 	type AnalyticsSourceResolver,
+	type AnalyticsResolvedSource,
 	type AnalyticsQueryExecution,
 	type AnalyticsQueryProvider,
 	type AnalyticsProviderContext,
@@ -38,12 +39,16 @@ import {
 } from './analytics-errors'
 import { analyticsRuntimeDependencyError } from './analytics-runtime-errors'
 import { PROVIDER_VALIDATION_ERRORS } from './analytics-error-details'
+import { AnalyticsResultCache, analyticsCacheKey } from './analytics-result-cache'
 
 /** Only platform modules supply resource adapters. Plugin providers cannot supply source options or ACLs. */
 export const ANALYTICS_SOURCE_RESOLVERS = Symbol('ANALYTICS_SOURCE_RESOLVERS')
 @Injectable()
 @RuntimeCapabilityProvider(AnalyticsRuntimeCapability)
 export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
+	private readonly resultCache = new AnalyticsResultCache()
+	private readonly providerEpochs = new WeakMap<AnalyticsQueryProvider, number>()
+	private providerEpoch = 0
 	constructor(
 		private readonly providers: AnalyticsProviderRegistry,
 		@Inject(ANALYTICS_SOURCE_RESOLVERS) private readonly resolvers: readonly AnalyticsSourceResolver[],
@@ -128,34 +133,36 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		if (!normalized.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
 		const { binding } = normalized.data
 		await selected.revalidate()
-		const result = await this.withProvider(
-			actor,
-			binding.source,
-			binding.providerId,
-			async (provider, context) => {
-				if (
-					!provider.descriptor.operations.some(
-						(operation) =>
-							operation.readOnly &&
-							operation.name === binding.operation &&
-							operation.contractVersion === binding.contractVersion
+		const execute = (executionActor: DataSourceActor, source?: AnalyticsResolvedSource) =>
+			this.withProvider(
+				executionActor,
+				binding.source,
+				binding.providerId,
+				async (provider, context) => {
+					if (
+						!provider.descriptor.operations.some(
+							(operation) =>
+								operation.readOnly &&
+								operation.name === binding.operation &&
+								operation.contractVersion === binding.contractVersion
+						)
 					)
-				)
-					throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
-				return normalizeAnalyticsResult(
-					binding,
-					await provider.execute(
+						throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
+					return normalizeAnalyticsResult(
 						binding,
-						resolveAnalyticsParameters(binding, normalized.data.controls),
-						context
-					),
-					context.executionId,
-					context.maxRows
-				)
-			},
-			undefined,
-			selected.source ? async () => selected.source : undefined
-		)
+						await provider.execute(
+							binding,
+							resolveAnalyticsParameters(binding, normalized.data.controls),
+							context
+						),
+						context.executionId,
+						context.maxRows
+					)
+				},
+				undefined,
+				source ? async () => source : undefined
+			)
+		const result = selected.execute ? await selected.execute(execute) : await execute(actor, selected.source)
 		await selected.revalidate()
 		return selected.project(result)
 	}
@@ -164,12 +171,12 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		authorizeAnalyticsActor(actor)
 		const parsed = analyticsQueryRequestSchema.safeParse(input)
 		if (!parsed.success) throw analyticsError('ANALYTICS_INVALID_REQUEST')
-		const { binding, controls } = parsed.data
+		const { binding, controls, cache } = parsed.data
 		return this.withProvider(
 			actor,
 			binding.source,
 			binding.providerId,
-			async (provider, context) => {
+			async (provider, context, revalidateAccess) => {
 				if (
 					!provider.descriptor.operations.some(
 						(op) =>
@@ -179,12 +186,62 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 					)
 				)
 					throw analyticsError('ANALYTICS_CAPABILITY_UNAVAILABLE')
-				return normalizeAnalyticsResult(
+				const parameters = resolveAnalyticsParameters(binding, controls)
+				const execute = async () =>
+					normalizeAnalyticsResult(
+						binding,
+						await provider.execute(binding, parameters, context),
+						context.executionId,
+						context.maxRows
+					)
+				// Zero age disables reuse, but an explicit refresh must still invalidate older entries.
+				if (!cache || (!cache.maxAgeMs && !cache.forceRefresh) || !provider.authorizeResultReuse)
+					return execute()
+				const authorize = async () => {
+					const proof = await provider.authorizeResultReuse(binding, parameters, context)
+					if (
+						typeof proof?.sourceVersion !== 'string' ||
+						!proof.sourceVersion ||
+						proof.sourceVersion.length > 256
+					)
+						throw analyticsError('ANALYTICS_SOURCE_CHANGED')
+					await revalidateAccess()
+					return proof.sourceVersion
+				}
+				// A metadata lookup is not enough: authorize the exact query and capture a stable source revision.
+				const revision = await authorize()
+				// Reloading a provider invalidates its earlier results even if its public ID is unchanged.
+				if (!this.providerEpochs.has(provider)) this.providerEpochs.set(provider, ++this.providerEpoch)
+				// Resolved private options participate in the hash so credential/configuration rotation splits reuse.
+				const key = analyticsCacheKey({
+					actor,
 					binding,
-					await provider.execute(binding, resolveAnalyticsParameters(binding, controls), context),
-					context.executionId,
-					context.maxRows
+					parameters,
+					options: context.options,
+					revision,
+					providerEpoch: this.providerEpochs.get(provider),
+					maxRows: context.maxRows
+				})
+				const result = await this.resultCache.read(
+					key,
+					cache.maxAgeMs,
+					cache.forceRefresh === true,
+					async () => {
+						// Admit only results produced under the same source revision that was authorized before execution.
+						const value = await execute()
+						if (value.provenance.sourceVersion !== revision || (await authorize()) !== revision)
+							throw analyticsError('ANALYTICS_SOURCE_CHANGED')
+						return value
+					}
 				)
+				try {
+					// Each waiter has its own identity, deadline and current source authorization.
+					if ((await authorize()) !== revision) throw analyticsError('ANALYTICS_SOURCE_CHANGED')
+					return result
+				} catch (error) {
+					this.resultCache.delete(key, result.provenance.executionId)
+					throw error
+				}
 			},
 			execution
 		)
@@ -194,7 +251,11 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 		actor: DataSourceActor,
 		source: AnalyticsSourceRef,
 		providerId: string,
-		run: (provider: AnalyticsQueryProvider, context: AnalyticsProviderContext) => Promise<T>,
+		run: (
+			provider: AnalyticsQueryProvider,
+			context: AnalyticsProviderContext,
+			revalidateAccess: () => Promise<void>
+		) => Promise<T>,
 		parent?: AnalyticsQueryExecution,
 		resolveSource?: () => Promise<Awaited<ReturnType<AnalyticsSourceResolver['resolve']>>>
 	): Promise<T> {
@@ -268,7 +329,7 @@ export class AnalyticsRuntimeService implements AnalyticsRuntimeApi {
 					}
 					let output: T
 					try {
-						output = await run(provider, context)
+						output = await run(provider, context, revalidateAccess)
 					} catch (error) {
 						assertActive()
 						if (error instanceof AnalyticsRuntimeError) throw error

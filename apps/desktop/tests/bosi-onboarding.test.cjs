@@ -21,6 +21,7 @@ async function mount(t, handler) {
   }).outputText
   runInNewContext(code, {
     exports,
+    window: dom.window,
     Error,
     require(id) {
       if (id === '../host')

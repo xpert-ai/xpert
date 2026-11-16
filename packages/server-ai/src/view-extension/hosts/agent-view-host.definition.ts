@@ -1,3 +1,4 @@
+import { toProjectViewAccess } from '../../xpert-project/services/project-view-access'
 import { t } from 'i18next'
 import { assertAppPlatformUpload } from '../../shared/app-platform-resource-policy'
 import { agentCapabilities } from '../../xpert/published-agent/agent-capabilities'
@@ -7,6 +8,7 @@ import {
     UserType,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
+    EVENT_INBOX_FEATURE,
     IXpert,
     resolveRuntimeXpert,
     XpertResolvedViewHostContext,
@@ -352,7 +354,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return {
             agentKey,
             capabilities: {
-                features
+                features: [...new Set([...features, EVENT_INBOX_FEATURE])]
             },
             hostState: {
                 agent: {
@@ -388,17 +390,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     }
 }
 
-function toProjectViewAccess(role: 'owner' | 'manager' | 'editor' | 'member' | 'assistant', status?: string | null) {
-    if (role === 'assistant') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
-    const writable = status !== 'archived'
-    return {
-        role,
-        canRead: true,
-        canEdit: writable && role !== 'member',
-        canManage: writable && (role === 'owner' || role === 'manager'),
-        canUse: writable
-    }
-}
 
 function normalizeWorkspaceUploadFile(file: ViewExtensionFileActionFile, fileName: string) {
     return {

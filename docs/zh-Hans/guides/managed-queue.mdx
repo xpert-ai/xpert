@@ -253,6 +253,7 @@ WeChat 插件迁移后，旧队列 `plugin_wechat:plugin_wechat_outbound` 和 `p
 
 - `MANAGED_QUEUE_CONCURRENCY`：平台物理 worker 并发，默认值由服务端实现决定。
 - `MANAGED_QUEUE_SANDBOX_BROWSER_CONCURRENCY`：浏览器池并发，API 进程默认值为 1。
+- `NODE_ENV=development` 时，默认按 API 的 `PORT`（默认 `3000`）隔离队列。在本地设置 `MANAGED_QUEUE_PREFIX_BY_PORT=false` 可使用共享前缀。其他环境默认使用共享前缀。开关留空时使用当前环境的默认值。非空值只接受 `true` 或 `false`（忽略大小写），填错会在启动时直接报错。显式设置的 `MANAGED_QUEUE_PREFIX` 在所有环境中都优先。属于同一部署的 API 和 worker 应使用相同的队列命名空间。切换前应先处理完待执行作业。
 - `MANAGED_QUEUE_AUTORUN=false`：阻止 worker 自动启动，适合部分测试或特殊部署。
 
 插件不应自行配置 BullMQ connection。Redis 连接由平台配置统一提供。

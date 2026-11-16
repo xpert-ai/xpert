@@ -415,6 +415,9 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 	}
 	const baseDirRoot =
 		opts.baseDir ?? (opts.organizationId ? getOrganizationPluginRoot(organizationId, scopeOpts) : process.cwd())
+	// A migrated plugin store may live under another checkout. Built-in source discovery
+	// belongs to this host; the store is only the destination for runtime artifacts.
+	const workspaceDiscoveryRoot = opts.baseDir ?? getConfig().assetOptions.serverRoot ?? process.cwd()
 
 	const discoveryOptions = { ...opts.discovery }
 	if (!discoveryOptions.manifestPath && opts.organizationId) {
@@ -497,7 +500,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 
 		const workspacePath =
 			getCodeWorkspacePath(plugin.sourceConfig) ??
-			findWorkspacePluginDirectory(normalizePluginName(plugin.name), baseDirRoot)
+			findWorkspacePluginDirectory(normalizePluginName(plugin.name), workspaceDiscoveryRoot)
 		if (!workspacePath) {
 			continue
 		}
@@ -583,7 +586,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					? (configuredWorkspacePath ??
 						(configuredPackageDir || configuredRuntimeName
 							? undefined
-							: findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot)))
+							: findWorkspacePluginDirectory(normalizePluginName(name), workspaceDiscoveryRoot)))
 					: undefined
 			let sdkCompatibilityWarnings: PluginSdkCompatibilityWarning[] = []
 			// 2) Load each plugin and merge its configuration defaults.

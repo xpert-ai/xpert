@@ -2,6 +2,18 @@ import { z } from 'zod/v3'
 import type { AiModelTypeEnum } from '../agent'
 import type { ModelFeature } from './ai-model.model'
 import type { ModelExecutionParameters } from './model-execution-parameters.model'
+import type { CliPermissionMode } from './cli-execution.model'
+import type {
+  ExecutionSourceContext,
+  ExecutionSource as ModelExecutionSource,
+  ExecutionEnvironment as ModelExecutionEnvironment
+} from './execution-source.model'
+
+// Retain existing public names while source contracts remain independent of model execution.
+export type {
+  ExecutionSource as ModelExecutionSource,
+  ExecutionEnvironment as ModelExecutionEnvironment
+} from './execution-source.model'
 
 /** Entry point and execution location are independent dimensions. */
 export type ModelExecutionEntry = 'cli' | 'agent_runtime' | 'shell'
@@ -11,21 +23,6 @@ export type ModelExecutionProtocol =
   | 'anthropic_messages'
   | 'openai_responses_chat'
   | 'anthropic_messages_chat'
-export type ModelExecutionEnvironment =
-  | { type: 'computer' | 'sandbox'; environmentId: string; instanceId: string }
-  | { type: 'remote'; bindingId: string; revision: string }
-export type ModelExecutionSource =
-  | { type: 'cli_session'; cliSessionId: string }
-  | { type: 'agent_invocation'; invocationId: string; bindingId: string; bindingRevision: string }
-  /** One CLI child, not the containing shell; IDs and revision are resolved by the trusted host. */
-  | {
-      type: 'shell_execution'
-      executionId: string
-      shellExecutionId: string
-      parentExecutionId: string
-      generation: number
-      profileRevision: string
-    }
 
 /** Exhaustive attribution shared by queries, ledger export and UI. */
 export function modelExecutionEntry(source: ModelExecutionSource): ModelExecutionEntry {
@@ -67,20 +64,9 @@ export interface ModelExecutionModel {
   protocols: ModelExecutionProtocol[]
 }
 
-export interface ModelExecutionContext {
-  tenantId: string
-  runtimeOrganizationId: string
-  actorUserId: string
+/** Platform model calls add billing to the shared execution identity. */
+export interface ModelExecutionContext extends ExecutionSourceContext {
   billableUserId: string
-  xpertId: string
-  /** Display snapshot; historical grants may only have the immutable ID. */
-  assistantName?: string
-  assistantVersion: string
-  conversationId: string
-  threadId?: string
-  source: ModelExecutionSource
-  environment: ModelExecutionEnvironment
-  tool: { id: string; version: string }
 }
 
 /** Money limits require proven provider-specific bounds; v1 admits token budgets only. */
@@ -95,9 +81,6 @@ export interface ModelExecutionLimits {
   leaseSeconds: number
   maxDurationSeconds: number
 }
-
-/** CLI tool approvals inside the already authorized Computer environment. */
-export type CliPermissionMode = 'allow' | 'restricted'
 
 /** Resolved execution policy; default enablement does not bypass model, tool or budget checks. */
 export type ModelExecutionPolicy = {
@@ -117,71 +100,7 @@ export type ModelExecutionPolicy = {
   tools: Array<{ id: string; version: string; executable: string }>
 }
 
-export type CliSessionStatus = 'starting' | 'running' | 'stopping' | 'exited' | 'unknown'
-
-/** Guest executable/version probe result; unknown means the installation could not be confirmed. */
-export type ComputerCliInstallation = 'installed' | 'missing' | 'version_mismatch' | 'unknown'
-
 export const MODEL_EXECUTION_POLICY_SETTING = 'modelExecutionPolicy'
-
-/** Authorized Computer tool inventory; installation, model support and managed execution are independent. */
-export interface ComputerCliToolsView {
-  /** A conversation is required to resolve the Assistant's available models. */
-  state: 'ready' | 'conversation_required'
-  tools: Array<{
-    /** Policy-approved executable identifier and pinned version. */
-    id: string
-    version: string
-    /** Installed at the required version and compatible with the selected model. */
-    available: boolean
-    /** Probe of the current container; unknown must not be treated as installed. */
-    installation: ComputerCliInstallation
-    /** The Assistant's selected model supports this tool's approved protocol. */
-    modelCompatible: boolean
-    /** A registered background runtime supports this tool, version and Computer environment. */
-    managed: boolean
-  }>
-  /** Current launch defaults; existing sessions retain their own issuance snapshot. */
-  launch?: {
-    assistant: string
-    model: string
-    /** Server-resolved path inside the mounted Computer workspace. */
-    workingDirectory: string
-    /** Maximum token budget for a newly issued session. */
-    tokenBudget?: number
-  }
-}
-
-/** Owned interactive CLI session summary; excludes execution credentials and Docker connection details. */
-export interface CliSessionView {
-  /** Session identity, distinct from a model call or desktop control ticket. */
-  id: string
-  /** Immutable conversation and Assistant bindings. */
-  conversationId: string
-  xpertId: string
-  /** Policy-approved tool/version recorded at creation. */
-  tool: { id: string; version: string }
-  /** Host-observed lifecycle; unknown never implies completion or permission to relaunch. */
-  status: CliSessionStatus
-  /** Platform model identifier captured at issuance; empty if no grant was issued. */
-  defaultModelId: string
-  /** Original Assistant display snapshot; historical records may fall back to its ID. */
-  assistantName: string
-  /** Original default model name; empty if no grant was issued. */
-  model: string
-  /** Server-resolved session workspace path inside Computer. */
-  workingDirectory: string
-  /** Explicit session budget; omitted when none is configured. */
-  tokenBudget?: number
-  /** Recorded actual tokens across this grant's attempts, excluding estimates. */
-  usedTokens: number
-  /** Tokens still reserved for attempts whose usage is not confirmed. */
-  reservedTokens: number
-  /** ISO absolute execution deadline, not the renewable lease expiry; creation time without a grant. */
-  expiresAt: string
-  /** Supervisor exit code when observed; null or absent if not known. */
-  exitCode?: number | null
-}
 
 /** Attribution snapshot persisted with execution usage; contains no authorization credentials. */
 export interface ModelExecutionUsageContext {

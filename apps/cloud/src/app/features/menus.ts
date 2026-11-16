@@ -248,6 +248,14 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
+      title: 'My events',
+      icon: 'inbox',
+      link: '/chat/event-inbox',
+      pathMatch: 'full',
+      scopeContext: 'organization-only',
+      data: { translationKey: 'My events', featureKey: AiFeatureEnum.FEATURE_XPERT }
+    },
+    {
       title: 'Automations',
       icon: 'ri-alarm-line',
       link: '/chat/tasks',

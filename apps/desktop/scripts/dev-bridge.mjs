@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { MAX_PLUGIN_ZIP_BYTES } from '../electron/plugin-archive.mjs'
 import { createRequire } from 'node:module'
 // Keep the Node host outside Vite's ESM configuration bundle.
 const require = createRequire(import.meta.url)
@@ -19,22 +20,17 @@ export function desktopBridge() {
       server.middlewares.use('/__desktop', async (req, res) => {
         const origin = `http://${req.headers.host}`
         const port = server.config.server.port
+        const zipUpload = req.url?.split('?')[0] === '/plugin-zip'
         if (
           req.headers.host !== `127.0.0.1:${port}` ||
           req.headers.origin !== origin ||
           req.method !== 'POST' ||
-          req.headers['content-type'] !== 'application/json'
+          req.headers['content-type'] !== (zipUpload ? 'application/zip' : 'application/json')
         ) {
           res.writeHead(403).end()
           return
         }
         try {
-          let input = ''
-          for await (const chunk of req) {
-            input += chunk
-            if (input.length > 16384) throw new Error('Request too large')
-          }
-          const { method, argument } = JSON.parse(input)
           let id = /(?:^|; )xpert-desktop=([^;]+)/.exec(req.headers.cookie || '')?.[1]
           if (!id || !sessions.has(id)) {
             id = crypto.randomUUID()
@@ -60,7 +56,44 @@ export function desktopBridge() {
             }
           res.setHeader('Content-Type', 'application/json')
           res.setHeader('Cache-Control', 'no-store')
-          res.end(JSON.stringify(await dispatch(current.service, method, argument)))
+          let command
+          if (zipUpload) {
+            const organizationId = new URL(req.url, origin).searchParams.get('organizationId')
+            if (!current.service.profile?.organizationId || current.service.profile.organizationId !== organizationId) {
+              res.end(
+                JSON.stringify({
+                  ok: false,
+                  status: 409,
+                  message: 'The organization changed. Select an assistant again.'
+                })
+              )
+              return
+            }
+            const chunks = []
+            let size = 0
+            for await (const chunk of req) {
+              size += chunk.length
+              if (size > MAX_PLUGIN_ZIP_BYTES) {
+                res.end(
+                  JSON.stringify({ ok: false, status: 413, message: 'The ZIP package exceeds the 100 MiB limit.' })
+                )
+                return
+              }
+              chunks.push(chunk)
+            }
+            command = {
+              method: 'installOrganizationPluginZip',
+              argument: { organizationId, bytes: Buffer.concat(chunks, size) }
+            }
+          } else {
+            let input = ''
+            for await (const chunk of req) {
+              input += chunk
+              if (input.length > 16384) throw new Error('Request too large')
+            }
+            command = JSON.parse(input)
+          }
+          res.end(JSON.stringify(await dispatch(current.service, command.method, command.argument)))
         } catch {
           res.writeHead(400).end(JSON.stringify({ ok: false, message: 'Invalid request.', status: 400 }))
         }

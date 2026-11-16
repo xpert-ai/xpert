@@ -56,3 +56,13 @@ it('enforces manager authority before lifecycle and create/update writes', async
     expect(tasks.pauseHttpTask).not.toHaveBeenCalled()
     expect(commands.execute).not.toHaveBeenCalled()
 })
+
+it('keeps scheduling state independent of edits to an existing automation', async () => {
+    const { service, tasks } = await fixture()
+    await service.saveAutomation('project', { taskId, xpertId: userId, name: 'Updated', prompt: 'Review',
+        options: { frequency: TaskFrequency.Daily, time: '09:00' }, timeZone: 'UTC' })
+    const [id, changes] = tasks.updateHttpTask.mock.calls[0]
+    expect(id).toBe(taskId)
+    expect(changes.name).toBe('Updated')
+    expect(changes).not.toHaveProperty('status')
+})

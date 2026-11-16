@@ -69,14 +69,16 @@ export function registerWorkbenchNavigationOpenCommand(
       for (const key of ['pipelineNodeId', 'pipelineInstanceId', 'pipelineRoundId']) {
         if (!payload || typeof payload !== 'object' || !(key in payload)) continue
         const value = getString(payload, key)
-        if (
-          !value ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value) ||
-          (target === WORKBENCH_PROJECT_APPLICATION_TARGET && key !== 'pipelineNodeId')
-        )
+        if (!value || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))
           return { success: false, code: 'bad_request' }
         focus[key] = value
       }
+      if (
+        target === WORKBENCH_PROJECT_APPLICATION_TARGET &&
+        (focus.pipelineInstanceId || focus.pipelineRoundId) &&
+        !(focus.pipelineInstanceId && focus.pipelineRoundId && focus.pipelineNodeId)
+      )
+        return { success: false, code: 'bad_request' }
       const commands = [
         '/project',
         projectId,

@@ -106,6 +106,28 @@ export class DesktopShellCapabilityProvider implements IAssistantCapabilityProvi
 }
 
 @Injectable()
+@AssistantCapabilityProvider('desktop-computer-use')
+export class DesktopComputerCapabilityProvider implements IAssistantCapabilityProvider {
+    readonly key = 'desktop-computer-use'
+    readonly availableForBlankAssistant = true
+    readonly requiredModelFeatures = [ModelFeature.TOOL_CALL, ModelFeature.VISION]
+    readonly label = { en_US: 'Local window control', zh_Hans: '本机窗口操作' }
+    readonly description = {
+        en_US: 'Operate a window chosen by the user in Bosi for macOS.',
+        zh_Hans: '操作用户在 macOS 版 Bosi 中为本次任务选定的窗口。'
+    }
+    isEnabled(draft: TXpertTeamDraft) {
+        return hasMiddleware(draft, 'DesktopComputerUse')
+    }
+    async check() {
+        return { available: true }
+    }
+    async apply({ draft }: AssistantCapabilityApplyContext) {
+        addMiddleware(draft, 'DesktopComputerUse', { desktop_window_control: true })
+    }
+}
+
+@Injectable()
 @AssistantCapabilityProvider('sandbox-tools')
 export class SandboxToolsCapabilityProvider implements IAssistantCapabilityProvider {
     readonly key = 'sandbox-tools'

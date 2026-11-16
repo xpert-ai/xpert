@@ -1,12 +1,10 @@
+import { MemoryLibraryComponent } from './memory/memory-library.component'
 import { Routes } from '@angular/router'
 import { XpertStudioComponent } from '../studio/studio.component'
 import { XpertAuthorizationComponent } from './authorization/authorization.component'
 import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
-import { XpertMemoryComponent } from './memory/memory.component'
-import { XpertMemoryFilesComponent } from './memory/files/files.component'
-import { XpertMemoryStoreComponent } from './memory/store/store.component'
 
 export const routes: Routes = [
   {
@@ -40,22 +38,7 @@ export const routes: Routes = [
       },
       {
         path: 'memory',
-        component: XpertMemoryComponent,
-        children: [
-          {
-            path: '',
-            redirectTo: 'store',
-            pathMatch: 'full'
-          },
-          {
-            path: 'store',
-            component: XpertMemoryStoreComponent
-          },
-          {
-            path: 'files',
-            component: XpertMemoryFilesComponent
-          }
-        ]
+        component: MemoryLibraryComponent
       },
       {
         path: 'copilot',

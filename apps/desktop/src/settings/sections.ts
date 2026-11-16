@@ -1,12 +1,31 @@
-import { Cable, ChartNoAxesCombined, Palette, Settings2, Terminal, type LucideIcon } from 'lucide-react'
+import {
+  Cable,
+  ChartNoAxesCombined,
+  Palette,
+  Settings2,
+  Terminal,
+  PanelTop,
+  PanelRight,
+  MousePointer2,
+  type LucideIcon
+} from 'lucide-react'
 
-export type SettingsSection = 'general' | 'appearance' | 'usage' | 'connection' | 'shell'
+export type SettingsSection =
+  | 'general'
+  | 'appearance'
+  | 'usage'
+  | 'connection'
+  | 'shell'
+  | 'island'
+  | 'dock'
+  | 'computer'
 
 export interface SettingsItem {
   id: SettingsSection
   label: string
   description: string
   icon: LucideIcon
+  macOnly?: boolean
   keywords: string[]
 }
 
@@ -46,6 +65,30 @@ export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
           'ChatKit density',
           'Colors'
         ]
+      },
+      {
+        id: 'island',
+        label: 'Activity Island',
+        icon: PanelTop,
+        macOnly: true,
+        description: 'Choose which activity appears at the top of your displays.',
+        keywords: ['Behavior', 'Force Touch feedback', 'Width', 'Height']
+      },
+      {
+        id: 'dock',
+        label: 'Agent Dock',
+        icon: PanelRight,
+        macOnly: true,
+        description: 'Choose where your shortcuts appear and which assistants to keep nearby.',
+        keywords: ['Screen edge', 'Display', 'Dock size', 'Automatically hide Agent Dock', 'Show completed work']
+      },
+      {
+        id: 'computer',
+        label: 'Computer Use',
+        icon: MousePointer2,
+        macOnly: true,
+        description: 'Manage macOS permissions for local window control.',
+        keywords: ['System permissions', 'Accessibility', 'Screen Recording', 'Local window control']
       },
       {
         id: 'usage',

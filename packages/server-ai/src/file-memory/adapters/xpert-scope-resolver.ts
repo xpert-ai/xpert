@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertService } from '../../xpert/xpert.service'
-import { FileMemoryXpertScope, FileMemoryXpertScopeResolver } from '../ports'
+import { FileMemoryXpertScope, FileMemoryXpertScopeResolver } from '../../plugins/file-memory/ports'
 
 @Injectable()
 export class XpertFileMemoryScopeResolver implements FileMemoryXpertScopeResolver {
@@ -15,6 +15,7 @@ export class XpertFileMemoryScopeResolver implements FileMemoryXpertScopeResolve
         return {
             id: xpert.id,
             tenantId: xpert.tenantId,
+            organizationId: RequestContext.getOrganizationId(),
             userId: RequestContext.currentUserId(),
             workspaceDataScope: xpert.workspaceDataScope
         }

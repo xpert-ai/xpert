@@ -9,21 +9,10 @@ import type {
 } from '@xpert-ai/chatkit-types'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation, TChatInputCheckpoint, TChatOutputCheckpoint, TChatMessageBranching } from './chat.model'
-import { LongTermMemoryTypeEnum } from './xpert.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
 import { IStorageFile } from '../storage-file.model'
 import type { TChatMessageEnvelope } from './chat-message-envelope.model'
-
-export type TSummaryJob = Record<
-  LongTermMemoryTypeEnum,
-  {
-    jobId: number | string
-    status: string
-    progress?: number
-    memoryKey?: string
-  }
->
 
 export type TChatElementAttribute = {
   name: string
@@ -120,10 +109,6 @@ export interface IChatMessage
   references?: TChatReference[]
   /** Compact contribution used to rebuild the thread task summary. */
   taskSummary?: TChatTaskSummaryContribution
-  /**
-   * Job of summary
-   */
-  summaryJob?: TSummaryJob
 
   /**
    * the third-party platform's message

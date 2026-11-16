@@ -9,6 +9,7 @@ import * as GraphEntities from '../../graphrag/entities'
 import { MCP_PUBLICATION_ENTITIES, McpApiKey } from '../../mcp-publication/entities'
 import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
 import { AgentPluginPackage, AgentResourceBinding } from '../../agent-plugin/agent-plugin.entity'
+import { AGENT_EVENT_ENTITIES } from '../../agent-event/agent-event.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
@@ -32,6 +33,7 @@ describe('ALL_AI_ENTITIES', () => {
         ['MCP publication', MCP_PUBLICATION_ENTITIES],
         ['model usage delivery', [ModelUsageDeliveryReceipt]],
         ['agent plugins', [AgentPluginPackage, AgentResourceBinding]],
+        ['event inbox', AGENT_EVENT_ENTITIES],
         ['group chat', GROUP_ENTITIES],
         ['sandbox runtime', [SandboxJobEntity, SandboxManagedServiceEntity]],
         ['agent evolution', AGENT_EVOLUTION_ENTITIES]

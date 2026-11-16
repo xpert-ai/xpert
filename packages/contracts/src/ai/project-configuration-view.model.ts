@@ -65,7 +65,7 @@ export interface ProjectConfigurationOverview {
   tenantMaxDurationSeconds: number
   experts: { id: string; name: string }[]
   members: { id: string; name: string; role: 'owner' | 'manager' | 'editor' | 'member' }[]
-  skills: { id: string; name: string; description?: string; enabled: boolean }[]
+  skills: { id: string; name: string; description?: string; enabled: boolean; skillIndexId?: string }[]
   automations: { id: string; name: string; schedule: string; status: string }[]
   automationTotal: number
 }

@@ -79,6 +79,7 @@ type LoadDirectoryChildrenOptions = {
   }
 })
 export class FileWorkbenchComponent {
+  readonly pluginFileOpener = input<((path: string) => Promise<boolean>) | null>(null)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly #confirmDelete = injectConfirmDelete()
@@ -258,6 +259,8 @@ export class FileWorkbenchComponent {
     if (!filePath) {
       return
     }
+
+    if (await this.pluginFileOpener()?.(filePath)) return
 
     if (filePath === this.activeFilePath()) {
       this.mobilePane.set('file')

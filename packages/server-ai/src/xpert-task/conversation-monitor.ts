@@ -4,6 +4,7 @@ import { ScheduleTaskStatus, type IXpertTask, type ConversationScheduleMonitor }
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { IsNull, type Repository } from 'typeorm'
+import { DateTime } from 'luxon'
 import { CronTime } from 'cron'
 import { v5 as uuid } from 'uuid'
 import { z } from 'zod'
@@ -11,6 +12,17 @@ import { AssertChatConversationAccessQuery } from '../chat-conversation/queries/
 import { XpertTask } from './xpert-task.entity'
 
 export const monitorInterval = z.number().int().min(1).max(525600)
+export const monitorFirstRun = z.object({
+    date: z.string().date(), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+}).strict()
+export type MonitorFirstRun = z.infer<typeof monitorFirstRun>
+
+export function firstRunOf(monitor: ConversationScheduleMonitor, zone: string): MonitorFirstRun | undefined {
+    if (!monitor.anchorAt) return undefined
+    const first = DateTime.fromISO(monitor.anchorAt, { zone }).plus({ minutes: monitor.intervalMinutes })
+    return { date: first.toFormat('yyyy-MM-dd'), time: first.toFormat('HH:mm') }
+}
+
 export const monitorDestination = z.discriminatedUnion('type', [
     z
         .object({ type: z.literal('conversation'), conversationId: z.string().uuid(), threadId: z.string().uuid() })
@@ -22,10 +34,11 @@ export const monitorForm = z
     .object({
         name: z.string().trim().min(1).max(100),
         prompt: z.string().trim().min(1).max(16000),
-        timeZone: z.string().min(1).max(100),
+        timeZone: z.string().min(1).max(100).refine((zone) => DateTime.now().setZone(zone).isValid),
         requestId: z.string().uuid(),
         threadId: z.string().trim().min(1).max(100),
         destination: monitorDestination.optional(),
+        firstRun: monitorFirstRun.optional(),
         intervalMinutes: monitorInterval.default(30)
     })
     .strict()
@@ -37,6 +50,7 @@ export type MonitorCreation = {
     requestKey: string
     destination?: MonitorDestination
     intervalMinutes?: number
+    firstRun?: MonitorFirstRun
 }
 
 export function requireMonitorTarget(
@@ -73,6 +87,16 @@ export function monitorCadence(intervalMinutes: number, now = new Date()) {
     const schedule = minutes + ' * * * *'
     return { schedule, anchorAt: anchor.toISOString() }
 }
+export function cadenceFromFirstRun(first: MonitorFirstRun, zone: string, intervalMinutes: number) {
+    const local = first.date + 'T' + first.time
+    const date = DateTime.fromISO(local, { zone })
+    if (!date.isValid || date.toFormat("yyyy-MM-dd'T'HH:mm") !== local)
+        throw new BadRequestException(t('server-ai:Scheduler.InvalidLocalTime'))
+    // On a fall-back transition the first occurrence of the selected wall minute wins.
+    const start = Math.min(...date.getPossibleOffsets().map((offset) => offset.toMillis()))
+    return monitorCadence(intervalMinutes, new Date(start - intervalMinutes * 60000))
+}
+
 export function monitorIsDue(monitor: ConversationScheduleMonitor, date: Date) {
     if (!monitor.anchorAt) return true
     const elapsed = Math.floor(date.getTime() / 60000) - Math.floor(Date.parse(monitor.anchorAt) / 60000)
@@ -157,7 +181,9 @@ export async function persistConversationMonitor(
     } catch {
         throw new BadRequestException(t('server-ai:ResourceCard.InvalidTimeZone'))
     }
-    const { schedule, anchorAt } = monitorCadence(intervalMinutes)
+    const { schedule, anchorAt } = target.firstRun
+        ? cadenceFromFirstRun(target.firstRun, timeZone, intervalMinutes)
+        : monitorCadence(intervalMinutes)
     return repository.manager.transaction(async (manager) => {
         await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [id])
         const tasks = manager.getRepository(XpertTask)

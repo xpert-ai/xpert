@@ -17,6 +17,30 @@ beforeEach(() => {
     )
 })
 
+it('does not send a resolved workspace to the host after its node is deselected', async () => {
+    let resolveTarget!: (value: unknown) => void
+    call.mockImplementationOnce(
+        () =>
+            new Promise((resolve) => {
+                resolveTarget = resolve
+            })
+    )
+    const controller = new AbortController()
+    const opening = openProjectWorkspace(
+        projectId,
+        'application',
+        'Unavailable',
+        projectId,
+        undefined,
+        undefined,
+        controller.signal
+    )
+    controller.abort()
+    resolveTarget({ success: true, data: target })
+    await opening
+    expect(call.mock.calls.map(([type]) => type)).toEqual(['executeAction'])
+})
+
 it('sends only the Project identity and a typed destination and requires host acknowledgement', async () => {
     await openProjectWorkspace(projectId, 'application', 'Unavailable')
     expect(call).toHaveBeenNthCalledWith(1, 'executeAction', { actionKey: 'workspace-target', input: {} })
@@ -78,4 +102,30 @@ it('preserves the selected historical round through the authorized business View
         commandKey: 'workbench.navigation.open',
         payload: entry
     })
+})
+
+it('hands off only the same instance, round and node to the Project route when changing Assistants', async () => {
+    const instanceId = '00000000-0000-4000-8000-000000000001'
+    const roundId = '00000000-0000-4000-8000-000000000002'
+    const nodeId = '00000000-0000-4000-8000-000000000003'
+    const entry = {
+        target: 'project.application',
+        projectId,
+        pipelineInstanceId: instanceId,
+        pipelineRoundId: roundId,
+        pipelineNodeId: nodeId
+    }
+    call.mockImplementation(async (type) =>
+        type === 'executeAction' ? { success: true, data: entry } : { success: true }
+    )
+    await openProjectWorkspace(projectId, 'application', 'Unavailable', nodeId, instanceId, roundId)
+    expect(call).toHaveBeenLastCalledWith('invokeClientCommand', {
+        commandKey: 'workbench.navigation.open',
+        payload: entry
+    })
+    call.mockClear()
+    await expect(
+        openProjectWorkspace(projectId, 'application', 'Unavailable', nodeId, instanceId, nodeId)
+    ).rejects.toThrow('Unavailable')
+    expect(call).toHaveBeenCalledTimes(1)
 })

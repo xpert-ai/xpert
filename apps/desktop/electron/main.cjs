@@ -40,6 +40,10 @@ const { AudioCaptureController } = require('./audio-capture/controller.cjs')
 const { registerAudioCaptureIpc, dispatchWithAudioCapture } = require('./audio-capture/lifecycle.cjs')
 const { createAudioPermissions, registerAudioPermissionIpc } = require('./audio-permissions.cjs')
 
+const { createWindowControl } = require('./computer-use/controller.cjs')
+const { installAgentDock } = require('./agent-dock/window.cjs')
+const { account: dockAccount } = require('./agent-dock/model.cjs')
+const { installActivityIsland } = require('./activity-island/panel.cjs')
 const branding = require('./branding.json')
 
 // Keep the existing profile and OS encryption identity when changing the display brand.
@@ -50,6 +54,9 @@ const devUrl = !app.isPackaged ? process.env.XPERT_DESKTOP_DEV_URL : null
 const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.html')).href
 const appIcon = path.join(__dirname, '../resources', process.platform === 'darwin' ? 'icon-macos.png' : 'logo.png')
 let window
+let windowControl
+let island
+let agentDock
 let service
 let earlyTemplateLink = process.argv.find((value) => value.startsWith('xpert://'))
 const templateLinks = createTemplateLinks({
@@ -188,6 +195,7 @@ function createWindow(bounds = {}) {
     minWidth: 860,
     minHeight: 640,
     title: branding.name,
+    backgroundColor: '#0b0c13',
     icon: appIcon,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     trafficLightPosition: { x: 16, y: 18 },
@@ -196,18 +204,40 @@ function createWindow(bounds = {}) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: service.supportsWindowControl ? ['--bosi-window-control'] : [],
       webSecurity: true,
       devTools: !app.isPackaged,
       session: connectionSession
     }
   })
   const createdWindow = window
+  for (const event of [
+    'move',
+    'resize',
+    'show',
+    'hide',
+    'minimize',
+    'restore',
+    'enter-full-screen',
+    'leave-full-screen'
+  ])
+    createdWindow.on(event, () => agentDock?.reposition())
   menuActions.reset()
   window.webContents.on('did-start-navigation', (_event, _url, inPlace, mainFrame) => {
-    if (mainFrame && !inPlace) menuActions.reset()
+    if (mainFrame && !inPlace && window === createdWindow) {
+      menuActions.reset()
+      island?.mainGone()
+      agentDock?.mainGone()
+      windowControl?.stop()
+    }
   })
   window.on('closed', () => {
-    if (window === createdWindow) window = undefined
+    if (window === createdWindow) {
+      window = undefined
+      island?.mainGone()
+      agentDock?.mainGone()
+      windowControl?.stop()
+    }
     void service.audioCapture?.stop('interrupted')
   })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
@@ -277,6 +307,76 @@ else {
       defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults(),
       systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
+    windowControl = createWindowControl({ service, dialog, getWindow: () => window, onActivity: () => island?.sync() })
+    const supportsWindowControl =
+      process.platform === 'darwin' && Number(process.getSystemVersion().split('.')[0]) >= 14
+    service.supportsWindowControl = supportsWindowControl
+    ipcMain.handle('xpert:window-control', async (event, method, value) => {
+      if (!trusted(event) || !supportsWindowControl) throw new Error('Window is unavailable')
+      if (method === 'status') return windowControl.status()
+      if (method === 'active') return windowControl.active() || null
+      if (method === 'stop') {
+        windowControl.stop()
+        return
+      }
+      if (method === 'run') return windowControl.run(value)
+      if (['permission', 'managePermission'].includes(method) && ['screen', 'accessibility'].includes(value)) {
+        if (method === 'permission' && value === 'accessibility') systemPreferences.isTrustedAccessibilityClient(true)
+        if (method === 'permission' && value === 'screen') await windowControl.requestScreenPermission()
+        const pane = value === 'screen' ? 'ScreenCapture' : 'Accessibility'
+        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_' + pane)
+        return
+      }
+      throw new Error('Invalid input')
+    })
+    service.supportsActivityIsland = supportsWindowControl
+    if (supportsWindowControl) {
+      agentDock = installAgentDock({
+        BrowserWindow,
+        screen,
+        ipcMain,
+        service,
+        showWindow,
+        trusted,
+        getWindow: () => window
+      })
+      ipcMain.handle('dock:settings', (event, action, ...args) => {
+        if (!trusted(event)) throw new Error('Window is unavailable')
+        if (action === 'displays')
+          return screen.getAllDisplays().map(({ id, label, internal }) => ({ id: String(id), label, internal }))
+        if (action === 'choices') return agentDock.choices()
+        if (action === 'select') return agentDock.setChoice(...args)
+        throw new Error('Invalid input')
+      })
+      app.once('before-quit', () => agentDock.dispose())
+      island = installActivityIsland({
+        BrowserWindow,
+        screen,
+        ipcMain,
+        service,
+        control: windowControl,
+        showWindow,
+        trusted
+      })
+      // Lock and sleep may overlap. A wake alone must not expose a locked user's tasks.
+      const hiddenReasons = new Set()
+      for (const [event, reason, hidden] of [
+        ['lock-screen', 'lock', true],
+        ['unlock-screen', 'lock', false],
+        ['suspend', 'sleep', true],
+        ['resume', 'sleep', false]
+      ])
+        powerMonitor.on(event, () => {
+          if (hidden) hiddenReasons.add(reason)
+          else hiddenReasons.delete(reason)
+          island.sleep(hiddenReasons.size > 0)
+          agentDock.sleep(hiddenReasons.size > 0)
+        })
+      app.once('will-quit', () => island.dispose())
+    }
+    app.on('before-quit', windowControl.stop)
+    powerMonitor.on('lock-screen', windowControl.stop)
+    powerMonitor.on('suspend', windowControl.stop)
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     const audioPermissions = createAudioPermissions({ systemPreferences, packaged: app.isPackaged })
     service.audioCapture = new AudioCaptureController(service, {
@@ -345,11 +445,36 @@ else {
           message: translate(service.config.locale, 'Request origin is not allowed.'),
           status: 403
         }
+      if (['login', 'logout', 'loginLocal', 'selectOrganization'].includes(method)) windowControl.stop()
+      if (['login', 'loginLocal', 'logout', 'selectOrganization'].includes(method)) agentDock?.invalidate()
       const previousPolicy = connectionPolicyKey(service.config)
+      const previousGeneration = service.generation
       const previousLocale = service.config.locale
       const wasSignedIn = Boolean(service.profile)
+      const dockBinding = method === 'listGroups' && agentDock ? dockAccount(service) : null
       const result = await dispatchWithAudioCapture(service, dispatch, method, argument, translate)
-      if (previousLocale !== service.config.locale || wasSignedIn !== Boolean(service.profile)) updateApplicationMenu()
+      if (method === 'listGroups' && result.ok && dockBinding)
+        agentDock.groupsRead(result.value, dockBinding, previousGeneration)
+      if (
+        result.ok &&
+        [
+          'configure',
+          'listBotPage',
+          'listBots',
+          'updateSidebar',
+          'login',
+          'loginLocal',
+          'logout',
+          'selectOrganization'
+        ].includes(method)
+      )
+        agentDock?.sync()
+      if (service.generation !== previousGeneration) windowControl.stop()
+      if (method === 'configure' && result.ok) island?.sync()
+      if (previousLocale !== service.config.locale || wasSignedIn !== Boolean(service.profile)) {
+        updateApplicationMenu()
+        island?.sync()
+      }
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (
         ['checkPluginConnection', 'bosiCheckConnection'].includes(method) &&
@@ -402,7 +527,7 @@ else {
     })
     createWindow()
     app.on('activate', () => {
-      if (!BrowserWindow.getAllWindows().length) createWindow()
+      if (!window || window.isDestroyed()) createWindow()
     })
   })
   app.on('window-all-closed', () => {

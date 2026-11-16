@@ -6,6 +6,8 @@ const workspaceRoot = path.resolve(__dirname, '../..')
 const nodeModulesRoot = path.join(workspaceRoot, 'node_modules')
 const transformSeedPackages: string[] = ['@xpert-ai/chatkit-types']
 const staticTransformAllowList: string[] = [
+  // The published Workbench browser runtime uses ESM, like the ChatKit contracts.
+  '@xpert-ai/xpert-sdk',
   'lodash-es',
   'nanoid',
   'marked',

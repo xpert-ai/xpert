@@ -38,6 +38,27 @@ function createAssistantProfileMethods(ClientError) {
       )
       .sort((a, b) => (a.order || 0) - (b.order || 0))
   }
+  const inboxSlot = 'user.event-inbox'
+  const inboxKey = 'platform.event-inbox__inbox'
+  function personalIdentity(service) {
+    const profile = service.profile
+    if (!profile?.user?.id || !profile.organizationId) return null
+    return JSON.stringify([profile.user.tenantId, profile.user.id, profile.organizationId])
+  }
+  async function personalViews(service) {
+    const identity = personalIdentity(service)
+    if (!identity) reject()
+    const result = await service.request(`/api/view-hosts/user/me/slots/${inboxSlot}/views`, { scope: 'organization' })
+    if (identity !== personalIdentity(service) || !Array.isArray(result)) reject()
+    return result.filter(
+      (view) =>
+        view?.key === inboxKey &&
+        view.hostType === 'user' &&
+        view.slot === inboxSlot &&
+        view.visible !== false &&
+        view.view?.type === 'remote_component'
+    )
+  }
   function store(service) {
     if (!sessions.has(service)) sessions.set(service, new Map())
     return sessions.get(service)
@@ -117,12 +138,20 @@ function createAssistantProfileMethods(ClientError) {
     botProfileViews(botId) {
       return views(this, botId)
     },
-    async openProfileView({ botId, viewKey } = {}) {
+    personalInboxViews() {
+      return personalViews(this)
+    },
+    async openProfileView({ botId, viewKey, scope } = {}) {
       const generation = this.generation
-      const id = assistant(this, botId)
-      const manifest = (await views(this, botId)).find((view) => view.key === viewKey)
+      const personal = scope === 'personal-inbox'
+      if (personal && (botId || viewKey !== inboxKey)) reject()
+      const id = personal ? personalIdentity(this) : assistant(this, botId)
+      const manifest = (await (personal ? personalViews(this) : views(this, botId))).find(
+        (view) => view.key === viewKey
+      )
       if (!manifest) reject()
-      const base = `/api/view-hosts/agent/${enc(id)}/views/${enc(viewKey)}`
+      const host = personal ? 'user/me' : `agent/${enc(id)}`
+      const base = `/api/view-hosts/${host}/views/${enc(viewKey)}`
       const entries = store(this)
       for (const [key, entry] of entries)
         if (entry.generation !== generation) {
@@ -131,8 +160,11 @@ function createAssistantProfileMethods(ClientError) {
         }
       if (entries.size >= 32) reject()
       const sessionId = randomUUID()
-      const session = { botId, generation, base, manifest, id }
-      const valid = () => entries.get(sessionId) === session && this.generation === generation
+      const session = { botId, generation, base, manifest, id, personal }
+      const valid = () =>
+        entries.get(sessionId) === session &&
+        this.generation === generation &&
+        (!personal || personalIdentity(this) === id)
       entries.set(sessionId, session)
       try {
         if (manifest.view.type === 'remote_component') {
@@ -173,11 +205,23 @@ function createAssistantProfileMethods(ClientError) {
       payload
     } = {}) {
       const session = store(this).get(sessionId)
-      if (!session || session.generation !== this.generation || assistant(this, session.botId) !== session.id) reject()
+      if (!session || session.generation !== this.generation) reject()
+      if ((session.personal ? personalIdentity(this) : assistant(this, session.botId)) !== session.id) reject()
       // Recheck activation/visibility. The API independently checks action permissions on every request.
-      const manifest = (await views(this, session.botId)).find((view) => view.key === session.manifest.key)
+      const manifest = (await (session.personal ? personalViews(this) : views(this, session.botId))).find(
+        (view) => view.key === session.manifest.key
+      )
       if (!manifest || store(this).get(sessionId) !== session || session.generation !== this.generation) reject()
-      const request = (path, options) => this.request(`${session.base}${path}`, { scope: 'organization', ...options })
+      const request = async (path, options) => {
+        const result = await this.request(`${session.base}${path}`, { scope: 'organization', ...options })
+        if (
+          store(this).get(sessionId) !== session ||
+          session.generation !== this.generation ||
+          (session.personal && personalIdentity(this) !== session.id)
+        )
+          reject()
+        return result
+      }
       if (operation === 'data') return request(`/data?${queryString(query)}`)
       if (operation === 'options') {
         if (!manifest.parameters?.some((parameter) => parameter.key === parameterKey && parameter.optionSource))
@@ -191,6 +235,12 @@ function createAssistantProfileMethods(ClientError) {
       }
       if (operation === 'command') {
         if (!manifest.clientCommands?.some((command) => command.key === commandKey)) reject()
+        if (commandKey === 'open_conversation' && session.personal && manifest.key === inboxKey) {
+          if (!object(payload) || Object.keys(payload).length !== 1 || !identifier(payload.receiptId)) reject()
+          const detail = await request(`/data?selectionId=${enc(payload.receiptId)}`)
+          if (detail?.item?.id !== payload.receiptId || !detail.item.conversationAction) reject()
+          return detail.item.conversationAction
+        }
         if (['assistant.profile.interaction', 'assistant.profile.close'].includes(commandKey)) return { success: true }
         if (
           commandKey === 'workbench.navigation.open' &&

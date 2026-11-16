@@ -20,8 +20,13 @@ function createStorage(directory, encryption) {
         }
         return {
           config: state.config,
+          ...(typeof state.needsLanguageSelection === 'boolean' && {
+            needsLanguageSelection: state.needsLanguageSelection
+          }),
+          ...(state.needsComputerSetup === true && { needsComputerSetup: true }),
           credentials,
           sidebars: state.sidebars,
+          ...(state.dockOffsets && { dockOffsets: state.dockOffsets }),
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
         }
       } catch {
@@ -39,8 +44,11 @@ function createStorage(directory, encryption) {
         temporary,
         JSON.stringify({
           config: state.config,
+          needsLanguageSelection: state.needsLanguageSelection,
+          needsComputerSetup: state.needsComputerSetup,
           encrypted,
           sidebars: state.sidebars,
+          dockOffsets: state.dockOffsets,
           ...(state.notificationDismissals ? { notificationDismissals: state.notificationDismissals } : {})
         }),
         {

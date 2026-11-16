@@ -14,7 +14,10 @@ import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.e
 import { ProjectPipelineEventEntity } from '../persistence/pipeline.entity'
 import { readPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
-import { AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
+import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
+import { AgentRuntimeInbox } from '../../../handoff/runtime-messaging/runtime-message.entity'
+import { ChatConversationThread } from '../../../chat-conversation/conversation-thread.entity'
+import type { AgentInvocation, AgentRuntimeReplyTarget } from '@xpert-ai/plugin-sdk'
 import { XpertWorkspace } from '../../../xpert-workspace/workspace.entity'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -120,7 +123,10 @@ integration('native model budget across durable instances', () => {
             XpertProjectTaskExecution,
             AgentRuntimeBindingEntity,
             XpertWorkspace,
-            XpertAgentExecution
+            XpertAgentExecution,
+            AgentInvocationEntity,
+            AgentRuntimeInbox,
+            ChatConversationThread
         ])
             await runner.createTable(Table.create(db.getMetadata(entity), db.driver))
         const junction = db.getMetadata(XpertProject).findRelationWithPropertyPath('xperts').junctionEntityMetadata
@@ -334,6 +340,194 @@ integration('native model budget across durable instances', () => {
         const instance = await db.manager.findOneByOrFail(ProjectPipelineInstanceEntity, { id: input.work.instanceId })
         return pipelineModelBudgetTotals(db.manager, instance)
     }
+    async function continuation(sourceExecutionId: string) {
+        const id = randomUUID(),
+            inboxId = randomUUID(),
+            threadId = randomUUID()
+        const audit = {
+            tenantId: context.actor.tenantId,
+            organizationId: context.actor.organizationId,
+            createdById: context.actor.userId
+        }
+        const replyTo: AgentRuntimeReplyTarget = {
+            type: 'project_agent',
+            projectId: context.projectId,
+            conversationId: randomUUID(),
+            threadId,
+            agentKey: 'general_agent'
+        }
+        const invocation: AgentInvocation = {
+            id: randomUUID(),
+            revision: 1,
+            status: 'succeeded',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            scope: {
+                ...context.actor,
+                organizationId: context.actor.organizationId,
+                projectId: context.projectId,
+                parentExecutionId: sourceExecutionId,
+                conversationId: replyTo.conversationId,
+                callerType: 'project_agent',
+                callerAgentKey: replyTo.agentKey
+            },
+            request: {
+                callId: 'child',
+                input: { prompt: 'return 2' },
+                target: {
+                    provider: 'test',
+                    bindingId: randomUUID(),
+                    reference: 'test',
+                    revision: '1',
+                    configuration: {}
+                },
+                dispatch: { version: 1, requestId: randomUUID(), sourceMessageId: 'source', replyTo }
+            }
+        }
+        await db.getRepository(AgentInvocationEntity).save({
+            ...audit,
+            id: invocation.id,
+            ownerId: context.actor.userId,
+            invocation,
+            providerSource: { kind: 'builtin', scopeKey: 'global' }
+        })
+        await db.getRepository(AgentRuntimeInbox).save({
+            ...audit,
+            id: inboxId,
+            ownerId: context.actor.userId,
+            invocationId: invocation.id,
+            consumptionKey: id,
+            messageId: id,
+            state: 'processing',
+            phase: 'started',
+            event: { version: 1, kind: 'result', invocationId: invocation.id, revision: 1, status: 'succeeded' },
+            claim: {
+                invocationId: invocation.id,
+                resultRevision: 1,
+                recipient: replyTo,
+                consumer: { type: 'follow_up', executionId: id }
+            }
+        })
+        await db.getRepository(XpertAgentExecution).save({
+            ...audit,
+            id,
+            threadId,
+            agentKey: replyTo.agentKey,
+            type: 'project_agent',
+            status: XpertAgentExecutionStatusEnum.RUNNING,
+            metadata: { runtimeContinuation: { inboxId } }
+        })
+        await db.getRepository(ChatConversationThread).save({
+            ...audit,
+            threadId,
+            conversationId: replyTo.conversationId,
+            status: 'busy',
+            runControl: { executionId: id, state: 'running' }
+        })
+        return {
+            id,
+            inboxId,
+            threadId,
+            invocation,
+            call: { actor: context.actor, executionId: id, requestId: randomUUID() }
+        }
+    }
+    it('keeps two result continuations in the original budget after its initial operation succeeds', async () => {
+        const f = await native(3, 200, 50)
+        await f.budget.admit(f.call)
+        await f.budget.settle({ ...f.call, actualTokens: 20 })
+        await db
+            .getRepository(ProjectPipelineOperationEntity)
+            .update(f.operation.id, { state: 'succeeded', terminalObservedAt: new Date() })
+        const first = await continuation(f.operation.id)
+        expect(await f.budget.admit(first.call)).toBe(true)
+        await f.budget.settle({ ...first.call, actualTokens: 30 })
+        await db.getRepository(AgentRuntimeInbox).update(first.inboxId, { state: 'processed' })
+        await db.getRepository(XpertAgentExecution).update(first.id, { status: XpertAgentExecutionStatusEnum.SUCCESS })
+        const second = await continuation(first.id)
+        expect(await new ProjectPipelineModelBudgetStore(db).admit(second.call)).toBe(true)
+        await f.budget.settle({ ...second.call, actualTokens: 40 })
+        await f.budget.settle({ ...second.call, actualTokens: 40 })
+        expect(await totals()).toEqual({ calls: 3, tokens: 90, held: 0, actual: 90 })
+        await expect(f.budget.admit({ ...second.call, requestId: randomUUID() })).rejects.toMatchObject({
+            response: { code: 'MODEL_BUDGET_EXCEEDED' }
+        })
+        expect(
+            await db.getRepository(ProjectPipelineModelReservationEntity).countBy({ operationId: f.operation.id })
+        ).toBe(3)
+    })
+    it('recovers pre-upgrade continuation ownership only from a unique durable claim', async () => {
+        const f = await native(),
+            c = await continuation(f.operation.id)
+        await db.getRepository(XpertAgentExecution).update(c.id, { metadata: {} })
+        expect(await f.budget.admit(c.call)).toBe(true)
+        await f.budget.settle({ ...c.call, actualTokens: 11 })
+        const inbox = await db.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: c.inboxId })
+        await db
+            .getRepository(AgentRuntimeInbox)
+            .save({ ...inbox, id: randomUUID(), consumptionKey: randomUUID(), messageId: randomUUID() })
+        await expect(f.budget.admit({ ...c.call, requestId: randomUUID() })).rejects.toThrow()
+        expect(await totals()).toEqual({ calls: 1, tokens: 11, held: 0, actual: 11 })
+    })
+    it('charges the final authorized summary after a successful run completes', async () => {
+        const f = await native(),
+            c = await continuation(f.operation.id)
+        await db
+            .getRepository(ProjectPipelineOperationEntity)
+            .update(f.operation.id, { state: 'succeeded', terminalObservedAt: new Date() })
+        await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'completed' })
+        await db.getRepository(ProjectPipelineRoundEntity).update(input.work.roundId, { state: 'completed' })
+        expect(await f.budget.admit(c.call)).toBe(true)
+        await f.budget.settle({ ...c.call, actualTokens: 9 })
+        expect(await totals()).toEqual({ calls: 1, tokens: 9, held: 0, actual: 9 })
+    })
+    it.each(['cancel', 'run', 'round', 'thread', 'claim', 'actor', 'project', 'missing_source'] as const)(
+        'rejects invalid continuation authority (%s) before reserving a model call',
+        async (kind) => {
+            const f = await native(),
+                c = await continuation(f.operation.id)
+            if (kind === 'cancel')
+                await db
+                    .getRepository(ProjectPipelineOperationEntity)
+                    .update(f.operation.id, { cancelRequestedAt: new Date() })
+            if (kind === 'run')
+                await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'cancelled' })
+            if (kind === 'round')
+                await db.getRepository(ProjectPipelineRoundEntity).update(input.work.roundId, { state: 'superseded' })
+            if (kind === 'thread')
+                await db
+                    .getRepository(ChatConversationThread)
+                    .update({ threadId: c.threadId }, { runControl: { executionId: randomUUID(), state: 'running' } })
+            if (kind === 'claim') {
+                const inbox = await db.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: c.inboxId })
+                await db.getRepository(AgentRuntimeInbox).update(c.inboxId, {
+                    claim: { ...inbox.claim, consumer: { type: 'follow_up', executionId: randomUUID() } }
+                })
+            }
+            if (kind === 'actor') await db.getRepository(AgentRuntimeInbox).update(c.inboxId, { ownerId: randomUUID() })
+            if (kind === 'project' || kind === 'missing_source') {
+                if (kind === 'project') c.invocation.scope.projectId = randomUUID()
+                else c.invocation.scope.parentExecutionId = randomUUID()
+                const repository = db.getRepository(AgentInvocationEntity)
+                const record = await repository.findOneByOrFail({ id: c.invocation.id })
+                record.invocation = c.invocation
+                await repository.save(record)
+            }
+            await expect(f.budget.admit(c.call)).rejects.toThrow()
+            expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+        }
+    )
+    it('settles a continuation once after cancellation without admitting more work', async () => {
+        const f = await native(),
+            c = await continuation(f.operation.id)
+        await f.budget.admit(c.call)
+        await db.getRepository(AgentRuntimeInbox).update(c.inboxId, { state: 'processed' })
+        await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'cancelled' })
+        await f.budget.settle({ ...c.call, actualTokens: 12 })
+        await f.budget.settle({ ...c.call, actualTokens: 12 })
+        expect(await totals()).toEqual({ calls: 1, tokens: 12, held: 0, actual: 12 })
+        await expect(f.budget.admit({ ...c.call, requestId: randomUUID() })).rejects.toThrow()
+    })
     it('serializes competing workers before their provider calls and retains unknown holds after reconstruction', async () => {
         const f = await native(1)
         const other = new ProjectPipelineModelBudgetStore(db)
