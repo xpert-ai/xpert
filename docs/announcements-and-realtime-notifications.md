@@ -174,9 +174,17 @@ SSE 的 `change` 数据为 `{ schemaVersion: 1, type: 'sync.required', eventId }
 
 遇到未送达时，检查公告是否已发布、起止时间、当前租户、适用客户端和关闭记录；任务通知还需核对是否满足个人定时成功条件及来源授权。Redis 提示失败时保留持久化事件并重试；被阻塞的事件可通过管理接口重排，不删除业务记录或重跑任务来修复通知。
 
-## 后续接入边界
+## 助手发件箱与个人投递设置
 
-当前只实现 Web/Desktop 应用内通知及个人定时任务成功入口。后台 Agent 任意 message、失败、等待输入、Project 任务、桌面系统通知、移动 App、飞书、企业微信、微信、邮件和复杂偏好尚未接入。
+在 Web 或 Bosi 桌面端打开通知中心，进入投递设置。采购交期提醒、代码评审结果默认发到站内。开启飞书私聊须先绑定本人的飞书账号，并从当前组织可用的机器人中选择一个集成。开启后接收新发布的结果。每个类型和渠道可选择时区及静默时段。窗口结束后系统按仍可见的事项生成摘要，每批至多 20 项。
+
+打开通知会重新核对当前业务权限。单项有可读会话时直接打开会话，摘要可展开查看成员。评审没有关联会话时，仍可查看获准的评审详情。飞书私聊只展示标题。关闭渠道、换机器人或变更本人绑定会使旧目标失效。站内阅读单独保存。
+
+客户端在通知列表和同步请求上发送 `Accept: application/json; profile="xpert-agent-output-v1"` 以接收扩展类型。旧服务可忽略此标记并继续返回原有通知。`PUT /user-notifications/:id/read` 返回当前可见成员和授权动作。`GET/PUT /user-notifications/preferences` 读取或更新本人在当前组织的偏好。旧客户端继续接收原有的任务通知。
+
+排障时从业务 ID 找到 `agent_output_message`，经 `agent_output_member` 查看各目标的 `agent_output_delivery`。站内 `delivered` 可与 `user_notification` 对照。飞书 `accepted` 对照 `providerMessageId`。若已有 `attemptId` 而渠道结果未知，保留 `unknown` 并核对原尝试。技术任务和长期去重记录分别保留。[发件箱实施与验收](./plans/2026-11-16-always-on-outbox.md)
+
+## 后续接入边界
 
 未来扩展遵循以下分层，避免把客户端类型与发送渠道混为一谈：
 
@@ -188,9 +196,9 @@ SSE 的 `change` 数据为 `{ schemaVersion: 1, type: 'sync.required', eventId }
 | 接收目标       | 设备或绑定的外部账号/会话，必须明确租户、用户、integration/应用、状态及绑定版本                    |
 | 阅读与业务状态 | 与投递接受、送达、失败、取消及未知结果分别记录                                                     |
 
-共享契约已有 `NotificationDestination` 和 `NotificationDeliveryState` 类型；外部 Destination、逐目标 Delivery、订阅偏好和设备注册尚未落表，没有空的渠道适配器或公开 SDK 通知能力。
+`agent_output_preference` 保存类型、渠道、目标校验摘要和目标版本。移动推送另需设备注册。
 
-首个外部需求落地时再增加逐目标投递账本、最小启用/撤销偏好和实际适配器。优先评估现有 `IChatChannel` / `ChatChannelRegistry`、Integration 与外部身份绑定能力，发送前重查当前接收者、绑定版本和内容权限。不能根据昵称推断身份，不能因绑定过账号就自动转发所有通知，不能把个人通知默认发送到群。
+飞书通过 `IChatChannel` / `ChatChannelRegistry`、Integration 和外部身份绑定定位收件人。OAuth 已在同一应用核实用户时，直接使用该应用返回的 `openId`。跨应用由目标应用按已验证的主体重新解析。
 
 第三方超时可能对应“已接收但结果未知”，仅在支持稳定幂等键或查询结果时自动恢复；外部失败不应阻塞应用内收件箱。解绑、重绑、集成停用和设备失效须使旧目标失效。回调需要供应商认证与防重放，第三方已读不代表业务审批完成。
 

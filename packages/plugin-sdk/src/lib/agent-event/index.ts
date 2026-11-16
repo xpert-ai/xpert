@@ -1,5 +1,7 @@
 import { applyDecorators, SetMetadata } from '@nestjs/common'
 import type {
+  AgentOutputPresentation,
+  AgentOutputReference,
   AgentEventPresentation,
   AgentEventTypeDefinition,
   EventDecision,
@@ -54,7 +56,19 @@ export interface AgentEventFollowUp {
   wake(input: { conversationId: string; prompt: string; threadId?: string; agentKey?: string }): Promise<void>
 }
 
+/** A bound source hands off committed domain outputs and resolves them for the original recipient. */
+export interface AgentOutputSource {
+  readonly kinds: readonly { key: string; label: { en_US: string; zh_Hans: string } }[]
+  listPending(context: AgentEventContext, limit: number): Promise<AgentOutputReference[]>
+  acknowledge(context: AgentEventContext, ref: AgentOutputReference, messageId: string): Promise<void | 'conflict'>
+  /** Keep the reference pending. A timestamp postpones this item; null isolates an immutable conflict. */
+  defer(context: AgentEventContext, ref: AgentOutputReference, retryAt: string | null): Promise<void>
+  resolveForRecipient(context: AgentEventContext, ref: AgentOutputReference): Promise<AgentOutputPresentation>
+}
+export type { AgentOutputReference, AgentOutputPresentation } from '@xpert-ai/contracts'
+
 export interface PluginAgentEventSource {
+  readonly outputs?: AgentOutputSource
   readonly key: string
   readonly protocolVersion: 1
   readonly eventTypes: readonly AgentEventTypeDefinition[]

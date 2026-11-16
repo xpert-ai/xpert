@@ -1,4 +1,5 @@
 export * from './agent-event.model'
+export * from './agent-output.model'
 export * from './task-control.model'
 export * from './app-platform'
 export * from './execution-control-admission.schema'

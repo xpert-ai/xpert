@@ -419,7 +419,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                 ? (notice?.threadId ?? initialThread)
                 : null
             }
-            onOpen={async (item) => openConversation(item.action)}
+            onOpen={async (item) => { if (item.action) await openConversation(item.action) }}
           >
             <VoiceProvider
               key={`${binding}:${state.config.apiUrl}`}

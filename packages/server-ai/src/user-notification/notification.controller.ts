@@ -1,4 +1,6 @@
-import { Controller, Get, Header, Param, Post, Put, Query, Sse } from '@nestjs/common'
+import { AGENT_OUTPUT_ACCEPT, outputPreferenceSchema, type OutputPreference } from '@xpert-ai/contracts'
+import { OutputPreferences } from './output/output-preferences'
+import { Body, Controller, Get, Header, Headers, Param, Post, Put, Query, Sse } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import { z } from 'zod/v3'
 import { DataSource } from 'typeorm'
@@ -12,25 +14,38 @@ import { NotificationRealtime } from './notification.realtime'
 import { announcementManagementScope, notificationScope, notificationStreamLifetime } from './notification.scope'
 import { NotificationOutbox } from './notification.entities'
 
+const outputVersion = { outputs: z.literal('1').optional() }
+const page = notificationPageSchema.extend(outputVersion)
+const sync = notificationClientQuerySchema.extend(outputVersion)
+
 @Controller('user-notifications')
 export class UserNotificationController {
     constructor(
         private readonly service: UserNotificationService,
+        private readonly preferences: OutputPreferences,
         private readonly realtime: NotificationRealtime
     ) {}
-    @Get() list(
-        @Query(new ZodValidationPipe(notificationPageSchema, invalidNotification))
-        query: z.output<typeof notificationPageSchema>
+    @Get()
+    @Header('Cache-Control', 'no-store')
+    list(
+        @Query(new ZodValidationPipe(page, invalidNotification))
+        query: z.output<typeof page>,
+        @Headers('accept') accept?: string
     ) {
-        return this.service.list(query.offset, query.limit)
+        return this.service.list(query.offset, query.limit, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
     }
     @Get('sync')
     @Header('Cache-Control', 'no-store')
     sync(
-        @Query(new ZodValidationPipe(notificationClientQuerySchema, invalidNotification))
-        query: z.output<typeof notificationClientQuerySchema>
+        @Query(new ZodValidationPipe(sync, invalidNotification))
+        query: z.output<typeof sync>,
+        @Headers('accept') accept?: string
     ) {
-        return this.service.snapshot(query.client)
+        return this.service.snapshot(query.client, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
+    }
+    @Get('preferences') listPreferences() { return this.preferences.list() }
+    @Put('preferences') savePreference(@Body(new ZodValidationPipe(outputPreferenceSchema, invalidNotification)) input: OutputPreference) {
+        return this.preferences.save(input)
     }
     @Sse('stream')
     @Header('Cache-Control', 'no-store')

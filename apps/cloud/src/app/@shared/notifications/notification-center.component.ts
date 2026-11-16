@@ -2,7 +2,7 @@ import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { DatePipe } from '@angular/common'
 import { Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Announcement, UserNotification } from '@xpert-ai/contracts'
 import {
   XpDialogFrameImports,
@@ -13,6 +13,7 @@ import {
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 import { UserNotificationsService } from '../../@core/services/user-notifications.service'
+import { OutputPreferencesComponent } from './output-preferences.component'
 import { openConversation } from './open-conversation'
 import { AnnouncementDialogComponent } from './announcement-dialog.component'
 
@@ -20,6 +21,7 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
   standalone: true,
   selector: 'xp-notification-center',
   imports: [
+    OutputPreferencesComponent,
     TranslateModule,
     DatePipe,
     ...XpDialogFrameImports,
@@ -45,6 +47,7 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
       </button>
     </header>
     <div xpDialogBody class="space-y-4">
+      <xp-output-preferences />
       @if (failed()) {
         <z-alert zType="destructive" [zDescription]="'XP.Notifications.LoadFailed' | translate" />
         <button z-button (click)="load()">{{ 'XP.Notifications.Retry' | translate }}</button>
@@ -77,8 +80,32 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
           [class.font-semibold]="!item.readAt"
           (click)="open(item)"
         >
-          {{ 'XP.Notifications.TaskCompleted' | translate }} · {{ item.createdAt | date: 'short' }}
+          {{
+            item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate)
+          }}
+          · {{ item.createdAt | date: 'short' }}
         </button>
+        @if (expanded()?.id === item.id) {
+          <ul>
+            @for (entry of expanded()?.items; track entry.id) {
+              <li>
+                @if (entry.action) {
+                  <button z-button zType="link" (click)="open(item, entry.id)">{{ entry.title }}</button>
+                } @else {
+                  {{ entry.title }}
+                }
+                @if (entry.fields?.length) {
+                  <dl>
+                    @for (field of entry.fields; track $index) {
+                      <dt>{{ language.currentLang?.startsWith('zh') ? field.label.zh_Hans : field.label.en_US }}</dt>
+                      <dd class="whitespace-pre-wrap">{{ field.value }}</dd>
+                    }
+                  </dl>
+                }
+              </li>
+            }
+          </ul>
+        }
       }
       @if (moreNotifications()) {
         <button z-button zType="secondary" (click)="loadNotifications()">
@@ -95,6 +122,7 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   readonly ref = inject(DialogRef)
   private readonly service = inject(UserNotificationsService)
   private readonly dialog = inject(Dialog)
+  readonly language = inject(TranslateService)
   private readonly router = inject(Router)
   readonly announcements = signal<Announcement[]>([])
   readonly notifications = signal<UserNotification[]>([])
@@ -191,13 +219,29 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
       if (!this.destroyed) this.failed.set(true)
     }
   }
-  async open(item: UserNotification) {
+  readonly expanded = signal<{
+    id: string
+    items: NonNullable<Awaited<ReturnType<UserNotificationsService['read']>>['items']>
+  } | null>(null)
+  async open(item: UserNotification, memberId?: string) {
     try {
-      await this.service.read(item.id)
+      const { items } = await this.service.read(item.id)
       if (this.destroyed) return
-      this.ref.close()
-      await openConversation(this.router, item.action)
+      if (item.kind === 'agent.output') this.expanded.set({ id: item.id, items: items ?? [] })
+      const action =
+        item.kind === 'agent.output'
+          ? (memberId ? items?.find((entry) => entry.id === memberId) : items?.length === 1 ? items[0] : null)?.action
+          : item.action
+      if (action) {
+        this.ref.close()
+        await openConversation(this.router, action)
+      } else {
+        this.notifications.update((rows) =>
+          rows.map((r) => (r.id === item.id ? { ...r, readAt: new Date().toISOString() } : r))
+        )
+      }
     } catch {
+      this.expanded.set(null)
       this.failed.set(true)
     }
   }

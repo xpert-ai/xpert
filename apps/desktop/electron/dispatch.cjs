@@ -6,6 +6,8 @@ const methods = new Set([
   'notificationDismiss',
   'notificationAnnouncement',
   'notificationHistory',
+  'notificationPreferences',
+  'notificationSavePreference',
   'notificationList',
   'notificationRead',
   'listGroups',

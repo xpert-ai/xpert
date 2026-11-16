@@ -1,3 +1,4 @@
+import { OutputStore } from '../user-notification/output/output-store'
 import { ForbiddenException, HttpException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
@@ -79,7 +80,8 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
         private readonly access: RuntimeMessageAccessService,
         private readonly published: PublishedXpertAccessService,
         private readonly commands: CommandBus,
-        private readonly wakeService?: AgentEventWakeService
+        private readonly wakeService?: AgentEventWakeService,
+        private readonly outputs?: OutputStore
     ) {}
 
     onModuleInit() {
@@ -266,6 +268,7 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
                     if (consumed.value > 0 && (drained.status === 'rejected' || drained.value))
                         await this.consume(binding, source, context, consumed.value)
                     if (drained.status === 'rejected') throw drained.reason
+                    if (source.outputs) await this.outputs?.collect(binding, context, source.outputs)
                 })
             ])
             await this.bindings.recordScan(binding, null)

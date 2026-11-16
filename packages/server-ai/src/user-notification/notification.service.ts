@@ -1,3 +1,4 @@
+import { OutputDispatch } from './output/output-dispatch'
 import { HttpException, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { UserOrganization } from '@xpert-ai/server-core'
@@ -5,6 +6,7 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { DataSource, MoreThanOrEqual } from 'typeorm'
 import { createHash } from 'node:crypto'
 import {
+    agentOutputOriginSchema,
     NotificationClient,
     NotificationSnapshot,
     UserNotification,
@@ -23,13 +25,14 @@ export class UserNotificationService {
     constructor(
         private readonly database: DataSource,
         private readonly announcements: AnnouncementService,
-        private readonly queries: QueryBus
+        private readonly queries: QueryBus,
+        private readonly outputs: OutputDispatch
     ) {}
 
-    async list(offset = 0, limit = 30) {
+    async list(offset = 0, limit = 30, outputs = false) {
         const scope = notificationScope()
         const [rows, total] = await this.database.getRepository(UserNotificationEntity).findAndCount({
-            where: { ...scope, createdAt: MoreThanOrEqual(new Date(Date.now() - 90 * 86400000)) },
+            where: { ...scope, ...(outputs ? {} : { kind: 'agent.completed' as const }), createdAt: MoreThanOrEqual(new Date(Date.now() - 90 * 86400000)) },
             order: { createdAt: 'DESC', id: 'DESC' },
             skip: offset,
             take: limit
@@ -42,8 +45,8 @@ export class UserNotificationService {
         return { items, hasMore: offset + rows.length < total, nextOffset: offset + rows.length }
     }
 
-    async snapshot(client: NotificationClient): Promise<NotificationSnapshot> {
-        const [announcements, notifications] = await Promise.all([this.announcements.list(client, true), this.list()])
+    async snapshot(client: NotificationClient, outputs = false): Promise<NotificationSnapshot> {
+        const [announcements, notifications] = await Promise.all([this.announcements.list(client, true), this.list(0, 30, outputs)])
         const content = {
             announcements: announcements.items,
             notifications: notifications.items,
@@ -62,7 +65,11 @@ export class UserNotificationService {
         const row = await this.database
             .getRepository(UserNotificationEntity)
             .findOneBy({ ...scope, id, createdAt: MoreThanOrEqual(new Date(Date.now() - 90 * 86400000)) })
-        if (!row || !(await this.view(row))) throw notificationError('unavailable')
+        if (!row) throw notificationError('unavailable')
+        const items = row.kind === 'agent.output'
+            ? await this.outputs.view(agentOutputOriginSchema.parse(row.source).deliveryId, row.tenantId, row.userId, true)
+            : undefined
+        if (items ? !items.length : !(await this.view(row))) throw notificationError('unavailable')
         await this.database.transaction(async (manager) => {
             await manager
                 .createQueryBuilder()
@@ -76,10 +83,17 @@ export class UserNotificationService {
             await enqueueNotification(manager, scope.tenantId, scope.userId, `read:${id}`, { type: 'changed' })
         })
         // A task-result acknowledgement does not advance the conversation's message-read cursor.
-        return { read: true }
+        return items ? { read: true, items } : { read: true }
     }
 
     private async view(row: UserNotificationEntity): Promise<UserNotification | null> {
+        if (row.kind === 'agent.output') {
+            const source = agentOutputOriginSchema.parse(row.source)
+            const items = await this.outputs.view(source.deliveryId, row.tenantId, row.userId)
+            return items.length ? parseUserNotification({ id: row.id, kind: row.kind, source, titles: items.map(i => i.title),
+                action: items.length === 1 ? items[0].action : null, createdAt: row.createdAt.toISOString(),
+                readAt: row.readAt?.toISOString() ?? null }) : null
+        }
         const { threadId, ...source } = scheduledNotificationOriginSchema.parse(row.source)
         const scope = notificationScope()
         try {

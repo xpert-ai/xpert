@@ -129,13 +129,16 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  notificationPreferences: { input: void; output: { preferences: import('@xpert-ai/contracts').OutputPreference[]; integrations: {id: string; name: string}[];
+    kinds: {key: string; label: {en_US: string; zh_Hans: string}}[] } }
+  notificationSavePreference: {input: import('@xpert-ai/contracts').OutputPreference; output: {saved: boolean}}
   notificationSnapshot: { input: void; output: NotificationSnapshot | null }
   notificationRefresh: { input: void; output: NotificationSnapshot | null }
   notificationDismiss: { input: string; output: { dismissed: true } }
   notificationAnnouncement: { input: string; output: Announcement }
   notificationHistory: { input: number; output: { items: Announcement[]; total: number } }
   notificationList: { input: number; output: { items: UserNotification[]; hasMore: boolean; nextOffset: number } }
-  notificationRead: { input: string; output: { read: true } }
+  notificationRead: { input: string; output: { read: true; items?: import('@xpert-ai/contracts').AgentOutputItem[] } }
   restoreSession: { input: undefined; output: DesktopLastSession | null }
   rememberSession: { input: { scope: string; session: DesktopLastSession }; output: void }
   bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }

@@ -6,12 +6,16 @@ import {
   parseUserNotification,
   type Announcement,
   type NotificationSnapshot,
+  type AgentOutputItem,
   type UserNotification
 } from '@xpert-ai/contracts'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
-import { t } from '../i18n'
+import { t, useLocale } from '../i18n'
+import { OutputPreferences } from './OutputPreferences'
 import { AnnouncementNotice, AnnouncementText } from './AnnouncementNotice'
+
+type OutputDetails = { id: string; items: AgentOutputItem[] }
 
 const Context = createContext({ open: (_opener?: HTMLElement | null) => {}, count: 0, available: false })
 export const useNotifications = () => useContext(Context)
@@ -29,6 +33,7 @@ export function NotificationProvider({
 }) {
   const [snapshot, setSnapshot] = useState<NotificationSnapshot | null>(null)
   const [center, setCenter] = useState(false)
+  const [details, setDetails] = useState<OutputDetails | null>(null)
   const [announcement, setAnnouncement] = useState<{ item: Announcement; automatic: boolean } | null>(null)
   const [hint, setHint] = useState<UserNotification | null>(null)
   const [error, setError] = useState('')
@@ -62,7 +67,7 @@ export function NotificationProvider({
                     !seen.current!.has(item.id) &&
                     !item.readAt &&
                     Date.parse(item.createdAt) > lastSync.current - 3000 &&
-                    (!thread.current || item.action.threadId !== thread.current)
+                    (!thread.current || item.action?.threadId !== thread.current)
                 )
               : null
           if (fresh) setHint(fresh)
@@ -71,6 +76,7 @@ export function NotificationProvider({
         }
         if (!value) {
           setCenter(false)
+          setDetails(null)
           setAnnouncement(null)
           setHint(null)
         }
@@ -178,16 +184,28 @@ export function NotificationProvider({
       )
     }
   }
-  const openResult = async (item: UserNotification) => {
+  const openResult = async (item: UserNotification, memberId?: string) => {
     try {
-      await invoke('notificationRead', item.id)
+      const { items = [] } = await invoke('notificationRead', item.id)
       if (!mounted.current) return
+      if (item.kind === 'agent.output') {
+        setDetails({ id: item.id, items })
+        const entry = memberId ? items.find((entry) => entry.id === memberId) : items.length === 1 ? items[0] : null
+        if (!entry?.action) {
+          setHint(null)
+          setCenter(true)
+          return
+        }
+        await onOpen({ ...item, action: entry.action })
+      } else {
+        await onOpen(item)
+      }
       centerOpener.current = null
-      await onOpen(item)
       setCenter(false)
       setHint(null)
       setError('')
     } catch {
+      setDetails(null)
       setError(t('This result is unavailable. Refresh your workspace and retry.'))
     }
   }
@@ -226,7 +244,9 @@ export function NotificationProvider({
             onClick={() => void openResult(hint)}
           >
             <CircleCheck className="size-4 text-muted-foreground" aria-hidden="true" />
-            <span className="min-w-0 break-words">{t('Your scheduled task has completed')}</span>
+            <span className="min-w-0 break-words">
+              {hint.kind === 'agent.output' ? hint.titles.join(' · ') : t('Your scheduled task has completed')}
+            </span>
           </Button>
           <Button
             variant="ghost"
@@ -290,7 +310,11 @@ export function NotificationProvider({
       </Dialog>
       {center && (
         <NotificationCenter
-          onClose={() => setCenter(false)}
+          details={details}
+          onClose={() => {
+            setCenter(false)
+            setDetails(null)
+          }}
           onRestoreFocus={() => {
             if (centerOpener.current?.isConnected) centerOpener.current.focus()
           }}
@@ -306,16 +330,19 @@ export function NotificationProvider({
 }
 
 function NotificationCenter({
+  details,
   onRestoreFocus,
   onClose,
   onOpen,
   onAnnouncement
 }: {
+  details: OutputDetails | null
   onRestoreFocus: () => void
   onClose: () => void
-  onOpen: (item: UserNotification) => Promise<void>
+  onOpen: (item: UserNotification, memberId?: string) => Promise<void>
   onAnnouncement: (item: Announcement) => void
 }) {
+  const locale = useLocale()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [notifications, setNotifications] = useState<UserNotification[]>([])
   const [moreAnnouncements, setMoreAnnouncements] = useState(false)
@@ -382,6 +409,7 @@ function NotificationCenter({
           <DialogDescription>{t('Announcements and scheduled task results')}</DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+          <OutputPreferences />
           {failed && (
             <p role="alert">
               {t('Could not load notifications. Please retry.')}{' '}
@@ -415,14 +443,41 @@ function NotificationCenter({
           )}
           <h3 className="font-medium">{t('Scheduled task results')}</h3>
           {notifications.map((item) => (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={`h-auto w-full justify-start whitespace-normal text-left ${item.readAt ? '' : 'font-semibold'}`}
-              onClick={() => void onOpen(item)}
-            >
-              {t('Your scheduled task has completed')} · {new Date(item.createdAt).toLocaleString()}
-            </Button>
+            <div key={item.id}>
+              <Button
+                variant="ghost"
+                className={`h-auto w-full justify-start whitespace-normal text-left ${item.readAt ? '' : 'font-semibold'}`}
+                onClick={() => void onOpen(item)}
+              >
+                {item.kind === 'agent.output' ? item.titles.join(' · ') : t('Your scheduled task has completed')} ·{' '}
+                {new Date(item.createdAt).toLocaleString()}
+              </Button>
+              {details?.id === item.id && (
+                <ul>
+                  {details.items.map((entry) => (
+                    <li key={entry.id}>
+                      {entry.action ? (
+                        <Button variant="link" onClick={() => void onOpen(item, entry.id)}>
+                          {entry.title}
+                        </Button>
+                      ) : (
+                        entry.title
+                      )}
+                      {entry.fields?.length ? (
+                        <dl>
+                          {entry.fields.map((field, index) => (
+                            <div key={index}>
+                              <dt>{locale.startsWith('zh') ? field.label.zh_Hans : field.label.en_US}</dt>
+                              <dd className="whitespace-pre-wrap">{field.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           ))}
           {moreNotifications && (
             <Button variant="outline" disabled={busy} onClick={() => void load('notifications')}>

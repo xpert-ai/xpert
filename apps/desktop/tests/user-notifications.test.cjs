@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
-const { UserNotifications, installUserNotifications } = require('../electron/user-notifications.cjs')
+const { UserNotifications, createNotificationMethods, installUserNotifications } = require('../electron/user-notifications.cjs')
 const { DesktopService } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const id = 'a1111111-1111-4111-8111-111111111111'
@@ -28,6 +28,23 @@ function fixture(t, saved) {
   notifications.sync()
   return { service, notifications }
 }
+test('legacy APIs receive only supported query parameters when desktop requests output notifications', async (t) => {
+  const { service, notifications } = fixture(t)
+  const methods = createNotificationMethods()
+  service.request.mock.mockImplementation(async (path, options) => {
+    const url = new URL(path, service.config.apiUrl)
+    assert.equal(options.accept, 'application/json; profile="xpert-agent-output-v1"')
+    if (url.pathname.endsWith('/sync')) {
+      assert.equal(url.search, '?client=desktop')
+      return snapshot()
+    }
+    assert.equal(url.search, '?offset=30')
+    return { items: [], nextOffset: 30 }
+  })
+  assert.equal((await notifications.refresh()).announcements.length, 1)
+  assert.equal((await methods.notificationList.call(service, 30)).nextOffset, 30)
+})
+
 test('offline dismissal is persisted, suppresses stale snapshots and retries idempotently', async (t) => {
   const { service, notifications } = fixture(t)
   await notifications.refresh()

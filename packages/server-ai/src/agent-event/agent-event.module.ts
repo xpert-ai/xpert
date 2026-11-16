@@ -1,3 +1,4 @@
+import { OutputStore } from '../user-notification/output/output-store'
 import { FollowUpTimerSource } from './follow-up-timer.source'
 import { FollowUpTimer } from './follow-up-timer.entity'
 import { Module } from '@nestjs/common'
@@ -34,9 +35,10 @@ import { UserInboxHostDefinition } from './views/user-inbox-host.definition'
         AssistantSharingModule,
         XpertProjectAccessModule
     ],
-    exports: [FollowUpTimerSource],
+    exports: [FollowUpTimerSource, AgentEventSources, EventBindingAccessService],
     controllers: [AgentEventController],
     providers: [
+        OutputStore,
         UserInboxHostDefinition,
         EventBindingAccessService,
         EventInboxService,

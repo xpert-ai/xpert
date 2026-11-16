@@ -252,6 +252,11 @@ export interface IChatChannel<TConfig = any, TEvent = any> {
 	 */
 	sendText(ctx: TChatContext, content: string): Promise<TChatSendResult>
 
+	/** Verify the bound account in this installation. The app-specific ID is never supplied by the model. */
+	resolvePrivateDestination?(integration: IIntegration, subjectId: string): Promise<{ appId: string; recipient: string } | null>
+	sendPrivateNotification?(integration: IIntegration, recipient: string, text: string, attemptId: string):
+		Promise<{ status: 'accepted'; messageId: string } | { status: 'failed' | 'unknown' }>
+
 	/**
 	 * Send Markdown message
 	 *

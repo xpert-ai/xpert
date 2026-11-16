@@ -64,15 +64,16 @@ export const notificationSourceSchema = z
 export const scheduledNotificationOriginSchema = notificationSourceSchema.extend({
   threadId: z.string().uuid().optional()
 })
+export const notificationThreadIdSchema = z.string().trim().min(1).max(128)
 export const openConversationActionSchema = z.object({
   type: z.literal('open_conversation'),
   assistantId: z.string().uuid(),
   conversationId: z.string().uuid(),
-  threadId: z.string().uuid().nullable()
+  threadId: notificationThreadIdSchema.nullable()
 }).strict()
 export type OpenConversationAction = Required<z.output<typeof openConversationActionSchema>>
 
-export const userNotificationSchema = z
+const taskNotificationSchema = z
   .object({
     id: z.string().uuid(),
     kind: z.literal('agent.completed'),
@@ -82,9 +83,26 @@ export const userNotificationSchema = z
     action: openConversationActionSchema
   })
   .strict()
-export type UserNotification = Omit<Required<z.output<typeof userNotificationSchema>>, 'source' | 'action'> & {
+type TaskNotification = Omit<Required<z.output<typeof taskNotificationSchema>>, 'source' | 'action'> & {
   source: Required<z.output<typeof notificationSourceSchema>>
   action: Required<NonNullable<z.output<typeof userNotificationSchema>['action']>>
+}
+export const agentOutputOriginSchema = z.object({ type: z.literal('agent_output'), deliveryId: z.string().uuid() }).strict()
+const outputNotificationSchema = taskNotificationSchema.extend({
+  kind: z.literal('agent.output'),
+  source: agentOutputOriginSchema,
+  titles: z.array(z.string().min(1).max(240)).min(1).max(20),
+  action: openConversationActionSchema.nullable()
+})
+export const userNotificationSchema = z.discriminatedUnion('kind', [taskNotificationSchema, outputNotificationSchema])
+export type UserNotification = TaskNotification | {
+  id: string
+  kind: 'agent.output'
+  createdAt: string
+  readAt: string | null
+  source: Required<z.output<typeof agentOutputOriginSchema>>
+  titles: string[]
+  action: OpenConversationAction | null
 }
 export const notificationSnapshotSchema = z
   .object({
@@ -110,6 +128,7 @@ export const notificationChangeSchema = z
   .strict()
 export const notificationOutboxPayloadSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('changed') }).strict(),
+  z.object({ type: z.literal('agent.output.dispatch'), deliveryId: z.string().uuid() }).strict(),
   z
     .object({
       type: z.literal('announcement.scheduled'),

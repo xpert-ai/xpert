@@ -1,4 +1,5 @@
 // Claim, projection and broadcast acknowledgement are separate recoverable steps; no business action is replayed.
+import { OutputDispatch } from './output/output-dispatch'
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { DataSource, LessThan } from 'typeorm'
 import { randomUUID } from 'node:crypto'
@@ -15,7 +16,8 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
     readonly metrics = { sent: 0, retries: 0, blocked: 0 }
     constructor(
         private readonly database: DataSource,
-        private readonly realtime: NotificationRealtime
+        private readonly realtime: NotificationRealtime,
+        private readonly outputs: OutputDispatch
     ) {}
     onModuleInit() {
         this.timer = setInterval(
@@ -70,6 +72,7 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
         const ownership = { id: row.id, leaseId: row.leaseId, state: 'pending' as const }
         try {
             const payload = notificationOutboxPayloadSchema.parse(row.payload)
+            if (payload.type === 'agent.output.dispatch' && await this.outputs.dispatch(row, payload.deliveryId) === 'deferred') return
             if (payload.type === 'announcement.scheduled') {
                 const announcement = await this.database
                     .getRepository(AnnouncementEntity)
