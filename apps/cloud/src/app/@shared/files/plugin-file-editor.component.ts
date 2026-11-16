@@ -11,7 +11,7 @@ import { ViewClientCommandRegistry } from '../view-extension/view-client-command
 import { RemoteComponentRendererComponent } from '../view-extension/renderers/remote-component-renderer.component'
 
 type FileNavigation = { viewKey: string; selectionId?: string; parameters?: XpertViewQuery['parameters'] }
-/** Project file UI delegates all presentation semantics and persistence to the installed editor. */
+/** Project file UI delegates document rendering and persistence to the installed editor. */
 @Component({
   standalone: true,
   selector: 'xp-plugin-file-editor',

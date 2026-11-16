@@ -41,7 +41,7 @@ import { XpertProjectFacade } from './project.facade'
 export class XpertProjectAssetsComponent {
   readonly #dialog = inject(Dialog)
   readonly openPluginFile = async (path: string) => {
-    if (!path.toLowerCase().endsWith('.pptx')) return false
+    if (!/\.(pptx|docx|pdf)$/i.test(path)) return false
     this.#dialog.open(PluginFileEditorComponent, {
       data: { projectId: this.projectId, path },
       width: '96vw',
