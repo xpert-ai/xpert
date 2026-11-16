@@ -1,5 +1,24 @@
 # @xpert-ai/contracts
 
+## 3.36.0
+
+### Minor Changes
+
+- c051e4f: Add scoped Event Inbox sources, durable receipts, partitioned recovery, and binding controls.
+- Add shared contracts and SDK support for operation-based collaboration, version-bound selections, authorized content transfer, provider-owned files, and isolated browser draft bindings. Keep domain persistence in the resource provider while reusing platform authorization and transport.
+
+  Preserve source-issued certification and exact values in analysis evidence, add bounded query reuse with current permission and source checks, and support explicitly accepted group result delegation. Restrict project member responses to public identity fields.
+
+  Adopt the published ChatKit and Workbench packages, integrate local draft storage in Cloud views, and expose approved tool calls to live MCP App views through the existing client-tool execution path.
+
+  Allow native ARM64 browser-video builds with a digest-pinned multi-platform Playwright base while retaining the existing AMD64 child image. Document collaborative artifacts, Sheets, trusted data, deployment and recovery in English and Chinese.
+
+- ab3a8ed: Show the sample count and paired baseline and candidate accuracy for provider-declared groups in the latest target replay. Customer intent routing includes independent order-tracking cases where the customer explicitly declines a refund.
+- 4a9bad9: Allow ordinary task replies, structured runtime data and empty replies without requiring a report. Replace the unreleased coding-review envelopes with plain Markdown; report files and artifact delivery remain optional. Pin review result identity and digest in explicit coordinator decisions, use natural-language rework feedback, and recover report/artifact delivery without rerunning completed execution. Deploy the matching runtime plugin and host together; old result protocols and data formats are not supported.
+- 4a288f9: Expose the Workbench iframe bridge at `@xpert-ai/plugin-sdk/remote-component` so independently built plugin views can request data and run actions in the active scope. Host appearance is passed to the view for rendering.
+
+  Project owners and managers can review customer intent routing across conversations in Workbench, inspect the original turn, and retrieve the receipt for each decision.
+
 ## 3.35.0
 
 ### Minor Changes
