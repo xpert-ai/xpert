@@ -293,6 +293,39 @@ test('restored account preferences update an old English default and refresh wit
   assert.equal(service.generation, generation)
 })
 
+test('refreshing the workspace menu preserves a saved desktop language across session restoration', async () => {
+  let saved = { config: DEFAULT_CONFIG, credentials: { token: 'fixture', refreshToken: 'refresh-fixture' } }
+  let preferredLanguage = 'en-US'
+  const storage = {
+    read: () => structuredClone(saved),
+    write: (value) => {
+      saved = structuredClone(value)
+    }
+  }
+  const create = () =>
+    new DesktopService({
+      storage,
+      fetcher: async () =>
+        Response.json({
+          user: { id: 'user', preferredLanguage },
+          organizations: [{ id: 'org', name: 'Workspace' }]
+        })
+    })
+
+  const desktop = create()
+  assert.equal((await desktop.state()).config.locale, 'en')
+  desktop.configure({ ...desktop.config, locale: 'zh-Hans' })
+  preferredLanguage = 'en'
+  assert.equal((await desktop.refreshProfile()).config.locale, 'zh-Hans')
+  assert.equal(saved.config.locale, 'zh-Hans')
+
+  const restored = create()
+  assert.equal((await restored.state()).config.locale, 'zh-Hans')
+  assert.equal((await restored.refreshProfile()).profile.organizationId, 'org')
+  preferredLanguage = 'zh-TW'
+  assert.equal((await restored.refreshProfile()).config.locale, 'zh-Hant')
+})
+
 test('host errors carry safe English message keys and interpolate translated validation labels', async () => {
   const service = new DesktopService()
   for (const { value: locale } of languages) {

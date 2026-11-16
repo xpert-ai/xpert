@@ -77,7 +77,7 @@ export class ProjectTaskDecisionService {
             return this.decide(
                 projectId,
                 {
-                    ...projectTaskDecisionInputSchema.strip().parse(previous),
+                    ...(projectTaskDecisionInputSchema.strip().parse(previous) as ProjectTaskDecisionInput),
                     outcome: input.outcome,
                     rationale: input.rationale,
                     checks: input.checks ?? []

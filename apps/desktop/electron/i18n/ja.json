@@ -850,7 +850,7 @@
   "No matching settings.": "一致する設定が見つかりません。",
   "Not signed in": "未ログイン",
   "Interface language": "表示言語",
-  "After sign-in, your account language takes priority.": "ログイン後はアカウントの言語設定を優先します。",
+  "Your language choice is saved on this device.": "選択した言語はこのデバイスに保存されます。",
   "Choose your language": "言語を選択",
   "Previous language": "前の言語",
   "Next language": "次の言語",
