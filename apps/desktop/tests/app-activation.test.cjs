@@ -253,6 +253,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
       './groups/GroupChatPanel': { GroupChatPanel: () => null },
       './ChatPanel': { ChatPanel: () => React.createElement('iframe', { title: 'Chat', id: 'chat' }) },
       './profile/PreviewScope': { AssistantPreviewScope: ({ children }) => children },
+      './profile/PersonalEventInbox': { PersonalEventInbox: () => null },
       './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },
       './ConnectionSettings': { ConnectionSettings: () => null },
       './Login': { Login: () => null },

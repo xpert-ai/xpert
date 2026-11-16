@@ -89,6 +89,7 @@ async function mount(
       }
     },
     './profile/PreviewScope': { AssistantPreviewScope: ({ children }) => children },
+    './profile/PersonalEventInbox': { PersonalEventInbox: () => null },
     './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },
     './groups/CreateGroupDialog': { CreateGroupDialog: () => null },
     './ConnectionSettings': { ConnectionSettings: () => null },
