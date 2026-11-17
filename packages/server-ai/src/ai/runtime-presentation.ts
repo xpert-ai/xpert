@@ -1,8 +1,11 @@
 import { assistantRuntimeCredential } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
-// Project at the HTTP boundary, including replay and history. Runtime and operator
-// diagnostics retain their original data; application users receive business output.
-import { IChatMessage, TMessageContentComplex, parseResourceCardContent } from '@xpert-ai/contracts'
+import {
+    IChatMessage,
+    TMessageContentComponent,
+    TMessageContentComplex,
+    parseResourceCardContent
+} from '@xpert-ai/contracts'
 import { parseFileActivityContent } from '@xpert-ai/chatkit-types'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { catchError, filter, map, Observable, of } from 'rxjs'
@@ -22,15 +25,6 @@ const identity = z.object({
     created_date: date
 })
 const textPart = identity.extend({ type: z.literal('text'), text: z.string() })
-const component = identity.extend({
-    type: z.literal('component'),
-    id: z.string(),
-    data: z.object({
-        status: optionalText,
-        created_date: date,
-        end_date: date
-    })
-})
 const lifecycle = z.object({
     id: optionalText,
     conversationId: optionalText,
@@ -65,19 +59,16 @@ export function runtimePresentationError(error?: unknown) {
 }
 
 export function runtimeContentPart(value: unknown): TMessageContentComplex | null {
+    const part = value as TMessageContentComponent<{ toolPresentation?: string }> | undefined
+    if (
+        part?.type === 'component' &&
+        typeof part.id === 'string' &&
+        part.data?.category === 'Tool' &&
+        part.data.toolPresentation === 'redacted'
+    )
+        return part
     const text = textPart.safeParse(value)
     if (text.success) return text.data
-    const step = component.safeParse(value)
-    if (step.success)
-        return {
-            ...step.data,
-            data: {
-                ...step.data.data,
-                category: 'Tool',
-                tool: 'application_task',
-                title: t('server-ai:AppPlatform.TaskProgress', { defaultValue: 'Task progress' })
-            }
-        }
     const file = parseFileActivityContent(value)
     if (file) {
         const { agentKey: _agentKey, ...receipt } = file
@@ -87,7 +78,7 @@ export function runtimeContentPart(value: unknown): TMessageContentComplex | nul
     }
     const resource = parseResourceCardContent(value)
     if (resource) return resource
-    // Reasoning, tool arguments/results, widgets and unknown debug payloads are not business output.
+    // Reasoning, private widgets and diagnostics are not business output.
     return null
 }
 
