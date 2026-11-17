@@ -1,3 +1,5 @@
+import { pipelineModelBudgetDenials } from '../budget/pipeline-model-budget-denial'
+import { observeModelBudgetDenials } from './pipeline-model-budget-observations'
 // Invariants: historical business state is immutable; runtime observations may finish later.
 // Merge observations only through persisted node/round ownership, never shared task identity alone.
 import { pipelineModelBudgetPolicy } from '../budget/pipeline-model-budget-policy'
@@ -192,6 +194,27 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                           )
                       })
                     : []
+            const budgetDenials =
+                !historical && ['active', 'waiting'].includes(run.state)
+                    ? await pipelineModelBudgetDenials(
+                          manager,
+                          context,
+                          operations.filter(
+                              (operation) =>
+                                  !['cancelled', 'superseded', 'accepted', 'rejected'].includes(operation.state) &&
+                                  !operations.some(
+                                      (other) =>
+                                          other.nodeInstanceId === operation.nodeInstanceId &&
+                                          other.attempt > operation.attempt
+                                  ) &&
+                                  nodes.some(
+                                      (node) =>
+                                          node.id === operation.nodeInstanceId &&
+                                          ['pending', 'active'].includes(node.projection.state.lifecycle)
+                                  )
+                          )
+                      )
+                    : []
             const liveGraph = await this.taskGraph.graphWithinTransaction(context, manager)
             const graph =
                 historical && instance.authority === 'provider'
@@ -231,7 +254,7 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                 runId: run.id,
                 definition: projectPipelineDefinitionSchema.parse(definition.definition),
                 round,
-                runState: run.state,
+                runState: budgetDenials.length && run.state === 'active' ? 'waiting' : run.state,
                 actions: {
                     cancel:
                         canEdit &&
@@ -242,7 +265,23 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                         operationId: operation.id
                     }))
                 },
-                attentions: [...attentionViews, ...providerAttentions],
+                attentions: [
+                    ...attentionViews,
+                    ...providerAttentions,
+                    ...budgetDenials.map(({ event, operation }) => ({
+                        id: event.id,
+                        nodeInstanceId: operation.nodeInstanceId,
+                        source: 'model_budget' as const,
+                        kind: 'blocked' as const,
+                        state: 'open' as const,
+                        revision: event.revision,
+                        generation: round.generation,
+                        inputDigest: round.inputDigest,
+                        reasonCode: 'MODEL_BUDGET_EXCEEDED',
+                        outcomes: [],
+                        inputEvidence: []
+                    }))
+                ],
                 refresh: refresh
                     ? { state: refresh.state, errorCode: refresh.errorCode, updatedAt: refresh.updatedAt.toISOString() }
                     : null,
@@ -252,10 +291,14 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                 nativeModelBudget: instance.nativeModelBudget
                     ? {
                           ...(await pipelineModelBudgetTotals(manager, instance)),
+                          denied: budgetDenials.length > 0,
                           policy: (await pipelineModelBudgetPolicy(manager, instance)).policy
                       }
                     : null,
-                nodes: observePipelineNodes(attributed.nodes, graph.executions),
+                nodes: observeModelBudgetDenials(
+                    observePipelineNodes(attributed.nodes, graph.executions),
+                    budgetDenials
+                ),
                 executionAttribution: attributed.executionAttribution,
                 edges: z.array(projectPipelineProjectionEdgeSchema).parse(round.edges)
             }
@@ -313,6 +356,7 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                               actualTokens: saved.nativeModelBudget.actual,
                               chargedAndReservedTokens: saved.nativeModelBudget.tokens,
                               admissionBlocked:
+                                  saved.nativeModelBudget.denied ||
                                   saved.nativeModelBudget.calls >= saved.nativeModelBudget.policy.maxCalls ||
                                   saved.nativeModelBudget.tokens + saved.nativeModelBudget.policy.reservationTokens >
                                       saved.nativeModelBudget.policy.maxTokens

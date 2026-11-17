@@ -329,6 +329,8 @@
         "ProjectPipelineModelGateUnsupported": "模型客户端不支持原生模型调用前的预算检查。",
         "ProjectPipelineBudgetHumanManagerRequired": "模型预算追加需要由已登录的项目管理员授权。",
         "ProjectPipelineNativeModelBudgetExceeded": "实例原生模型预算不足以准入下一次调用，已消耗额度和未知预留均保留。",
+        "ProjectPipelineModelExecutionClosed": "此流水线执行已不具备发起下一次模型调用的运行授权。请检查取消状态、当前轮次和会话控制后再恢复；已有结果与用量会保留。",
+        "ProjectPipelineModelEstimateUnavailable": "此受预算管理的请求需要明确的输出 Token 上限和可估算的文本输入，才能调用模型。",
         "ProjectPipelineScopedDelegationUnavailable": "当前会话不支持执行流水线操作。请打开项目流水线管理页面，使用有相应项目权限的用户账号登录后继续。",
         "ProjectPipelineProjectionConflict": "流水线投影与已保存版本冲突。",
         "ProjectPipelineNotFound": "未找到项目流水线。",

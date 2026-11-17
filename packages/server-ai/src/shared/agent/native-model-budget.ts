@@ -7,6 +7,7 @@ import { t } from 'i18next'
 import { AsyncLocalStorageProviderSingleton } from '@langchain/core/singletons'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { TLLMUsage } from '@xpert-ai/plugin-sdk'
+import { nativeChatModelReservation, nativeLLMReservation } from './native-model-reservation'
 import {
     AdmitPipelineModelCallCommand,
     SettlePipelineModelCallCommand,
@@ -53,18 +54,22 @@ export function createNativeModelBudgetGate(
     resolveExecutionId?: () => string | undefined
 ) {
     const active = new Map<string, PipelineModelBudgetCall>()
-    const callback = BaseCallbackHandler.fromMethods({
-        handleLLMStart: async (_llm, _prompts, requestId) => {
-            const configured = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable?.executionId
-            const executionId = resolveExecutionId?.() ?? (typeof configured === 'string' ? configured : undefined)
-            if (!executionId) return
-            const call = { actor, executionId, requestId }
-            if (await commands.execute(new AdmitPipelineModelCallCommand(call))) {
-                // Eviction only loses local reconciliation; its database hold is retained, never released.
-                if (active.size >= 4096) active.delete(active.keys().next().value)
-                active.set(requestId, call)
-            }
+    const admit = async (requestId: string, estimatedTokens: number | undefined) => {
+        const configured = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable?.executionId
+        const executionId = resolveExecutionId?.() ?? (typeof configured === 'string' ? configured : undefined)
+        if (!executionId) return
+        const call = { actor, executionId, requestId, ...(estimatedTokens === undefined ? {} : { estimatedTokens }) }
+        if (await commands.execute(new AdmitPipelineModelCallCommand(call))) {
+            // Eviction only loses local reconciliation; its database hold is retained, never released.
+            if (active.size >= 4096) active.delete(active.keys().next().value)
+            active.set(requestId, call)
         }
+    }
+    const callback = BaseCallbackHandler.fromMethods({
+        handleLLMStart: (_llm, prompts, requestId, _parent, extra) =>
+            admit(requestId, nativeLLMReservation(prompts, extra)),
+        handleChatModelStart: (_llm, messages, requestId, _parent, extra) =>
+            admit(requestId, nativeChatModelReservation(messages, extra))
     })
     callback.name = 'pipeline_native_model_budget'
     callback.awaitHandlers = true

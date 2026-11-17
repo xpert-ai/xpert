@@ -806,6 +806,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
             // New execution (Run) in thread
             const executionMetadata = buildChatSourceExecutionMetadata(options)
+            const retryMetadata =
+                request.action === 'retry' ? { retriedFromExecutionId: sourceModelExecution.id } : null
             const primaryModelMetadata = primaryModelSelection
                 ? {
                       primaryModelId: primaryModelSelection.id,
@@ -821,12 +823,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     inputs: input,
                     status: XpertAgentExecutionStatusEnum.RUNNING,
                     threadId: activeThreadId,
-                    ...(executionMetadata || primaryModelMetadata
+                    ...(executionMetadata || primaryModelMetadata || retryMetadata
                         ? {
                               metadata: {
                                   ...(execution?.metadata ?? {}),
                                   ...(executionMetadata ?? {}),
-                                  ...(primaryModelMetadata ?? {})
+                                  ...(primaryModelMetadata ?? {}),
+                                  ...(retryMetadata ?? {})
                               }
                           }
                         : {})

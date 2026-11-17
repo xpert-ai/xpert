@@ -12,7 +12,8 @@ import { ProjectPipelineModelBudgetStore, pipelineModelBudgetTotals } from './pi
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
 import { ProjectPipelineEventEntity } from '../persistence/pipeline.entity'
-import { readPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
+import { pipelineModelBudgetDenials, readPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
+import { registerBudgetDenialOrderingTests } from './pipeline-model-budget-denial.postgres-cases'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
 import { AgentRuntimeInbox } from '../../../handoff/runtime-messaging/runtime-message.entity'
@@ -303,6 +304,7 @@ integration('native model budget across durable instances', () => {
         })
     })
     const reserve = () => db.transaction((manager) => store.reserve(manager, context, input))
+    registerBudgetDenialOrderingTests(() => ({ db, context, native }))
     async function native(maxCalls = 2, maxTokens = 100, reservationTokens = 50) {
         const operation = await reserve(),
             childId = randomUUID()
@@ -322,7 +324,15 @@ integration('native model budget across durable instances', () => {
             }
         })
         await db.getRepository(XpertAgentExecution).save([
-            { id: operation.id, tenantId: context.actor.tenantId, organizationId: context.actor.organizationId },
+            {
+                id: operation.id,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId,
+                createdById: context.actor.userId,
+                threadId: randomUUID(),
+                agentKey: 'general_agent',
+                type: 'project_agent'
+            },
             {
                 id: childId,
                 parentId: operation.id,
@@ -333,7 +343,7 @@ integration('native model budget across durable instances', () => {
         return {
             budget: new ProjectPipelineModelBudgetStore(db),
             operation,
-            call: { actor: context.actor, executionId: childId, requestId: randomUUID() }
+            call: { actor: context.actor, executionId: childId, requestId: randomUUID(), estimatedTokens: 50 }
         }
     }
     async function totals() {
@@ -429,9 +439,159 @@ integration('native model budget across durable instances', () => {
             inboxId,
             threadId,
             invocation,
-            call: { actor: context.actor, executionId: id, requestId: randomUUID() }
+            call: { actor: context.actor, executionId: id, requestId: randomUUID(), estimatedTokens: 50 }
         }
     }
+    async function recovery(sourceId: string, kind: 'retriedFromExecutionId' | 'resumedFromExecutionId') {
+        const source = await db.getRepository(XpertAgentExecution).findOneByOrFail({ id: sourceId })
+        const id = randomUUID()
+        const audit = {
+            tenantId: context.actor.tenantId,
+            organizationId: context.actor.organizationId,
+            createdById: context.actor.userId
+        }
+        await db.getRepository(XpertAgentExecution).save({
+            ...audit,
+            id,
+            threadId: source.threadId,
+            agentKey: source.agentKey,
+            type: source.type,
+            xpertId: source.xpertId,
+            status: XpertAgentExecutionStatusEnum.RUNNING,
+            metadata: { [kind]: sourceId }
+        })
+        const thread = await db.getRepository(ChatConversationThread).findOneBy({ threadId: source.threadId })
+        await db.getRepository(ChatConversationThread).save({
+            ...audit,
+            ...(thread ?? { threadId: source.threadId, conversationId: randomUUID() }),
+            status: 'busy',
+            runControl: { executionId: id, state: 'running' }
+        })
+        return {
+            id,
+            threadId: source.threadId,
+            call: { actor: context.actor, executionId: id, requestId: randomUUID(), estimatedTokens: 50 }
+        }
+    }
+    it.each(['retriedFromExecutionId', 'resumedFromExecutionId'] as const)(
+        'charges %s and its CLI result continuation after an audited budget increase',
+        async (kind) => {
+            const f = await native(10, 50)
+            await f.budget.admit(f.call)
+            await f.budget.settle({ ...f.call, actualTokens: 50 })
+            const resumed = await recovery(f.operation.id, kind)
+            await expect(f.budget.admit(resumed.call)).rejects.toMatchObject({
+                response: { code: 'MODEL_BUDGET_EXCEEDED' }
+            })
+            await management.increase(context, await increaseInput(200))
+            expect(await f.budget.admit(resumed.call)).toBe(true)
+            await f.budget.settle({ ...resumed.call, actualTokens: 35 })
+            await db
+                .getRepository(XpertAgentExecution)
+                .update(resumed.id, { status: XpertAgentExecutionStatusEnum.SUCCESS })
+            await db.getRepository(ChatConversationThread).update({ threadId: resumed.threadId }, { runControl: null })
+            const result = await continuation(resumed.id)
+            expect(await new ProjectPipelineModelBudgetStore(db).admit(result.call)).toBe(true)
+            await f.budget.settle({ ...result.call, actualTokens: 45 })
+            await f.budget.settle({ ...result.call, actualTokens: 45 })
+            expect(await totals()).toEqual({ calls: 3, tokens: 130, held: 0, actual: 130 })
+            expect(
+                await db.getRepository(ProjectPipelineModelReservationEntity).countBy({ operationId: f.operation.id })
+            ).toBe(3)
+        }
+    )
+    it('retries a finished continuation using the new root control, without reopening its processed inbox', async () => {
+        const f = await native(),
+            c = await continuation(f.operation.id)
+        await db.getRepository(AgentRuntimeInbox).update(c.inboxId, { state: 'processed' })
+        await db.getRepository(XpertAgentExecution).update(c.id, { status: XpertAgentExecutionStatusEnum.SUCCESS })
+        const retry = await recovery(c.id, 'retriedFromExecutionId')
+        expect(await f.budget.admit(retry.call)).toBe(true)
+        await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'cancelled' })
+        await f.budget.settle({ ...retry.call, actualTokens: 14 })
+        await expect(f.budget.admit({ ...retry.call, requestId: randomUUID() })).rejects.toThrow()
+        expect(await totals()).toEqual({ calls: 1, tokens: 14, held: 0, actual: 14 })
+    })
+    it.each([
+        'missing',
+        'cycle',
+        'actor',
+        'tenant',
+        'organization',
+        'thread',
+        'assistant',
+        'agent',
+        'type',
+        'parent',
+        'ambiguous',
+        'paused',
+        'superseded',
+        'cancelled'
+    ] as const)('rejects invalid recovery (%s) before a reservation', async (kind) => {
+        const f = await native(),
+            r = await recovery(f.operation.id, 'retriedFromExecutionId')
+        const executions = db.getRepository(XpertAgentExecution)
+        if (kind === 'missing' || kind === 'cycle')
+            await executions.update(r.id, {
+                metadata: { retriedFromExecutionId: kind === 'cycle' ? r.id : randomUUID() }
+            })
+        if (kind === 'actor') await executions.update(r.id, { createdById: randomUUID() })
+        if (kind === 'tenant') await executions.update(f.operation.id, { tenantId: randomUUID() })
+        if (kind === 'organization') await executions.update(f.operation.id, { organizationId: randomUUID() })
+        if (kind === 'thread') await executions.update(r.id, { threadId: randomUUID() })
+        if (kind === 'assistant') await executions.update(r.id, { xpertId: randomUUID() })
+        if (kind === 'agent') await executions.update(r.id, { agentKey: 'other' })
+        if (kind === 'type') await executions.update(r.id, { type: 'llm' })
+        if (kind === 'parent') await executions.update(r.id, { parentId: f.operation.id })
+        if (kind === 'ambiguous')
+            await executions.update(r.id, {
+                metadata: {
+                    retriedFromExecutionId: f.operation.id,
+                    resumedFromExecutionId: f.operation.id
+                }
+            })
+        if (kind === 'paused')
+            await db.getRepository(ChatConversationThread).update(
+                { threadId: r.threadId },
+                {
+                    runControl: { executionId: r.id, state: 'paused' }
+                }
+            )
+        if (kind === 'superseded')
+            await db.getRepository(ProjectPipelineRoundEntity).update(input.work.roundId, { state: 'superseded' })
+        if (kind === 'cancelled')
+            await db
+                .getRepository(ProjectPipelineOperationEntity)
+                .update(f.operation.id, { cancelRequestedAt: new Date() })
+        await expect(f.budget.admit(r.call)).rejects.toThrow()
+        expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+    })
+    it('keeps unrelated ordinary chat recovery outside the pipeline budget', async () => {
+        const f = await native()
+        const ordinary = randomUUID()
+        const source = await db.getRepository(XpertAgentExecution).findOneByOrFail({ id: f.operation.id })
+        await db.getRepository(XpertAgentExecution).save({ ...source, id: ordinary })
+        const r = await recovery(ordinary, 'retriedFromExecutionId')
+        expect(await f.budget.admit({ ...r.call, estimatedTokens: undefined })).toBe(false)
+        expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+    })
+    it('reserves the current estimate across competing workers and retains the hold for unknown usage', async () => {
+        const f = await native(10, 100, 10)
+        const results = await Promise.allSettled([
+            f.budget.admit({ ...f.call, estimatedTokens: 70 }),
+            new ProjectPipelineModelBudgetStore(db).admit({ ...f.call, requestId: randomUUID(), estimatedTokens: 70 })
+        ])
+        expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1)
+        expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1)
+        expect(await totals()).toEqual({ calls: 1, tokens: 70, held: 1, actual: 0 })
+    })
+    it('blocks a managed request with unavailable estimate before holding budget', async () => {
+        const f = await native()
+        await expect(f.budget.admit({ ...f.call, estimatedTokens: undefined })).rejects.toMatchObject({
+            response: { code: 'MODEL_BUDGET_ESTIMATE_UNAVAILABLE' }
+        })
+        expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+    })
     it('keeps two result continuations in the original budget after its initial operation succeeds', async () => {
         const f = await native(3, 200, 50)
         await f.budget.admit(f.call)
@@ -469,18 +629,53 @@ integration('native model budget across durable instances', () => {
         await expect(f.budget.admit({ ...c.call, requestId: randomUUID() })).rejects.toThrow()
         expect(await totals()).toEqual({ calls: 1, tokens: 11, held: 0, actual: 11 })
     })
-    it('charges the final authorized summary after a successful run completes', async () => {
+    it.each([
+        ['succeeded', 'continuation'],
+        ['accepted', 'continuation'],
+        ['accepted', 'retriedFromExecutionId'],
+        ['accepted', 'resumedFromExecutionId']
+    ] as const)('charges the final authorized summary after %s via %s', async (state, origin) => {
         const f = await native(),
-            c = await continuation(f.operation.id)
+            c = origin === 'continuation' ? await continuation(f.operation.id) : await recovery(f.operation.id, origin)
         await db
             .getRepository(ProjectPipelineOperationEntity)
-            .update(f.operation.id, { state: 'succeeded', terminalObservedAt: new Date() })
+            .update(f.operation.id, { state, terminalObservedAt: new Date() })
         await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'completed' })
         await db.getRepository(ProjectPipelineRoundEntity).update(input.work.roundId, { state: 'completed' })
         expect(await f.budget.admit(c.call)).toBe(true)
         await f.budget.settle({ ...c.call, actualTokens: 9 })
         expect(await totals()).toEqual({ calls: 1, tokens: 9, held: 0, actual: 9 })
     })
+    it.each(['cancelled', 'paused', 'superseded', 'foreign_thread'] as const)(
+        'keeps accepted-operation recovery closed when %s',
+        async (kind) => {
+            const f = await native(),
+                r = await recovery(f.operation.id, 'retriedFromExecutionId')
+            await db.getRepository(ProjectPipelineOperationEntity).update(f.operation.id, {
+                state: 'accepted',
+                terminalObservedAt: new Date(),
+                ...(kind === 'cancelled' ? { cancelRequestedAt: new Date() } : {})
+            })
+            await db.getRepository(ProjectPipelineRunEntity).update(input.work.runId, { state: 'completed' })
+            await db.getRepository(ProjectPipelineRoundEntity).update(input.work.roundId, {
+                state: kind === 'superseded' ? 'superseded' : 'completed'
+            })
+            if (kind === 'paused' || kind === 'foreign_thread')
+                await db.getRepository(ChatConversationThread).update(
+                    { threadId: r.threadId },
+                    {
+                        runControl: {
+                            executionId: kind === 'foreign_thread' ? randomUUID() : r.id,
+                            state: kind === 'paused' ? 'paused' : 'running'
+                        }
+                    }
+                )
+            await expect(f.budget.admit(r.call)).rejects.toMatchObject({
+                response: { code: 'MODEL_BUDGET_EXECUTION_CLOSED' }
+            })
+            expect(await totals()).toEqual({ calls: 0, tokens: 0, held: 0, actual: 0 })
+        }
+    )
     it.each(['cancel', 'run', 'round', 'thread', 'claim', 'actor', 'project', 'missing_source'] as const)(
         'rejects invalid continuation authority (%s) before reserving a model call',
         async (kind) => {
@@ -574,6 +769,32 @@ integration('native model budget across durable instances', () => {
         const current = await db.manager.findOneByOrFail(ProjectPipelineInstanceEntity, { id: input.work.instanceId })
         expect(current.revision).toBe(before.revision + 1)
         expect(await totals()).toEqual({ calls: 1, tokens: 20, held: 0, actual: 20 })
+    })
+    it('projects a denied continuation and clears it only after a real smaller request is admitted', async () => {
+        const f = await native(10, 100, 10)
+        await f.budget.admit({ ...f.call, estimatedTokens: 70 })
+        await f.budget.settle({ ...f.call, actualTokens: 60 })
+        await expect(f.budget.admit({ ...f.call, requestId: randomUUID(), estimatedTokens: 50 })).rejects.toThrow()
+        const denied = await pipelineModelBudgetDenials(db.manager, context, [f.operation])
+        expect(denied).toHaveLength(1)
+        expect(denied[0].executionId).toBe(f.call.executionId)
+        expect(
+            await pipelineModelBudgetDenials(db.manager, { ...context, projectId: randomUUID() }, [f.operation])
+        ).toEqual([])
+        const smaller = { ...f.call, requestId: randomUUID(), estimatedTokens: 20 }
+        await f.budget.admit(smaller)
+        await f.budget.settle({ ...smaller, actualTokens: 10 })
+        expect(await pipelineModelBudgetDenials(db.manager, context, [f.operation])).toEqual([])
+        expect(await readPipelineModelBudgetDenial(db.manager, context, f.operation.id)).toBeNull()
+        await expect(f.budget.admit({ ...f.call, requestId: randomUUID(), estimatedTokens: 40 })).rejects.toThrow()
+        expect(await pipelineModelBudgetDenials(db.manager, context, [f.operation])).toHaveLength(1)
+        expect(
+            await db.manager.countBy(ProjectPipelineEventEntity, {
+                instanceId: input.work.instanceId,
+                type: 'model.admission_denied'
+            })
+        ).toBe(2)
+        expect(await totals()).toEqual({ calls: 2, tokens: 70, held: 0, actual: 70 })
     })
     it('keeps an over-reservation actual total and prevents another call rather than clamping consumption', async () => {
         const f = await native(10)

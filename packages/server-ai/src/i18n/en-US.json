@@ -329,6 +329,8 @@
         "ProjectPipelineModelGateUnsupported": "This model client does not support native model admission callbacks.",
         "ProjectPipelineBudgetHumanManagerRequired": "A signed-in human Project manager must authorize model budget increases.",
         "ProjectPipelineNativeModelBudgetExceeded": "The instance native model budget cannot admit another call. Existing usage and unknown reservations are retained.",
+        "ProjectPipelineModelExecutionClosed": "This pipeline execution is no longer authorized to start another model call. Check cancellation, the current round and thread control before resuming. Existing results and usage are retained.",
+        "ProjectPipelineModelEstimateUnavailable": "This budget-managed request needs an explicit output token limit and estimable text input before model execution.",
         "ProjectPipelineScopedDelegationUnavailable": "This session cannot perform pipeline execution actions. Open Project pipeline management and sign in with a user account that has the required Project access.",
         "ProjectPipelineProjectionConflict": "The pipeline projection conflicts with the saved version.",
         "ProjectPipelineNotFound": "Project pipeline was not found.",
