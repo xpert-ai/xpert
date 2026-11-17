@@ -88,8 +88,8 @@ async function mount(
         return React.createElement('div', { id: 'onboarding' })
       }
     },
-    './profile/PersonalEventInbox': { PersonalEventInbox: () => null },
     './profile/PreviewScope': { AssistantPreviewScope: ({ children }) => children },
+    './profile/PersonalEventInbox': { PersonalEventInbox: () => null },
     './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },
     './groups/CreateGroupDialog': { CreateGroupDialog: () => null },
     './ConnectionSettings': { ConnectionSettings: () => null },

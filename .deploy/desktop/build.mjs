@@ -4,7 +4,6 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { build } from 'esbuild'
-import { desktopContractsManifest } from './contracts-manifest.mjs'
 const require = createRequire(import.meta.url)
 const run = (file, args, cwd = process.cwd()) =>
   execFileSync(process.execPath, [file, ...args], { cwd, stdio: 'inherit' })
@@ -23,10 +22,10 @@ for (const [format, output] of [
   })
 }
 const manifest = JSON.parse(readFileSync('packages/contracts/package.json', 'utf8'))
-writeFileSync(
-  'packages/contracts/dist/package.json',
-  JSON.stringify(desktopContractsManifest(manifest), null, 2) + '\n'
-)
+// pnpm links Desktop directly to dist, so its package entries are relative to dist.
+manifest.types = './index.d.ts'
+manifest.exports['.'] = { types: manifest.types, module: manifest.module, default: manifest.main }
+writeFileSync('packages/contracts/dist/package.json', JSON.stringify(manifest, null, 2) + '\n')
 run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
 run('apps/desktop/scripts/build-windows-shell.mjs', [])
 const testDirectories = ['packages/desktop-protocol/test', 'apps/desktop/tests', 'apps/desktop/tests/audio-capture']
