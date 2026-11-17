@@ -79,6 +79,7 @@ def status(config):
         'bootstrapProgress': read_progress(config, 'bootstrap'),
         'supervision': {'mode': config.get('supervisorMode', 'detached'), 'owned': supervisor is not None,
             **({key: supervisor[key] for key in ('pid', 'startTime', 'bootId')} if supervisor else {})},
+        'dependencies': config.get('dependencyLayout', {'mode': 'existing', 'nodeModules': str(Path(config['platform']) / 'node_modules')}),
         'sourceRevision': revision, 'runtime': json.loads(marker.read_text()), 'node': config['node'],
         'apiUrl': f'http://localhost:{config["ports"]["api"]}',
         'webUrl': f'http://localhost:{config["ports"]["web"]}',

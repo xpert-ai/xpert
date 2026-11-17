@@ -34,6 +34,7 @@ describe('native model admission at the real LangChain callback boundary', () =>
         let executionId: string = randomUUID()
         const gate = createNativeModelBudgetGate(commands, actor, () => executionId)
         const model = new FakeStreamingChatModel({ sleep: 0, responses: [new AIMessage('ok')] })
+        jest.spyOn(model, 'invocationParams').mockReturnValue({ max_tokens: 1024 })
         const provider = jest.spyOn(model, '_generate')
         const streamProvider = jest.spyOn(model, '_streamResponseChunks')
         gate.attach(model)
@@ -63,6 +64,37 @@ describe('native model admission at the real LangChain callback boundary', () =>
             ).rejects.toThrow('budget denied')
         expect(f.provider).not.toHaveBeenCalled()
         expect(f.streamProvider).not.toHaveBeenCalled()
+    })
+    it.each(['invoke', 'stream'] as const)(
+        'passes the actual %s request estimate to durable admission',
+        async (mode) => {
+            const f = setup()
+            jest.spyOn(f.model, 'invocationParams').mockReturnValue({
+                max_tokens: 32_000,
+                tools: [{ type: 'function', function: { name: 'inspect', description: 'tool'.repeat(1000) } }]
+            })
+            if (mode === 'invoke') await f.model.invoke('x'.repeat(100_000))
+            else
+                for await (const _chunk of await f.model.stream('x'.repeat(100_000))) {
+                    /* exhaust */
+                }
+            const command = f.execute.mock.calls[0][0]
+            if (!(command instanceof AdmitPipelineModelCallCommand)) throw Error('admission missing')
+            expect(command.input.estimatedTokens).toBeGreaterThan(136_000)
+            expect(f.execute).toHaveBeenCalledTimes(1)
+        }
+    )
+    it('leaves ordinary unbounded chats to the non-managed admission decision', async () => {
+        const f = setup()
+        jest.spyOn(f.model, 'invocationParams').mockReturnValue({})
+        f.execute.mockResolvedValue(false)
+        await expect(f.model.invoke('hello')).resolves.toBeDefined()
+        expect(f.provider).toHaveBeenCalledTimes(1)
+        const command = f.execute.mock.calls[0][0]
+        if (!(command instanceof AdmitPipelineModelCallCommand)) throw Error('admission missing')
+        expect(command.input.estimatedTokens).toBeUndefined()
+        await f.gate.record(command.input.requestId, usage)
+        expect(f.execute).toHaveBeenCalledTimes(1)
     })
     it.each(['invoke', 'stream'] as const)('gates %s across separate LangChain module instances', async (mode) => {
         const f = setup()

@@ -5,6 +5,7 @@ export const projectPipelineNativeModelBudgetSchema = z
   .object({
     maxCalls: z.number().int().min(1).max(1000000),
     maxTokens: z.number().int().min(1).max(1000000000000),
+    // Minimum hold; native admission reserves the larger current input estimate plus output ceiling.
     reservationTokens: z.number().int().min(1).max(1000000000)
   })
   .strict()

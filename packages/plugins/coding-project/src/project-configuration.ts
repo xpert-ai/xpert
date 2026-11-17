@@ -1,7 +1,7 @@
 import { projectTaskConfigurationSchema, type JsonSchemaObjectType } from '@xpert-ai/contracts'
 import { label } from './constants'
 
-const taskSettings = projectTaskConfigurationSchema(7200)
+const taskSettings = projectTaskConfigurationSchema()
 export const codingProjectConfigurationSchema: JsonSchemaObjectType = {
   ...taskSettings,
   properties: {

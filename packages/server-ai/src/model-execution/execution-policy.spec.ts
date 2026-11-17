@@ -32,7 +32,7 @@ describe('execution policy and admission', () => {
             expect(parseExecutionPolicy(value)).toMatchObject({
                 enabled: true,
                 tools: builtinCliTools,
-                limits: defaultExecutionLimits,
+                limits: defaultExecutionLimits(),
                 nativeProtocols: ['openai_responses'],
                 chatBridgeProtocols: ['openai_responses', 'anthropic_messages']
             })
@@ -64,7 +64,7 @@ describe('execution policy and admission', () => {
         first.cliPermissions.overrides.qwen = 'restricted'
         first.nativeProtocols?.push('anthropic_messages')
         expect(parseExecutionPolicy(undefined).tools).toEqual(builtinCliTools)
-        expect(parseExecutionPolicy(undefined).limits).toEqual(defaultExecutionLimits)
+        expect(parseExecutionPolicy(undefined).limits).toEqual(defaultExecutionLimits())
         expect(parseExecutionPolicy(undefined).cliPermissions).toEqual({ defaultMode: 'allow', overrides: {} })
         expect(parseExecutionPolicy(undefined).nativeProtocols).toEqual(['openai_responses'])
     })

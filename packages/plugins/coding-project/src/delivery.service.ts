@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common'
+import { ConflictException, Injectable } from '@nestjs/common'
+import { t } from 'i18next'
 import { deliveryGraphSummary } from './context-summary'
 import { createHash } from 'node:crypto'
 import { zodToJsonSchema } from 'zod-to-json-schema'
@@ -148,16 +149,24 @@ export class CodingDeliveryService {
         item.configuration.binding.templateRef === configuration.binding.templateRef &&
         item.configuration.binding.executorBindings?.coordinator?.selectionKey === assistantId
     )
+    const defaults = existing
+      ? configuration
+      : (await catalog.list(c, { protocol: 3 })).items.find(
+          (item) =>
+            item.contributionKey === 'coding_project' &&
+            item.configuration.binding.templateRef === configuration.binding.templateRef
+        )?.configuration
+    if (!defaults) throw new ConflictException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
     const binding = existing
       ? { bindingId: existing.id }
       : await api.configure(c, {
           requestId: identity(c.projectId, assistantId, configuration.binding.templateRef),
           configuration: {
-            ...configuration,
+            ...defaults,
             binding: {
-              ...configuration.binding,
+              ...defaults.binding,
               executorBindings: {
-                ...configuration.binding.executorBindings,
+                ...defaults.binding.executorBindings,
                 coordinator: { kind: 'assistant', roleKey: 'coordinator', selectionKey: assistantId }
               }
             }

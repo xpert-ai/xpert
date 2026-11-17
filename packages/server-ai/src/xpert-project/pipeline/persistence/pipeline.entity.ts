@@ -116,6 +116,7 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         | 'run.retry_requested'
         | 'run.cancelled'
         | 'model.admission_denied'
+        | 'model.admission_resumed'
         | 'model.budget_increased'
     @Column({ type: 'jsonb' }) payload: {
         sourceEpoch?: string
@@ -123,6 +124,8 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         snapshotDigest?: string
         roundId: string
         operationId?: string
+        /** Budget denial/resumption events use locked instance revisions; absent on legacy timestamp-based records. */
+        modelAdmissionVersion?: 1
         runId?: string
         digest?: string
         humanWaitSnapshot?: PipelineHumanWaitSnapshot

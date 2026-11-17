@@ -25,6 +25,7 @@ import { ProjectPipelineRuntimeBridgeService } from '../runtime/pipeline-runtime
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { pipelineHostCapabilities } from './pipeline-host-capabilities'
 import { pipelineCommandCapability } from '../runtime/pipeline-command-authority'
+import { pipelineConfigurationDefaults } from './pipeline-configuration-defaults'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectPipelineCatalogRuntimeCapability)
@@ -83,8 +84,10 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
                     .filter((configuration) => isProjectPipelineApplicable(configuration.template, access))
                     .map((configuration) => ({
                         contributionKey: contribution.key,
-                        configuration,
-                        form: contribution.forms?.find((form) => form.templateRef === configuration.binding.templateRef)
+                        ...pipelineConfigurationDefaults(
+                            configuration,
+                            contribution.forms?.find((form) => form.templateRef === configuration.binding.templateRef)
+                        )
                     }))
                     .filter((item) => canReadProjectPipelineConfiguration(item.configuration, input, item.form))
             )
@@ -105,7 +108,8 @@ export class ProjectPipelineCatalogService implements ProjectPipelineCatalogApi 
             throw new BadRequestException(t('server-ai:Error.ProjectPipelineProjectTypeMismatch'))
         let configuration: ReturnType<typeof configureProjectPipelineFromForm>
         try {
-            configuration = configureProjectPipelineFromForm(source, form, input)
+            const defaults = pipelineConfigurationDefaults(source, form)
+            configuration = configureProjectPipelineFromForm(defaults.configuration, defaults.form, input)
         } catch {
             throw new BadRequestException(t('server-ai:Error.ProjectPipelineConfigurationInvalid'))
         }

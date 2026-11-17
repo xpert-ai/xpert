@@ -72,7 +72,11 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
         const ownership = { id: row.id, leaseId: row.leaseId, state: 'pending' as const }
         try {
             const payload = notificationOutboxPayloadSchema.parse(row.payload)
-            if (payload.type === 'agent.output.dispatch' && await this.outputs.dispatch(row, payload.deliveryId) === 'deferred') return
+            if (
+                payload.type === 'agent.output.dispatch' &&
+                (await this.outputs.dispatch(row, payload.deliveryId)) === 'deferred'
+            )
+                return
             if (payload.type === 'announcement.scheduled') {
                 const announcement = await this.database
                     .getRepository(AnnouncementEntity)

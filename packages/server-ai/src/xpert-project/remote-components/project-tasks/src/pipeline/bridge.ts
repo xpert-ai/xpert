@@ -71,7 +71,7 @@ export const pipelineGraphSchema = z.object({
                 id: z.string().uuid(),
                 nodeInstanceId: z.string().uuid(),
                 kind: z.enum(['human', 'unknown', 'blocked']),
-                source: z.enum(['coordinator', 'provider_action']).optional(),
+                source: z.enum(['coordinator', 'provider_action', 'model_budget']).optional(),
                 state: z.enum(['open', 'resolved', 'superseded']),
                 revision: z.number().int().positive(),
                 generation: z.number().int().positive(),

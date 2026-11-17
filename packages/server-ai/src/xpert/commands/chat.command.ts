@@ -23,7 +23,8 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
     constructor(
         public readonly request: TChatRequest,
         public readonly options?: TChatOptions &
-            TChatSourceAuditOptions & EventRunOptions & {
+            TChatSourceAuditOptions &
+            EventRunOptions & {
                 xpertId?: string
                 /** Runtime branch id; defaults to the conversation's primary thread. */
                 threadId?: string

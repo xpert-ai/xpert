@@ -12,6 +12,7 @@ export enum ProjectToolEnum {
     DispatchTask = 'project_dispatch_task',
     RecoverDelivery = 'project_recover_task_delivery',
     GetTask = 'project_get_task',
+    ReadResult = 'project_read_task_result',
     ListRuntimes = 'project_list_task_runtimes'
 }
 
@@ -23,6 +24,7 @@ export const PROJECT_TASK_TOOL_TITLES: Record<ProjectToolEnum, I18nObject> = {
     [ProjectToolEnum.UpdateTasks]: { en_US: 'Update project tasks', zh_Hans: '更新项目任务' },
     [ProjectToolEnum.DispatchTask]: { en_US: 'Delegate project task', zh_Hans: '委托项目任务' },
     [ProjectToolEnum.RecoverDelivery]: { en_US: 'Recover task delivery', zh_Hans: '恢复任务交付' },
+    [ProjectToolEnum.ReadResult]: { en_US: 'Read task result', zh_Hans: '分段读取任务结果' },
     [ProjectToolEnum.GetTask]: { en_US: 'View project task', zh_Hans: '查看项目任务' },
     [ProjectToolEnum.ListRuntimes]: { en_US: 'List task runtimes', zh_Hans: '列出任务执行器' }
 }

@@ -21,11 +21,26 @@ function fixture() {
       calls.push({ url, options })
       if (url.includes('remote-component/entry'))
         return new Response('<!doctype html><script>window.parent.postMessage({type:"ready"},"*")</script>')
-      if (url.endsWith('/data?selectionId=receipt')) return Response.json({ item: {
-        id: 'receipt', conversationAction: { type: 'open_conversation', conversationId: 'chat', assistantId: 'source', threadId: 'thread' }
-      } })
+      if (url.endsWith('/data?selectionId=receipt'))
+        return Response.json({
+          item: {
+            id: 'receipt',
+            conversationAction: {
+              type: 'open_conversation',
+              conversationId: 'chat',
+              assistantId: 'source',
+              threadId: 'thread'
+            }
+          }
+        })
       if (url.includes('/slots/user.event-inbox/')) {
-        const inbox = { ...manifest, clientCommands: [{ key: 'open_conversation' }], hostType: 'user', key: 'platform.event-inbox__inbox', slot: 'user.event-inbox' }
+        const inbox = {
+          ...manifest,
+          clientCommands: [{ key: 'open_conversation' }],
+          hostType: 'user',
+          key: 'platform.event-inbox__inbox',
+          slot: 'user.event-inbox'
+        }
         return Response.json(enabled ? [inbox, { ...inbox, key: 'other' }] : [])
       }
       if (url.includes('/slots/agent.profile.tabs/'))
@@ -173,7 +188,9 @@ test('workbench navigation resolves an authorized view alias without trusting pl
 })
 test('remote protocol validates envelopes and interaction locks use explicit booleans', () => {
   assert.ok(isProfileMessage({ channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }))
-  assert.ok(isProfileMessage({ channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready', instanceId: null }))
+  assert.ok(
+    isProfileMessage({ channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready', instanceId: null })
+  )
   for (const value of [
     null,
     {},
@@ -217,11 +234,18 @@ test('personal inbox pins user/me, ignores unlisted views and revokes access on 
     assert(
       calls.some((call) => String(call.url).includes('/api/view-hosts/user/me/views/platform.event-inbox__inbox/data?'))
     )
-    const open = (payload) => service.profileViewRequest({
-      sessionId: session.sessionId, operation: 'command', commandKey: 'open_conversation', payload
-    })
+    const open = (payload) =>
+      service.profileViewRequest({
+        sessionId: session.sessionId,
+        operation: 'command',
+        commandKey: 'open_conversation',
+        payload
+      })
     assert.deepEqual(await open({ receiptId: 'receipt' }), {
-      type: 'open_conversation', conversationId: 'chat', assistantId: 'source', threadId: 'thread'
+      type: 'open_conversation',
+      conversationId: 'chat',
+      assistantId: 'source',
+      threadId: 'thread'
     })
     await assert.rejects(open({ receiptId: 'no-link' }))
     await assert.rejects(open({ receiptId: 'receipt', conversationId: 'foreign' }))

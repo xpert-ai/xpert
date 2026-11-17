@@ -2,12 +2,18 @@ jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import * as serverConfig from '@xpert-ai/server-config'
 import type { Request, Response, NextFunction } from 'express'
 import { ForbiddenException, type INestApplication } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { z } from 'zod/v3'
 import { RequestContext, ProjectPipelineContributionRegistry } from '@xpert-ai/plugin-sdk'
-import { projectPipelineConfigurationSchema, type IUser, type IApiPrincipal } from '@xpert-ai/contracts'
+import {
+    projectPipelineConfigurationSchema,
+    projectPipelineConfigurationDeclarationSchema,
+    type IUser,
+    type IApiPrincipal
+} from '@xpert-ai/contracts'
 import { ProjectPipelineCatalogController } from './pipeline-catalog.controller'
 import { ProjectPipelineCatalogService } from './pipeline-catalog.service'
 import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
@@ -106,7 +112,11 @@ describe('Pipeline catalog HTTP and scoped configuration boundary', () => {
         runtimes.candidates.mockResolvedValue([])
         launch.configure.mockResolvedValue({ bindingId: randomUUID(), revision: 1, definitionDigest: 'digest' })
     })
-    afterEach(() => jest.restoreAllMocks())
+    const originalOptions = { ...serverConfig.getConfig().projectExecutionOptions }
+    afterEach(() => {
+        serverConfig.setConfig({ projectExecutionOptions: originalOptions })
+        jest.restoreAllMocks()
+    })
     afterAll(() => app.close())
     it('filters by persisted project type and rejects a mismatched save before resolving executors', async () => {
         const project = { applicationKey: 'sample:bom', projectTypeKey: 'case', canManage: true, assistantIds: [] }
@@ -246,6 +256,65 @@ describe('Pipeline catalog HTTP and scoped configuration boundary', () => {
         ])
             expect((await post({ ...input(), nativeModelBudget })).status).toBe(400)
         expect(launch.configure).not.toHaveBeenCalled()
+    })
+    it('resolves declaration defaults separately from form ceilings and saves explicit budgets above the default', async () => {
+        const maximum = { maxCalls: 300, maxTokens: 100000000, reservationTokens: 10000 }
+        const budgeted = projectPipelineConfigurationSchema.parse({
+            ...configuration,
+            template: {
+                ...configuration.template,
+                hostRequirements: { protocol: 1, features: { 'pipeline.native_model_budget': 1 } }
+            },
+            binding: {
+                ...configuration.binding,
+                limits: { ...configuration.binding.limits, nativeModelBudget: maximum }
+            }
+        })
+        const declaration = projectPipelineConfigurationDeclarationSchema.parse({
+            ...budgeted,
+            nativeModelBudgetPolicy: { maxTokensDefaultSource: 'host', maximum }
+        })
+        const form = contribution.forms[0]
+        contributions.listForActor.mockReturnValue([{ ...contribution, configurations: [declaration], forms: [form] }])
+        serverConfig.setConfig({
+            projectExecutionOptions: { taskMaxDurationSeconds: 43200, pipelineMaxTokens: 25000000 }
+        })
+        const expected = { ...maximum, maxTokens: 25000000 }
+        const catalog = await (await fetch(`${base}?protocol=3`)).json()
+        expect(catalog).toMatchObject({
+            items: [
+                {
+                    configuration: { binding: { limits: { nativeModelBudget: expected } } },
+                    form: { nativeModelBudget: maximum }
+                }
+            ]
+        })
+        expect(catalog.items[0].configuration).not.toHaveProperty('nativeModelBudgetPolicy')
+        expect(catalog.items[0].form).not.toHaveProperty('useHostNativeModelBudgetDefaults')
+        expect((await post({ ...input(), nativeModelBudget: expected })).status).toBe(200)
+        expect(launch.configure.mock.calls[0][1].configuration.binding.limits.nativeModelBudget).toEqual(expected)
+        const chosen = { ...maximum, maxTokens: 30000000 }
+        expect((await post({ ...input(), nativeModelBudget: chosen })).status).toBe(200)
+        expect(launch.configure.mock.calls[1][1].configuration.binding.limits.nativeModelBudget).toEqual(chosen)
+        expect(launch.configure.mock.calls[1][1].configuration).not.toHaveProperty('nativeModelBudgetPolicy')
+        expect((await post({ ...input(), nativeModelBudget: maximum })).status).toBe(200)
+        expect(
+            (await post({ ...input(), nativeModelBudget: { ...maximum, maxTokens: maximum.maxTokens + 1 } })).status
+        ).toBe(400)
+        expect(declaration.binding.limits.nativeModelBudget).toEqual(maximum)
+        expect(form).not.toHaveProperty('nativeModelBudget')
+        // Explicit plugin defaults remain independent from the host opt-in.
+        contributions.listForActor.mockReturnValue([
+            { ...contribution, configurations: [budgeted], forms: [{ ...form, nativeModelBudget: maximum }] }
+        ])
+        expect(await (await fetch(`${base}?protocol=3`)).json()).toMatchObject({
+            items: [
+                {
+                    configuration: { binding: { limits: { nativeModelBudget: maximum } } },
+                    form: { nativeModelBudget: maximum }
+                }
+            ]
+        })
     })
     it.each(['actor', 'configuration', 'roleBindings'])('rejects injected %s at the HTTP pipe', async (key) => {
         expect((await post({ ...input(), [key]: {} })).status).toBe(400)

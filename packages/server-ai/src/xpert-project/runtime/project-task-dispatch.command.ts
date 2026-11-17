@@ -1,3 +1,4 @@
+import type { TaskResultRead } from './project-task-result-page'
 import { ICommand } from '@nestjs/cqrs'
 import {
     ProjectTaskDispatchInput,
@@ -66,5 +67,13 @@ export class RecoverProjectTaskDeliveryCommand implements ICommand {
         readonly taskId: string,
         readonly executionId: string,
         readonly input: AgentDeliveryRecovery
+    ) {}
+}
+
+/** Read an authorized result page pinned to the observed Invocation revision. */
+export class ReadProjectTaskResultCommand implements ICommand {
+    constructor(
+        readonly projectId: string,
+        readonly input: TaskResultRead
     ) {}
 }

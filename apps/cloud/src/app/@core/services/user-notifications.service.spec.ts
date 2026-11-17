@@ -84,7 +84,7 @@ describe('User notification client isolation and recovery', () => {
   it('negotiates outputs while using the legacy sync and page query parameters', async () => {
     service.start()
     await advance(251)
-    const sync = http.expectOne(req => req.url.endsWith('/sync'))
+    const sync = http.expectOne((req) => req.url.endsWith('/sync'))
     expect(sync.request.params.keys()).toEqual(['client'])
     expect(sync.request.headers.get('Accept')).toBe('application/json; profile="xpert-agent-output-v1"')
     sync.flush(snapshot())
@@ -92,7 +92,7 @@ describe('User notification client isolation and recovery', () => {
     expect(service.snapshot()?.announcements).toHaveLength(1)
 
     const response = service.notifications(30)
-    const page = http.expectOne(req => req.url.endsWith('/user-notifications'))
+    const page = http.expectOne((req) => req.url.endsWith('/user-notifications'))
     expect(page.request.params.keys()).toEqual(['offset'])
     expect(page.request.params.get('offset')).toBe('30')
     expect(page.request.headers.get('Accept')).toBe(sync.request.headers.get('Accept'))

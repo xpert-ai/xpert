@@ -63,8 +63,8 @@ describe('Project configuration persistence', () => {
             values: {},
             effectiveValues: { taskExecutionMaxDurationSeconds: 7200 },
             taskExecution: {
-                defaultDurationSeconds: 3600,
-                tenantMaxDurationSeconds: 7200,
+                defaultDurationSeconds: 43200,
+                tenantMaxDurationSeconds: 43200,
                 effectiveMaxDurationSeconds: 7200
             }
         })

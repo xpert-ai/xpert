@@ -48,6 +48,9 @@ def infrastructure(config, timeout=120):
 
 def configure_oidc(config):
     """Reuse the platform's idempotent key/client initializer on our owned .env."""
+    # OSS distributions do not include the Pro OIDC initializer.
+    if not (Path(config['platform']) / 'tools/scripts/setup-oidc.mjs').is_file():
+        return
     state = Path(config['state'])
     with (state / 'logs/bootstrap.log').open('a') as stream:
         result = subprocess.run([config['node'], 'tools/scripts/setup-oidc.mjs',

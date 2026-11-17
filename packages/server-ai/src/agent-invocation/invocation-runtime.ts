@@ -627,6 +627,9 @@ export class AgentInvocationRuntime {
         hostEvidence = false,
         expectedTarget?: { value: AgentInvocation['executionTarget'] }
     ) {
+        // A successful provider result supersedes an earlier observation error even while exit proof
+        // keeps its public status unknown. Previous diagnostics remain in the observation event history.
+        if (observation.status === 'succeeded') observation = { ...observation, error: observation.error }
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
@@ -647,6 +650,15 @@ export class AgentInvocationRuntime {
                       this.pinned(latest),
                       latest.providerSource.kind === 'builtin'
                   )
+            // Competing unconfirmed inspections cannot replace a saved terminal result while cleanup
+            // is pending. Matching exit evidence may resolve an earlier provisional outcome.
+            if (
+                latest.invocation.reportedOutcome &&
+                isAgentInvocationTerminal(observation.status) &&
+                observation.status !== latest.invocation.reportedOutcome &&
+                !isAgentInvocationTerminal(checked.status)
+            )
+                return latest
             // A late progress event cannot undo an accepted cancellation request.
             const next =
                 latest.invocation.control && !isAgentInvocationTerminal(checked.status)
@@ -662,7 +674,9 @@ export class AgentInvocationRuntime {
                     observation.status === 'failed' ||
                     observation.status === 'cancelled'
                 )
-                    latest.invocation.reportedOutcome ??= observation.status
+                    latest.invocation.reportedOutcome = isAgentInvocationTerminal(checked.status)
+                        ? observation.status
+                        : (latest.invocation.reportedOutcome ?? observation.status)
             }
             const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved

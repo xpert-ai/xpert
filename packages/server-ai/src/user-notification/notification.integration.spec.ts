@@ -51,7 +51,10 @@ const schema = `notification_test_${randomUUID().replace(/-/g, '')}`
 class TestDatabaseModule {}
 // The legacy clients in this suite opt out of agent outputs. Their graph has no agent bindings.
 @Module({
-    providers: [{ provide: OutputDispatch, useValue: {} }, { provide: OutputPreferences, useValue: {} }],
+    providers: [
+        { provide: OutputDispatch, useValue: {} },
+        { provide: OutputPreferences, useValue: {} }
+    ],
     exports: [OutputDispatch, OutputPreferences]
 })
 class LegacyClientOutputModule {}
@@ -498,14 +501,21 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
     it('negotiates output types by Accept on the unchanged sync and pagination URLs', async () => {
         const list = jest.spyOn(apps[0].get(UserNotificationService), 'list')
         try {
-            for (const [accept, enabled] of [[AGENT_OUTPUT_ACCEPT, true], ['application/json', false]] as const) {
+            for (const [accept, enabled] of [
+                [AGENT_OUTPUT_ACCEPT, true],
+                ['application/json', false]
+            ] as const) {
                 for (const path of ['user-notifications/sync?client=web', 'user-notifications?offset=30']) {
-                    const response = await fetch(origins[0] + '/api/' + path, { headers: { authorization: 'Bearer member', accept } })
+                    const response = await fetch(origins[0] + '/api/' + path, {
+                        headers: { authorization: 'Bearer member', accept }
+                    })
                     expect(response.status).toBe(200)
                     expect(list.mock.lastCall?.[2]).toBe(enabled)
                 }
             }
-        } finally { list.mockRestore() }
+        } finally {
+            list.mockRestore()
+        }
     })
     it('bounds connections while serving notifications and draining the outbox by default', async () => {
         const r = apps[0].get(NotificationRealtime)

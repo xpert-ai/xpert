@@ -1,3 +1,5 @@
+import { projectTaskModelView } from '../task-result-context'
+import { taskResultReadSchema } from '../../../runtime/project-task-result-page'
 import { projectTaskPlanSchema } from '../../../project-task-plan.schema'
 import { emitResourceCard } from '@xpert-ai/plugin-sdk'
 import { Logger } from '@nestjs/common'
@@ -19,6 +21,7 @@ import {
     DispatchProjectTaskCommand,
     DecideProjectTaskReferenceCommand,
     GetProjectRuntimeTaskCommand,
+    ReadProjectTaskResultCommand,
     RecoverProjectTaskDeliveryCommand,
     ListProjectRuntimeBindingsCommand
 } from '../../../runtime/project-task-dispatch.command'
@@ -160,13 +163,27 @@ export function createProjectRuntimeTools(
         tool(
             async (input) => {
                 await assertPermission('view')
-                return commandBus.execute(new GetProjectRuntimeTaskCommand(context.projectId, input.taskId))
+                return projectTaskModelView(
+                    await commandBus.execute(new GetProjectRuntimeTaskCommand(context.projectId, input.taskId))
+                )
             },
             {
                 name: ProjectToolEnum.GetTask,
                 schema: z.object({ taskId: z.string().uuid() }).strict(),
                 description:
-                    'Read requirements, children, attempts and authorized results. decisionOptions supplies fixed decisionRef values for current candidates or specific blocking diagnostics. Read the referenced review task and its Markdown before deciding. A summary reference decides overall delivery; an implementation reference decides only that child. Review tasks are findings, not decision targets: read their parent/implementation task to decide. This read never starts execution or accepts a task.'
+                    'Read requirements, children, attempts and authorized result excerpts. Long reports have explicit paging references for project_read_task_result; excerpts alone do not establish acceptance. decisionOptions supplies fixed decisionRef values for current candidates or specific blocking diagnostics. Read the referenced review task and its Markdown before deciding. A summary reference decides overall delivery; an implementation reference decides only that child. Review tasks are findings, not decision targets: read their parent/implementation task to decide. This read never starts execution or accepts a task.'
+            }
+        ),
+        tool(
+            async (input) => {
+                await assertPermission('view')
+                return commandBus.execute(new ReadProjectTaskResultCommand(context.projectId, input))
+            },
+            {
+                name: ProjectToolEnum.ReadResult,
+                schema: taskResultReadSchema,
+                description:
+                    'Read an exact page after project_get_task. source="report" (default) reads result evidence; source="prompt" reads the archived delegation prompt including the pinned requirements and additional instructions. Copy taskId, executionId and expectedRevision from the observed invocation. Offset and limit count UTF-16 characters; follow nextOffset. A changed revision requires rereading the task. Archived prompts and full reports remain readable. Read needed evidence before deciding; omitted text is not evidence of success.'
             }
         ),
         tool(

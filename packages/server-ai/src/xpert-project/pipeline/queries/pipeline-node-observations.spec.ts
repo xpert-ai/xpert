@@ -1,3 +1,4 @@
+import { observeModelBudgetDenials } from './pipeline-model-budget-observations'
 import { projectPipelineStatistics, type ProjectPipelineGraph, type ProjectTaskGraph } from '@xpert-ai/contracts'
 import { observePipelineNodes } from './pipeline-node-observations'
 
@@ -90,4 +91,19 @@ it('does not invent a whole-node result from missing ownership or partial Task c
         node({ taskIds: ['other'] })
     ]
     for (const original of cases) expect(observePipelineNodes([original], [attempt()])[0]).toBe(original)
+})
+
+it('shows resumed model denial without changing accepted evidence or unrelated nodes', () => {
+    const original = node()
+    original.projection.state.runtime = 'succeeded'
+    original.projection.state.readiness = 'ready'
+    const before = structuredClone(original)
+    const other = node({ id: 'other' })
+    const blocked = observeModelBudgetDenials([original, other], [{ operation: { nodeInstanceId: original.id } }])
+    expect(blocked[0].projection.state).toEqual({ ...before.projection.state, runtime: 'failed', readiness: 'blocked' })
+    expect(blocked[0].projection.presentation.blockers).toContain('MODEL_BUDGET_EXCEEDED')
+    expect(blocked[0].projection.evidence).toEqual(before.projection.evidence)
+    expect(original).toEqual(before)
+    expect(blocked[1]).toBe(other)
+    expect(observeModelBudgetDenials([original], [])[0]).toBe(original)
 })

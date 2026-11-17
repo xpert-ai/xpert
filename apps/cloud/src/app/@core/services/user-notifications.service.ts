@@ -242,7 +242,10 @@ export class UserNotificationsService {
       }
       if (!this.isActive() || generation !== this.generation) return
       const response = await firstValueFrom(
-        this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, { params: { client: 'web' }, headers: { Accept: AGENT_OUTPUT_ACCEPT } })
+        this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, {
+          params: { client: 'web' },
+          headers: { Accept: AGENT_OUTPUT_ACCEPT }
+        })
       )
       if (generation !== this.generation) return
       const snapshot = parseNotificationSnapshot(response)
@@ -305,7 +308,9 @@ export class UserNotificationsService {
     )
   }
   async read(id: string) {
-    const result = await firstValueFrom(this.http.put<{ read: true; items?: AgentOutputItem[] }>(`${API_PREFIX}/user-notifications/${id}/read`, {}))
+    const result = await firstValueFrom(
+      this.http.put<{ read: true; items?: AgentOutputItem[] }>(`${API_PREFIX}/user-notifications/${id}/read`, {})
+    )
     this.scheduleRefresh()
     return result
   }

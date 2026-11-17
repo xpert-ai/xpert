@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { projectPipelineConfigurationSchema } from './configuration.schema'
+import { projectPipelineConfigurationDeclarationSchema } from './configuration-declaration.schema'
 import { projectPipelineExtensionDescriptorSchema } from './catalog.schema'
 import { projectPipelineKeySchema } from './primitives.schema'
 import { projectPipelineConfigurationFormSchema, validateProjectPipelineConfigurationForm } from './configuration-form'
@@ -7,7 +7,7 @@ import { projectPipelineConfigurationFormSchema, validateProjectPipelineConfigur
 export const projectPipelineContributionSchema = z
   .object({
     key: projectPipelineKeySchema,
-    configurations: z.array(projectPipelineConfigurationSchema).max(100),
+    configurations: z.array(projectPipelineConfigurationDeclarationSchema).max(100),
     descriptors: z.array(projectPipelineExtensionDescriptorSchema).max(1000),
     forms: z.array(projectPipelineConfigurationFormSchema).max(100).optional()
   })
@@ -25,7 +25,13 @@ export const projectPipelineContributionSchema = z
       const configuration = value.configurations.find((item) => item.binding.templateRef === form.templateRef)
       try {
         if (!configuration) throw new Error('CONFIGURATION_MISSING')
-        validateProjectPipelineConfigurationForm(configuration, form)
+        const { nativeModelBudgetPolicy, ...concrete } = configuration
+        // A policy owns the ceilings; the form receives them only after catalog resolution.
+        if (nativeModelBudgetPolicy && form.nativeModelBudget) throw new Error('DUPLICATE_MODEL_BUDGET_MAXIMUM')
+        validateProjectPipelineConfigurationForm(
+          concrete,
+          nativeModelBudgetPolicy ? { ...form, nativeModelBudget: nativeModelBudgetPolicy.maximum } : form
+        )
       } catch {
         context.addIssue({ code: z.ZodIssueCode.custom, message: 'INVALID_CONFIGURATION_FORM', path: ['forms', index] })
       }

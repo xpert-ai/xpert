@@ -80,9 +80,7 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
           [class.font-semibold]="!item.readAt"
           (click)="open(item)"
         >
-          {{
-            item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate)
-          }}
+          {{ item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate) }}
           · {{ item.createdAt | date: 'short' }}
         </button>
         @if (expanded()?.id === item.id) {

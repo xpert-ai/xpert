@@ -52,8 +52,8 @@ export interface ProjectPipelineGraph {
 }
 
 export interface ProjectPipelineAttention {
-  /** Provider actions are read-only triage entries, never human decision records. */
-  source?: 'coordinator' | 'provider_action'
+  /** Provider and model-budget observations are read-only triage entries, never human decision records. */
+  source?: 'coordinator' | 'provider_action' | 'model_budget'
   id: string
   nodeInstanceId: string
   kind: 'human' | 'unknown' | 'blocked'
