@@ -226,7 +226,11 @@ export class EventInboxService {
         const ref = detail ? conversationRef.safeParse(presentation?.conversation) : undefined
         if (ref?.success) {
             try {
-                conversationAction = await this.access.conversationAction(binding, ref.data.conversationId, ref.data.threadId)
+                conversationAction = await this.access.conversationAction(
+                    binding,
+                    ref.data.conversationId,
+                    ref.data.threadId
+                )
             } catch {
                 // Receipt visibility does not grant conversation access.
             }

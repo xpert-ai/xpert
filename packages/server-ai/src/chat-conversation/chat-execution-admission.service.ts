@@ -96,7 +96,8 @@ export class ChatExecutionAdmissionService {
             if (options.eventBinding) {
                 const binding = await manager.findOne(AgentEventBinding, {
                     where: {
-                        id:options.eventBinding.id, revision:options.eventBinding.revision,
+                        id: options.eventBinding.id,
+                        revision: options.eventBinding.revision,
                         tenantId: conversation.tenantId,
                         organizationId: conversation.organizationId,
                         userId: conversation.createdById,
@@ -110,7 +111,9 @@ export class ChatExecutionAdmissionService {
                 const [claim] = await manager.query(
                     `SELECT p.id FROM agent_event_partition p JOIN agent_event_inbox i ON i.partition=p.id
                      WHERE i.binding=$1 AND i.id=$2 AND i.state='processing' AND p.fence=$3 AND p.expires>now()
-                     FOR SHARE OF p`, [binding.id, executionId, options.eventBinding.fence])
+                     FOR SHARE OF p`,
+                    [binding.id, executionId, options.eventBinding.fence]
+                )
                 if (!claim) throw new ForbiddenException('event_claim_expired')
             }
             if (request.action === 'resume') {

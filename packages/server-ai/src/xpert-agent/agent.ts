@@ -11,6 +11,7 @@ import {
     IXpert,
     IXpertAgent,
     type IconDefinition,
+    type PublicToolPresentation,
     TMessageChannel,
     TMessageComponent,
     TMessageComponentStep,
@@ -24,6 +25,9 @@ import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
 import { AgentStateAnnotation, createTextChunk } from '../shared'
 import { readSkillUsageArtifact } from '../skill-package/plugins/skills-middleware/skill-usage'
+
+import { parseToolIcon } from './tool-icon'
+import { presentToolValue, toolPresentation } from './tool-presentation'
 
 export { FakeStreamingChatModel } from '../shared/agent/fake-streaming-chat-model'
 
@@ -122,38 +126,8 @@ function resolveLocalizedToolTitle(value: unknown, language?: string): string | 
 
 function toolTitle(metadata: Record<string, unknown>, name: string, language?: string) {
     return (
-        resolveLocalizedToolTitle(metadata['toolName'], language) ??
-        resolveLocalizedToolTitle(metadata[name], language) ??
-        name
+        resolveLocalizedToolTitle(metadata['toolName'], language) ?? resolveLocalizedToolTitle(metadata[name], language)
     )
-}
-
-function isIconType(value: unknown): value is IconDefinition['type'] {
-    return value === 'image' || value === 'svg' || value === 'font' || value === 'emoji' || value === 'lottie'
-}
-
-function parseToolIcon(candidate: unknown): IconDefinition | undefined {
-    if (!isRecord(candidate) || !isIconType(candidate['type'])) return undefined
-
-    const value = readString(candidate['value'])
-    if (!value) return undefined
-    const color = readString(candidate['color'])
-    const alt = readString(candidate['alt'])
-    const size =
-        typeof candidate['size'] === 'number' &&
-        Number.isFinite(candidate['size']) &&
-        candidate['size'] > 0 &&
-        candidate['size'] <= 64
-            ? candidate['size']
-            : undefined
-
-    return {
-        type: candidate['type'],
-        value,
-        ...(color ? { color } : {}),
-        ...(alt ? { alt } : {}),
-        ...(size ? { size } : {})
-    }
 }
 
 function toolIcon(metadata: Record<string, unknown>): IconDefinition | undefined {
@@ -206,9 +180,17 @@ export function createMapStreamEvents(
     }
 ) {
     const { agent, unmutes, xperts, language } = options ?? {}
+    // A nested tool may inherit the outer call ID. Keep declarations scoped to both names and calls.
+    const presentations = new Map<string, PublicToolPresentation>()
+    const presentationKey = (id: string, tool: string) => JSON.stringify([id, tool])
     const eventStack: string[] = []
     let prevEvent = ''
-    const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
+
+    function sendComponent(id: string, identity: TExecutionStreamMetadata, data: Record<string, unknown>) {
+        subscriber.next({
+            data: { type: ChatMessageTypeEnum.MESSAGE, data: { id, type: 'component', ...identity, data } }
+        } as MessageEvent)
+    }
 
     const processFun = ({ event, tags, data, ...rest }: any) => {
         const metadata = rest?.metadata ?? {}
@@ -223,6 +205,21 @@ export function createMapStreamEvents(
         const xpert = xperts?.find((_) => _.agent?.key === agentKey)
         const xpertName = metadata.xpertName || xpert?.name
         const executionMeta = getExecutionStreamMetadata(metadata, rest, agentKey, xpertName)
+
+        function sendToolStep(id: string, name: string | undefined, fields: Record<string, unknown>) {
+            const icon = toolIcon(metadata)
+            const title = name && toolTitle(metadata, name, language)
+            sendComponent(id, getExecutionStreamMetadata(metadata, rest), {
+                category: 'Tool',
+                toolPresentation: 'redacted',
+                ...(name ? { tool: name } : {}),
+                ...(metadata.toolset ? { toolset: metadata.toolset } : {}),
+                ...(metadata.toolsetId ? { toolset_id: metadata.toolsetId } : {}),
+                ...(icon ? { icon } : {}),
+                ...fields,
+                ...(title ? { title } : {})
+            })
+        }
 
         if (Logger.isLevelEnabled('debug')) {
             if (event === 'on_chat_model_stream') {
@@ -349,9 +346,8 @@ export function createMapStreamEvents(
 
             case 'on_tool_start': {
                 eventStack.push(event)
-                toolsMap[rest.metadata.langgraph_node] = rest.name
 
-                const tool_call_id = data.id || rest.metadata.tool_call_id
+                const tool_call_id = data.id || metadata.tool_call_id
                 if (tool_call_id) {
                     let input = data.input
                     if (data.input && typeof data.input.input === 'string') {
@@ -361,30 +357,15 @@ export function createMapStreamEvents(
                             //
                         }
                     }
-                    input = sanitizeToolInputForDisplay(input)
-                    const icon = toolIcon(rest.metadata)
-                    subscriber.next({
-                        data: {
-                            type: ChatMessageTypeEnum.MESSAGE,
-                            data: {
-                                id: tool_call_id,
-                                type: 'component',
-                                ...executionMeta,
-                                data: {
-                                    ...data,
-                                    category: 'Tool',
-                                    toolset: rest.metadata.toolset,
-                                    toolset_id: rest.metadata.toolsetId,
-                                    tool: rest.name,
-                                    title: toolTitle(rest.metadata, rest.name, language),
-                                    ...(icon ? { icon } : {}),
-                                    created_date: new Date(),
-                                    status: 'running',
-                                    input
-                                } as TMessageComponent<TMessageComponentStep>
-                            } as TMessageContentComponent
-                        }
-                    } as MessageEvent)
+                    const policy = toolPresentation(metadata.publicToolPresentation, rest.name)
+                    if (policy) presentations.set(presentationKey(tool_call_id, rest.name), policy)
+                    const preview = presentToolValue(policy, 'input', input)
+                    sendToolStep(tool_call_id, rest.name, {
+                        title: rest.name,
+                        created_date: new Date(),
+                        status: 'running',
+                        ...(preview !== undefined ? { input: preview } : {})
+                    })
                 }
                 break
             }
@@ -405,46 +386,41 @@ export function createMapStreamEvents(
                     }
                 }
 
-                const tool_call_id = data.output?.tool_call_id || data.id || rest.metadata.tool_call_id
+                const tool_call_id = output?.tool_call_id || data.id || metadata.tool_call_id
                 if (tool_call_id) {
-                    const component: any = {
-                        // category: 'Computer',
-                        // Completion logs must stand alone: View subscribers cannot join the transcript's start delta.
-                        tool: rest.name,
-                        status: 'success',
-                        end_date: new Date()
+                    const key = presentationKey(tool_call_id, rest.name)
+                    const policy =
+                        toolPresentation(metadata.publicToolPresentation, rest.name) ?? presentations.get(key)
+                    presentations.delete(key)
+                    const message = isBaseMessage(output) && isToolMessage(output) ? output : undefined
+                    const content = message ? message.content : output
+                    const failed = message?.status === 'error'
+                    const preview = presentToolValue(policy, 'output', content)
+                    const error = failed ? presentToolValue(policy, 'error', content) : undefined
+                    const end_date = new Date()
+                    sendToolStep(tool_call_id, rest.name, {
+                        status: failed ? 'fail' : 'success',
+                        end_date,
+                        ...(preview !== undefined ? { output: preview } : {}),
+                        ...(error !== undefined ? { error } : {})
+                    })
+                    // Native widget data and skill provenance have their own component. They must never
+                    // shallow-merge into the participant-facing tool row with the same LangChain call ID.
+                    const artifact = message?.artifact
+                    const usage =
+                        rest.name === 'read_skill_file' && !failed ? readSkillUsageArtifact(artifact) : undefined
+                    const skill = usage?.toolCallId === tool_call_id ? usage : undefined
+                    const mcpMeta = readXpertMcpMetaArtifact(artifact)
+                    if (mcpMeta || skill) {
+                        sendComponent(`native:${tool_call_id}`, executionMeta, {
+                            category: 'Computer',
+                            tool: rest.name,
+                            status: failed ? 'fail' : 'success',
+                            end_date,
+                            ...(mcpMeta ? { artifact, _meta: mcpMeta, output: content } : {}),
+                            ...(skill ? { taskSummary: { version: 1, skillUsages: [skill] } } : {})
+                        })
                     }
-                    if (isBaseMessage(output) && isToolMessage(output)) {
-                        if (output.content) {
-                            component.output = output.content
-                        }
-                        if (output.artifact) {
-                            component.artifact = output.artifact
-                            // Attribute only a successful built-in read whose artifact matches this tool call.
-                            const skillUsage =
-                                rest.name === 'read_skill_file' && output.status !== 'error'
-                                    ? readSkillUsageArtifact(output.artifact)
-                                    : undefined
-                            if (skillUsage && skillUsage.toolCallId === tool_call_id) {
-                                component.taskSummary = { version: 1, skillUsages: [skillUsage] }
-                            }
-                            const mcpMeta = readXpertMcpMetaArtifact(output.artifact)
-                            if (mcpMeta) {
-                                component._meta = mcpMeta
-                            }
-                        }
-                    }
-                    subscriber.next({
-                        data: {
-                            type: ChatMessageTypeEnum.MESSAGE,
-                            data: {
-                                id: tool_call_id,
-                                type: 'component',
-                                ...executionMeta,
-                                data: component as TMessageComponent<TMessageComponentStep>
-                            }
-                        }
-                    } as MessageEvent)
                 }
                 break
             }
@@ -455,7 +431,7 @@ export function createMapStreamEvents(
                     data: {
                         type: ChatMessageTypeEnum.MESSAGE,
                         data: {
-                            id: data.id || rest.metadata.tool_call_id || rest.run_id,
+                            id: `native:${data.id || rest.metadata.tool_call_id || rest.run_id}`,
                             type: 'component',
                             ...executionMeta,
                             data: {
@@ -463,7 +439,7 @@ export function createMapStreamEvents(
                                 type: ChatMessageStepCategory.Knowledges,
                                 toolset: rest.metadata.toolset,
                                 toolset_id: rest.metadata.toolsetId,
-                                title: toolTitle(rest.metadata, rest.name, language),
+                                title: toolTitle(metadata, rest.name, language) ?? rest.name,
                                 ...(icon ? { icon } : {}),
                                 created_date: new Date(),
                                 status: 'running',
@@ -481,7 +457,7 @@ export function createMapStreamEvents(
                     data: {
                         type: ChatMessageTypeEnum.MESSAGE,
                         data: {
-                            id: data.id || rest.metadata.tool_call_id || rest.run_id,
+                            id: `native:${data.id || rest.metadata.tool_call_id || rest.run_id}`,
                             type: 'component',
                             ...executionMeta,
                             data: {
@@ -511,24 +487,17 @@ export function createMapStreamEvents(
                         break
                     }
                     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
-                        subscriber.next({
-                            data: {
-                                type: ChatMessageTypeEnum.MESSAGE,
-                                data: {
-                                    id: data.id || data.toolCall.id || rest.run_id,
-                                    type: 'component',
-                                    ...executionMeta,
-                                    data: {
-                                        ...data,
-                                        toolset: rest.metadata.toolset,
-                                        toolset_id: rest.metadata.toolsetId,
-                                        tool: data.toolCall?.name,
-                                        status: 'fail',
-                                        end_date: new Date()
-                                    } as TMessageComponent<TMessageComponentStep>
-                                }
-                            }
-                        } as MessageEvent)
+                        const id = data.id || data.toolCall?.id || rest.run_id
+                        const name = data.toolCall?.name
+                        const key = presentationKey(id, name)
+                        const policy = presentations.get(key) ?? toolPresentation(metadata.publicToolPresentation, name)
+                        presentations.delete(key)
+                        const error = presentToolValue(policy, 'error', data.error)
+                        sendToolStep(id, name, {
+                            status: 'fail',
+                            end_date: new Date(),
+                            ...(error !== undefined ? { error } : {})
+                        })
                         break
                     }
                     case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
@@ -547,29 +516,40 @@ export function createMapStreamEvents(
                         break
                     }
                     case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
-                        if (data.category === 'Computer' || data.category === 'Tool' || data.category === 'Dashboard') {
-                            /**
-                             * Tool messages from tool calling are displayed in component messages
-                             */
-                            subscriber.next({
-                                data: {
-                                    type: ChatMessageTypeEnum.MESSAGE,
-                                    data: {
-                                        id: data.id || rest.run_id,
-                                        type: 'component',
-                                        ...executionMeta,
-                                        data: {
-                                            ...data,
-                                            input: sanitizeToolInputForDisplay(data.input),
-                                            category: data.category,
-                                            type: data.type,
-                                            data: data.data
-                                        } as TMessageComponent<TMessageComponentStep>
-                                    } as TMessageContentComponent
-                                }
-                            } as MessageEvent)
-                        } else {
-                            logger.warn(`Unsupported custom_event & tool message category: ${data.category}`, data)
+                        const id = data.id || rest.run_id
+                        if (data.category === 'Tool') {
+                            const name = data.tool
+                            const policy =
+                                presentations.get(presentationKey(id, name)) ??
+                                toolPresentation(metadata.publicToolPresentation, name)
+                            const fields: Record<string, unknown> = {}
+                            for (const phase of ['input', 'output', 'error'] as const) {
+                                if (!(phase in data)) continue
+                                const value = presentToolValue(policy, phase, data[phase])
+                                if (value !== undefined) fields[phase] = value
+                            }
+                            if (name || data.status) {
+                                sendToolStep(id, name, {
+                                    ...(typeof data.title === 'string' && data.title !== name
+                                        ? { title: data.title }
+                                        : {}),
+                                    ...(typeof data.toolset === 'string' ? { toolset: data.toolset } : {}),
+                                    ...(['running', 'success', 'fail'].includes(data.status)
+                                        ? { status: data.status }
+                                        : {}),
+                                    ...(data.created_date ? { created_date: data.created_date } : {}),
+                                    ...(data.end_date ? { end_date: data.end_date } : {}),
+                                    ...fields
+                                })
+                            }
+                        }
+                        if (data.category === 'Computer' || data.category === 'Dashboard') {
+                            // Rich native components may contain executable widget payloads or shell output.
+                            const { toolPresentation: _presentation, ...native } = data
+                            sendComponent(`native:${id}`, executionMeta, {
+                                ...native,
+                                input: sanitizeToolInputForDisplay(data.input)
+                            })
                         }
                         break
                     }

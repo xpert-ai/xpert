@@ -57,6 +57,14 @@ function fixture() {
     return { service, p, typed }
 }
 describe('Artifact types', () => {
+    it('exposes declared icons only while the bound provider remains available', () => {
+        const { service, p, typed } = fixture()
+        expect(service.describe(typed)).not.toHaveProperty('icon')
+        p.definition.icon = { type: 'emoji', value: '📊' }
+        expect(service.describe(typed).icon).toEqual(p.definition.icon)
+        service.registry.remove(source.organizationId, source.pluginName)
+        expect(() => service.describe(typed)).toThrow()
+    })
     it('does not allow generic version uploads to bypass an application publication workflow', () => {
         const { service, p, typed } = fixture()
         service.assertVersionCreation(typed)

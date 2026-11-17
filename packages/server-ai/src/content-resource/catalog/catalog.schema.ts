@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { iconDefinitionSchema } from '@xpert-ai/contracts'
 
 const key = z.string().min(1).max(200)
 const projectPath = z
@@ -43,10 +44,14 @@ export const contentSnapshotSchema = z
             .object({
                 kind: z.literal('artifact'),
                 referenceId: z.string().uuid(),
+                artifactKind: z
+                    .enum(['html', 'markdown', 'pdf', 'pptx', 'image', 'file', 'site', 'presentation'])
+                    .optional(),
                 type: z
                     .object({
                         pluginName: key,
                         resourceType: key,
+                        icon: iconDefinitionSchema.optional(),
                         title: z
                             .object({ en_US: key, zh_Hans: key.optional(), zh_Hant: key.optional() })
                             .strict()

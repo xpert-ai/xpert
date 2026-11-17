@@ -697,7 +697,12 @@ integration('Event Inbox PostgreSQL', () => {
         const access = {
             conversationAction: async (b: AgentEventBinding, id: string, threadId?: string) => {
                 if (!readable || b.id !== own.id || id !== conversation) throw new ForbiddenException()
-                return { type: 'open_conversation', conversationId: id, assistantId: b.xpertId, threadId: threadId ?? id }
+                return {
+                    type: 'open_conversation',
+                    conversationId: id,
+                    assistantId: b.xpertId,
+                    threadId: threadId ?? id
+                }
             },
             assertAccessible: async (b: AgentEventBinding) => {
                 if (revoked && b.id === own.id) throw new ForbiddenException()
@@ -739,9 +744,10 @@ integration('Event Inbox PostgreSQL', () => {
         await expect(view.retry(context, old.receiptId)).rejects.toThrow()
         expect(a.items?.[0]).not.toHaveProperty('conversationAction')
         for (const host of [context, agent]) {
-            expect(
-                (await view.data(host, { selectionId: first.receiptId })).item?.conversationAction
-            ).toMatchObject({ conversationId: conversation, threadId: branch })
+            expect((await view.data(host, { selectionId: first.receiptId })).item?.conversationAction).toMatchObject({
+                conversationId: conversation,
+                threadId: branch
+            })
         }
         readable = false
         expect((await view.data(context, { selectionId: first.receiptId })).item).not.toHaveProperty(

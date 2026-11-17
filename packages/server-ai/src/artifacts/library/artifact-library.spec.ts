@@ -13,10 +13,17 @@ import { ContentIdentityService } from '../../content-resource/content-identity.
 import { ContentResourceService } from '../../content-resource/content-resource.service'
 import { ProjectAccessRuntimeService } from '../../xpert-project/services/project-access-runtime.service'
 import { FindOperator } from 'typeorm'
+import type { ArtifactTypeDescriptor } from '@xpert-ai/contracts'
+import { contentSnapshotSchema } from '../../content-resource/catalog/catalog.schema'
 
 const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'owner' }
 const scope = { actor, projectId: 'project' }
-const artifactType = { pluginName: 'example', resourceType: 'report', title: { en_US: 'Report', zh_Hans: '报告' } }
+const artifactType: ArtifactTypeDescriptor = {
+    pluginName: 'example',
+    resourceType: 'report',
+    title: { en_US: 'Report', zh_Hans: '报告' },
+    icon: { type: 'emoji', value: '📊' }
+}
 
 async function fixture() {
     const row = {
@@ -47,7 +54,7 @@ async function fixture() {
     const project = { projectId: 'project', role: 'owner', archived: false }
     const projects = { listReadable: jest.fn(async () => [project]) }
     const api = {
-        getArtifact: jest.fn(async () => ({ id: 'artifact', status: 'active', title: 'Source' })),
+        getArtifact: jest.fn(async () => ({ id: 'artifact', status: 'active', title: 'Source.xlsx', kind: 'pptx' })),
         listArtifactVersions: jest.fn(async () => [{ id: 'version', versionNumber: 1 }]),
         getArtifactShare: jest.fn(async () => null),
         ensureArtifactShare: jest.fn(),
@@ -117,6 +124,13 @@ describe('Artifact library authorization and lifecycle', () => {
         const f = await fixture()
         const snapshot = await f.provider.catalog.describe({ ...scope, sourceResourceId: 'reference' })
         expect(snapshot.presentation?.type).toEqual(artifactType)
+        expect(snapshot.presentation?.artifactKind).toBe('pptx')
+        const presentation = { ...snapshot.presentation, referenceId: '10000000-0000-4000-8000-000000000001' }
+        expect(contentSnapshotSchema.innerType().shape.presentation.parse(presentation)).toEqual(presentation)
+        expect(
+            contentSnapshotSchema.innerType().shape.presentation.safeParse({ ...presentation, artifactKind: 'unknown' })
+                .success
+        ).toBe(false)
         expect((await f.library.open({ ...scope, referenceId: 'reference' })).type).toEqual(artifactType)
         expect(snapshot.title).toBe('Published conversation')
         await f.module.close()
