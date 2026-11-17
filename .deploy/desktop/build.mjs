@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { build } from 'esbuild'
+import { desktopContractsManifest } from './contracts-manifest.mjs'
 const require = createRequire(import.meta.url)
 const run = (file, args, cwd = process.cwd()) =>
   execFileSync(process.execPath, [file, ...args], { cwd, stdio: 'inherit' })
@@ -24,7 +25,7 @@ for (const [format, output] of [
 const manifest = JSON.parse(readFileSync('packages/contracts/package.json', 'utf8'))
 writeFileSync(
   'packages/contracts/dist/package.json',
-  JSON.stringify({ ...manifest, types: './index.d.ts' }, null, 2) + '\n'
+  JSON.stringify(desktopContractsManifest(manifest), null, 2) + '\n'
 )
 run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
 run('apps/desktop/scripts/build-windows-shell.mjs', [])

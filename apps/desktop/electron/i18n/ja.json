@@ -1503,5 +1503,16 @@
   "Recent notifications": "最近の通知",
   "Awaiting decision": "判断待ち",
   "Assistant notifications, scheduled tasks and announcements": "アシスタント通知、スケジュールタスク、お知らせ",
-  "Read": "既読"
+  "Read": "既読",
+  "Delivery preferences": "配信設定",
+  "Feishu private chat": "Feishu の個人チャット",
+  "In-app": "アプリ内",
+  "On": "オン",
+  "Off": "オフ",
+  "Bot": "ボット",
+  "Quiet hours start": "おやすみ時間の開始",
+  "Quiet hours end": "おやすみ時間の終了",
+  "Enable and save": "有効にして保存",
+  "Turn off": "無効にする",
+  "Could not save or load preferences. Check the time range and account binding.": "設定を保存または読み込めませんでした。時間帯とアカウント連携を確認してください。"
 }
