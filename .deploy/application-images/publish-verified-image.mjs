@@ -42,17 +42,27 @@ function remoteImageId(tag, run) {
   return child.config.digest
 }
 
-export function publishVerifiedImage({ image, verifiedId, tags, version, sha, run = docker }) {
+export function publishVerifiedImage({
+  image,
+  verifiedId,
+  tags,
+  version,
+  sha,
+  run = docker,
+  shouldPromote = () => true
+}) {
   assert.match(verifiedId, digestPattern)
   assert.match(sha, /^[a-f0-9]{40}$/)
-  assert.match(version, /^\d+\.\d+\.\d+(?:-candidate\.(?:develop|main)\.[a-f0-9]{12})?$/)
+  const candidate = version.match(/^\d+\.\d+\.\d+-candidate\.develop\.([a-f0-9]{12})$/)
+  const revisionTag = `sha-${sha}`
+  if (candidate) assert.equal(candidate[1], sha.slice(0, 12))
+  else if (version !== revisionTag) assert.match(version, /^\d+\.\d+\.\d+$/)
   const [local] = JSON.parse(run(['image', 'inspect', image]))
   assert.equal(local.Id, verifiedId, 'Loaded image differs from the health-checked artifact')
   assert.equal(local.Config?.Labels?.['org.opencontainers.image.revision'], sha)
   assert.equal(local.Config?.Labels?.['org.opencontainers.image.version'], version)
-  const candidate = version.match(/-candidate\.(develop|main)\./)
-  const immutable = new Set([version, `sha-${sha}`])
-  const aliases = new Set(candidate ? [`${candidate[1]}-candidate`] : ['main', 'latest'])
+  const immutable = new Set([version, revisionTag])
+  const aliases = new Set(candidate ? ['develop-candidate'] : ['main', 'latest'])
   assert.ok(tags.length, 'No image tags selected')
   const planned = [...new Set(tags)].map((tag) => {
     assert.match(tag, /^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9_.-]+$/)
@@ -64,12 +74,14 @@ export function publishVerifiedImage({ image, verifiedId, tags, version, sha, ru
     return { tag, alias: false, exists: existingId !== null }
   })
   // Check every immutable target before writing; move aliases only after all mirrors succeed.
-  for (const entry of [...planned.filter((entry) => !entry.alias), ...planned.filter((entry) => entry.alias)]) {
-    if (entry.exists) continue
+  const push = (entry) => {
     run(['tag', image, entry.tag])
     run(['push', entry.tag])
     console.log(`Published ${entry.tag}`)
   }
+  planned.filter((entry) => !entry.alias && !entry.exists).forEach(push)
+  if (shouldPromote()) planned.filter((entry) => entry.alias).forEach(push)
+  else console.log('A newer main push superseded this run. Keeping the current channel aliases.')
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -78,6 +90,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     verifiedId: readFileSync(process.env.VERIFIED_IMAGE_ID_FILE, 'utf8').trim(),
     tags: (process.env.IMAGE_TAGS ?? '').split('\n').filter(Boolean),
     version: process.env.IMAGE_VERSION,
-    sha: process.env.IMAGE_SHA
+    sha: process.env.IMAGE_SHA,
+    shouldPromote: () => {
+      const head = execFileSync('git', ['ls-remote', '--exit-code', 'origin', 'refs/heads/main'], { encoding: 'utf8' })
+      return head.split('\t')[0] === process.env.IMAGE_SHA
+    }
   })
 }
