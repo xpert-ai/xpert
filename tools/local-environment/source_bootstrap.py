@@ -10,6 +10,7 @@ import subprocess
 
 from builds import file_record, fingerprint
 from configuration import child_environment
+from dependency_layout import prepare_dependency_layout
 from progress import emit, phase
 from runtime import atomic_json, digest, install_node
 
@@ -70,6 +71,7 @@ def bootstrap_source(config):
     node = install_node(Path(config['runtime']).parents[1], env=child_environment(config))
     config.update(node=str(node / 'bin/node'), corepack=str(node / 'bin/corepack'))
     atomic_json(state / 'environment.json', config)
+    prepare_dependency_layout(config)
     log = state / 'logs/bootstrap.log'
     with log.open('a') as stream:
         def run(args):

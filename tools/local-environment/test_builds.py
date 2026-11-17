@@ -126,6 +126,10 @@ class BuildReuseTests(unittest.TestCase):
             'build-remote-components': {'outputs': ['{projectRoot}/src/**/remote-components/**/app.js']}
         }}))
         generated = 'packages/server-ai/src/review/remote-components/view/app.js'
+        plugin_generated = 'packages/plugins/example/remote-components/view/app.js'
+        self.write('packages/plugins/example/project.json', json.dumps({'targets': {
+            'generate-remote-components': {'outputs': ['{projectRoot}/remote-components/view/app.js']}
+        }}))
         real_run = subprocess.run
         def run(command, **kwargs):
             if '--build-only' in command:
@@ -133,6 +137,7 @@ class BuildReuseTests(unittest.TestCase):
                     (self.root / directory).mkdir(parents=True, exist_ok=True)
                 self.write('dist/apps/api/main.js', 'compiled API')
                 self.write(generated, 'generated during API build')
+                self.write(plugin_generated, 'generated plugin view')
                 return subprocess.CompletedProcess(command, 0)
             if 'local-shell-sandbox' in command:
                 self.write('dist/packages/plugins/local-shell-sandbox/index.cjs.js', 'compiled Local Shell')
@@ -141,6 +146,9 @@ class BuildReuseTests(unittest.TestCase):
         with patch('builds.subprocess.run', side_effect=run):
             self.assertEqual(ensure_build(self.config, 'api'), 'built')
         self.assertEqual(check_build(self.config, 'api'), (True, 'verified'))
+        self.write(plugin_generated, 'changed plugin view after build')
+        self.assertEqual(check_build(self.config, 'api'), (False, 'outputs_changed'))
+        self.write(plugin_generated, 'generated plugin view')
         self.write(generated, 'changed after build')
         self.assertEqual(check_build(self.config, 'api'), (False, 'outputs_changed'))
 

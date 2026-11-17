@@ -6,6 +6,10 @@
   "targets": {
     "generate-remote-components": {
       "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/remote-components/timeline/app.js",
+        "{projectRoot}/remote-components/timeline/app.css"
+      ],
       "options": { "command": "node packages/plugins/execution-observability/remote-components/timeline/build.mjs" }
     },
     "check-remote-components": {

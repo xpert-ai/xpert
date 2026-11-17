@@ -64,13 +64,18 @@ def fingerprint(value):
 def generated_assets(root, service):
     if service != 'api':
         return set()
-    project_root = 'packages/server-ai'
-    project = json.loads((root / project_root / 'project.json').read_text())
-    outputs = project['targets']['build-remote-components']['outputs']
     # These source-tree bundles are owned by the existing Nx build target.
     # Compilation changes them normally; verify their bytes as outputs instead.
-    return {str(path.relative_to(root)) for output in outputs
-            for path in root.glob(output.replace('{projectRoot}', project_root)) if path.is_file()}
+    files = set()
+    projects = [root / 'packages/server-ai/project.json', *root.glob('packages/plugins/*/project.json')]
+    for project_file in projects:
+        project_root = str(project_file.parent.relative_to(root))
+        project = json.loads(project_file.read_text())
+        for name in ('build-remote-components', 'generate-remote-components'):
+            for output in project.get('targets', {}).get(name, {}).get('outputs', []):
+                files.update(str(path.relative_to(root))
+                    for path in root.glob(output.replace('{projectRoot}', project_root)) if path.is_file())
+    return files
 
 
 def source_fingerprint(config, service):

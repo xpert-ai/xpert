@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 
 from runtime import ROOT, atomic_json, architecture, install
+from dependency_layout import dependency_environment
 
 SECRET_KEYS = ('DB_PASS', 'REDIS_PASSWORD', 'SESSION_SECRET', 'JWT_SECRET',
                'JWT_REFRESH_SECRET', 'SECRETS_ENCRYPTION_KEY',
@@ -220,4 +221,4 @@ def child_environment(config):
         'COREPACK_ENABLE_DOWNLOAD_PROMPT': '0', 'CI': 'true',
         'CYPRESS_INSTALL_BINARY': '0', 'PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD': '1'
     })
-    return env
+    return dependency_environment(config, env)
