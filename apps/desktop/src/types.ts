@@ -129,9 +129,15 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
-  notificationPreferences: { input: void; output: { preferences: import('@xpert-ai/contracts').OutputPreference[]; integrations: {id: string; name: string}[];
-    kinds: {key: string; label: {en_US: string; zh_Hans: string}}[] } }
-  notificationSavePreference: {input: import('@xpert-ai/contracts').OutputPreference; output: {saved: boolean}}
+  notificationPreferences: {
+    input: void
+    output: {
+      preferences: import('@xpert-ai/contracts').OutputPreference[]
+      integrations: { id: string; name: string }[]
+      kinds: { key: string; label: { en_US: string; zh_Hans: string } }[]
+    }
+  }
+  notificationSavePreference: { input: import('@xpert-ai/contracts').OutputPreference; output: { saved: boolean } }
   notificationSnapshot: { input: void; output: NotificationSnapshot | null }
   notificationRefresh: { input: void; output: NotificationSnapshot | null }
   notificationDismiss: { input: string; output: { dismissed: true } }
@@ -267,6 +273,7 @@ export interface HostMethods {
   assistantTriggerManageUrl: { input: { botId: string }; output: { url: string } }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
+  workbenchInboxConversation: { input: { assistantId: string; viewKey: string; payload: unknown }; output: unknown }
   personalInboxViews: { input: void; output: XpertExtensionViewManifest[] }
   openProfileView: {
     input: { botId: string; viewKey: string } | { scope: 'personal-inbox'; viewKey: string }

@@ -1,4 +1,6 @@
 {
+  "Open running conversation": "実行中の会話を開く",
+  "Choose a running conversation": "実行中の会話を選択",
   "Connectors": "コネクター",
   "Select a workspace you manage": "管理権限のあるワークスペースを選択",
   "Workspace management permission is required.": "コネクターの設定にはワークスペースの管理権限が必要です。",

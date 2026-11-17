@@ -78,6 +78,7 @@ const methods = new Set([
   'botConversations',
   'botProfileViews',
   'personalInboxViews',
+  'workbenchInboxConversation',
   'openProfileView',
   'closeProfileView',
   'profileViewRequest',

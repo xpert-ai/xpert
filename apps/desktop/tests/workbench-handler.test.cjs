@@ -11,7 +11,7 @@ const handlerCode = ts.transpileModule(readFileSync(join(__dirname, '../src/work
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText
 
-function createHandler(service, onSession, desktop, connection) {
+function createHandler(service, onSession, desktop, connection, openConversation) {
   class HostError extends Error {
     constructor(error) {
       super(error.message)
@@ -24,6 +24,7 @@ function createHandler(service, onSession, desktop, connection) {
     exports,
     window: { xpertDesktop: desktop },
     require(id) {
+      if (id === '@xpert-ai/contracts') return require('@xpert-ai/contracts')
       if (id === '@xpert-ai/desktop-protocol') return require('@xpert-ai/desktop-protocol')
       if (id === './host')
         return {
@@ -40,7 +41,7 @@ function createHandler(service, onSession, desktop, connection) {
       throw new Error(`Unexpected import: ${id}`)
     }
   })
-  return exports.createWorkbenchHandler('local-copy', 'https://xpert.example', onSession, connection)
+  return exports.createWorkbenchHandler('local-copy', 'https://xpert.example', onSession, connection, openConversation)
 }
 
 function fixture() {
@@ -401,4 +402,88 @@ test('GitHub button reaches the real host preparation, browser handoff, and veri
   assert.equal((await handle(connectCommand)).data.status, 'connected')
   assert.equal(creates, 1)
   assert.equal(opened.length, 1, 'already connected accounts do not open another authorization page')
+})
+
+const inbox = {
+  hostType: 'agent',
+  hostId: '20000000-0000-4000-8000-000000000001',
+  viewKey: 'platform.event-inbox__inbox',
+  commandKey: 'open_conversation',
+  payload: { receiptId: '10000000-0000-4000-8000-000000000001' }
+}
+const inboxAction = {
+  type: 'open_conversation',
+  assistantId: inbox.hostId,
+  conversationId: '30000000-0000-4000-8000-000000000001',
+  threadId: 'original-thread'
+}
+
+function inboxFixture(lookup) {
+  const { service } = fixture()
+  let assistantId = inbox.hostId
+  const opened = []
+  service.request = async (path, options) => {
+    const base = `/api/view-hosts/agent/${inbox.hostId}/views/${inbox.viewKey}`
+    assert.equal(path, `${base}/data?selectionId=${inbox.payload.receiptId}`)
+    assert.equal(options.scope, 'organization')
+    return { item: await lookup(service) }
+  }
+  const handle = createHandler(
+    service,
+    () => {},
+    undefined,
+    { assistantId: () => assistantId },
+    (action) => opened.push(action)
+  )
+  return {
+    handle,
+    opened,
+    leave: () => {
+      assistantId = undefined
+    }
+  }
+}
+
+test('the Assistant workbench opens the authorized thread for the exact inbox receipt', async () => {
+  const { handle, opened } = inboxFixture(() => ({ id: inbox.payload.receiptId, conversationAction: inboxAction }))
+  assert.equal((await handle(inbox)).success, true)
+  assert.deepEqual(opened, [inboxAction])
+})
+
+test('the workbench ignores a forged destination and commands from other views or hosts', async () => {
+  let reads = 0
+  const { handle, opened } = inboxFixture(() => {
+    reads++
+  })
+  for (const request of [
+    { ...inbox, viewKey: 'another-view' },
+    { ...inbox, hostType: 'user' },
+    { ...inbox, hostId: 'another-assistant' },
+    { ...inbox, payload: { ...inbox.payload, threadId: 'another-thread' } }
+  ])
+    assert.equal((await handle(request)).success, false)
+  assert.equal(reads, 0)
+  assert.deepEqual(opened, [])
+})
+
+test('a revoked, mismatched or stale receipt cannot navigate after the detail was displayed', async () => {
+  for (const item of [
+    { id: inbox.payload.receiptId },
+    { id: 'another-receipt', conversationAction: inboxAction },
+    { id: inbox.payload.receiptId, conversationAction: { ...inboxAction, assistantId: 'another-assistant' } }
+  ]) {
+    const { handle, opened } = inboxFixture(() => item)
+    assert.equal((await handle(inbox)).success, false)
+    assert.deepEqual(opened, [])
+  }
+  for (const change of ['assistant', 'organization', 'login']) {
+    const { handle, opened, leave } = inboxFixture((service) => {
+      if (change === 'assistant') leave()
+      else if (change === 'organization') service.profile.organizationId = 'another-org'
+      else service.generation++
+      return { id: inbox.payload.receiptId, conversationAction: inboxAction }
+    })
+    assert.equal((await handle(inbox)).success, false)
+    assert.deepEqual(opened, [])
+  }
 })

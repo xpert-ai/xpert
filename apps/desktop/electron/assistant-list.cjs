@@ -180,7 +180,7 @@ function createAssistantListMethods(ClientError) {
       if (!ids.length) return []
       const result = await this.request('/api/chat-conversation/unread/xperts', {
         method: 'POST',
-        body: { xpertIds: ids, ...(this.supportsActivityIsland ? { includePending: true } : {}) }
+        body: { xpertIds: ids, ...(this.supportsActivityIsland ? { includePending: true, includeRunning: true } : {}) }
       })
       if (!Array.isArray(result)) throw new ClientError('Invalid conversation activity response.')
       return result
@@ -188,6 +188,12 @@ function createAssistantListMethods(ClientError) {
         .map((item) => ({
           xpertId: item.xpertId,
           ...(this.supportsActivityIsland && { hasActiveRuns: item.hasActiveRuns === true }),
+          ...(this.supportsActivityIsland &&
+            Array.isArray(item.runningThreads) && {
+              runningThreads: item.runningThreads
+                .filter((thread) => validSessionId(thread?.threadId))
+                .map(({ threadId, title }) => ({ threadId, title: text(title) }))
+            }),
           ...(this.supportsActivityIsland && Array.isArray(item.pendingThreads)
             ? {
                 pendingThreadCount: count(item.pendingThreadCount ?? item.pendingThreads.length),

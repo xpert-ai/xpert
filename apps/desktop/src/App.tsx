@@ -419,7 +419,9 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                 ? (notice?.threadId ?? initialThread)
                 : null
             }
-            onOpen={async (item) => { if (item.action) await openConversation(item.action) }}
+            onOpen={async (item) => {
+              if (item.action) await openConversation(item.action)
+            }}
           >
             <VoiceProvider
               key={`${binding}:${state.config.apiUrl}`}
@@ -539,6 +541,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                         initialThread={initialThread}
                         initialVoice={initialVoice}
                         onConversationRead={onConversationRead}
+                        onOpenConversation={openConversation}
                         onSessionChange={rememberSession}
                         bot={bot}
                         config={{ ...state.config, appearance, locale }}

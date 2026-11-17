@@ -18,7 +18,13 @@ The badge on the right counts private Assistant threads waiting for an answer or
 2. Select a row to bring Bosi forward and open that exact thread. The question or approval details appear in the original chat.
 3. Answer or review the request there. Opening the thread alone leaves it pending. Once the request is resolved, the next activity refresh updates the count and preview.
 
-Moving the pointer away collapses details opened by hover. Clicking the avatar or count on a collapsed island keeps the details open until you click again or select a thread. When an Assistant is running and there are no pending requests or window controls, its name and an activity indicator appear in the header.
+Moving the pointer away collapses details opened by hover. Clicking the avatar or count on a collapsed island keeps the details open until you click again or select a thread.
+
+## Open a running conversation
+
+When the header shows an Assistant name and **•••**, click the running status to bring its conversation forward. If several of your private threads are running, the island lists their conversation or branch titles and Assistant names. Scroll to the thread you want and select it. When pending tasks or window control share the island, expand the details to find the running threads below the pending tasks.
+
+Bosi checks the current account, organization and project access again when you click. If the only running thread has been replaced, select its replacement from the refreshed list. A thread that has finished or become inaccessible can no longer be opened from its running status.
 
 ## Settings and displays
 
@@ -41,6 +47,8 @@ On a notched display the header leaves the camera housing clear. On a flat displ
 - The renderer animates the notched outline, header, and details inside a stationary native window. Reversing direction mid-hover resumes from the current geometry. The shadow follows the outline, clicks in its transparent margin reach the underlying app, and the renderer respects the system’s reduced-motion preference. [Interaction](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/electron/activity-island/island.js) · [Geometry and motion](https://github.com/xpert-ai/xpert/blob/develop/apps/desktop/electron/activity-island/island.css)
 
 ## Verified behavior
+
+- **Running threads.** In an isolated macOS development instance, clicking the activity indicator opened the Procurement Quote Comparison Assistant’s only running thread. After a second run started, the island offered both threads. Selecting the second opened its own chat. Both thread reads returned HTTP 200.
 
 - **Stop and focus.** In a development build on Apple silicon running macOS 26.5.1, a published Assistant entered two lines of Chinese into the selected TextEdit document and read them back. In a separate host check, a native mouse click on **Stop** left TextEdit frontmost with the same document and text area focused throughout 160 focus samples. The host rejected subsequent input and a new start for the stopped run. Independent readback confirmed the target and control documents retained their expected contents.
 - **Pending threads.** A live Assistant question opened the correct thread from another Assistant’s chat and cleared after the answer. Desktop regression tests covered approval routing and stale actions. In separate Electron checks with fixture activity, the header correctly showed multiple Assistants even when one owned all three preview rows. Images, emoji, and fallback avatars appeared beside their respective rows.

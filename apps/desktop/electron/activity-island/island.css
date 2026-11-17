@@ -368,6 +368,21 @@ body:not(.notched) .actions {
   text-align: left;
   padding: 0;
 }
+#list {
+  max-height: calc(var(--expanded-height) - var(--bar-height) - var(--detail-bottom-padding));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#body:has(#activity:not([hidden])) #list {
+  max-height: calc(var(--expanded-height) - var(--bar-height) - var(--detail-bottom-padding) - 54px);
+}
+.run-owner {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #aaa;
+}
 #list strong {
   flex: 1;
   min-width: 0;
