@@ -1,3 +1,5 @@
+import type { TaskResultRead } from './project-task-result-page'
+import { createHash } from 'node:crypto'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { projectTaskSpecificationSchema, type AgentDeliveryRecovery } from '@xpert-ai/contracts'
@@ -184,6 +186,51 @@ export class ProjectTaskRuntimeReadService {
                 ? createProjectTaskSpecificationSnapshot(specification.data)
                 : null,
             executions
+        }
+    }
+
+    async readResult(projectId: string, input: TaskResultRead) {
+        const detail = await this.get(projectId, input.taskId)
+        const attempt = detail.executions.find((execution) => execution.id === input.executionId)
+        if (!attempt || !('invocationRevision' in attempt)) throw projectTaskRuntimeError('NotFound')
+        if (attempt.invocationRevision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
+        let text: string
+        if (input.source === 'prompt') {
+            const actor = this.context.actor()
+            const record = await this.tasks.manager.getRepository(AgentInvocationEntity).findOneBy({
+                id: attempt.invocationId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                ownerId: actor.userId
+            })
+            const reference = record?.invocation.request.dispatch?.projectTask
+            if (
+                reference?.projectId !== projectId ||
+                reference.projectTaskId !== input.taskId ||
+                reference.taskExecutionId !== input.executionId
+            )
+                throw projectTaskRuntimeError('NotFound')
+            const parsed = z.object({ prompt: z.string() }).safeParse(record.invocation.request.input)
+            if (!parsed.success) throw projectTaskRuntimeError('NotFound')
+            text = parsed.data.prompt
+        } else {
+            if (!('result' in attempt) || !attempt.result) throw projectTaskRuntimeError('NotFound')
+            text = attempt.result.text ?? ''
+        }
+        if (input.offset > text.length) throw projectTaskRuntimeError('Invalid')
+        const end = Math.min(text.length, input.offset + input.limit)
+        return {
+            taskId: input.taskId,
+            executionId: input.executionId,
+            invocationRevision: attempt.invocationRevision,
+            source: input.source ?? 'report',
+            offset: input.offset,
+            nextOffset: end < text.length ? end : null,
+            totalCharacters: text.length,
+            sha256: createHash('sha256').update(text).digest('hex'),
+            sourceTruncated:
+                input.source === 'prompt' ? false : (('result' in attempt && attempt.result?.textTruncated) ?? false),
+            text: text.slice(input.offset, end)
         }
     }
 

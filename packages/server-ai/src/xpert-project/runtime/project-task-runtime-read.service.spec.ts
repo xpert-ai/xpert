@@ -29,6 +29,7 @@ function fixture(status = 'succeeded', executionBudget?: { maxDurationSeconds: n
         revision: 4,
         scope: { callerType: 'xpert' },
         request: {
+            input: { prompt: 'Pinned requirements and additional delegation instructions.' },
             target: { provider: 'codex-computer' },
             dispatch: { projectTask: { projectId, projectTaskId: taskId, taskExecutionId: attemptId } }
         },
@@ -355,5 +356,71 @@ describe('direct child task summaries', () => {
         await expect(f.service.get(projectId, taskId)).rejects.toThrow('Revoked')
         expect(f.repository.find).toHaveBeenCalledTimes(2)
         expect(f.assertCanRead).toHaveBeenCalledTimes(3)
+    })
+})
+
+describe('authorized result pages', () => {
+    it('reads only the immutable authorized delegation prompt with the observed revision', async () => {
+        const f = fixture('failed')
+        const input = {
+            taskId,
+            executionId: attemptId,
+            expectedRevision: 4,
+            offset: 0,
+            limit: 12,
+            source: 'prompt' as const
+        }
+        expect(await f.service.readResult(projectId, input)).toMatchObject({
+            source: 'prompt',
+            text: 'Pinned requi',
+            nextOffset: 12,
+            sourceTruncated: false
+        })
+        expect(f.findOneBy).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                id: invocationId,
+                ownerId: 'owner',
+                tenantId: 'tenant',
+                organizationId: 'organization'
+            })
+        )
+        f.invocation.revision = 5
+        await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 409 })
+        f.findOneBy.mockResolvedValue(null)
+        await expect(f.service.readResult(projectId, { ...input, expectedRevision: 5 })).rejects.toMatchObject({
+            status: 404
+        })
+        f.assertCanRead.mockRejectedValueOnce(new Error('Revoked'))
+        await expect(f.service.readResult(projectId, input)).rejects.toThrow('Revoked')
+        expect(f.start).not.toHaveBeenCalled()
+    })
+    it('returns exact bounded text and requires a fresh revision for subsequent reads', async () => {
+        const f = fixture()
+        f.invocation.result.text = 'a'.repeat(16000)
+        const input = { taskId, executionId: attemptId, expectedRevision: 4, offset: 6000, limit: 6000 }
+        expect(await f.service.readResult(projectId, input)).toMatchObject({
+            text: 'a'.repeat(6000),
+            offset: 6000,
+            nextOffset: 12000,
+            totalCharacters: 16000
+        })
+        expect(await f.service.readResult(projectId, { ...input, offset: 12000 })).toMatchObject({
+            text: 'a'.repeat(4000),
+            nextOffset: null
+        })
+        f.invocation.revision = 5
+        await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 409 })
+        expect(f.start).not.toHaveBeenCalled()
+    })
+    it('does not expose another task, restricted result, or revoked project', async () => {
+        const input = { taskId, executionId: attemptId, expectedRevision: 4, offset: 0, limit: 6000 }
+        const f = fixture()
+        await expect(f.service.readResult(projectId, { ...input, executionId: invocationId })).rejects.toMatchObject({
+            status: 404
+        })
+        f.findOneBy.mockResolvedValue(null)
+        await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 404 })
+        f.assertCanRead.mockRejectedValue(new Error('Denied'))
+        await expect(f.service.readResult(projectId, input)).rejects.toThrow('Denied')
     })
 })

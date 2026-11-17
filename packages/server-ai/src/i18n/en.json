@@ -256,6 +256,7 @@
         "ProjectTaskRuntimeBusy": "The Project already has an active or unverified execution. Inspect or cancel it before another delegation.",
         "ProjectTaskRuntimeDependencies": "Required predecessor tasks or sibling implementation tasks are unfinished. Read predecessorIds and childTasks, then finish the required work before dispatch or summary acceptance.",
         "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
+        "ProjectTaskContextReadUnavailable": "Current task evidence could not be read. Earlier snapshots are historical, not fresh evidence. This observation proves neither task failure nor acceptance. Use other available observations and report the missing evidence; do not assume the task succeeded.",
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
         "ProjectTaskRuntimeReviewReport": "The selected review report is missing, malformed, or does not match the pinned implementation evidence. Use the diagnostic code and field paths to correct report delivery while preserving the actual findings and exact pinned subject and evidence. A formatting error alone does not require repeating business tests.",
         "ProjectTaskRuntimeReviewerRequired": "This task has an independent reviewer. Retain the reviewer on retries and obtain its review before accepting.",

@@ -256,6 +256,7 @@
         "ProjectTaskRuntimeBusy": "项目已有活动执行或待核实执行。请先查询或取消，再安排新的委托。",
         "ProjectTaskRuntimeDependencies": "必要的前置任务或同级实现任务尚未完成。请查看 predecessorIds 和 childTasks，完成必要工作后再派发或接受汇总任务。",
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
+        "ProjectTaskContextReadUnavailable": "无法读取任务的当前证据。此前快照属于历史记录，不是最新证据。此次读取失败既不能证明任务执行失败，也不能作为验收通过的依据。请使用其他可用观察并说明缺失的证据，不要假定任务已成功。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
         "ProjectTaskRuntimeReviewReport": "所选验收报告缺失、格式错误，或与固定的实现证据不匹配。请根据诊断代码和字段路径修正报告交付格式，保留实际发现以及准确的验收对象和证据引用。仅有格式错误无需重复业务测试。",
         "ProjectTaskRuntimeReviewerRequired": "此任务已安排独立验收。重试时请保留验收分配，确认完成前先取得验收报告。",

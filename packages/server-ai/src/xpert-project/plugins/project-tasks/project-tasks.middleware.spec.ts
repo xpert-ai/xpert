@@ -2,7 +2,17 @@ jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn() }))
 import { CommandBus } from '@nestjs/cqrs'
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { ConflictException, ForbiddenException, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { GraphInterrupt } from '@langchain/langgraph'
+import { TaskControlRejected } from '@xpert-ai/server-core'
+import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
+import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
+import i18next from 'i18next'
+import en from '../../../i18n/en.json'
 import { randomUUID } from 'node:crypto'
+import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
+import { FakeStreamingChatModel } from '../../../shared/agent/fake-streaming-chat-model'
+import type { ModelRequest } from '@xpert-ai/plugin-sdk'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { isUserAddableAgentMiddleware, IWFNMiddleware, TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
@@ -73,7 +83,165 @@ const dispatchInput = () => ({
 })
 const createInput = () => ({ tasks: [{ name: 'Task', requirements: ['Evidence'], steps: [] }] })
 
+function longHistoryFixture() {
+    const f = fixture()
+    const taskIds = [randomUUID(), randomUUID()]
+    const middleware = f.strategy.createMiddleware({}, f.context)
+    const messages = [
+        new HumanMessage('x'.repeat(65000)),
+        new ToolMessage({
+            name: ProjectToolEnum.CreateTasks,
+            tool_call_id: 'historical-create',
+            status: 'success',
+            content: JSON.stringify({ tasks: taskIds.map((id) => ({ id, projectId: f.context.projectId })) })
+        })
+    ]
+    const request = {
+        model: new FakeStreamingChatModel({ sleep: 0 }),
+        messages,
+        tools: middleware.tools,
+        state: { messages },
+        runtime: {}
+    } as ModelRequest
+    const handler = jest.fn(async (_request: ModelRequest) => new AIMessage('ok'))
+    return { ...f, taskIds, middleware, request, messages, handler }
+}
+
+describe('historical task read isolation', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en', resources: { en: { 'server-ai': en } } })
+    })
+
+    it('keeps a successful observation and an unavailable task in matching tool pairs without mutating history', async () => {
+        const f = longHistoryFixture()
+        const before = JSON.stringify(f.messages)
+        f.execute
+            .mockImplementationOnce(async () => ({
+                status: 'todo',
+                id: f.taskIds[0],
+                projectId: f.context.projectId,
+                executions: [],
+                requirements: ['Preserve independent review'],
+                decisionOptions: [{ decisionRef: 'current-reference' }]
+            }))
+            .mockRejectedValueOnce(new NotFoundException('sensitive-internal-detail'))
+        await f.middleware.wrapModelCall(f.request, f.handler)
+        expect(f.permission).toHaveBeenCalledWith(f.context.projectId, 'view')
+        expect(f.execute.mock.calls.map(([command]) => command)).toEqual(
+            f.taskIds.map((id) => new GetProjectRuntimeTaskCommand(f.context.projectId, id))
+        )
+        expect(f.handler).toHaveBeenCalledTimes(1)
+        const messages = f.handler.mock.calls[0][0].messages
+        const calls = messages.at(-3)
+        expect(calls).toBeInstanceOf(AIMessage)
+        if (!(calls instanceof AIMessage)) throw new Error('Expected host observation call')
+        expect(messages.at(-2)).toMatchObject({ status: 'success', tool_call_id: calls.tool_calls[0].id })
+        expect(messages.at(-2).content).toContain('current-reference')
+        expect(messages.at(-1)).toMatchObject({ status: 'error', tool_call_id: calls.tool_calls[1].id })
+        expect(JSON.parse(String(messages.at(-1).content))).toMatchObject({
+            taskId: f.taskIds[1],
+            reason: 'http_404',
+            message: expect.stringContaining('Earlier snapshots are historical')
+        })
+        expect(JSON.stringify(messages)).not.toContain('sensitive-internal-detail')
+        expect(JSON.stringify(f.messages)).toBe(before)
+    })
+
+    it.each([new NotFoundException(), new ConflictException(), new AgentInvocationError('ProviderUnavailable')])(
+        'reports missing evidence when all historical reads fail (%s)',
+        async (error) => {
+            const f = longHistoryFixture()
+            f.execute.mockRejectedValue(error)
+            await f.middleware.wrapModelCall(f.request, f.handler)
+            expect(f.execute).toHaveBeenCalledTimes(2)
+            expect(f.handler).toHaveBeenCalledTimes(1)
+            const observations = f.handler.mock.calls[0][0].messages.slice(-2)
+            expect(observations.every((message) => message instanceof ToolMessage && message.status === 'error')).toBe(
+                true
+            )
+            expect(observations.map((message) => JSON.parse(String(message.content)).taskId)).toEqual(f.taskIds)
+        }
+    )
+
+    it('does not read tasks or call the model when the project permission gate denies access', async () => {
+        const f = longHistoryFixture(),
+            error = new ForbiddenException()
+        f.permission.mockRejectedValue(error)
+        await expect(f.middleware.wrapModelCall(f.request, f.handler)).rejects.toBe(error)
+        expect(f.execute).not.toHaveBeenCalled()
+        expect(f.handler).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        new UnauthorizedException(),
+        new ForbiddenException(),
+        new AgentInvocationError('InvalidScope'),
+        new AgentInvocationAuthorizationError(new Error('revoked')),
+        new GraphInterrupt(),
+        new ExecutionCancelledError(randomUUID(), 'cancelled'),
+        new TaskControlRejected('paused'),
+        Object.assign(new Error('aborted'), { name: 'AbortError' }),
+        new Error('unexpected implementation failure')
+    ])('propagates authorization, control and unexpected failures (%s)', async (error) => {
+        const f = longHistoryFixture()
+        f.execute.mockResolvedValueOnce({ status: 'todo' }).mockRejectedValueOnce(error)
+        await expect(f.middleware.wrapModelCall(f.request, f.handler)).rejects.toBe(error)
+        expect(f.handler).not.toHaveBeenCalled()
+    })
+})
+
 describe('built-in Project Tasks Plugin', () => {
+    it('rehydrates bounded authorized tasks for long history without dispatching or deciding', async () => {
+        const f = fixture(),
+            taskId = randomUUID()
+        const middleware = f.strategy.createMiddleware({}, f.context)
+        const prior = new ToolMessage({
+            name: ProjectToolEnum.CreateTasks,
+            tool_call_id: 'old',
+            status: 'success',
+            content: JSON.stringify({ tasks: [{ id: taskId, projectId: f.context.projectId }] })
+        })
+        const messages = [new HumanMessage('x'.repeat(65000)), prior]
+        f.execute.mockImplementation(async () => ({
+            status: 'todo',
+            id: taskId,
+            projectId: f.context.projectId,
+            executions: [],
+            requirements: ['Read independent negative findings'],
+            decisionOptions: [{ decisionRef: 'bound-reference' }]
+        }))
+        const request = {
+            model: new FakeStreamingChatModel({ sleep: 0 }),
+            messages,
+            tools: middleware.tools,
+            state: { messages },
+            runtime: {}
+        } as ModelRequest
+        const handler = jest.fn().mockResolvedValue(new AIMessage('ok'))
+        await middleware.wrapModelCall(request, handler)
+        expect(f.permission).toHaveBeenCalledWith(f.context.projectId, 'view')
+        expect(f.execute).toHaveBeenCalledWith(new GetProjectRuntimeTaskCommand(f.context.projectId, taskId))
+        expect(f.execute).toHaveBeenCalledTimes(1)
+        const projected = handler.mock.calls[0][0].messages
+        expect(projected[0]).toBe(messages[0])
+        expect(projected.at(-1).content).toContain('bound-reference')
+        expect(messages).toHaveLength(2)
+        f.execute.mockClear()
+        const failure = new ToolMessage({
+            tool_call_id: 'failed-decision',
+            name: ProjectToolEnum.DecideTask,
+            status: 'error',
+            content: 'Original Computer unavailable; do not repeat acceptance without resolving this condition.'
+        })
+        await middleware.wrapModelCall({ ...request, messages: [...messages, failure] }, handler)
+        expect(f.execute).not.toHaveBeenCalled()
+        expect(handler.mock.calls.at(-1)[0].messages.at(-1)).toBe(failure)
+        await middleware.wrapModelCall({ ...request, tools: [] }, handler)
+        expect(f.execute).not.toHaveBeenCalled()
+        f.permission.mockRejectedValueOnce(new Error('Revoked'))
+        await expect(middleware.wrapModelCall(request, handler)).rejects.toThrow('Revoked')
+        expect(f.execute).not.toHaveBeenCalled()
+    })
     it('does not use a human or stale Assistant identity as the Project general agent default', async () => {
         const { strategy, context, tasks } = fixture()
         context.xpertId = randomUUID()
@@ -168,6 +336,7 @@ describe('built-in Project Tasks Plugin', () => {
             },
             [ProjectToolEnum.DispatchTask]: dispatchInput(),
             [ProjectToolEnum.GetTask]: { taskId: randomUUID() },
+            [ProjectToolEnum.ReadResult]: { taskId: randomUUID(), executionId: randomUUID(), expectedRevision: 1 },
             [ProjectToolEnum.ListRuntimes]: {}
         }
         for (const name of Object.values(ProjectToolEnum)) {
