@@ -23,6 +23,7 @@ catalogs:
       version: 0.18.5
 
 overrides:
+  app-builder-lib>@electron/notarize@2.5.0: 3.1.2
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
   langchain: 0.3.31
