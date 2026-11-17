@@ -1,5 +1,18 @@
 # @xpert-ai/plugin-sdk
 
+## 3.37.0
+
+### Minor Changes
+
+- c4ee3aa: Add explicit catalog refresh, indexed cursor reads and suppression-only path coverage for Spaces. Preserve live source authorization while bounding candidate reads and remove repeated Project checks within one page request. Validate persisted path metadata before using it to suppress duplicate files.
+
+### Patch Changes
+
+- Updated dependencies [f417c34]
+- Updated dependencies [50dd6cf]
+- Updated dependencies [793e1f4]
+  - @xpert-ai/contracts@3.37.0
+
 ## 3.36.0
 
 ### Minor Changes

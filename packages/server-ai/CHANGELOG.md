@@ -1,5 +1,27 @@
 # @xpert-ai/server-ai
 
+## 3.37.0
+
+### Minor Changes
+
+- 50dd6cf: Let tools declare which inputs, outputs and errors conversation participants can see. Application users can see the registered tool name, icon and declared details without assistant configuration permissions. Live updates and conversation history use the same tool message, while the model receives the full tool result.
+
+### Patch Changes
+
+- 793e1f4: Carry declared Artifact icons and rendering families through catalog metadata so resource lists can display explicit type icons. Keep the shared icon schema composable while preserving required output fields in published declarations.
+- c4ee3aa: Add explicit catalog refresh, indexed cursor reads and suppression-only path coverage for Spaces. Preserve live source authorization while bounding candidate reads and remove repeated Project checks within one page request. Validate persisted path metadata before using it to suppress duplicate files.
+- Updated dependencies [f417c34]
+- Updated dependencies [50dd6cf]
+- Updated dependencies [793e1f4]
+- Updated dependencies [c4ee3aa]
+    - @xpert-ai/contracts@3.37.0
+    - @xpert-ai/plugin-sdk@3.37.0
+    - @xpert-ai/desktop-protocol@0.5.3
+    - @xpert-ai/server-core@3.37.0
+    - @xpert-ai/server-auth@3.37.0
+    - @xpert-ai/server-common@3.37.0
+    - @xpert-ai/server-config@3.37.0
+
 ## 3.36.0
 
 ### Minor Changes
