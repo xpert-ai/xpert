@@ -141,6 +141,7 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
       lastPointer = undefined
     }
     let tasks = new Map()
+    let runs = new Map()
     const pendingOwners = new Map()
     let pendingTotal = 0,
       working
@@ -150,10 +151,12 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
       if (current !== scope) {
         scope = current
         tasks.clear()
+        runs.clear()
         pendingOpen = undefined
         expanded = false
       }
       const next = new Map()
+      const nextRuns = new Map()
       pendingOwners.clear()
       pendingTotal = 0
       working = undefined
@@ -165,6 +168,10 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
           const bot = bots.get(item.xpertId)
           if (!bot) continue
           if (item.hasActiveRuns && !working) working = bot.name
+          for (const { threadId, title } of item.runningThreads ?? []) {
+            const key = JSON.stringify([bot.id, threadId])
+            nextRuns.set(key, { id: runs.get(key)?.id ?? randomUUID(), botId: bot.id, bot, threadId, title })
+          }
           const count = Math.max(item.pendingThreadCount ?? 0, item.pendingThreads?.length ?? 0)
           if (count) pendingOwners.set(bot.id, bot)
           pendingTotal += count
@@ -182,12 +189,18 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
         }
       }
       tasks = new Map([...next].sort(([, a], [, b]) => a.rank - b.rank).slice(0, visibleTaskLimit))
+      runs = nextRuns
     }
     function snapshot() {
       const active = control.active()
       const visible = [...tasks.values()]
       const singleOwner = pendingOwners.size === 1
       const owners = singleOwner ? [...pendingOwners.values()] : [...new Set(visible.map((task) => task.bot))]
+      const titleCounts = new Map()
+      for (const run of runs.values()) {
+        const key = JSON.stringify([run.bot.name, run.title])
+        titleCounts.set(key, (titleCounts.get(key) ?? 0) + 1)
+      }
       return {
         singleOwner,
         assistants: owners.map((bot) => ({
@@ -210,6 +223,14 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
           label: t(task.kind === 'question' ? 'Answer a question' : 'Review approval')
         })),
         pendingTotal,
+        runs: [...runs.values()].map(({ id, bot, threadId, title }) => ({
+          id,
+          assistant: bot.name,
+          title:
+            title && titleCounts.get(JSON.stringify([bot.name, title])) === 1
+              ? title
+              : (title || t('Untitled conversation')) + ' · ' + threadId.slice(-8)
+        })),
         working,
         idle: !active && !pendingTotal && !working,
         greeting: t('Hello!'),
@@ -229,7 +250,9 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
           stopWindow: t('Stop window control'),
           pending: t('To do'),
           tasks: t('Pending tasks'),
-          review: t('Review pending tasks')
+          review: t('Review pending tasks'),
+          openRun: t('Open running conversation'),
+          chooseRun: t('Choose a running conversation')
         }
       }
     }
@@ -252,8 +275,16 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
         }
         return
       }
-      if (!control.active() && !tasks.size) expanded = false
-      layout = panelLayout(display, [display], cutouts, tasks.size, Boolean(control.active()), prefs, pendingTotal)
+      if (!control.active() && !tasks.size && !runs.size) expanded = false
+      layout = panelLayout(
+        display,
+        [display],
+        cutouts,
+        tasks.size + runs.size,
+        Boolean(control.active()),
+        prefs,
+        pendingTotal
+      )
       const { bounds } = layout
       if (!panel || panel.isDestroyed()) {
         loaded = false
@@ -322,10 +353,10 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
         }
       }
     }
-    const findTask = (id) => [...tasks.values()].find((task) => task.id === id)
+    const findTarget = (id) => [...tasks.values(), ...runs.values()].find((target) => target.id === id)
     function deliver() {
-      const task = findTask(pendingOpen)
-      if (!task || !readyMain || readyMain.isDestroyed()) return
+      const task = findTarget(pendingOpen)
+      if (!task || scope !== activity.scope() || !readyMain || readyMain.isDestroyed()) return
       pendingOpen = undefined
       readyMain.send('island:open-thread', { botId: task.botId, threadId: task.threadId })
     }
@@ -351,21 +382,30 @@ function installActivityIsland({ BrowserWindow, ipcMain, screen, service, contro
         return stopped
       }
       if (action === 'expand' && typeof id === 'boolean') {
-        if (id && !tasks.size && !control.active()) return false
+        if (id && !tasks.size && !runs.size && !control.active()) return false
         if (expanded !== id && id) feedback()
         expanded = id
         sync()
         return true
       }
-      if (action !== 'review' || !findTask(id)) return false
+      if (action === 'running') {
+        if (!runs.size || (id !== null && ![...runs.values()].some((run) => run.id === id))) return false
+      } else if (action !== 'review' || !findTarget(id)) return false
       const originalScope = scope
       try {
         await activity.read(true)
       } catch {
         return false
       }
-      if (retired || disposed || sleeping || !panel?.isVisible() || scope !== originalScope || !findTask(id))
-        return false
+      if (retired || disposed || sleeping || !panel?.isVisible() || scope !== originalScope) return false
+      if (action === 'running' && runs.size && (runs.size > 1 || !findTarget(id))) {
+        // The only visible target may have changed while the click was in flight. Ask the user to choose.
+        expanded = true
+        feedback()
+        sync()
+        return true
+      }
+      if (!findTarget(id)) return false
       feedback()
       expanded = false
       sync()

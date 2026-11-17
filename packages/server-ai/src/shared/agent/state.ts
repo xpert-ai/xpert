@@ -1,3 +1,4 @@
+import type { EventRunOptions } from '../../agent-event/agent-event-run-context'
 import {
     BaseMessage,
     isAIMessage,
@@ -70,7 +71,7 @@ export type TStateChannel = {
     annotation: BaseChannel
 }
 
-export type TXpertAgentRuntimeOptions = {
+export type TXpertAgentRuntimeOptions = EventRunOptions & {
     executionDefinition?: import('./execution-definition').AgentExecutionDefinition
     runtimeResources?: import('../../agent-plugin/runtime-resource.service').ResolvedRuntimeResources
     shouldPause?: (nodeKey?: string) => Promise<boolean>

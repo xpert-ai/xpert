@@ -34,7 +34,7 @@ const { installWindowActivation } = require('./window-activation.cjs')
 const { installUserNotifications } = require('./user-notifications.cjs')
 const { installAssistantActivity } = require('./assistant-activity.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
-const { findRelease } = require('./updates/release.cjs')
+const { getReleaseSources } = require('./updates/release.cjs')
 const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
 const { AudioCaptureController } = require('./audio-capture/controller.cjs')
 const { registerAudioCaptureIpc, dispatchWithAudioCapture } = require('./audio-capture/lifecycle.cjs')
@@ -406,12 +406,14 @@ else {
       app.isPackaged &&
       require('../package.json').desktopUpdates === true &&
       (process.platform !== 'linux' || Boolean(process.env.APPIMAGE))
+    const updater = updatesEnabled ? require('electron-updater').autoUpdater : null
     const updates = new DesktopUpdater({
-      updater: updatesEnabled ? require('electron-updater').autoUpdater : null,
+      updater,
       enabled: updatesEnabled,
       currentVersion: app.getVersion(),
-      resolveFeed: () =>
-        findRelease({
+      getSources: () =>
+        getReleaseSources({
+          fetcher: (url, options) => updater.netSession.fetch(url, { ...options, credentials: 'omit' }),
           platform: process.platform,
           arch: process.arch,
           mirrorDomain: require('../package.json').bosiMirrorDomain

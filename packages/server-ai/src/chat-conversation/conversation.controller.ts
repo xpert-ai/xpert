@@ -113,7 +113,11 @@ export class ChatConversationController {
         @Query('organizationId') organizationId?: string
     ): Promise<IChatConversationUnreadXpertSummary[]> {
         return this.organizationScopeService.run(organizationId, () =>
-            this.service.getUnreadByXperts(body?.xpertIds ?? [], body?.includePending === true)
+            this.service.getUnreadByXperts(
+                body?.xpertIds ?? [],
+                body?.includePending === true,
+                body?.includeRunning === true
+            )
         )
     }
 

@@ -1,5 +1,10 @@
 import { applyDecorators, SetMetadata } from '@nestjs/common'
 import type {
+  HumanDecisionInput,
+  HumanDecisionResult,
+  PrivateDecisionReply,
+  AgentOutputPresentation,
+  AgentOutputReference,
   AgentEventPresentation,
   AgentEventTypeDefinition,
   EventDecision,
@@ -50,7 +55,41 @@ export interface AgentEventDelivery {
   event: PluginAgentEvent
 }
 
+export interface AgentEventFollowUp {
+  submitPrivateDecision?(reply: PrivateDecisionReply): Promise<HumanDecisionResult | { status: 'unrelated' }>
+  wake(input: { conversationId: string; prompt: string; threadId?: string; agentKey?: string }): Promise<void>
+}
+
+/** A bound source hands off committed domain outputs and resolves them for the original recipient. */
+export interface AgentOutputSource {
+  submitDecision?(
+    context: AgentEventContext,
+    input: HumanDecisionInput,
+    origin: 'workbench' | 'lark'
+  ): Promise<HumanDecisionResult>
+  readonly kinds: readonly { key: string; label: { en_US: string; zh_Hans: string } }[]
+  /** Return due, unacknowledged references belonging to this binding and recipient, up to the requested limit. */
+  listPending(context: AgentEventContext, limit: number): Promise<AgentOutputReference[]>
+  /** Confirm the host's committed message ID idempotently. A different ID for the same result is a conflict. */
+  acknowledge(context: AgentEventContext, ref: AgentOutputReference, messageId: string): Promise<void | 'conflict'>
+  /** Keep the reference pending. A timestamp postpones this item; null isolates an immutable conflict. */
+  defer(context: AgentEventContext, ref: AgentOutputReference, retryAt: string | null): Promise<void>
+  /** Recheck current domain access and relevance before returning any recipient-visible content. */
+  resolveForRecipient(context: AgentEventContext, ref: AgentOutputReference): Promise<AgentOutputPresentation>
+}
+export {
+  humanDecisionInputSchema,
+  humanDecisionSchema,
+  type HumanDecisionInput,
+  type HumanDecisionResult,
+  type HumanDecision,
+  type PrivateDecisionCard,
+  type PrivateDecisionReply
+} from '@xpert-ai/contracts'
+export type { AgentOutputReference, AgentOutputPresentation } from '@xpert-ai/contracts'
+
 export interface PluginAgentEventSource {
+  readonly outputs?: AgentOutputSource
   readonly key: string
   readonly protocolVersion: 1
   readonly eventTypes: readonly AgentEventTypeDefinition[]
@@ -68,6 +107,11 @@ export interface PluginAgentEventSource {
   /** Changes the capture policy only for an authorized source and revision. */
   configure(context: AgentEventContext, enabled: boolean): Promise<void>
   drain(context: AgentEventContext, publisher: AgentEventPublisher, limit: number): Promise<{ more: boolean }>
-  handle(context: AgentEventContext, delivery: AgentEventDelivery): Promise<EventDecision>
+  /** The host binds the wake to this receipt and actor. Call only for a committed, still applicable follow-up. */
+  handle(
+    context: AgentEventContext,
+    delivery: AgentEventDelivery,
+    followUp?: AgentEventFollowUp
+  ): Promise<EventDecision>
 }
 export * from './journal'

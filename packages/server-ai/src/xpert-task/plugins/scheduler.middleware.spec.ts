@@ -1,5 +1,7 @@
+import { FollowUpTimerSource } from '../../agent-event/follow-up-timer.source'
 import type { MonitorTargets } from '../monitor-targets'
-import type { CommandBus } from '@nestjs/cqrs'
+import { CommandBus } from '@nestjs/cqrs'
+import { convertToOpenAITool } from '@langchain/core/utils/function_calling'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { ChatMessageEventTypeEnum, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { ToolParameterValidationError } from '../../shared/tools/errors'
@@ -16,6 +18,11 @@ describe('SchedulerAgentMiddleware', () => {
     let commandBus: { execute: jest.Mock }
     let strategy: SchedulerAgentMiddleware
     const reports = { bind: jest.fn() }
+    const timers = Object.assign(Object.create(FollowUpTimerSource.prototype) as FollowUpTimerSource, {
+        set: jest.fn(),
+        list: jest.fn(),
+        cancel: jest.fn()
+    })
 
     beforeEach(() => {
         commandBus = {
@@ -24,7 +31,8 @@ describe('SchedulerAgentMiddleware', () => {
         strategy = new SchedulerAgentMiddleware(
             commandBus as unknown as CommandBus,
             reports as unknown as ScheduleDifferenceReports,
-            {} as MonitorTargets
+            {} as MonitorTargets,
+            timers
         )
         jest.clearAllMocks()
     })
@@ -39,6 +47,8 @@ describe('SchedulerAgentMiddleware', () => {
             SchedulerToolEnum.DELETE_SCHEDULER,
             'list_schedule_targets'
         ])
+        for (const entry of middleware.tools.slice(0, 3))
+            expect(JSON.stringify(convertToOpenAITool(entry).function.parameters)).not.toContain('follow_up')
         expect(strategy.meta.name).toBe('scheduler')
         expect(strategy.meta.label.en_US).toBe('Scheduler')
     })
@@ -90,6 +100,99 @@ describe('SchedulerAgentMiddleware', () => {
             }),
             expect.objectContaining({ metadata: { tool_call_id: 'tool-call-1' } })
         )
+    })
+
+    it('manages one-off deadlines with the four existing object-shaped tools', async () => {
+        const taskId = '59ff5567-b088-4ac8-a017-c404f431d22a'
+        const deadline = { dueAt: '2030-12-01T09:00:00Z', purpose: 'Check the answer' }
+        timers.set.mockResolvedValue({ timerId: taskId, dueAt: deadline.dueAt, state: 'waiting' })
+        timers.list.mockResolvedValue([{ id: taskId, ...deadline, state: 'waiting' }])
+        timers.cancel.mockResolvedValue({ timerId: taskId, state: 'cancelled' })
+        const context = { ...createContext(), conversationId: 'conversation', threadId: 'branch' }
+        const { tools } = await strategy.createMiddleware({}, context)
+        expect(tools.map(({ name }) => name)).toEqual([...Object.values(SchedulerToolEnum), 'list_schedule_targets'])
+        const [create, list, remove] = tools
+        for (const entry of [create, list, remove]) {
+            const schema = convertToOpenAITool(entry).function.parameters
+            expect(schema).toMatchObject({
+                type: 'object',
+                properties: { mode: { enum: expect.arrayContaining(['follow_up']) } }
+            })
+        }
+        const mode = 'follow_up'
+        const created = JSON.parse(await create.invoke({ mode, ...deadline }, { metadata: { tool_call_id: 'turn-1' } }))
+        expect(created).toEqual({ mode, taskId, dueAt: deadline.dueAt, state: 'waiting' })
+        const pending = JSON.parse(await list.invoke({ mode }))
+        expect(pending).toEqual([{ mode, taskId, ...deadline, state: 'waiting' }])
+        expect(JSON.parse(await remove.invoke({ mode, taskId: pending[0].taskId }))).toEqual({
+            mode,
+            taskId,
+            state: 'cancelled'
+        })
+        expect(timers.set).toHaveBeenCalledWith(context, deadline, 'turn-1')
+        expect(timers.list).toHaveBeenCalledWith(context)
+        expect(timers.cancel).toHaveBeenCalledWith(context, taskId)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('rejects incomplete, mixed or redirected follow-up arguments before dispatch', async () => {
+        const {
+            tools: [create, list, remove]
+        } = await strategy.createMiddleware(
+            {},
+            { ...createContext(), conversationId: 'conversation', threadId: 'branch' }
+        )
+        const deadline = { mode: 'follow_up', dueAt: '2030-12-01T09:00:00Z', purpose: 'Check the answer' }
+        const taskId = '59ff5567-b088-4ac8-a017-c404f431d22a'
+        for (const args of [
+            { mode: 'follow_up', purpose: deadline.purpose },
+            { mode: 'follow_up', dueAt: deadline.dueAt },
+            { ...deadline, dueAt: '2030-12-01T09:00:00' },
+            { ...deadline, schedule: '0 9 * * *' },
+            { ...deadline, agentKey: 'another-agent' },
+            { ...deadline, threadId: taskId },
+            { ...deadline, mode: 'independent', name: 'Check', prompt: 'Check', schedule: '0 9 * * *' }
+        ])
+            await expect(create.invoke(args)).rejects.toThrow()
+        await expect(list.invoke({ mode: 'follow_up', xpertId: 'someone-else' })).rejects.toThrow()
+        await expect(remove.invoke({ mode: 'follow_up', name: 'ordinary task' })).rejects.toThrow()
+        await expect(remove.invoke({ mode: 'follow_up', taskId, name: 'ordinary task' })).rejects.toThrow()
+        await expect(remove.invoke({ taskId })).rejects.toThrow()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(timers.set).not.toHaveBeenCalled()
+        expect(timers.list).not.toHaveBeenCalled()
+        expect(timers.cancel).not.toHaveBeenCalled()
+    })
+
+    it('keeps ordinary task lookup and deletion separate when a thread also supports follow-ups', async () => {
+        const taskId = '59ff5567-b088-4ac8-a017-c404f431d22a'
+        const {
+            tools: [, list, remove]
+        } = await strategy.createMiddleware(
+            {},
+            {
+                ...createContext(),
+                conversationId: 'conversation',
+                threadId: 'branch'
+            }
+        )
+        commandBus.execute
+            .mockResolvedValueOnce([{ id: taskId, name: 'Daily report' }])
+            .mockResolvedValueOnce('deleted')
+        expect(JSON.parse(await list.invoke({}))).toEqual([{ id: taskId, name: 'Daily report' }])
+        expect(await remove.invoke({ name: 'Daily report', taskId })).toBe('deleted')
+        expect(commandBus.execute.mock.calls.map(([command]) => command.constructor)).toEqual([
+            QueryXpertTaskCommand,
+            DeleteXpertTaskCommand
+        ])
+        const {
+            tools: [, unscopedList, unscopedDelete]
+        } = await strategy.createMiddleware({}, createContext())
+        await expect(unscopedList.invoke({ mode: 'follow_up' })).rejects.toThrow()
+        await expect(unscopedDelete.invoke({ mode: 'follow_up', taskId, name: 'Daily report' })).rejects.toThrow()
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+        expect(timers.list).not.toHaveBeenCalled()
+        expect(timers.cancel).not.toHaveBeenCalled()
     })
 
     it('binds an autonomous monitor to the invoking Assistant, agent and conversation branch', async () => {

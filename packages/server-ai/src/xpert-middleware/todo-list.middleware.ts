@@ -3,6 +3,7 @@ import { tool } from '@langchain/core/tools'
 import { Command } from '@langchain/langgraph'
 import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
+import { currentTodoContext } from './todo-list-context'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
@@ -391,6 +392,7 @@ export class TodoListMiddleware implements IAgentMiddlewareStrategy {
                     typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
                 return handler({
                     ...request,
+                    messages: currentTodoContext(request.messages),
                     systemMessage: new SystemMessage(
                         _content.concat(`\n\n${options?.systemPrompt ?? TODO_LIST_MIDDLEWARE_SYSTEM_PROMPT}`)
                     )

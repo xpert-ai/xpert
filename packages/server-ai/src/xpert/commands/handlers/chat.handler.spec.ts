@@ -3510,7 +3510,9 @@ describe('XpertChatHandler', () => {
                 (command) =>
                     command instanceof XpertAgentExecutionUpsertCommand &&
                     command.execution.status === XpertAgentExecutionStatusEnum.RUNNING &&
-                    command.execution.inputs?.input === 'Original prompt'
+                    command.execution.inputs?.input === 'Original prompt' &&
+                    command.execution.metadata?.retriedFromExecutionId === 'execution-old' &&
+                    !command.execution.parentId
             )
         ).toBe(true)
 

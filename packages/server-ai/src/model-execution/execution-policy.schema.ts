@@ -32,8 +32,13 @@ const policyObjectSchema = z
                 )
             })
             .default(defaultExecutionGatewayUrl),
-        defaultDurationSeconds: z.number().int().positive().max(86400).default(3600),
-        limits: executionLimitsSchema.default(() => ({ ...defaultExecutionLimits })),
+        defaultDurationSeconds: z
+            .number()
+            .int()
+            .positive()
+            .max(86400)
+            .default(() => defaultExecutionLimits().maxDurationSeconds),
+        limits: executionLimitsSchema.default(defaultExecutionLimits),
         cliPermissions: z
             .object({
                 defaultMode: z.enum(['allow', 'restricted']).default('allow'),
@@ -63,14 +68,26 @@ const policyObjectSchema = z
     .strict()
 
 // Legacy policies used one value for both default and ceiling. Preserve that behavior.
-export const executionPolicySchema = z.preprocess((value) => {
-    if (value && typeof value === 'object' && !Array.isArray(value) &&
-        !('defaultDurationSeconds' in value) && 'limits' in value && value.limits &&
-        typeof value.limits === 'object' && 'maxDurationSeconds' in value.limits) {
-        return { ...value, defaultDurationSeconds: value.limits.maxDurationSeconds }
-    }
-    return value
-}, policyObjectSchema.refine((value) => value.defaultDurationSeconds <= value.limits.maxDurationSeconds,
-    { path: ['defaultDurationSeconds'], message: 'Default duration exceeds tenant limit' }))
+export const executionPolicySchema = z.preprocess(
+    (value) => {
+        if (
+            value &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            !('defaultDurationSeconds' in value) &&
+            'limits' in value &&
+            value.limits &&
+            typeof value.limits === 'object' &&
+            'maxDurationSeconds' in value.limits
+        ) {
+            return { ...value, defaultDurationSeconds: value.limits.maxDurationSeconds }
+        }
+        return value
+    },
+    policyObjectSchema.refine((value) => value.defaultDurationSeconds <= value.limits.maxDurationSeconds, {
+        path: ['defaultDurationSeconds'],
+        message: 'Default duration exceeds tenant limit'
+    })
+)
 
 export type ExecutionPolicyInput = z.output<typeof executionPolicySchema>

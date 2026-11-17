@@ -10,7 +10,7 @@ import { lockManagedProject, managedAudit } from '../runtime/pipeline-transactio
 import { pipelineProjectionConflict } from '../projection/pipeline-projection.errors'
 import { projectionScope } from '../../services/task-projection/project-task-projection.writer'
 import type { PipelineModelBudgetCall } from './pipeline-model-budget.command'
-import { recordPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
+import { recordPipelineModelBudgetDenial, recordPipelineModelBudgetResumption } from './pipeline-model-budget-denial'
 import {
     assertPipelineModelWorkOpen,
     pipelineModelDenialOperation,
@@ -28,7 +28,8 @@ const callSchema = z
             })
             .strict(),
         executionId: z.string().uuid(),
-        requestId: z.string().uuid()
+        requestId: z.string().uuid(),
+        estimatedTokens: z.number().int().positive().safe().optional()
     })
     .strict()
 const totalsSchema = z.object({
@@ -78,6 +79,12 @@ export class ProjectPipelineModelBudgetStore {
             if (!instance.nativeModelBudget) return false
             const { policy: budget } = await pipelineModelBudgetPolicy(manager, instance)
             await assertPipelineModelWorkOpen(manager, instance, work)
+            if (call.estimatedTokens === undefined)
+                throw new ConflictException({
+                    message: t('server-ai:Error.ProjectPipelineModelEstimateUnavailable'),
+                    code: 'MODEL_BUDGET_ESTIMATE_UNAVAILABLE'
+                })
+            const reservationTokens = Math.max(budget.reservationTokens, call.estimatedTokens)
             const origin = pipelineModelReservationOrigin(work)
             const previous = await manager.findOne(ProjectPipelineModelReservationEntity, {
                 withDeleted: true,
@@ -86,7 +93,7 @@ export class ProjectPipelineModelBudgetStore {
             // Repeated callback delivery must never authorize a second inference with a reused request ID.
             if (previous) throw pipelineProjectionConflict('MODEL_BUDGET_REQUEST_REPLAY')
             const totals = await pipelineModelBudgetTotals(manager, instance)
-            if (totals.calls >= budget.maxCalls || totals.tokens + budget.reservationTokens > budget.maxTokens) {
+            if (totals.calls >= budget.maxCalls || reservationTokens > budget.maxTokens - totals.tokens) {
                 await recordPipelineModelBudgetDenial(manager, context, instance, pipelineModelDenialOperation(work))
                 return 'budget_exceeded' as const
             }
@@ -97,9 +104,10 @@ export class ProjectPipelineModelBudgetStore {
                 executionId: call.executionId,
                 requestId: call.requestId,
                 state: 'held',
-                reservedTokens: String(budget.reservationTokens),
+                reservedTokens: String(reservationTokens),
                 actualTokens: null
             })
+            await recordPipelineModelBudgetResumption(manager, context, instance, pipelineModelDenialOperation(work))
             return true
         })
         if (result === 'budget_exceeded')

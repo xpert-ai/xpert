@@ -19,6 +19,17 @@ import {
     WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
+import { DiscoveryService, Reflector } from '@nestjs/core'
+import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
+import { AgentInvocationGraphService } from '../../../agent-invocation/agent-invocation-graph.service'
+import { AgentInvocationRuntime } from '../../../agent-invocation/invocation-runtime'
+import { MemoryInvocationStore } from '../../../agent-invocation/invocation-test-store'
+import { NativeAgentCompiler } from '../../../agent-invocation/native-agent.compiler'
+import { NativeAgentRuntimeStrategy } from '../../../agent-invocation/native-agent.strategy'
+import type { ExecutionControlStore } from '../../../execution-control/execution-control.store'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
+import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries'
+import { GetXpertWorkflowQuery } from '../../../xpert/queries/get-xpert-workflow.query'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { AgentMiddleware, IAgentMiddlewareContext, IAgentMiddlewareStrategy } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod'
@@ -55,6 +66,8 @@ export function createInputGraphFixture(
         promptTemplates?: IXpertAgent['promptTemplates']
         middleware?: AgentMiddleware
         middlewareStrategy?: IAgentMiddlewareStrategy
+        observeMiddleware?: (context: IAgentMiddlewareContext) => void
+        localFollower?: { workspaceId: string }
         middlewareConnected?: boolean
     } = {}
 ) {
@@ -102,6 +115,7 @@ export function createInputGraphFixture(
             id: 'xpert-1',
             tenantId: 'tenant',
             workspaceId: 'workspace',
+            organizationId: 'org',
             agentConfig: {},
             copilotModel: {
                 model: 'test',
@@ -109,9 +123,13 @@ export function createInputGraphFixture(
             }
         }
     }
+    const followers = options.localFollower
+        ? [{ ...agent, key: 'buyer', name: 'Buyer', team: { ...agent.team, ...options.localFollower } }]
+        : []
+    const agents = [{ ...agent, followers }, ...followers]
     const definition = {
         nodes: [
-            { type: 'agent', key: agentKey, entity: agent },
+            ...agents.map((entity) => ({ type: 'agent', key: entity.key, entity })),
             ...(options.middlewareConnected === false
                 ? []
                 : [
@@ -125,15 +143,26 @@ export function createInputGraphFixture(
                       }
                   ])
         ],
-        connections:
-            options.middlewareConnected === false ? [] : [{ type: 'workflow', from: agentKey, to: 'input_middleware' }]
+        connections: [
+            ...followers.map(({ key }) => ({ type: 'agent', from: agentKey, to: key })),
+            ...(options.middlewareConnected === false
+                ? []
+                : agents.map(({ key }) => ({ type: 'workflow', from: key, to: 'input_middleware' })))
+        ]
     }
     const repository = { find: jest.fn().mockResolvedValue([]), save: jest.fn() }
     const queryBus = {
         execute: jest.fn(async (query: object) => {
+            if (query instanceof GetXpertWorkflowQuery) {
+                return {
+                    agent: agents.find(({ key }) => key === query.agentKey),
+                    graph: definition,
+                    next: [],
+                    fail: []
+                }
+            }
+            if (query instanceof XpertAgentExecutionOneQuery) return { id: query.id }
             switch (query.constructor.name) {
-                case 'GetXpertWorkflowQuery':
-                    return { agent, graph: definition, next: [], fail: [] }
                 case 'GetXpertChatModelQuery':
                     return chatModel
                 default:
@@ -143,6 +172,9 @@ export function createInputGraphFixture(
     }
     const commandBus = {
         execute: jest.fn(async (command: object) => {
+            if (command instanceof XpertAgentSubgraphCommand) return handler.execute(command)
+            if (command instanceof XpertAgentExecutionUpsertCommand)
+                return { ...command.execution, id: 'child-execution' }
             if (command instanceof CreateNodeStagePendingSteerFollowUpsCommand)
                 return new CreateNodeStagePendingSteerFollowUpsHandler(repository as never).execute(command)
             if (command instanceof CreateNodeConsumePendingSteerFollowUpsCommand)
@@ -168,6 +200,21 @@ export function createInputGraphFixture(
         runtime as unknown as AgentMiddlewareRuntimeService,
         { findOne: jest.fn(async (id: string) => ({ id })) } as never
     )
+    if (options.localFollower) {
+        const commands = commandBus as unknown as CommandBus
+        const queries = queryBus as unknown as QueryBus
+        const registry = new AgentRuntimeRegistry({} as DiscoveryService, new Reflector())
+        registry.register('xpert', new NativeAgentRuntimeStrategy(), {
+            kind: 'builtin',
+            scopeKey: BUILTIN_GLOBAL_SCOPE
+        })
+        const controls = { runAttached: (_id: string, _parent: string, run: () => Promise<unknown>) => run() }
+        const compiler = new NativeAgentCompiler(commands, queries, controls as unknown as ExecutionControlStore)
+        const invocations = new AgentInvocationRuntime(new MemoryInvocationStore(), registry)
+        Object.defineProperty(handler, 'invocationGraph', {
+            value: new AgentInvocationGraphService(commands, queries, null, invocations, compiler, null)
+        })
+    }
     Object.defineProperty(handler, 'agentMiddlewareRegistry', {
         value: {
             get: (name: string) => {
@@ -176,7 +223,10 @@ export function createInputGraphFixture(
                     throw new Error(`Unexpected middleware provider: ${name}`)
                 }
                 return {
-                    createMiddleware: (_options: object, _context: IAgentMiddlewareContext) => middleware
+                    createMiddleware: (_options: object, context: IAgentMiddlewareContext) => {
+                        options.observeMiddleware?.(context)
+                        return middleware
+                    }
                 }
             }
         }

@@ -17,12 +17,13 @@ export class EventBindingAccessService {
         private readonly queries: QueryBus
     ) {}
 
-    async conversationAction(binding: AgentEventBinding, conversationId: string) {
+    async conversationAction(binding: AgentEventBinding, conversationId: string, threadId?: string) {
         const family = await this.published.getAccessiblePublishedXpertFamilyIds(binding.xpertId)
         const conversation = await this.queries.execute(
             new AssertChatConversationAccessQuery(
                 {
                     id: conversationId,
+                    ...(threadId !== undefined ? { threadId } : {}),
                     tenantId: binding.tenantId,
                     organizationId: binding.organizationId,
                     xpertId: In(family),
@@ -36,13 +37,17 @@ export class EventBindingAccessService {
             type: 'open_conversation',
             assistantId: binding.xpertId,
             conversationId: conversation.id,
-            threadId: conversation.threadId
+            threadId: threadId ?? conversation.threadId
         })
     }
 
-    async assertAccessible(binding: AgentEventBinding) {
+    async assertAccessible(binding: AgentEventBinding, requireCurrentPublication = false) {
         const target = await this.published.getAccessiblePublishedXpert(binding.xpertId)
-        if (target.workspaceId !== binding.workspaceId || target.organizationId !== binding.organizationId)
+        if (
+            target.workspaceId !== binding.workspaceId ||
+            target.organizationId !== binding.organizationId ||
+            (requireCurrentPublication && target.publishAt?.getTime() !== binding.publishedAt.getTime())
+        )
             throw new ForbiddenException()
         if (binding.projectId)
             await this.commands.execute(new AssertProjectAssistantAccessCommand(binding.projectId, binding.xpertId))

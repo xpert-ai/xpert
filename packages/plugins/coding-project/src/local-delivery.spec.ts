@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   projectPipelineConfigurationSchema,
+  projectPipelineContributionSchema,
   checkProjectPipelineConfiguration,
   WorkflowNodeTypeEnum
 } from '@xpert-ai/contracts'
@@ -45,7 +46,25 @@ function startup() {
   }
   f.capabilities.register(ProjectPipelineCatalogRuntimeCapability, {
     bindings: async () => ({ items: [], next: null }),
-    list: unexpectedCatalogCall,
+    list: async () => ({
+      canManage: true,
+      assistants: [],
+      items: new CodingPipelineContribution().configurations.map(
+        ({ nativeModelBudgetPolicy: _policy, ...configuration }) => ({
+          contributionKey: 'coding_project',
+          configuration: {
+            ...configuration,
+            binding: {
+              ...configuration.binding,
+              limits: {
+                ...configuration.binding.limits!,
+                nativeModelBudget: { maxCalls: 300, maxTokens: 25000000, reservationTokens: 10000 }
+              }
+            }
+          }
+        })
+      )
+    }),
     binding: unexpectedCatalogCall,
     configure: unexpectedCatalogCall
   })
@@ -80,6 +99,20 @@ it('uses a valid native DAG ending after independent local acceptance, with no r
   expect(localConfiguration.template.roundPolicy.terminalOutcomes).toEqual(['locally_accepted'])
   expect(localConfiguration.binding.roleBindings).toEqual({})
 })
+it('registers all workflows with declaration-owned defaults and ceilings, independently of their forms', () => {
+  const contribution = projectPipelineContributionSchema.parse(new CodingPipelineContribution())
+  expect(contribution.configurations).toHaveLength(3)
+  for (const declaration of contribution.configurations) {
+    expect(declaration.nativeModelBudgetPolicy).toEqual({
+      maxTokensDefaultSource: 'host',
+      maximum: { maxCalls: 300, maxTokens: 100000000, reservationTokens: 10000 }
+    })
+  }
+  for (const form of contribution.forms!) {
+    expect(form).not.toHaveProperty('nativeModelBudget')
+    expect(form).not.toHaveProperty('useHostNativeModelBudgetDefaults')
+  }
+})
 it('starts with empty external configuration, pins local mode and reuses the same instance', async () => {
   f.revoke()
   const allowed = jest.spyOn(f.store, 'allowed').mockRejectedValue(new Error('must not consult external destinations'))
@@ -100,6 +133,8 @@ it('starts with empty external configuration, pins local mode and reuses the sam
   expect(stored.requirement).not.toHaveProperty('target')
   expect(stored.requirement).not.toHaveProperty('repository')
   expect(configure.mock.calls[0][1].configuration.binding.templateRef).toBe('coding_project.local@1.0.0')
+  expect(configure.mock.calls[0][1].configuration.binding.limits.nativeModelBudget.maxTokens).toBe(25000000)
+  expect(configure.mock.calls[0][1].configuration).not.toHaveProperty('nativeModelBudgetPolicy')
   f.setDefaultMode('release')
   expect(await service.start(f.context, conversationId, f.context.executor.xpertId, input)).toMatchObject({
     reused: true,

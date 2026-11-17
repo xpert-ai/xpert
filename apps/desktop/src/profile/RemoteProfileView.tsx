@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { parseOpenConversationAction, type OpenConversationAction, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import {
+  parseOpenConversationAction,
+  type OpenConversationAction,
+  type XpertExtensionViewManifest
+} from '@xpert-ai/contracts'
 import type { ProfileViewSession } from '../assistant-profile-types'
 import { invoke } from '../host'
 import { t, useLocale, getLocale } from '../i18n'

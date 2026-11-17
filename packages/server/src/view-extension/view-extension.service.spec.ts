@@ -85,6 +85,7 @@ describe('ViewExtensionService file actions', () => {
 			}))
 		}
 		const providerRegistry = {
+			getSource: jest.fn(() => ({ kind: 'plugin', pluginName: 'test-view' })),
 			get: jest.fn(() => provider),
 			listEntries: jest.fn(() => [{ providerKey: 'provider', provider }])
 		}

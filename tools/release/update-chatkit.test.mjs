@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { parse, stringify } from 'yaml'
 import { chatkitPackages, selectVersions, validateCompatibility, validateLock } from './chatkit-locks.mjs'
-import { updateChatkit } from './update-chatkit.mjs'
+import { profilesFor, updateChatkit } from './update-chatkit.mjs'
 
 const catalog = Object.fromEntries(chatkitPackages.map((name) => [name, '~0.16.0']))
 const selected = Object.fromEntries(chatkitPackages.map((name) => [name, '0.16.2']))
@@ -13,6 +13,31 @@ const published = Object.fromEntries(
   chatkitPackages.map((name) => [name, ['0.16.0', '0.16.2', '0.16.3-beta.1', '0.17.0']])
 )
 const metadata = Object.fromEntries(chatkitPackages.map((name) => [name, { name, version: '0.16.2' }]))
+
+test('workspace resolution retains declared patch files and tracks them as source inputs', async (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'chatkit-patched-workspace-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const patch = 'patches/nested/dependency.patch'
+  const content = '--- a/index.js\n+++ b/index.js\n@@ -1 +1 @@\n-old\n+fixed\n'
+  writeFileSync(path.join(root, 'package.json'), '{"name":"fixture","version":"1.0.0","private":true}\n')
+  writeFileSync(
+    path.join(root, 'pnpm-workspace.yaml'),
+    stringify({ packages: [], patchedDependencies: { 'dependency@1.0.0': patch } })
+  )
+  writeFileSync(path.join(root, '.npmrc'), '')
+  writeFileSync(path.join(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n')
+  mkdirSync(path.dirname(path.join(root, patch)), { recursive: true })
+  writeFileSync(path.join(root, patch), content)
+  const { profiles, sourceFiles } = await profilesFor(root)
+  const destination = path.join(root, 'resolution')
+  profiles[0].prepare(destination)
+  const configured = parse(readFileSync(path.join(destination, 'pnpm-workspace.yaml'), 'utf8'))
+  assert.equal(
+    readFileSync(path.join(destination, configured.patchedDependencies['dependency@1.0.0']), 'utf8'),
+    content
+  )
+  assert.ok(sourceFiles.includes(patch))
+})
 
 test('patch ranges exclude next minor and prereleases without changing the catalog', () => {
   assert.deepEqual(selectVersions(catalog, published), selected)
@@ -43,7 +68,7 @@ test('lock validation rejects divergent profiles and hidden transitive copies', 
   assert.throws(() => validateLock(stringify(lock), catalog, selected, chatkitPackages), /Profile version mismatch/)
 })
 
-function fixture(t, { fail = false, concurrent = false, transitiveOnly = false } = {}) {
+function fixture(t, { fail = false, concurrent = false, transitiveOnly = false, profileSettings } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), 'chatkit-update-test-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const overrides = { unrelated: '1.0.0' }
@@ -68,6 +93,11 @@ function fixture(t, { fail = false, concurrent = false, transitiveOnly = false }
         mkdirSync(directory, { recursive: true })
         copyFileSync(path.join(root, lock), path.join(directory, 'pnpm-lock.yaml'))
         copyFileSync(path.join(root, 'pnpm-workspace.yaml'), path.join(directory, 'pnpm-workspace.yaml'))
+        if (profileSettings && lock === 'deploy.yaml')
+          writeFileSync(
+            path.join(directory, 'pnpm-workspace.yaml'),
+            stringify({ catalog, overrides, ...profileSettings })
+          )
       }
     }))
   })
@@ -123,6 +153,27 @@ test('updates transitive-only packages without leaking resolution overrides into
     assert.deepEqual(lock.overrides, { unrelated: '1.0.0' })
   }
   assert.equal(readFileSync(path.join(f.root, 'pnpm-workspace.yaml'), 'utf8'), before)
+})
+
+test('profile configuration survives pinning, range restoration and frozen validation', async (t) => {
+  const profileSettings = { allowUnusedPatches: true, packages: ['apps/desktop'] }
+  const f = fixture(t, { profileSettings })
+  let checked = 0
+  await updateChatkit({
+    ...f,
+    run(args, cwd) {
+      if (args[0] === 'install') {
+        const workspace = parse(readFileSync(path.join(cwd, 'pnpm-workspace.yaml'), 'utf8'))
+        const expected = path.basename(cwd) === '1' ? profileSettings : {}
+        assert.equal(workspace.allowUnusedPatches, expected.allowUnusedPatches)
+        assert.deepEqual(workspace.packages, expected.packages)
+        checked++
+      }
+      return f.run(args, cwd)
+    }
+  })
+  assert.equal(checked, 6)
+  assert.equal(parse(readFileSync(path.join(f.root, 'pnpm-workspace.yaml'), 'utf8')).allowUnusedPatches, undefined)
 })
 
 test('a later profile failure leaves all original locks intact', async (t) => {

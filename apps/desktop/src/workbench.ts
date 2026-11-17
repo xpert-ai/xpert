@@ -1,3 +1,4 @@
+import { EVENT_INBOX_VIEW_KEY, parseOpenConversationAction, type OpenConversationAction } from '@xpert-ai/contracts'
 import { isAudioCaptureCommand } from '@xpert-ai/desktop-protocol'
 import type { ChatKitWorkbenchClientCommandRequest, WorkspaceConnectorConnectHandler } from '@xpert-ai/chatkit-types'
 import { platformCommandUrl } from '../electron/workbench-platform.mjs'
@@ -14,7 +15,8 @@ export function createWorkbenchHandler(
   botId: string,
   webUrl: string,
   onSession: (session: WorkbenchSession) => void,
-  connection?: { assistantId: () => string | undefined; connect: WorkspaceConnectorConnectHandler }
+  connection?: { assistantId: () => string | undefined; connect: WorkspaceConnectorConnectHandler },
+  openConversation?: (action: OpenConversationAction) => void
 ) {
   let lastSessionScope: string | undefined
   let activeAssistantId: string | undefined
@@ -22,6 +24,21 @@ export function createWorkbenchHandler(
   return async (request: ChatKitWorkbenchClientCommandRequest) => {
     const { commandKey, payload } = request
     try {
+      if (commandKey === 'open_conversation') {
+        const assistantId = connection?.assistantId()
+        if (
+          !assistantId ||
+          request.hostType !== 'agent' ||
+          request.hostId !== assistantId ||
+          request.viewKey !== EVENT_INBOX_VIEW_KEY ||
+          !openConversation
+        )
+          return { success: false, code: 'forbidden' }
+        const action = await invoke('workbenchInboxConversation', { assistantId, viewKey: request.viewKey, payload })
+        if (connection?.assistantId() !== assistantId) return { success: false, code: 'stale_context' }
+        openConversation(parseOpenConversationAction(action))
+        return { success: true }
+      }
       if (commandKey === 'artifact.use-grants.manage') {
         const assistantId = connection?.assistantId()
         if (!assistantId || request.hostType !== 'agent' || request.hostId !== assistantId)

@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -59,10 +60,13 @@ else:
             'node': str(self.toolchain / 'bin/node'), 'corepack': str(self.toolchain / 'bin/corepack')}
         self.node = patch('source_bootstrap.install_node', return_value=self.toolchain)
         self.env = patch('source_bootstrap.child_environment', return_value=os.environ.copy())
+        self.home = patch('dependency_layout.Path.home', return_value=Path(self.temp.name) / 'home')
+        self.home.start()
         self.node.start()
         self.env.start()
 
     def tearDown(self):
+        self.home.stop()
         self.env.stop()
         self.node.stop()
         self.temp.cleanup()
@@ -112,6 +116,23 @@ else:
             assert_bootstrapped(self.config)
         bootstrap_source(self.config)
         self.assertEqual(self.install_count(), 2)
+
+    def test_missing_managed_cache_reinstalls_once_and_then_reuses(self):
+        bootstrap_source(self.config)
+        for install_count, remove_link in enumerate((False, True), start=2):
+            with self.subTest(remove_link=remove_link):
+                config = json.loads((self.state / 'environment.json').read_text())
+                shutil.rmtree(config['dependencyLayout']['nodeModules'])
+                if remove_link:
+                    (self.root / 'node_modules').unlink()
+                with self.assertRaisesRegex(RuntimeError, 'Dependency inputs'):
+                    assert_bootstrapped(config)
+                bootstrap_source(config)
+                assert_bootstrapped(config)
+                self.assertEqual(self.install_count(), install_count)
+                self.assertTrue((self.root / 'node_modules').is_symlink())
+                bootstrap_source(config)
+                self.assertEqual(self.install_count(), install_count)
 
     def test_failed_install_is_not_reusable_and_successful_retry_publishes_receipt(self):
         bootstrap_source(self.config)

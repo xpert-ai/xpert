@@ -1,4 +1,4 @@
-import type { OpenConversationAction } from '@xpert-ai/contracts'
+import type { OpenConversationAction, OutputWorkbenchTarget } from '@xpert-ai/contracts'
 import { NotificationProvider } from './notifications/NotificationProvider'
 import type { AgentDockTarget } from './types'
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
@@ -46,7 +46,9 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
   const [bosiReady, setBosiReady] = useState(false)
-  const selectBot = (id: string, threadId: string | null = null) => {
+  const [initialWorkbench, setInitialWorkbench] = useState<OutputWorkbenchTarget | null>(null)
+  const selectBot = (id: string, threadId: string | null = null, workbench: OutputWorkbenchTarget | null = null) => {
+    setInitialWorkbench(workbench)
     setInboxScope(null)
     navigationVersion.current++
     selectedRef.current = id
@@ -64,6 +66,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     navigationVersion.current++
     selectedRef.current = null
     setSelectedGroup(id)
+    setInitialWorkbench(null)
   }
   const onConversationRead = useCallback((botId: string, threadId: string | null) => {
     setNotice((value) => ({ botId, threadId, revision: (value?.revision ?? 0) + 1 }))
@@ -332,6 +335,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setCreateGroup(false)
     setBosiReady(false)
     setSelected(null)
+    setInitialWorkbench(null)
     setInitialThread(null)
     setInitialVoice(null)
     setNotice(undefined)
@@ -419,7 +423,15 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                 ? (notice?.threadId ?? initialThread)
                 : null
             }
-            onOpen={async (item) => openConversation(item.action)}
+            onWorkbench={(action) => {
+              const target = bots.find((bot) => (bot.assistantId || bot.id) === action.assistantId)
+              if (!target || action.organizationId !== state.profile?.organizationId) throw new Error(t('Unavailable'))
+              revealBot(target.id)
+              selectBot(target.id, null, action)
+            }}
+            onOpen={async (item) => {
+              if (item.action) await openConversation(item.action)
+            }}
           >
             <VoiceProvider
               key={`${binding}:${state.config.apiUrl}`}
@@ -537,8 +549,10 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                         groupId={selectedGroup}
                         selectionVersion={selectionVersion}
                         initialThread={initialThread}
+                        initialWorkbench={initialWorkbench}
                         initialVoice={initialVoice}
                         onConversationRead={onConversationRead}
+                        onOpenConversation={openConversation}
                         onSessionChange={rememberSession}
                         bot={bot}
                         config={{ ...state.config, appearance, locale }}

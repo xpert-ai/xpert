@@ -1,11 +1,16 @@
 import type { ModelExecutionLimits } from '@xpert-ai/contracts'
+import { getConfig } from '@xpert-ai/server-config'
 
-export const defaultExecutionLimits: ModelExecutionLimits = {
-    maxConcurrentRequests: 4,
-    requestsPerMinute: 60,
-    requestIdleSeconds: 600,
-    leaseSeconds: 120,
-    maxDurationSeconds: 7200
+export function defaultExecutionLimits(): ModelExecutionLimits {
+    const maxDurationSeconds = getConfig().projectExecutionOptions?.taskMaxDurationSeconds ?? 43200
+    return {
+        maxConcurrentRequests: 4,
+        requestsPerMinute: 60,
+        requestIdleSeconds: 600,
+        // Short host defaults must also satisfy the policy's lease <= lifetime invariant.
+        leaseSeconds: Math.min(120, maxDurationSeconds),
+        maxDurationSeconds
+    }
 }
 
 /** The guest cannot reach the API through its own loopback interface. */

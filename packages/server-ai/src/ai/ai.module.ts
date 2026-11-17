@@ -79,12 +79,13 @@ import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
+import { AI_ROUTE_PATH } from './ai-route'
 
 @Module({
     imports: [
         RouterModule.register([
             {
-                path: '/ai',
+                path: AI_ROUTE_PATH,
                 module: AIModule
             }
         ]),

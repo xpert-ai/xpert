@@ -7,7 +7,10 @@ import { t } from '../i18n'
 import { ProfileError, ProfileLoading } from './ProfileState'
 import { RemoteProfileView } from './RemoteProfileView'
 
-export function PersonalEventInbox({ onClose, onOpenConversation }: {
+export function PersonalEventInbox({
+  onClose,
+  onOpenConversation
+}: {
   onClose: () => void
   onOpenConversation: (action: OpenConversationAction) => void
 }) {
@@ -42,7 +45,14 @@ export function PersonalEventInbox({ onClose, onOpenConversation }: {
       {error ? (
         <ProfileError message={error} retry={() => setRetry((n) => n + 1)} />
       ) : view ? (
-        <RemoteProfileView scope="personal-inbox" onOpenConversation={onOpenConversation} manifest={view} active onBusy={() => {}} onClose={onClose} />
+        <RemoteProfileView
+          scope="personal-inbox"
+          onOpenConversation={onOpenConversation}
+          manifest={view}
+          active
+          onBusy={() => {}}
+          onClose={onClose}
+        />
       ) : (
         <ProfileLoading />
       )}

@@ -79,9 +79,15 @@ unprivileged Computer use `xpert-platform-local-environment` process mode.
 The image's `cloud-coding` skill covers CLI and Computer execution contracts.
 For other programs select their own environment and delivery references.
 
-Give the executor a direct link to [Coding task execution](references/coding-task-execution.md)
-in its startup brief, alongside the objective, authorized target and deliverables.
-Coordinator planning instructions alone do not tell a CLI how to own its repair loop.
+Use [Coding task execution](references/coding-task-execution.md) when writing the
+executor's brief. Include the applicable repair loop directly: implement, run
+focused checks, package, deploy to the authorized target, exercise the real
+application and return evidence for independent review. Reference a file as required
+reading only when its package is available in the executor's prepared context.
+This coordinator reference is not itself a CLI prerequisite; a missing copy does
+not block work whose requirements and domain skills are already supplied. Keep
+Project task/decision tools with the coordinator and local coding commands with
+the CLI.
 
 Inspect the current project, allowed workspace, runtime catalog and available
 capacity. Preserve existing files and use an independent directory for a new
@@ -140,7 +146,7 @@ specific unresolved question and existing evidence for a narrower repair task;
 do not consume the remaining execution budget repeating the investigation.
 
 Keep the final Markdown report brief: outcome, evidence paths, artifact digest
-and unresolved issues. A final reply is sufficient unless a report file was explicitly requested. Full implementation
+and unresolved issues. Use changes/tests/file items for details. Full implementation
 means complete files in the workspace, not full source pasted into the response;
 include verbatim source only when explicitly requested. Return promptly once the
 task's implementation, development deployment and self-tests are ready for review.

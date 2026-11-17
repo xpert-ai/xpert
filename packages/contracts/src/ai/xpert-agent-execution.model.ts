@@ -131,16 +131,23 @@ export enum XpertAgentExecutionStatusEnum {
 
 export type TAgentExecutionMetadata = {
   /** Host-created result continuation; its inbox claim proves the originating execution. */
-  runtimeContinuation?: { inboxId: string }
+  runtimeContinuation?: {
+    /** Durable runtime inbox entry whose claim identifies this continuation and its source invocation. */
+    inboxId: string
+  }
   /** Written atomically with root checkpoints, not by message/execution finalizers. */
   recovery?: import('./chat-recovery.model').TChatExecutionRecovery
+  /** Agent-plugin template provenance retained for the Assistant used by this execution. */
   templateSource?: import('../agent-plugin').TemplateAgentSource
+  /** Reported business outcome, separate from process completion and the execution status. */
   businessOutcome?: import('@xpert-ai/chatkit-types').TAgentExecutionOutcome
   /** Recorded by the invocation boundary; never inferred from agent names. */
   invocationKind?: 'external_assistant' | 'sub_agent'
   /** Tool call in the parent execution that started this run. Omit for workflow-driven runs. */
   sourceToolCallId?: string
+  /** Assistant display name captured for execution history and live presentation. */
   assistantName?: string
+  /** Assistant avatar captured with the display name; not an identity or authorization source. */
   assistantAvatar?: TAvatar
   /**
    * AI model provider
@@ -152,34 +159,58 @@ export type TAgentExecutionMetadata = {
   model?: string
   /** Opaque Assistant model option used by the base and Primary models. */
   primaryModelId?: string
+  /** Whether model selection came from an explicit choice, preference, default, retry or fallback. */
   primaryModelSource?: import('./assistant-model.model').TAssistantPrimaryModelSelectionSource
   /** Sanitized model snapshot used to keep resume and retry deterministic. */
   primaryModelSnapshot?: Pick<
     import('./copilot-model.model').TCopilotModel,
     'copilotId' | 'modelType' | 'model' | 'options'
   >
+  /** Audited entry-point category, with adapter-specific values retained for compatibility. */
   triggerSource?: 'integration' | 'channel' | 'api' | 'job' | 'trigger' | string
+  /** Originating integration resolved from the source audit or trusted runtime principal. */
   sourceIntegrationId?: string
+  /** Integration supplied by the caller; defaults to sourceIntegrationId when absent. */
   integrationId?: string
+  /** Source channel type recorded by the channel adapter. */
   channelType?: string
+  /** Adapter-specific channel ingress label, normalized from channelSource or channel_source. */
   channelSource?: string
+  /** Original caller-supplied entry-point label, retained alongside normalized triggerSource. */
   from?: string
+  /** End-user identifier in the originating client or channel, not a platform user grant. */
   fromEndUserId?: string
+  /** User identifier supplied by the channel adapter. */
   channelUserId?: string
+  /** Opaque UUID forwarded by a source adapter; not the platform execution ID. */
   uuid?: string
+  /** WeChat account owner identifier forwarded by a compatible channel adapter. */
   ownerWxid?: string
+  /** Source-channel contact identifier, normalized from contactId or contact_id. */
   contactId?: string
+  /** Source-channel conversation identifier, normalized from chatId or chat_id. */
   chatId?: string
+  /** Source-channel conversation type, normalized from chatType or chat_type. */
   chatType?: string
+  /** Source-channel message sender identifier, normalized from senderId or sender_id. */
   senderId?: string
+  /** Deduplicated inbound message-log identifiers used to trace this execution's source. */
   sourceMessageLogIds?: string[]
+  /** Handoff message that dispatched this execution. */
   handoffMessageId?: string
+  /** Trace identifier correlating related handoff messages and executions. */
   handoffTraceId?: string
+  /** Parent handoff message identifier for the dispatch chain. */
   handoffParentMessageId?: string
+  /** Runtime principal type captured for audit; does not itself grant permission. */
   runtimePrincipalType?: string
+  /** Assistant identity from the trusted runtime principal, retained for source auditing. */
   runtimePrincipalXpertId?: string
   /** Root execution this run continued after a durable thread pause. */
   resumedFromExecutionId?: string
+  /** Host-validated root execution whose original input was retried in this new run. */
+  retriedFromExecutionId?: string
+  /** Extension metadata; consumers must validate unknown values before using them. */
   [key: string]: unknown
 }
 

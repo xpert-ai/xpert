@@ -1,9 +1,22 @@
+import type { JSONValue } from '../core.model'
 import type { JSONSchema4 } from 'json-schema'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
 import { DefaultModelRole, LegacyProviderRole } from './default-model-role'
 import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
+
+/**
+ * Set metadata.publicToolPresentation on the registered server-side tool.
+ * Callbacks return only JSON safe for conversation participants. An omitted
+ * phase or undefined return publishes no details. No callback is serialized.
+ */
+export interface PublicToolPresentation {
+  tool: string
+  input?: (args: unknown) => JSONValue | undefined
+  output?: (content: unknown) => JSONValue | undefined
+  error?: (error: unknown) => string | undefined
+}
 
 /**
  * Tools for Xpert

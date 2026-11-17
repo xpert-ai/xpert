@@ -39,11 +39,18 @@ function copy(root, destination, file) {
 export async function profilesFor(root) {
   const workspace = await getPackages(root)
   const manifests = workspace.packages.map((pkg) => path.relative(root, path.join(pkg.dir, 'package.json')))
+  const configuration = parse(readFileSync(path.join(root, 'pnpm-workspace.yaml'), 'utf8'))
+  const patches = Object.values(configuration.patchedDependencies ?? {})
+  assert.ok(
+    patches.every((file) => typeof file === 'string'),
+    'Patch declarations must reference local files'
+  )
   const sourceFiles = [
     'package.json',
     'pnpm-workspace.yaml',
     '.npmrc',
     ...manifests,
+    ...patches,
     '.deploy/api/package.json',
     '.deploy/api/package-prod.json',
     '.deploy/webapp/package.json',
@@ -55,7 +62,14 @@ export async function profilesFor(root) {
       {
         lock: 'pnpm-lock.yaml',
         prepare(destination) {
-          for (const file of ['package.json', 'pnpm-workspace.yaml', '.npmrc', 'pnpm-lock.yaml', ...manifests])
+          for (const file of [
+            'package.json',
+            'pnpm-workspace.yaml',
+            '.npmrc',
+            'pnpm-lock.yaml',
+            ...manifests,
+            ...patches
+          ])
             copy(root, destination, file)
         }
       },
@@ -101,6 +115,9 @@ export async function updateChatkit({ root = repository, run = runPnpm, setup = 
     for (const [index, profile] of profiles.entries()) {
       const directory = path.join(temporary, String(index))
       profile.prepare(directory)
+      const profileWorkspaceFile = path.join(directory, 'pnpm-workspace.yaml')
+      const profileWorkspaceText = readFileSync(profileWorkspaceFile, 'utf8')
+      const profileWorkspace = parse(profileWorkspaceText)
       console.log(`Resolving ${profile.lock}`)
       const lockFile = path.join(directory, 'pnpm-lock.yaml')
       const previous = parse(readFileSync(lockFile, 'utf8'))
@@ -109,15 +126,16 @@ export async function updateChatkit({ root = repository, run = runPnpm, setup = 
       // Catalogs do not update transitive-only consumers (for example Desktop's
       // web-shared dependency). Pin their resolution too, then restore source policy.
       const pinned = {
-        ...workspace,
-        catalog: { ...workspace.catalog, ...versions },
-        overrides: { ...workspace.overrides, ...versions }
+        ...profileWorkspace,
+        catalog: { ...profileWorkspace.catalog, ...versions },
+        overrides: { ...profileWorkspace.overrides, ...versions }
       }
-      writeFileSync(path.join(directory, 'pnpm-workspace.yaml'), stringify(pinned))
+      writeFileSync(profileWorkspaceFile, stringify(pinned))
       const install = ['install', '--lockfile-only', '--ignore-scripts', '--no-frozen-lockfile']
       run(install, directory)
-      // Restore ranges through pnpm rather than editing its lock representation.
-      writeFileSync(path.join(directory, 'pnpm-workspace.yaml'), workspaceText)
+      // Preserve profile settings (such as Desktop's unused-patch allowance)
+      // while restoring ranges through pnpm rather than editing the lock.
+      writeFileSync(profileWorkspaceFile, profileWorkspaceText)
       run(install, directory)
       run(['install', '--lockfile-only', '--ignore-scripts', '--frozen-lockfile', '--offline'], directory)
       const content = readFileSync(lockFile, 'utf8')

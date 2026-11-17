@@ -1,4 +1,5 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { FollowUpTimerSource, setDeadline } from '../../agent-event/follow-up-timer.source'
 import { tool } from '@langchain/core/tools'
 import {
     ChatMessageEventTypeEnum,
@@ -28,11 +29,12 @@ import { ScheduleTaskIcon, SchedulerToolEnum } from './types'
 
 const SCHEDULER_MIDDLEWARE_PROVIDER = 'scheduler'
 
-const createSchedulerSchema = z.object({
+const recurringModes = ['independent', 'current_conversation', 'existing_conversation', 'new_chat'] as const
+const recurringSchedule = z.object({
     name: z.string().trim().min(1).max(100).describe('scheduler name'),
     schedule: z.string().optional().describe('Cron for an independent scheduled run'),
     mode: z
-        .enum(['independent', 'current_conversation', 'existing_conversation', 'new_chat'])
+        .enum(recurringModes)
         .optional()
         .describe(
             'Monitor this thread, a selected existing conversation, or a new chat per run. Difference checks default to every 30 minutes.'
@@ -60,14 +62,46 @@ const createSchedulerSchema = z.object({
     prompt: z.string().trim().min(1).max(16000).describe('scheduler prompt')
 })
 
-const listSchedulerSchema = z.object({
-    xpertId: z.string().optional().describe('xpert id used when runtime context does not provide one')
-})
+// Model providers expect an object at the root. Validate the selected mode's fields before dispatch.
+const followUpMode = z.enum(['follow_up'])
+const createSchedulerSchema = recurringSchedule
+    .partial({ name: true, prompt: true })
+    .extend({
+        mode: z
+            .enum([...recurringModes, 'follow_up'])
+            .optional()
+            .describe(
+                'Use follow_up for a single deadline in this thread; use a monitor mode for repeated difference checks.'
+            ),
+        dueAt: setDeadline.shape.dueAt.optional().describe('Follow-up only. Future ISO 8601 deadline with a timezone.'),
+        purpose: setDeadline.shape.purpose.optional().describe('Follow-up only. What to check when the agent returns.')
+    })
+    .strict()
 
-const deleteSchedulerSchema = z.object({
-    name: z.string().trim().min(1).describe('Exact scheduler name'),
+const scheduledTaskList = z.object({
+    xpertId: z.string().optional().describe('Assistant ID fallback for scheduled tasks without runtime context.')
+})
+const listSchedulerSchema = scheduledTaskList
+    .extend({
+        mode: followUpMode
+            .optional()
+            .describe('Use follow_up for pending deadlines in this thread. Omit for scheduled tasks.')
+    })
+    .strict()
+
+const scheduledTaskDeletion = z.object({
+    name: z.string().trim().min(1).describe('Exact name of the scheduled task'),
     taskId: z.string().uuid().optional().describe('Task ID when names coincide')
 })
+const deleteSchedulerSchema = scheduledTaskDeletion
+    .partial({ name: true })
+    .extend({
+        mode: followUpMode.optional().describe('Use follow_up to cancel a pending deadline in this thread.'),
+        taskId: scheduledTaskDeletion.shape.taskId.describe(
+            'Required for follow_up. For ordinary tasks, disambiguates matching names.'
+        )
+    })
+    .strict()
 
 type ScheduleMiddlewareConfig = Record<string, never>
 
@@ -99,7 +133,8 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
     constructor(
         private readonly commandBus: CommandBus,
         private readonly reports: ScheduleDifferenceReports,
-        private readonly targets: MonitorTargets
+        private readonly targets: MonitorTargets,
+        private readonly timers: FollowUpTimerSource
     ) {}
 
     async createMiddleware(
@@ -120,12 +155,13 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
                 ]
             }
         }
+        const inThread = Boolean(context.conversationId && context.threadId)
         return {
             name: SCHEDULER_MIDDLEWARE_PROVIDER,
             tools: [
-                this.createSchedulerTool(context),
-                this.listSchedulerTool(context),
-                this.deleteSchedulerTool(context),
+                this.createSchedulerTool(context, inThread),
+                this.listSchedulerTool(context, inThread),
+                this.deleteSchedulerTool(context, inThread),
                 tool(
                     async ({ search, offset }) =>
                         JSON.stringify(await this.targets.list(context.xpertId, search, offset)),
@@ -143,12 +179,19 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         }
     }
 
-    private createSchedulerTool(context: IAgentMiddlewareContext) {
+    private createSchedulerTool(context: IAgentMiddlewareContext, inThread: boolean) {
         return tool(
-            async (parameters, config) => {
-                if (!parameters.name) {
-                    throw new ToolParameterValidationError('name is empty')
+            async (input, config) => {
+                if (input.mode === 'follow_up') {
+                    const { mode, ...deadline } = input
+                    const { timerId, dueAt, state } = await this.timers.set(
+                        context,
+                        setDeadline.parse(deadline),
+                        getToolCallIdFromConfig(config)
+                    )
+                    return JSON.stringify({ mode, taskId: timerId, dueAt, state })
                 }
+                const parameters = recurringSchedule.strict().parse(input)
 
                 const monitor = !!parameters.mode && parameters.mode !== 'independent'
                 if (parameters.mode === 'existing_conversation' && (!parameters.conversationId || !parameters.threadId))
@@ -245,15 +288,34 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
             {
                 name: SchedulerToolEnum.CREATE_SCHEDULER,
                 description:
-                    'Arrange a future check when work needs follow-up. For new-difference notifications, use current_conversation, existing_conversation or new_chat according to where each check should run. Use independent for a standalone cron task.',
-                schema: createSchedulerSchema
+                    'Schedule recurring difference checks with a monitor mode or a standalone cron with independent. Both require name and prompt.' +
+                    (inThread
+                        ? ' Use mode follow_up with only dueAt and purpose to wake this agent once in the current thread.'
+                        : ''),
+                schema: inThread ? createSchedulerSchema : recurringSchedule.strict()
             }
         )
     }
 
-    private listSchedulerTool(context: IAgentMiddlewareContext) {
+    private listSchedulerTool(context: IAgentMiddlewareContext, inThread: boolean) {
         return tool(
             async (parameters, config) => {
+                if ('mode' in parameters && parameters.mode === 'follow_up') {
+                    if (parameters.xpertId !== undefined)
+                        throw new ToolParameterValidationError(
+                            'Follow-up lookup uses the current thread. Supply only mode.'
+                        )
+                    const timers = await this.timers.list(context)
+                    return JSON.stringify(
+                        timers.map(({ id, dueAt, purpose, state }) => ({
+                            mode: 'follow_up',
+                            taskId: id,
+                            dueAt,
+                            purpose,
+                            state
+                        }))
+                    )
+                }
                 const tasks = await this.commandBus.execute(
                     new QueryXpertTaskCommand(context.xpertId ?? parameters.xpertId, context.projectId ?? null)
                 )
@@ -277,23 +339,39 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
             },
             {
                 name: SchedulerToolEnum.LIST_SCHEDULER,
-                description: 'A tool for listing schedulers',
-                schema: listSchedulerSchema
+                description:
+                    'List scheduled tasks.' +
+                    (inThread
+                        ? ' Use mode follow_up to find pending deadlines and their taskId in the current thread.'
+                        : ''),
+                schema: inThread ? listSchedulerSchema : scheduledTaskList.strict()
             }
         )
     }
 
-    private deleteSchedulerTool(context: IAgentMiddlewareContext) {
+    private deleteSchedulerTool(context: IAgentMiddlewareContext, inThread: boolean) {
         return tool(
             async (parameters) => {
+                if ('mode' in parameters && parameters.mode === 'follow_up') {
+                    if (!parameters.taskId || parameters.name !== undefined)
+                        throw new ToolParameterValidationError('Cancelling a follow-up requires only mode and taskId.')
+                    const { timerId, state } = await this.timers.cancel(context, parameters.taskId)
+                    return JSON.stringify({ mode: parameters.mode, taskId: timerId, state })
+                }
+                if (!parameters.name)
+                    throw new ToolParameterValidationError('Deleting a scheduled task requires its exact name.')
                 return this.commandBus.execute(
                     new DeleteXpertTaskCommand(parameters.name, context.xpertId, context.projectId, parameters.taskId)
                 )
             },
             {
                 name: SchedulerToolEnum.DELETE_SCHEDULER,
-                description: 'A tool for deleting a scheduler',
-                schema: deleteSchedulerSchema
+                description:
+                    'Delete a scheduled task by name.' +
+                    (inThread
+                        ? ' Use mode follow_up and taskId to cancel a pending deadline in the current thread.'
+                        : ''),
+                schema: inThread ? deleteSchedulerSchema : scheduledTaskDeletion.strict()
             }
         )
     }

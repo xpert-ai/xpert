@@ -390,7 +390,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     }
 }
 
-
 function normalizeWorkspaceUploadFile(file: ViewExtensionFileActionFile, fileName: string) {
     return {
         originalname: fileName,

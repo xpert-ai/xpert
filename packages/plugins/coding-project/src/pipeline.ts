@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import {
   projectPipelineConfigurationSchema,
+  projectPipelineConfigurationDeclarationSchema,
   projectPluginDeploymentRefs,
   type ProjectPipelineExtensionDescriptor,
   type ProjectPipelineInputBinding
@@ -132,7 +133,7 @@ export const configuration = projectPipelineConfigurationSchema.parse({
       maxConcurrentExecutions: 1,
       maxTechnicalAttemptsPerNode: 3,
       runTimeoutMinutes: 10080,
-      nativeModelBudget: { maxCalls: 300, maxTokens: 2000000, reservationTokens: 10000 }
+      nativeModelBudget: { maxCalls: 300, maxTokens: 100000000, reservationTokens: 10000 }
     }
   }
 })
@@ -289,7 +290,15 @@ export const localConfiguration = projectPipelineConfigurationSchema.parse({
 @ProjectPipelineContributor('coding_project')
 export class CodingPipelineContribution implements ProjectPipelineContribution {
   readonly key = 'coding_project'
-  readonly configurations = [configuration, currentInstanceConfiguration, localConfiguration]
+  readonly configurations = [configuration, currentInstanceConfiguration, localConfiguration].map((configuration) =>
+    projectPipelineConfigurationDeclarationSchema.parse({
+      ...configuration,
+      nativeModelBudgetPolicy: {
+        maxTokensDefaultSource: 'host',
+        maximum: { maxCalls: 300, maxTokens: 100000000, reservationTokens: 10000 }
+      }
+    })
+  )
   readonly descriptors = descriptors
   readonly forms: NonNullable<ProjectPipelineContribution['forms']> = [
     configuration,
@@ -308,7 +317,6 @@ export class CodingPipelineContribution implements ProjectPipelineContribution {
             '开发与独立验收、人工批准固定版本、授权目标安装验收、代码交付。目标和仓库需预先配置。'
           ),
     assistantSlots: [{ slot: 'coordinator', label: label('Coding delivery Assistant', '编码交付 Assistant') }],
-    parameters: [],
-    nativeModelBudget: { maxCalls: 300, maxTokens: 2000000, reservationTokens: 10000 }
+    parameters: []
   }))
 }

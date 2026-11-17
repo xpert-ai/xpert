@@ -69,6 +69,7 @@ export type PluginGenerationChange = {
 }
 
 export type PluginGenerationState = {
+	source?: 'plugin-catch-up'
 	generation: number
 	status: RuntimeRestartStatus
 	restartId?: string

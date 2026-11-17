@@ -12,6 +12,15 @@ import {
 } from './message-content.utils'
 
 describe('message-content.utils', () => {
+  it('keeps an explicit null published by a tool on a later stream update', () => {
+    const message = { id: 'm', role: 'ai', content: '' } as CopilotChatMessage
+    const step = { type: 'component' as const, id: 'call' }
+    const data = { category: 'Tool' as const, toolPresentation: 'redacted', tool: 'lookup' }
+    appendMessageContent(message, { ...step, data: { ...data, input: false } })
+    appendMessageContent(message, { ...step, data: { ...data, output: null } })
+    expect(message.content).toMatchObject([{ id: 'call', data: { input: false, output: null } }])
+  })
+
   it('normalizes string incoming into text content', () => {
     const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
 

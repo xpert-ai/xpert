@@ -1,4 +1,17 @@
 {
+  "Open running conversation": "開啟執行中的對話",
+  "Choose a running conversation": "選擇執行中的對話",
+  "Delivery preferences": "通知投递设置",
+  "Feishu private chat": "飞书私聊",
+  "In-app": "站内通知",
+  "On": "已开启",
+  "Off": "已关闭",
+  "Bot": "机器人",
+  "Quiet hours start": "静默开始时间",
+  "Quiet hours end": "静默结束时间",
+  "Enable and save": "开启并保存",
+  "Turn off": "关闭通知",
+  "Could not save or load preferences. Check the time range and account binding.": "通知设置未能加载或保存，请检查时间范围与账号绑定。",
   "Connectors": "連接器",
   "Select a workspace you manage": "選擇一個你管理的工作空間",
   "Workspace management permission is required.": "設定連接器需要此工作空間的管理權限。",
@@ -1494,5 +1507,12 @@
   "System permissions": "系統權限",
   "Permissions are managed by macOS.": "權限由 macOS 管理。",
   "Manage": "管理",
-  "Briefly show the latest assistant reply beside the Dock.": "助理完成工作時，在停靠欄旁短暫顯示最新回覆。"
+  "Briefly show the latest assistant reply beside the Dock.": "助理完成工作時，在停靠欄旁短暫顯示最新回覆。",
+  "Assistant notifications": "助理通知",
+  "Scheduled tasks": "排程任務",
+  "Needs your attention": "待你處理",
+  "Recent notifications": "最近通知",
+  "Awaiting decision": "待決定",
+  "Assistant notifications, scheduled tasks and announcements": "助理通知、排程任務與公告",
+  "Read": "已讀"
 }

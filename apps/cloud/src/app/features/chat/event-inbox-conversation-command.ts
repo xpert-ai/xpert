@@ -23,11 +23,19 @@ export function provideInboxConversationCommand() {
       const org = store.organizationId
       const route = router.url
       const result = await firstValueFrom(
-        api.getViewData(context.hostType, context.hostId, context.viewKey, { selectionId: ref.data.receiptId }, context.runtimeScope)
+        api.getViewData(
+          context.hostType,
+          context.hostId,
+          context.viewKey,
+          { selectionId: ref.data.receiptId },
+          context.runtimeScope
+        )
       )
       const item = detail.safeParse(result.item)
-      if (!item.success || item.data.id !== ref.data.receiptId || !item.data.conversationAction) return { success: false }
-      if (!user || user !== store.user?.id || !org || org !== store.organizationId || route !== router.url) return { success: false }
+      if (!item.success || item.data.id !== ref.data.receiptId || !item.data.conversationAction)
+        return { success: false }
+      if (!user || user !== store.user?.id || !org || org !== store.organizationId || route !== router.url)
+        return { success: false }
       return { success: await openConversation(router, parseOpenConversationAction(item.data.conversationAction)) }
     })
     inject(DestroyRef).onDestroy(unregister)

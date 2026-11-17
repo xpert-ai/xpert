@@ -1,57 +1,22 @@
+import { OutputStore } from '../user-notification/output/output-store'
 import { ForbiddenException, HttpException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { DiscoveryService, Reflector } from '@nestjs/core'
+import { AgentEventSources, sourceContext } from './agent-event-sources'
+export { AgentEventSources, sourceContext } from './agent-event-sources'
+import { PrivateDecisionRouter } from '../user-notification/output/private-decision-router'
 import { CommandBus } from '@nestjs/cqrs'
 import { ManagedQueueHandlerRegistryService, ManagedQueueService } from '@xpert-ai/server-core'
-import {
-    AGENT_EVENT_SOURCE,
-    BaseStrategyRegistry,
-    type AgentEventContext,
-    type PluginAgentEventSource
-} from '@xpert-ai/plugin-sdk'
+import { type AgentEventContext, type AgentEventFollowUp, type PluginAgentEventSource } from '@xpert-ai/plugin-sdk'
 import { HandoffOutboxAdapters } from '../handoff/outbox-adapters.service'
 import { RuntimeMessageAccessService } from '../handoff/runtime-messaging/runtime-message-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { AssertProjectAssistantAccessCommand } from '../xpert-project/commands/assert-project-assistant-access.command'
 import type { AgentEventBinding } from './agent-event.entity'
 import { AgentEventBindingService } from './agent-event-binding.service'
+import { FollowUpThreadBusy } from './follow-up-timer.constants'
+import { AgentEventWakeService } from './agent-event-wake.service'
 import { AgentEventStore } from './agent-event.store'
 
 const queue = { pluginName: '@xpert-ai/platform', queueName: 'agent-event', jobName: 'consume' }
-
-@Injectable()
-export class AgentEventSources extends BaseStrategyRegistry<PluginAgentEventSource> {
-    constructor(discovery: DiscoveryService, reflector: Reflector) {
-        super(AGENT_EVENT_SOURCE, discovery, reflector)
-    }
-
-    resolve(binding: Pick<AgentEventBinding, 'adapter' | 'plugin' | 'organizationId'>) {
-        const source = this.get(binding.adapter, binding.organizationId)
-        const provenance = this.getSource(source)
-        if (
-            provenance.kind !== 'plugin' ||
-            provenance.pluginName !== binding.plugin ||
-            source.key !== binding.adapter ||
-            source.protocolVersion !== 1
-        )
-            throw new ForbiddenException('event_source_unavailable')
-        return source
-    }
-}
-
-export function sourceContext(binding: AgentEventBinding, signal: AbortSignal): AgentEventContext {
-    return Object.freeze({
-        bindingId: binding.id,
-        bindingRevision: binding.revision,
-        sourceBindingRef: binding.sourceBindingRef,
-        tenantId: binding.tenantId,
-        organizationId: binding.organizationId,
-        workspaceId: binding.workspaceId,
-        projectId: binding.projectId ?? undefined,
-        userId: binding.userId,
-        xpertId: binding.xpertId,
-        signal
-    })
-}
 
 @Injectable()
 export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
@@ -68,7 +33,10 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
         private readonly handlers: ManagedQueueHandlerRegistryService,
         private readonly access: RuntimeMessageAccessService,
         private readonly published: PublishedXpertAccessService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly wakeService?: AgentEventWakeService,
+        private readonly outputs?: OutputStore,
+        private readonly decisionRouter?: PrivateDecisionRouter
     ) {}
 
     onModuleInit() {
@@ -194,20 +162,50 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
             }
             await this.withAuthority(binding, context.signal, async () => {
                 try {
-                    const decision = await source.handle(context, {
-                        receiptId: claim.receiptId,
-                        fence: claim.fence,
-                        event: claim.event
-                    })
+                    const delivery = new AbortController()
+                    const signal = AbortSignal.any([context.signal, delivery.signal])
+                    const wake: AgentEventFollowUp | undefined = this.wakeService && {
+                        ...(this.decisionRouter &&
+                        binding.plugin === '@xpert-ai/plugin-lark' &&
+                        binding.adapter === 'lark.inbound'
+                            ? {
+                                  submitPrivateDecision: (reply) => {
+                                      signal.throwIfAborted()
+                                      return this.decisionRouter.submit(binding, claim, reply, signal)
+                                  }
+                              }
+                            : {}),
+                        wake: async (input) => {
+                            if (signal.aborted) throw new Error('event_delivery_closed')
+                            await this.wakeService.start(binding, claim, input, signal)
+                        }
+                    }
+                    const decision = await source
+                        .handle(
+                            context,
+                            {
+                                receiptId: claim.receiptId,
+                                fence: claim.fence,
+                                event: claim.event
+                            },
+                            wake
+                        )
+                        .finally(() => {
+                            delivery.abort()
+                        })
                     if (!context.signal.aborted) await this.store.complete(claim, decision)
                 } catch (error) {
-                    if (!context.signal.aborted)
+                    if (context.signal.aborted) return
+                    if (error instanceof FollowUpThreadBusy) {
+                        await this.store.complete(claim, undefined, true)
+                    } else {
                         await this.store.complete(
                             claim,
-                            error instanceof HttpException && [401, 403].includes(error.getStatus())
+                            error instanceof HttpException && [401, 403, 404].includes(error.getStatus())
                                 ? { status: 'blocked', reasonCode: 'event_access_changed' }
                                 : undefined
                         )
+                    }
                 }
             })
         }
@@ -235,6 +233,7 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
                     if (consumed.value > 0 && (drained.status === 'rejected' || drained.value))
                         await this.consume(binding, source, context, consumed.value)
                     if (drained.status === 'rejected') throw drained.reason
+                    if (source.outputs) await this.outputs?.collect(binding, context, source.outputs)
                 })
             ])
             await this.bindings.recordScan(binding, null)

@@ -1899,6 +1899,7 @@ describe('RunCreateStreamHandler execute', () => {
                 ([command]) => command instanceof XpertAgentExecutionUpsertCommand
             )?.[0]
             expect(upsert.execution.id).toBeUndefined()
+            expect(upsert.execution.metadata).toMatchObject({ resumedFromExecutionId: 'old-run' })
             const chat = commands.execute.mock.calls.find(([command]) => command instanceof XpertChatCommand)?.[0]
             expect(chat.options).toMatchObject({
                 threadId: 'branch',

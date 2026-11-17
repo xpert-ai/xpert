@@ -245,7 +245,9 @@ function stripAutoDisplaySeparator(
 function mergeComponentData(previous: TMessageContentComponent, incoming: TMessageContentComponent) {
   const mergedIncomingData = Object.entries(incoming.data ?? {}).reduce(
     (acc, [key, value]) => {
-      if (!isNil(value)) {
+      const explicitNull =
+        value === null && incoming.data?.['toolPresentation'] === 'redacted' && (key === 'input' || key === 'output')
+      if (!isNil(value) || explicitNull) {
         acc[key] = value
       }
       return acc

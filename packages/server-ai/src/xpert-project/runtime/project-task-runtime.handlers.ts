@@ -5,6 +5,7 @@ import {
     DecideProjectTaskCommand,
     DecideProjectTaskReferenceCommand,
     GetProjectRuntimeTaskCommand,
+    ReadProjectTaskResultCommand,
     RecoverProjectTaskDeliveryCommand,
     ListProjectRuntimeBindingsCommand
 } from './project-task-dispatch.command'
@@ -56,6 +57,13 @@ export class GetProjectRuntimeTaskHandler implements ICommandHandler<GetProjectR
         return this.read.get(command.projectId, command.taskId)
     }
 }
+@CommandHandler(ReadProjectTaskResultCommand)
+export class ReadProjectTaskResultHandler implements ICommandHandler<ReadProjectTaskResultCommand> {
+    constructor(private readonly read: ProjectTaskRuntimeReadService) {}
+    execute(command: ReadProjectTaskResultCommand) {
+        return this.read.readResult(command.projectId, command.input)
+    }
+}
 @CommandHandler(ListProjectRuntimeBindingsCommand)
 export class ListProjectRuntimeBindingsHandler implements ICommandHandler<ListProjectRuntimeBindingsCommand> {
     constructor(
@@ -80,5 +88,6 @@ export const ProjectTaskRuntimeHandlers = [
     DecideProjectTaskReferenceHandler,
     DispatchProjectTaskHandler,
     GetProjectRuntimeTaskHandler,
+    ReadProjectTaskResultHandler,
     ListProjectRuntimeBindingsHandler
 ]

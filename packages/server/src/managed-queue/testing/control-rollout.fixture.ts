@@ -15,7 +15,28 @@ import { AdmittedManagedQueueProcessor } from '../admitted-queue.processor'
 import { UserService } from '../../user/user.service'
 import type { ManagedQueueEnvelope } from '../constants'
 
-export async function controlRolloutFixture(url: string, redisUrl: string) {
+/** Public test surface avoids emitting inferred Redis internals from an external dependency layout. */
+export interface ControlRolloutFixture {
+	database: DataSource
+	schema: string
+	redis: ReturnType<typeof createClient>
+	instances: InstanceRegistryService
+	admission: ControlRuntimeAdmissionService
+	handlers: ManagedQueueHandlerRegistryService
+	controls: TaskControlStore
+	runner: TaskControlRunner
+	queues: Queue<ManagedQueueEnvelope>[]
+	legacy: Queue<ManagedQueueEnvelope>
+	admitted: Queue<ManagedQueueEnvelope>
+	service: ManagedQueueService
+	scope: { tenantId: string; organizationId: string }
+	identity: { pluginName: string; queueName: string; jobName: string; controlContract: string }
+	ready(): Promise<void>
+	worker(): Promise<Worker>
+	close(): Promise<void>
+}
+
+export async function controlRolloutFixture(url: string, redisUrl: string): Promise<ControlRolloutFixture> {
 	if (!new URL(url).pathname.endsWith('_test') || new URL(redisUrl).hostname !== '127.0.0.1')
 		throw new Error('Disposable local infrastructure required')
 	const schema = `control_worker_${randomUUID().replace(/-/g, '')}`

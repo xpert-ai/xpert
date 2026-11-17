@@ -59,6 +59,12 @@ function createAssistantProfileMethods(ClientError) {
         view.view?.type === 'remote_component'
     )
   }
+  async function inboxConversation(request, payload) {
+    if (!object(payload) || Object.keys(payload).length !== 1 || !identifier(payload.receiptId)) reject()
+    const detail = await request(`/data?selectionId=${enc(payload.receiptId)}`)
+    if (detail?.item?.id !== payload.receiptId || !detail.item.conversationAction) reject()
+    return detail.item.conversationAction
+  }
   function store(service) {
     if (!sessions.has(service)) sessions.set(service, new Map())
     return sessions.get(service)
@@ -140,6 +146,18 @@ function createAssistantProfileMethods(ClientError) {
     },
     personalInboxViews() {
       return personalViews(this)
+    },
+    async workbenchInboxConversation({ assistantId, viewKey, payload } = {}) {
+      const identity = personalIdentity(this)
+      if (!identity || viewKey !== inboxKey || !identifier(assistantId) || !/^[a-zA-Z0-9_-]+$/.test(assistantId))
+        reject()
+      const generation = this.generation
+      // View data rechecks manifest visibility, receipt ownership and the target conversation on every click.
+      const base = `/api/view-hosts/agent/${enc(assistantId)}/views/${inboxKey}`
+      const action = await inboxConversation((path) => this.request(base + path, { scope: 'organization' }), payload)
+      if (generation !== this.generation || identity !== personalIdentity(this) || action.assistantId !== assistantId)
+        reject()
+      return action
     },
     async openProfileView({ botId, viewKey, scope } = {}) {
       const generation = this.generation
@@ -235,12 +253,8 @@ function createAssistantProfileMethods(ClientError) {
       }
       if (operation === 'command') {
         if (!manifest.clientCommands?.some((command) => command.key === commandKey)) reject()
-        if (commandKey === 'open_conversation' && session.personal && manifest.key === inboxKey) {
-          if (!object(payload) || Object.keys(payload).length !== 1 || !identifier(payload.receiptId)) reject()
-          const detail = await request(`/data?selectionId=${enc(payload.receiptId)}`)
-          if (detail?.item?.id !== payload.receiptId || !detail.item.conversationAction) reject()
-          return detail.item.conversationAction
-        }
+        if (commandKey === 'open_conversation' && session.personal && manifest.key === inboxKey)
+          return inboxConversation(request, payload)
         if (['assistant.profile.interaction', 'assistant.profile.close'].includes(commandKey)) return { success: true }
         if (
           commandKey === 'workbench.navigation.open' &&
