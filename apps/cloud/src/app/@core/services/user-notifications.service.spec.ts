@@ -81,6 +81,25 @@ describe('User notification client isolation and recovery', () => {
     jest.useRealTimers()
     localStorage.clear()
   })
+  it('negotiates outputs while using the legacy sync and page query parameters', async () => {
+    service.start()
+    await advance(251)
+    const sync = http.expectOne((req) => req.url.endsWith('/sync'))
+    expect(sync.request.params.keys()).toEqual(['client'])
+    expect(sync.request.headers.get('Accept')).toBe('application/json; profile="xpert-agent-output-v1"')
+    sync.flush(snapshot())
+    await advance()
+    expect(service.snapshot()?.announcements).toHaveLength(1)
+
+    const response = service.notifications(30)
+    const page = http.expectOne((req) => req.url.endsWith('/user-notifications'))
+    expect(page.request.params.keys()).toEqual(['offset'])
+    expect(page.request.params.get('offset')).toBe('30')
+    expect(page.request.headers.get('Accept')).toBe(sync.request.headers.get('Accept'))
+    page.flush({ items: [], hasMore: false, nextOffset: 30 })
+    expect((await response).nextOffset).toBe(30)
+  })
+
   it('ignores heartbeat and invalid hints, and reconciles a valid change hint', async () => {
     service.start()
     await advance(251)

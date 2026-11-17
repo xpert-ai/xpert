@@ -34,6 +34,7 @@ export function Sidebar({
   onRefresh,
   onOrganization,
   onRefreshOrganizations,
+  onInbox,
   onSettings,
   onBrowse,
   onLogout,
@@ -62,6 +63,7 @@ export function Sidebar({
   onRefresh: () => void
   onOrganization: (id: string) => void
   onRefreshOrganizations: () => void
+  onInbox: (opener: HTMLElement | null) => void
   onSettings: () => void
   onBrowse: () => void
   onLogout: () => void
@@ -473,6 +475,7 @@ export function Sidebar({
         profile={profile}
         webUrl={state.config.webUrl}
         compact={collapsed}
+        onInbox={onInbox}
         onSettings={onSettings}
         onLogout={onLogout}
       />

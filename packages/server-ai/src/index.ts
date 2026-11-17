@@ -1,3 +1,4 @@
+export * from './agent-event/agent-event.module'
 export * from './app.module'
 export * from './assistant-binding/index'
 export * from './copilot/index'

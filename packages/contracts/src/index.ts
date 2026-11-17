@@ -1,3 +1,4 @@
+export * from './always-on'
 export * from './task-control.model'
 export * from './app-platform'
 export * from './execution-control-admission.schema'

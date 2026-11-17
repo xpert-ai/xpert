@@ -9,6 +9,20 @@
   "bugs": {
     "url": "https://github.com/xpert-ai/xpert/issues"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "module": "./dist/index.esm.js",
+      "default": "./index.cjs.js"
+    },
+    "./context-event": {
+      "types": "./dist/context-event.d.ts",
+      "module": "./dist/context-event.esm.js",
+      "default": "./dist/context-event.cjs.js"
+    },
+    "./package.json": "./package.json",
+    "./*": "./*"
+  },
   "publishConfig": {
     "access": "public",
     "directory": "dist"

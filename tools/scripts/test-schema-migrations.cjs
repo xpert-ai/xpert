@@ -21,6 +21,42 @@ const silent = {
   logQuerySlow() {}
 }
 
+async function verifyExecutionReviewUpgrade(source, bundle, migrate) {
+  const audit = bundle.migrations.find(({ id }) => id === 'ai.evolution-reviews.20261115020000-execution-review-audit')
+  assert.ok(audit && bundle.checks.includes(audit.check), 'receipt audit migration must be packaged and verified')
+  await migrate(source, {
+    ...bundle,
+    migrations: bundle.migrations.filter((item) => item !== audit),
+    checks: bundle.checks.filter((check) => check !== audit.check)
+  })
+  const [before] = await source.query(`
+    WITH t AS (INSERT INTO tenant(name) VALUES ('receipt-upgrade') RETURNING id),
+         o AS (INSERT INTO organization("tenantId", name, currency, "defaultValueDateType")
+               SELECT id, 'receipt-upgrade', 'USD', 'TODAY' FROM t RETURNING id),
+         u AS (INSERT INTO "user"("tenantId", email) SELECT id, 'receipt-upgrade@example.invalid' FROM t RETURNING id),
+         r AS (SELECT gen_random_uuid() AS id, gen_random_uuid() AS execution)
+    INSERT INTO agent_evolution_execution_review
+      (id, "tenantId", "organizationId", "targetId", "executionId", "projectId", "conversationId", "bundleHash", receipt)
+    SELECT r.id, t.id, o.id, 'intent', r.execution, gen_random_uuid(), gen_random_uuid(), 'hash',
+           jsonb_build_object('receiptId', r.id, 'executionId', r.execution, 'versionId', 'v1',
+                              'disposition', 'confirmed', 'use', 'case_only', 'originalLabel', 'refund',
+                              'expectedLabel', 'refund', 'reviewerId', u.id, 'reviewedAt', '2026-10-01T12:34:56.000Z')
+    FROM t, o, u, r RETURNING id, "tenantId", "organizationId", receipt`)
+  await migrate(source, bundle)
+  const after = await source.getRepository('ExecutionReviewEntity').findOneOrFail({
+    where: { id: before.id },
+    relations: { tenant: true, organization: true, createdBy: true, updatedBy: true }
+  })
+  assert.deepEqual(after.receipt, before.receipt)
+  assert.equal(after.tenant.id, before.tenantId)
+  assert.equal(after.organization.id, before.organizationId)
+  assert.equal(after.createdBy.id, before.receipt.reviewerId)
+  assert.equal(after.updatedBy.id, before.receipt.reviewerId)
+  assert.equal(after.createdAt.toISOString(), before.receipt.reviewedAt)
+  assert.equal(after.updatedAt.toISOString(), before.receipt.reviewedAt)
+  console.log('PASS execution review upgrade preserves the receipt, original reviewer and review time through TypeORM')
+}
+
 async function main() {
   await fs.mkdir(path.join(root, '.nx'), { recursive: true })
   const temporary = await fs.mkdtemp(path.join(root, '.nx/schema-migration-test-'))
@@ -383,7 +419,7 @@ async function main() {
       ...silent,
       logQueryError: (error, query) => console.error(String(error).slice(0, 300), query.slice(0, 300))
     })
-    await synchronizeWithMigrations(host, hostBundle)
+    await verifyExecutionReviewUpgrade(host, hostBundle, synchronizeWithMigrations)
     await synchronizeWithMigrations(host, hostBundle)
     await synchronizeWithMigrations(host, hostBundle, 'verify')
     await verifyContentDocuments(host, hostBundle, synchronizeWithMigrations, root)
@@ -481,6 +517,7 @@ async function main() {
     const notificationTables = USER_NOTIFICATION_ENTITIES.map((entity) => host.getMetadata(entity).tableName)
     const postBaselineTables = [
       ...notificationTables,
+      'agent_evolution_execution_review',
       'artifact_use_grant',
       'artifact_use_grant_audit',
       'resource_analysis_execution'

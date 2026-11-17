@@ -133,6 +133,13 @@ test(
       seen.add((await response.json()).node)
       return seen.size === 3
     }, 'all three replicas admitted')
+    // The pool still sees api0 as healthy until its next check.
+    const probe = { headers: { 'x-test-withdrawing-replica': 'api0' } }
+    for (let i = 0; i < 6; i++) assert.equal((await request(origin + '/api/health/ready', probe)).status, 200)
+    const postStatuses = []
+    for (let i = 0; i < 6; i++)
+      postStatuses.push((await request(origin + '/api/health/ready', { ...probe, method: 'POST' })).status)
+    assert.ok(postStatuses.includes(503), 'POST must preserve the first upstream response')
     stream = (await fetch(origin + '/api/events')).body.getReader()
     const first = await stream.read()
     const streamNode = JSON.parse(new TextDecoder().decode(first.value).split('data: ')[1].split('\n')[0]).node

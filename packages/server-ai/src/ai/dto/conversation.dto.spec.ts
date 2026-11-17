@@ -8,6 +8,23 @@ import { ChatMessageDTO } from './conversation.dto'
 import { instanceToPlain } from 'class-transformer'
 
 describe('ChatMessageDTO', () => {
+    it.each([false, true])('serializes the same declared tool details with XPERT_VIEW=%s', (canView) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(canView)
+        const row = {
+            type: 'component' as const,
+            id: 'one',
+            data: {
+                category: 'Tool' as const,
+                tool: 'lookup',
+                toolPresentation: 'redacted',
+                title: 'Lookup',
+                output: { rows: 3 }
+            }
+        }
+        const dto = new ChatMessageDTO({ id: 'm', role: 'ai', content: [row] })
+        expect(instanceToPlain(dto).content).toEqual([row])
+    })
+
     it('serializes derived execution summaries without exposing raw execution metadata', () => {
         const dto = new ChatMessageDTO({ id: 'a', role: 'ai' })
         dto.agentRuns = [{ id: 'external', invocationKind: 'external_assistant', model: 'model-a' }]

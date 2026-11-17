@@ -1,0 +1,27 @@
+@import '@xpert-ai/shadcn-ui/styles.css';
+@source "./src/**/*.{ts,tsx}";
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+.inbox-layout {
+    display: grid;
+    grid-template-columns: minmax(10rem, 18%) minmax(18rem, 37%) minmax(0, 1fr);
+}
+.inbox-compact-types {
+    display: none;
+}
+@media (max-width: 879px) {
+    .inbox-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .inbox-categories {
+        display: none;
+    }
+    .inbox-compact-types {
+        display: block;
+    }
+}

@@ -86,6 +86,7 @@ import { ChatConversationUpsertCommand } from '../chat-conversation'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { ToolSchemaParser } from '../shared/tools/utils'
 import { AutoTask } from './auto-task.entity'
+import { reconcileDetachedAutoTasks, runOneOffAutoTask } from './auto-task-once'
 import { AutoTaskTemplate } from './auto-task-template.entity'
 import { applyScheduledTaskOidcContext } from './scheduled-task-oidc-token'
 import { ScheduleNote, ScheduleNoteStatus, ScheduleNoteType } from './schedule-note.entity'
@@ -454,7 +455,14 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async updateHttpMonitor(
         id: string,
-        input: { name: string; prompt: string; intervalMinutes: number; destination: MonitorDestination; timeZone?: string; firstRun?: MonitorFirstRun }
+        input: {
+            name: string
+            prompt: string
+            intervalMinutes: number
+            destination: MonitorDestination
+            timeZone?: string
+            firstRun?: MonitorFirstRun
+        }
     ) {
         const task = await this.assertHttpMutationAccess(id)
         if (!task.monitor) throw new BadRequestException(t('server-ai:Error.ScheduleConversationUnavailable'))
@@ -493,8 +501,11 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 throw new BadRequestException(t('server-ai:Error.ScheduleRunInProgress'))
             const timeZone = input.timeZone ?? current.timeZone ?? 'UTC'
             const first = firstRunOf(current.monitor, current.timeZone || 'UTC')
-            const changedStart = input.firstRun && (first?.date !== input.firstRun.date ||
-                first?.time !== input.firstRun.time || timeZone !== current.timeZone)
+            const changedStart =
+                input.firstRun &&
+                (first?.date !== input.firstRun.date ||
+                    first?.time !== input.firstRun.time ||
+                    timeZone !== current.timeZone)
             let cadence: ReturnType<typeof monitorCadence> | undefined
             if (input.firstRun && (changedStart || current.monitor.intervalMinutes !== input.intervalMinutes)) {
                 cadence = cadenceFromFirstRun(input.firstRun, timeZone, input.intervalMinutes)
@@ -709,6 +720,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     private async createPersistedTaskChatRun(params: {
         existingConversation?: ChatConversation
+        once?: boolean
         threadId?: string
         agentKey?: string
         prompt?: string | null
@@ -742,14 +754,16 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 })
             ))
         const threadId = params.threadId ?? conversation.threadId
-        const execution = await this.commandBus.execute(
-            new XpertAgentExecutionUpsertCommand({
-                id: params.executionId ?? undefined,
-                xpertId: params.xpertId ?? undefined,
-                status: XpertAgentExecutionStatusEnum.RUNNING,
-                threadId
-            })
-        )
+        const execution = params.once
+            ? { id: params.executionId }
+            : await this.commandBus.execute(
+                  new XpertAgentExecutionUpsertCommand({
+                      id: params.executionId ?? undefined,
+                      xpertId: params.xpertId ?? undefined,
+                      status: XpertAgentExecutionStatusEnum.RUNNING,
+                      threadId
+                  })
+              )
         const observable = await this.commandBus.execute(
             new XpertChatCommand(
                 {
@@ -764,6 +778,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                 },
                 {
                     ...(params.chatOptions ?? {}),
+                    once: params.once,
                     xpertId: params.xpertId ?? undefined,
                     projectId: params.projectId ?? undefined,
                     timeZone: params.timeZone ?? params.chatOptions?.timeZone,
@@ -2688,6 +2703,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     async runDueAutoTasks() {
         await this.redisLockService.runWithLock(AUTO_TASK_CRON_LOCK_KEY, AUTO_TASK_CRON_LOCK_TTL, async () => {
             const now = new Date()
+            await reconcileDetachedAutoTasks(this.autoTaskRepository)
             const dueTasks = await this.autoTaskRepository
                 .createQueryBuilder('task')
                 .leftJoinAndSelect('task.createdBy', 'createdBy')
@@ -2708,6 +2724,27 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
     }
 
     private async executeAutoTask(task: AutoTask) {
+        if (task.frequency === 'once') {
+            return runWithTaskExecutionIdentity(this.commandBus, task, task.createdById, () =>
+                runOneOffAutoTask(
+                    this.autoTaskRepository,
+                    task,
+                    async (current, conversationId, executionId, existingConversation) => {
+                        const run = await this.createPersistedTaskChatRun({
+                            once: true,
+                            existingConversation,
+                            conversationId,
+                            executionId,
+                            prompt: current.prompt,
+                            xpertId: this.requireAutoTaskAssistantId(current.params),
+                            taskId: current.id,
+                            timeZone: current.timeZone
+                        })
+                        return run.observable
+                    }
+                )
+            )
+        }
         const assistantId = this.requireAutoTaskAssistantId(task.params)
 
         const execute = async () => {
@@ -2725,10 +2762,6 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const now = new Date()
         task.lastRunAt = now
         task.nextRunAt = this.computeAutoTaskNextRunAt(task)
-        if (task.frequency === 'once') {
-            task.enabled = false
-            task.nextRunAt = null
-        }
         await this.autoTaskRepository.save(task)
     }
 

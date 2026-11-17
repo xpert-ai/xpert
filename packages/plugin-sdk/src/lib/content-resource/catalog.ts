@@ -57,7 +57,15 @@ export interface ContentCatalogProvider {
 }
 export interface ContentCatalogApi {
   types(scope: ContentDocumentScope): Promise<Array<ContentTypeImplementation & { providerKey: string }>>
-  /** Reconciles registered providers before listing. The caller may continue with the returned cursor. */
+  /** Rebuild derived catalog metadata explicitly, outside the first-page read path. */
+  refresh(scope: ContentDocumentScope & { excludedProviderKeys?: string[] }): Promise<void>
+  /** Project-scoped suppression metadata, including tombstones. These paths only hide
+   * duplicate file entries; they must never be displayed or treated as access grants. */
+  coverage(
+    scope: ContentDocumentScope & { excludedProviderKeys?: string[] }
+  ): Promise<Array<{ path: string; recursive: boolean }>>
+  /** Reads an authorized page. Use indexed discovery for interactive lists and refresh
+   * separately. The default retains synchronous discovery for existing callers. */
   list(
     scope: ContentDocumentScope & {
       excludedProviderKeys?: string[]
@@ -67,8 +75,10 @@ export interface ContentCatalogApi {
       deleted?: boolean
       offset?: number
       limit?: number
+      discovery?: 'refresh' | 'indexed'
+      cursor?: string
     }
-  ): Promise<{ items: ContentCatalogItem[]; hasMore: boolean }>
+  ): Promise<{ items: ContentCatalogItem[]; hasMore: boolean; nextCursor?: string }>
   register(input: ContentDocumentScope & { source: ContentResourceReference }): Promise<ContentCatalogItem>
   get(input: ContentDocumentScope & { contentId: string }): Promise<ContentCatalogItem>
   projectText(

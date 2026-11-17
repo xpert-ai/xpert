@@ -98,7 +98,10 @@ export class ViewMiddlewareRuntimeService implements ViewMiddlewareRuntimeResolv
                 knowledgebaseIds: agent.knowledgebaseIds,
                 node: { ...node, provider: resolvedProvider, options },
                 tools: new Map(),
-                runtime: this.middlewareRuntime.createScopedApi(scope)
+                runtime: this.middlewareRuntime.createScopedApi(scope, {
+                    feature: requiredFeature,
+                    projectAccess: runtimeScope.projectAccess
+                })
             }
         }
     }

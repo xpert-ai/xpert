@@ -1,0 +1,41 @@
+---
+title: 'Human decisions on supplier delays'
+description: 'Respond to a proposed delivery date in the procurement workbench or a private Feishu chat, and see what happens when the quote changes.'
+---
+
+When a supplier moves delivery from December 1 to December 8, the procurement assistant can ask the buyer to decide on that quote revision. You can close the chat and answer later. The procurement case keeps the decision from either the workbench or your private Feishu chat.
+
+## Decide in the procurement workbench
+
+1. Open a Procurement Quote Comparison case you created and can still manage. Under **Buyer decisions**, choose **Enable buyer decisions**. Quote events must be enabled for the case, with an active source binding for the procurement assistant.
+2. When a revised quote triggers a delay request, check the supplier, quote revision, previous delivery date and proposed date. If the request replaces an earlier proposal, the workbench also shows that proposal.
+3. Choose how to handle this revision.
+
+| Choice                 | What happens in the case                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Accept this delay**  | The case records acceptance for this revision and ends pending follow-ups for the risk.                          |
+| **Decline this delay** | The revision enters renegotiation and the current follow-up ends. The buyer can contact the supplier separately. |
+
+Both choices record who decided and when. When an authorized original procurement conversation and thread are available, the assistant reports the outcome there. Contacting the supplier, changing a contract and placing an order each require a separate action. Disabling buyer decisions closes the case’s pending requests.
+
+## Answer in a private Feishu chat
+
+In **Notifications → Delivery preferences**, enable Feishu private chat for **Buyer delay decision**, link your own Feishu identity and choose the bot. The channel must support private decision cards and verified replies. [Agent Outbox](/en/guides/agent-outbox)
+
+Open the bot’s original card and check the case, supplier, quote revision and dates. Select a button, or **quote that card directly** and enter the exact reply printed on it. The procurement card accepts `接受本次延期` for acceptance and `不接受本次延期` for rejection. If the chat contains several cards, the quoted message identifies the request. A standalone “yes”, a forwarded group message or a supplier reply cannot record a buyer decision.
+
+At submission, Xpert checks the sender, private chat, bot, original delivery and current source binding. The procurement plugin verifies that you are the designated buyer and can still act on the case. If the binding is revoked, the bot changes or the identity link expires, open the workbench to see which requests you can still act on.
+
+## When the quote changes or two answers arrive
+
+Suppose the supplier moves delivery again, to December 12. The old card refers to the December 8 proposal. Refresh the workbench, check the new date and revision, and answer the new request if it requires a decision. A recorded decision stays with its original quote revision.
+
+If the workbench and Feishu receive the same choice for one request, the case records one decision and emits one follow-up event. For opposing choices, the first committed decision stands and the later submission returns a conflict. If Feishu needs to retry a card update, the committed outcome is already visible in the workbench.
+
+## Integrate a plugin
+
+- The source returns a `human_decision` presentation from `outputs.resolveForRecipient`, with a `requestVersion` and choices. The original outbox reference supplies the request identity in `key` and the displayed business version in `revision`. Each choice has a stable `key` and localized `label`. An optional `replyCommand` specifies the exact quoted reply.
+- The server-side View provider for an authorized workbench action resolves `WorkbenchDecisionCapability` (`platform.view.workbench-decision`) from the SDK and calls `submit(adapter, sourceBindingRef, input)`. The input carries `schemaVersion: 1`, `requestId`, `sourceRevision`, `requestVersion`, `choice` and `commandId`. Reuse the command ID when retrying the same submission.
+- The platform resolves the actor and binding from the active workbench action or the verified Feishu card. In `outputs.submitDecision`, the source checks decision authority, versions and the choice in its business transaction, then records the outcome and deduplicates submissions. The Feishu channel needs an SDK with `PrivateDecisionCard`, `PrivateDecisionReply` and `submitPrivateDecision`, plus `PrivateDecisionFeedbackStatus` in Contracts.
+
+A submission can return `recorded`, `already_recorded` (the same choice already exists), `conflicting_choice` (an incompatible choice or a command ID reused with different input), `stale` (review the current revision), `closed` or `forbidden`. Users can inspect receipts they are authorized to read in the [Event Inbox](/en/guides/event-inbox).

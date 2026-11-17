@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { EntitySchema } from 'typeorm'
+import { DataSource, EntitySchema } from 'typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { ForbiddenException } from '@nestjs/common'
 import { TaskControlStore } from '@xpert-ai/server-core'
@@ -34,8 +34,9 @@ const scope = {
     tenantId: uuid,
     organizationId: { ...uuid, nullable: true }
 }
-export async function viewFixture(url: string) {
+export async function viewFixture(url: string, extraEntities: DataSource['options']['entities'] = []) {
     const database = await mcpTestDatabase(url, [
+        ...Object.values(extraEntities),
         new EntitySchema<AppPlatformDelivery>({
             name: 'AppPlatformDelivery',
             target: AppPlatformDelivery,

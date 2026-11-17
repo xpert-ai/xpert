@@ -1,3 +1,5 @@
+import { IntentReviewMiddleware, IntentReviewView } from './customer-intent/review-view'
+import { reviewMiddleware } from './customer-intent/review-access'
 import { XpertServerPlugin, IOnPluginBootstrap, IOnPluginDestroy } from '@xpert-ai/plugin-sdk'
 import { ConfigModule } from '@nestjs/config'
 import { CustomerIntentModule } from './customer-intent/customer-intent.module'
@@ -26,7 +28,9 @@ import { WasabiProvider } from './wasabi.provider'
     OSSProvider,
     // The loader tags root providers with the plugin installation scope before strategy discovery.
     { provide: intentNode, useExisting: CustomerIntentNode },
-    { provide: intentTarget, useExisting: CustomerIntentProvider }
+    { provide: intentTarget, useExisting: CustomerIntentProvider },
+    { provide: reviewMiddleware, useExisting: IntentReviewMiddleware },
+    { provide: 'customer-intent-review-view', useExisting: IntentReviewView }
   ]
 })
 export class DraftPluginsModule implements IOnPluginBootstrap, IOnPluginDestroy {

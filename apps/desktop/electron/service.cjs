@@ -345,11 +345,12 @@ class DesktopService {
   }
 
   applyAccountLanguage() {
-    const locale = this.profile?.user.preferredLanguage
-    if (locale && locale !== this.config.locale) {
-      this.config = { ...this.config, locale }
-      this.persist()
-    }
+    const locale = this.profile.user.preferredLanguage
+    // Compare with the last account preference in this session so a refresh preserves later desktop edits.
+    if (locale === (this.credentials.lastAccountLocale ?? null)) return
+    this.credentials = { ...this.credentials, lastAccountLocale: locale }
+    if (locale) this.config = { ...this.config, locale }
+    this.persist()
   }
 
   async refreshProfile() {

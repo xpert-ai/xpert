@@ -1,18 +1,7 @@
 function createUpdateMenuAction({ updates, t, showMessageBox }) {
   let pending
   const run = async () => {
-    let state = await updates.check()
-    if (state.status === 'checking') {
-      state = await new Promise((resolve) => {
-        const receive = (next) => {
-          if (next.status === 'checking') return
-          updates.removeListener('state', receive)
-          resolve(next)
-        }
-        updates.on('state', receive)
-        receive(updates.snapshot())
-      })
-    }
+    const state = await updates.check({ manual: true })
     const ready = state.status === 'downloaded' || (state.status === 'error' && state.operation === 'install')
     const available = state.status === 'available' || (state.status === 'error' && state.operation === 'download')
     const messages = {

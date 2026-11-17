@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
-import { request } from '../../../../../view-extension/remote-components/shared/bridge'
+import { request } from '@xpert-ai/plugin-sdk/remote-component'
 
 export const types = ['user', 'feedback', 'project', 'reference'] as const
 export const fields = z.object({ title: z.string(), summary: z.string(), content: z.string() })

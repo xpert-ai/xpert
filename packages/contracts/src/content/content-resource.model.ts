@@ -1,5 +1,5 @@
 import type { I18nObject } from '../i18n.model'
-import type { ArtifactTypeDescriptor } from '../artifacts/artifact.model'
+import type { ArtifactKind, ArtifactTypeDescriptor } from '../artifacts/artifact.model'
 import type { IconDefinition } from '../types'
 
 export type ContentAction = 'rename' | 'move' | 'trash' | 'restore' | 'duplicate'
@@ -34,7 +34,7 @@ export interface ContentTypeImplementation {
 }
 export interface ContentResourceSnapshot extends ContentModelIdentity {
   /** Read-only published content; opening still requires current Project and source authorization. */
-  presentation?: { kind: 'artifact'; referenceId: string; type?: ArtifactTypeDescriptor }
+  presentation?: { kind: 'artifact'; referenceId: string; type?: ArtifactTypeDescriptor; artifactKind?: ArtifactKind }
   /** Opt in only when all Project readers may read the source even without this provider.
    * Resources with additional native ACLs must omit this field and fail closed offline. */
   offlineAccess?: 'project'

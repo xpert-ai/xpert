@@ -169,6 +169,7 @@ describe('XpertTaskService', () => {
             getMany: jest.fn().mockResolvedValue([])
         }
         const autoTaskRepository = createRepositoryMock<AutoTask>()
+        autoTaskRepository.query = jest.fn().mockResolvedValue([])
         jest.mocked(autoTaskRepository.createQueryBuilder).mockReturnValue(autoTaskQuery as never)
         const redisLockService = createRedisLockServiceMock()
         const service = createService(createCommandBusMock(), undefined, undefined, undefined, undefined, {

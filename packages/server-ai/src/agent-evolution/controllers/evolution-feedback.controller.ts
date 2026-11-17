@@ -1,5 +1,5 @@
 import { Body, Controller, NotFoundException, Param, Post, UseGuards } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { EvolutionTargetProviderRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
@@ -7,7 +7,9 @@ import { Permissions, PermissionGuard, UUIDValidationPipe } from '@xpert-ai/serv
 import { DataSource, In } from 'typeorm'
 import { AssertChatConversationAccessQuery } from '../../chat-conversation/queries/conversation-assert-access.query'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
+import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { AgentEvolutionGovernanceService, AgentEvolutionStore } from '../application'
+import { ExecutionReviewService } from '../execution-review/execution-review.service'
 import { changeError } from '../changes/change.errors'
 
 const feedbackFields = { id: true, threadId: true, outputs: true, createdAt: true, completedAt: true } as const
@@ -19,9 +21,11 @@ export class EvolutionFeedbackController {
     constructor(
         @InjectDataSource() private readonly db: DataSource,
         private readonly queries: QueryBus,
+        private readonly commands: CommandBus,
         private readonly providers: EvolutionTargetProviderRegistry,
         private readonly store: AgentEvolutionStore,
-        private readonly governance: AgentEvolutionGovernanceService
+        private readonly governance: AgentEvolutionGovernanceService,
+        private readonly reviews: ExecutionReviewService
     ) {}
 
     private resolve(key: string) {
@@ -84,14 +88,20 @@ export class EvolutionFeedbackController {
         @Param('id', UUIDValidationPipe) id: string,
         @Body() input: unknown
     ) {
-        const { identity, feedback } = this.resolve(key)
+        const { identity, feedback, targetId } = this.resolve(key)
         const execution = await this.db
             .getRepository(XpertAgentExecution)
             .findOne({ where: { ...identity, id, type: feedback.executionType }, select: feedbackFields })
         if (!execution?.threadId) changeError('invalid_execution_context')
-        await this.queries.execute(
+        const conversation = await this.queries.execute(
             new AssertChatConversationAccessQuery({ threadId: execution.threadId, ...identity }, 'contribute')
         )
-        return feedback.review(identity, execution, input)
+        if (feedback.workbench && conversation.projectId) {
+            if (!conversation.xpertId) changeError('invalid_execution_context')
+            await this.commands.execute(
+                new AssertProjectAssistantAccessCommand(conversation.projectId, conversation.xpertId, 'manage')
+            )
+        }
+        return this.reviews.reviewFeedback(identity, targetId, feedback, execution, input)
     }
 }

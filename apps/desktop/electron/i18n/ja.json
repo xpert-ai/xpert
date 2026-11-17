@@ -1,4 +1,6 @@
 {
+  "Open running conversation": "実行中の会話を開く",
+  "Choose a running conversation": "実行中の会話を選択",
   "Connectors": "コネクター",
   "Select a workspace you manage": "管理権限のあるワークスペースを選択",
   "Workspace management permission is required.": "コネクターの設定にはワークスペースの管理権限が必要です。",
@@ -33,6 +35,7 @@
   "Discover resources for {{organization}}": "{{organization}} のリソースを探す",
   "Show less": "折りたたむ",
   "Important": "Important",
+  "My events": "自分のイベント",
   "Notifications": "Notifications",
   "Announcement": "Announcement",
   "Announcements": "Announcements",
@@ -849,7 +852,7 @@
   "No matching settings.": "一致する設定が見つかりません。",
   "Not signed in": "未ログイン",
   "Interface language": "表示言語",
-  "After sign-in, your account language takes priority.": "ログイン後はアカウントの言語設定を優先します。",
+  "Your language choice is saved on this device.": "選択した言語はこのデバイスに保存されます。",
   "Choose your language": "言語を選択",
   "Previous language": "前の言語",
   "Next language": "次の言語",

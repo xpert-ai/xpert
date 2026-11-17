@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { prependBrandIconLicense } from '../../../../scripts/build-remote-react.mjs'
+import { prependBrandIconLicense } from '../../../../../../tools/remote-components/build-remote-react.mjs'
 const root = dirname(fileURLToPath(import.meta.url))
 const require = createRequire(join(process.cwd(), 'package.json'))
 const result = await build({

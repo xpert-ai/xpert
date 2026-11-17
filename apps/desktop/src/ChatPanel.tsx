@@ -13,6 +13,7 @@ import { Button } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
+import type { OpenConversationAction } from '@xpert-ai/contracts'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
 import { assistantAccentColor } from './avatar/color'
@@ -28,6 +29,7 @@ export function ChatPanel({
   initialThread,
   initialVoice,
   onConversationRead,
+  onOpenConversation,
   onSessionChange,
   onAppearanceSaved
 }: {
@@ -39,6 +41,7 @@ export function ChatPanel({
   initialThread: string | null
   initialVoice?: DesktopLastSession['conversation'] | null
   onConversationRead: (botId: string, threadId: string | null) => void
+  onOpenConversation: (action: OpenConversationAction) => void
   onSessionChange?: (session: DesktopLastSession) => void
   onAppearanceSaved: () => Promise<void>
 }) {
@@ -83,6 +86,8 @@ export function ChatPanel({
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
   const connectRef = useRef(connection.connect)
   connectRef.current = connection.connect
+  const openConversationRef = useRef(onOpenConversation)
+  openConversationRef.current = onOpenConversation
   const sessionChangeRef = useRef(onSessionChange)
   sessionChangeRef.current = onSessionChange
 
@@ -175,7 +180,8 @@ export function ChatPanel({
             {
               assistantId: () => (disposed ? undefined : activeAssistant),
               connect: (request) => connectRef.current(request)
-            }
+            },
+            (action) => openConversationRef.current(action)
           )
     }
     const options: ChatKitOptions = {

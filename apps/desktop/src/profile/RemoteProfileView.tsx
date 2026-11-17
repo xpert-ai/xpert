@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import {
+  parseOpenConversationAction,
+  type OpenConversationAction,
+  type XpertExtensionViewManifest
+} from '@xpert-ai/contracts'
 import type { ProfileViewSession } from '../assistant-profile-types'
 import { invoke } from '../host'
 import { t, useLocale, getLocale } from '../i18n'
@@ -11,21 +15,23 @@ import { SchemaProfileView } from './SchemaProfileView'
 
 export function RemoteProfileView({
   botId,
+  scope,
   manifest,
   active,
   onBusy,
+  onOpenConversation,
   onClose
 }: {
-  botId: string
   manifest: XpertExtensionViewManifest
   active: boolean
   onBusy: (key: string, busy: boolean) => void
+  onOpenConversation?: (action: OpenConversationAction) => void
   onClose: () => void
-}) {
+} & ({ scope: 'personal-inbox'; botId?: never } | { scope?: never; botId: string })) {
   const locale = useLocale()
   const frame = useRef<HTMLIFrameElement>(null)
-  const callbacks = useRef({ onBusy, onClose })
-  callbacks.current = { onBusy, onClose }
+  const callbacks = useRef({ onBusy, onClose, onOpenConversation })
+  callbacks.current = { onBusy, onClose, onOpenConversation }
   const visible = useRef(active)
   visible.current = active
   const [session, setSession] = useState<ProfileViewSession>()
@@ -41,7 +47,7 @@ export function RemoteProfileView({
     setSession(undefined)
     setReady(false)
     instanceId.current = crypto.randomUUID()
-    invoke('openProfileView', { botId, viewKey: manifest.key }).then(
+    invoke('openProfileView', scope ? { scope, viewKey: manifest.key } : { botId, viewKey: manifest.key }).then(
       (value) => {
         opened = value
         if (disposed) void invoke('closeProfileView', value.sessionId)
@@ -56,7 +62,7 @@ export function RemoteProfileView({
       callbacks.current.onBusy(manifest.key, false)
       if (opened) void invoke('closeProfileView', opened.sessionId).catch(() => undefined)
     }
-  }, [botId, manifest.key, retry])
+  }, [botId, scope, manifest.key, retry])
   useEffect(() => {
     if (!session?.entryUrl) return
     let disposed = false
@@ -171,6 +177,11 @@ export function RemoteProfileView({
               commandKey: message.commandKey,
               payload: message.payload
             })
+            if (message.commandKey === 'open_conversation') {
+              if (disposed || !visible.current || !callbacks.current.onOpenConversation) return
+              callbacks.current.onOpenConversation(parseOpenConversationAction(result))
+              result = { success: true }
+            }
             const url = navigationUrl(result)
             if (url && !disposed) {
               window.open(url, '_blank', 'noopener,noreferrer')

@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import type { I18nObject } from '../i18n.model'
+import type { IconDefinition } from '../types'
 
 /**
  * Access policies supported by platform-managed Artifact links.
@@ -29,7 +30,7 @@ export type ArtifactKind = 'html' | 'markdown' | 'pdf' | 'pptx' | 'image' | 'fil
 
 export type ArtifactTypeReference = { pluginName: string; resourceType: string }
 /** Display metadata from the registered type; never inferred from the Artifact's filename or title. */
-export type ArtifactTypeDescriptor = ArtifactTypeReference & { title?: I18nObject }
+export type ArtifactTypeDescriptor = ArtifactTypeReference & { title?: I18nObject; icon?: IconDefinition }
 /** Host-selected installation scope is persisted so a missing type cannot silently fall back. */
 export type ArtifactTypeBinding = ArtifactTypeReference & { scopeKey: string }
 

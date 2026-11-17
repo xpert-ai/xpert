@@ -20,6 +20,7 @@
     },
     "build": {
       "executor": "@nx/rollup:rollup",
+      "inputs": ["production", "^production", "{workspaceRoot}/tools/remote-components/**/*"],
       "dependsOn": ["^build", "generate-remote-components"],
       "outputs": ["{options.outputPath}"],
       "options": {

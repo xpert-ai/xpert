@@ -83,7 +83,12 @@ export class ArtifactContentProvider implements IContentResourceProvider {
                 updatedAt: reference.updatedAt.toISOString(),
                 deleted: reference.deleted,
                 source: { kind: 'managed' },
-                presentation: { kind: 'artifact', referenceId: reference.id, type: this.types.describe(artifact) },
+                presentation: {
+                    kind: 'artifact',
+                    referenceId: reference.id,
+                    type: this.types.describe(artifact),
+                    artifactKind: artifact.kind
+                },
                 defaultEditorKey: 'platform.artifact',
                 allowedActions: ['rename', 'trash', 'restore']
             }

@@ -38,8 +38,10 @@ tests below.
 ## Theme and consumers
 
 Import `@xpert-ai/shadcn-ui/styles.css` in the consumer's Tailwind entry and scan
-its TSX sources. After receiving host tokens, call `installShadcnThemeVars` with
-the host density. Host color, font and radius tokens remain authoritative; Nova
+its TSX sources. In a Workbench iframe, import `connect` from
+`@xpert-ai/plugin-sdk/remote-component` and call `applyRemoteComponentTheme(locale, theme)`
+from the init callback. This applies the host language, color mode, density and
+tokens to the document. Host color, font and radius tokens remain authoritative; Nova
 uses semantic variables such as `--popover`, `--muted`, `--border` and `--radius`.
 The radius scale follows the official multiplier scale, with explicit host small,
 medium and large radii taking precedence.

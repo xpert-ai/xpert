@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
 const { installActivityIsland, panelLayout } = require('../electron/activity-island/panel.cjs')
 
-test('only visible, scoped requests can open a chat; passive panel events never focus it', async (t) => {
+function fixture(t) {
   const activity = Object.assign(new EventEmitter(), {
     scopeKey: 'account',
     scope() {
@@ -102,7 +102,15 @@ test('only visible, scoped requests can open a chat; passive panel events never 
     ipcMain,
     service,
     screen,
-    control: { displayCutouts: async () => [], active: () => grant, stopGrant: () => false },
+    control: {
+      displayCutouts: async () => [],
+      active: () => grant,
+      stopGrant: (id) => {
+        if (!grant || grant.id !== id) return false
+        grant = undefined
+        return true
+      }
+    },
     trusted: (e) => e.sender === main.webContents,
     showWindow: () => {
       mainShows++
@@ -110,6 +118,32 @@ test('only visible, scoped requests can open a chat; passive panel events never 
     }
   })
   t.after(() => island.dispose())
+  return {
+    activity,
+    ipcMain,
+    main,
+    island,
+    get panel() {
+      return panel
+    },
+    get state() {
+      return state
+    },
+    get target() {
+      return target
+    },
+    get mainShows() {
+      return mainShows
+    },
+    set grant(value) {
+      grant = value
+    }
+  }
+}
+
+test('only visible, scoped requests can open a chat; passive panel events never focus it', async (t) => {
+  const view = fixture(t)
+  const { activity, ipcMain, main, island } = view
   activity.items = [
     {
       xpertId: 'bot',
@@ -124,82 +158,150 @@ test('only visible, scoped requests can open a chat; passive panel events never 
   ]
   activity.emit('change')
   await Promise.resolve()
-  const event = { sender: panel.webContents, senderFrame: panel.webContents.mainFrame }
+  const event = { sender: view.panel.webContents, senderFrame: view.panel.webContents.mainFrame }
   await ipcMain.action(event, 'ready')
-  assert.equal(mainShows, 0)
-  assert.equal(panel.ignoresMouse, true)
-  const initialBounds = panel.bounds
-  assert.ok(initialBounds.width >= Math.max(state.hoverWidth, state.expandedWidth) + 60)
-  assert.ok(initialBounds.height >= state.expandedHeight + state.top + 30)
+  assert.equal(view.mainShows, 0)
+  assert.equal(view.panel.ignoresMouse, true)
+  const initialBounds = view.panel.bounds
+  assert.ok(initialBounds.width >= Math.max(view.state.hoverWidth, view.state.expandedWidth) + 60)
+  assert.ok(initialBounds.height >= view.state.expandedHeight + view.state.top + 30)
   await ipcMain.action(event, 'interactive', true)
-  assert.equal(panel.ignoresMouse, false)
+  assert.equal(view.panel.ignoresMouse, false)
   await ipcMain.action(event, 'interactive', false)
-  assert.equal(panel.ignoresMouse, true)
-  assert.equal(panel.bounds, initialBounds)
-  const preview = state.tasks
+  assert.equal(view.panel.ignoresMouse, true)
+  assert.equal(view.panel.bounds, initialBounds)
+  const preview = view.state.tasks
   assert.deepEqual(
-    preview.map((task) => state.assistants[task.assistant].name),
+    preview.map((task) => view.state.assistants[task.assistant].name),
     ['Writer', 'Reviewer', 'Bosi']
   )
-  assert.equal(state.pendingTotal, 106)
-  assert.deepEqual(Object.keys(state.tasks[0]).sort(), ['assistant', 'id', 'kind', 'label'])
-  assert.equal(state.singleOwner, false)
-  assert.deepEqual(state.assistants[preview[0].assistant], { name: 'Writer', glyph: '✍️', image: null })
+  assert.equal(view.state.pendingTotal, 106)
+  assert.deepEqual(Object.keys(view.state.tasks[0]).sort(), ['assistant', 'id', 'kind', 'label'])
+  assert.equal(view.state.singleOwner, false)
+  assert.deepEqual(view.state.assistants[preview[0].assistant], { name: 'Writer', glyph: '✍️', image: null })
   const id = preview[0].id
   assert.equal(await ipcMain.action({ sender: main.webContents }, 'review', id), false)
   await ipcMain.action(event, 'expand', true)
-  assert.equal(state.expanded, true)
-  assert.equal(panel.bounds, initialBounds)
-  grant = { id: 'current', name: 'Bosi', app: 'TextEdit', title: 'test.txt' }
+  assert.equal(view.state.expanded, true)
+  assert.equal(view.panel.bounds, initialBounds)
+  view.grant = { id: 'current', name: 'Bosi', app: 'TextEdit', title: 'test.txt' }
   island.sync()
-  assert.ok(state.active)
-  assert.equal(state.tasks.length, 3)
+  assert.ok(view.state.active)
+  assert.equal(view.state.tasks.length, 3)
   await ipcMain.action(event, 'review', id)
-  assert.equal(mainShows, 1)
-  assert.equal(target, undefined)
+  assert.equal(view.mainShows, 1)
+  assert.equal(view.target, undefined)
   ipcMain.emit('island:main-ready', { sender: main.webContents })
-  assert.deepEqual(target, { botId: 'writer', threadId: 'second' })
-  assert.deepEqual(state.tasks, preview)
-  assert.equal(state.pendingTotal, 106)
+  assert.deepEqual(view.target, { botId: 'writer', threadId: 'second' })
+  assert.deepEqual(view.state.tasks, preview)
+  assert.equal(view.state.pendingTotal, 106)
   activity.items.splice(1, 1)
   activity.emit('change')
   assert.deepEqual(
-    state.tasks.slice(0, 2).map((task) => task.id),
+    view.state.tasks.slice(0, 2).map((task) => task.id),
     preview.slice(1).map((task) => task.id)
   )
   assert.deepEqual(
-    state.tasks.map((task) => task.kind),
+    view.state.tasks.map((task) => task.kind),
     ['approval', 'approval', 'question']
   )
-  assert.equal(state.pendingTotal, 105)
+  assert.equal(view.state.pendingTotal, 105)
   const firstOwner = activity.items[0]
   const otherOwner = activity.items[1]
   firstOwner.pendingThreads.push({ threadId: 'another', kind: 'question', rank: 5 })
   otherOwner.pendingThreads[0].rank = 8
   activity.emit('change')
-  assert.equal(state.singleOwner, false)
+  assert.equal(view.state.singleOwner, false)
   assert.deepEqual(
-    state.assistants.map((owner) => owner.name),
+    view.state.assistants.map((owner) => owner.name),
     ['Bosi']
   )
-  assert.ok(state.tasks.every((task) => task.assistant === 0))
+  assert.ok(view.state.tasks.every((task) => task.assistant === 0))
   activity.items = [firstOwner]
   activity.emit('change')
-  assert.equal(state.singleOwner, true)
-  assert.equal(state.pendingTotal, 104)
+  assert.equal(view.state.singleOwner, true)
+  assert.equal(view.state.pendingTotal, 104)
   activity.items = [otherOwner]
   activity.emit('change')
-  const staleId = state.tasks[0].id
+  const staleId = view.state.tasks[0].id
   activity.read = async () => {
     activity.items = []
     activity.emit('change')
   }
   assert.equal(await ipcMain.action(event, 'review', staleId), false)
-  assert.equal(mainShows, 1)
-  grant = undefined
+  assert.equal(view.mainShows, 1)
+  view.grant = undefined
   activity.scopeKey = null
   activity.emit('change')
-  assert.equal(panel.isVisible(), false)
+  assert.equal(view.panel.isVisible(), false)
+})
+
+test('running status opens the exact private thread or offers every choice without taking over pending and Stop', async (t) => {
+  const view = fixture(t)
+  const { activity, ipcMain, main } = view
+  const run = (threadId) => ({ threadId, title: 'Delivery dates' })
+  const item = {
+    xpertId: 'bot',
+    hasActiveRuns: true,
+    runningThreads: [run('quote-A')],
+    latestConversationThreadId: 'idle'
+  }
+  activity.items = [item, { xpertId: 'unavailable', runningThreads: [run('foreign')] }]
+  await Promise.resolve()
+  const event = { sender: view.panel.webContents, senderFrame: view.panel.webContents.mainFrame }
+  const act = (...args) => ipcMain.action(event, ...args)
+  await act('ready')
+  ipcMain.emit('island:main-ready', { sender: main.webContents })
+  const first = view.state.runs[0].id
+  assert.equal(view.state.runs.length, 1)
+  assert.equal(await act('running', first), true)
+  assert.deepEqual(view.target, { botId: 'bot', threadId: 'quote-A' })
+
+  // A branch starts while the direct-open click is refreshing. The original singleton no longer decides the route.
+  activity.read = async () => {
+    item.runningThreads = ['quote-A', 'quote-B', 'quote-C', 'quote-D'].map(run)
+    activity.emit('change')
+  }
+  assert.equal(await act('running', first), true)
+  assert.equal(view.mainShows, 1)
+  assert.equal(view.state.expanded, true)
+  assert.equal(view.state.runs.length, 4)
+  assert.equal(new Set(view.state.runs.map((row) => row.title)).size, 4)
+  const fourth = view.state.runs[3].id
+  item.pendingThreads = [{ threadId: 'approval', kind: 'approval' }]
+  view.grant = { id: 'window', name: 'Bosi', app: 'TextEdit' }
+  activity.emit('change')
+  assert.equal(await act('review', fourth), true)
+  assert.deepEqual(view.target, { botId: 'bot', threadId: 'quote-D' })
+  assert.equal(await act('stop', 'stale-grant'), false)
+  assert.equal(await act('stop', 'window'), true)
+  assert.equal(await act('review', view.state.tasks[0].id), true)
+  assert.deepEqual(view.target, { botId: 'bot', threadId: 'approval' })
+
+  activity.read = async () => {
+    throw new Error('offline')
+  }
+  assert.equal(await act('review', fourth), false)
+  activity.read = async () => {
+    item.runningThreads = [run('quote-E')]
+    activity.emit('change')
+  }
+  assert.equal(await act('review', fourth), false)
+  const previous = view.state.runs[0].id
+  activity.read = async () => {
+    item.runningThreads = [run('quote-F')]
+    activity.emit('change')
+  }
+  assert.equal(await act('running', previous), true)
+  assert.equal(view.state.expanded, true)
+  assert.equal(view.mainShows, 3)
+  const replacement = view.state.runs[0].id
+  activity.read = async () => {
+    activity.scopeKey = 'other-account'
+    activity.emit('change')
+  }
+  assert.equal(await act('running', replacement), false)
+  assert.equal(view.mainShows, 3)
 })
 
 test('the wings meet the camera edges even with an external primary; flat screens use a detached capsule', () => {

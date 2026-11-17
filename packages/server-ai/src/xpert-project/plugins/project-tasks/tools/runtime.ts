@@ -75,11 +75,11 @@ export function createProjectRuntimeTools(
         tool(
             async (input) => {
                 await assertPermission('edit')
-                const { taskId, executionId, ...recovery } = input
+                const { taskId, executionId, expectedRevision, paths } = input
                 return commandBus.execute(
                     new RecoverProjectTaskDeliveryCommand(context.projectId, taskId, executionId, {
-                        expectedRevision: recovery.expectedRevision,
-                        paths: recovery.paths
+                        expectedRevision,
+                        paths
                     })
                 )
             },

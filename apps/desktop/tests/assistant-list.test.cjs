@@ -50,7 +50,12 @@ function fixture() {
               unreadConversations: 1,
               latestConversationStatus: 'busy',
               latestConversationTitle: 'Latest task',
-              latestConversationThreadId: 'thread'
+              latestConversationThreadId: 'thread',
+              runningThreads: [
+                { threadId: 'branch:A', title: ' Supplier A ' },
+                { threadId: '../unsafe', title: 'Invalid' },
+                null
+              ]
             }
           ])
         )
@@ -89,9 +94,23 @@ test('profiles and copies stay local while sessions and activity use the origina
   assert.deepEqual(JSON.parse(calls.at(-1).options.body), { xpertIds: ['source'] })
   assert.equal(activity[0].latestConversationTitle, 'Latest task')
   assert.equal(activity[0].latestConversationStatus, 'busy')
+  assert.equal(activity[0].runningThreads, undefined)
   await service.markBotRead({ botId: copy.botId, threadId: 'thread' })
   assert.ok(calls.every((call) => !/\/api\/xpert\//.test(call.url)))
   assert.equal(bots[0].description, 'My notes')
+})
+
+test('the activity island requests running and pending targets and keeps routable thread IDs', async () => {
+  const { service, calls } = fixture()
+  await service.listBots()
+  service.supportsActivityIsland = true
+  const [activity] = await service.botActivity({ refresh: true })
+  assert.deepEqual(JSON.parse(calls.at(-1).options.body), {
+    xpertIds: ['source'],
+    includePending: true,
+    includeRunning: true
+  })
+  assert.deepEqual(activity.runningThreads, [{ threadId: 'branch:A', title: 'Supplier A' }])
 })
 
 test('pinning, sections, local unread and profile overrides survive restart and remain account/org/server scoped', async () => {

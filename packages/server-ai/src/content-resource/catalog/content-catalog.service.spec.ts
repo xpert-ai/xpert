@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { parseAnalysisEvidence, analysisEvidenceDigestInput } from '@xpert-ai/plugin-sdk/analytics'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { ContentCatalogService } from './content-catalog.service'
@@ -105,8 +105,66 @@ function fixture() {
         })
     }
     const entries = {
-        update: jest.fn(),
-        createQueryBuilder: () => insert,
+        update: jest.fn(async (where, patch) => {
+            const row = rows.find((row) => row.id === where.id)
+            if (row) Object.assign(row, patch)
+        }),
+        createQueryBuilder: (alias?: string) => {
+            if (!alias) return insert
+            const filters: Array<(row: ContentResourceEntry) => boolean> = []
+            let take = 100
+            const query = {
+                where: jest.fn().mockReturnThis(),
+                orderBy: jest.fn().mockReturnThis(),
+                addOrderBy: jest.fn().mockReturnThis(),
+                take: jest.fn((value: number) => {
+                    take = value
+                    return query
+                }),
+                andWhere: jest.fn(
+                    (
+                        sql: string,
+                        value: {
+                            deleted?: boolean
+                            excluded?: string[]
+                            ids?: string[]
+                            type?: string
+                            search?: string
+                            at?: string
+                            id?: string
+                        }
+                    ) => {
+                        if ('deleted' in value) filters.push((row) => row.deleted === value.deleted)
+                        if (value.excluded) filters.push((row) => !value.excluded.includes(row.providerKey))
+                        if (value.ids) filters.push((row) => value.ids.includes(row.id))
+                        if (value.type) filters.push((row) => row.typeId === value.type)
+                        if (value.search)
+                            filters.push((row) => row.title?.toLowerCase().includes(value.search.toLowerCase()))
+                        if (value.id)
+                            filters.push((row) =>
+                                value.at
+                                    ? !row.sourceUpdatedAt ||
+                                      row.sourceUpdatedAt.toISOString() < value.at ||
+                                      (row.sourceUpdatedAt.toISOString() === value.at && row.id > value.id)
+                                    : !row.sourceUpdatedAt && row.id > value.id
+                            )
+                        return query
+                    }
+                ),
+                getMany: jest.fn(async () =>
+                    rows
+                        .filter((row) => filters.every((filter) => filter(row)))
+                        .sort(
+                            (a, b) =>
+                                (b.sourceUpdatedAt?.toISOString() ?? '').localeCompare(
+                                    a.sourceUpdatedAt?.toISOString() ?? ''
+                                ) || a.id.localeCompare(b.id)
+                        )
+                        .slice(0, take)
+                )
+            }
+            return query
+        },
         find: async () => rows,
         findOneBy: jest
             .fn()
@@ -543,4 +601,84 @@ describe('authorized content transfer', () => {
             expect(f.catalog.create).not.toHaveBeenCalled()
         }
     )
+})
+
+describe('bounded indexed catalog reads', () => {
+    it('validates persisted coverage without opening private or deleted resources', async () => {
+        const f = fixture()
+        f.rows.push(
+            Object.assign(new ContentResourceEntry(), {
+                deleted: true,
+                sourceLocation: { kind: 'bundle', rootPath: 'private', entryPath: 'private/main.json' },
+                containedPaths: [{ path: 'assets/cover.png', recursive: false }]
+            })
+        )
+        expect(await f.service.coverage(input)).toEqual([
+            { path: 'assets/cover.png', recursive: false },
+            { path: 'private', recursive: true }
+        ])
+        expect(f.catalog.describe).not.toHaveBeenCalled()
+        f.rows[0].containedPaths = [{ path: '../outside', recursive: true }]
+        await expect(f.service.coverage(input)).rejects.toThrow()
+        f.projects.assertAssistant.mockRejectedValueOnce(new ForbiddenException())
+        await expect(f.service.coverage(input)).rejects.toThrow(ForbiddenException)
+    })
+    function indexedFixture() {
+        const f = fixture()
+        for (let i = 0; i < 125; i++)
+            f.rows.push(
+                Object.assign(new ContentResourceEntry(), {
+                    id: randomUUID(),
+                    tenantId: input.actor.tenantId,
+                    organizationId: input.actor.organizationId,
+                    projectId,
+                    providerKey: 'decks',
+                    resourceId: `deck-${i}`,
+                    bindingRevision: 1,
+                    title: i === 124 ? 'Unique later page' : `Deck ${i}`,
+                    deleted: false,
+                    typeId: 'presentation',
+                    sourceUpdatedAt: new Date(Date.UTC(2026, 10, 16, 0, 0, 125 - i))
+                })
+            )
+        f.catalog.describe.mockImplementation(async ({ sourceResourceId }) => {
+            const row = f.rows.find((row) => row.resourceId === sourceResourceId)
+            return { ...f.snapshot, title: row.title, updatedAt: row.sourceUpdatedAt.toISOString() }
+        })
+        return f
+    }
+    it('hydrates only the requested page plus authorized lookahead and follows a stable cursor', async () => {
+        const f = indexedFixture()
+        const first = await f.service.list({ ...input, discovery: 'indexed', limit: 20 })
+        expect(first.items).toHaveLength(20)
+        expect(first.hasMore).toBe(true)
+        expect(f.catalog.discover).not.toHaveBeenCalled()
+        expect(f.provider.authorize).toHaveBeenCalledTimes(21)
+        const second = await f.service.list({ ...input, discovery: 'indexed', limit: 20, cursor: first.nextCursor })
+        expect(second.items.map((item) => item.title)).toEqual(Array.from({ length: 20 }, (_, i) => `Deck ${i + 20}`))
+        expect(new Set([...first.items, ...second.items].map((item) => item.contentId)).size).toBe(40)
+    })
+    it('searches all indexed rows rather than filtering the first browser page', async () => {
+        const f = indexedFixture()
+        const page = await f.service.list({ ...input, discovery: 'indexed', search: 'Unique later' })
+        expect(page.items.map((item) => item.title)).toEqual(['Unique later page'])
+        expect(f.provider.authorize).toHaveBeenCalledTimes(1)
+        expect(page.hasMore).toBe(false)
+    })
+    it('skips revoked sources, fills the page, and rejects cursor reuse in another query', async () => {
+        const f = indexedFixture()
+        f.provider.authorize.mockImplementation(async ({ resourceId }) => {
+            if (resourceId === 'deck-1') throw new ForbiddenException()
+            return { canWrite: true }
+        })
+        const page = await f.service.list({ ...input, discovery: 'indexed', limit: 2 })
+        expect(page.items.map((item) => item.title)).toEqual(['Deck 0', 'Deck 2'])
+        await expect(
+            f.service.list({ ...input, discovery: 'indexed', cursor: page.nextCursor, search: 'Other' })
+        ).rejects.toThrow(BadRequestException)
+        f.projects.assertAssistant.mockRejectedValueOnce(new ForbiddenException())
+        await expect(f.service.list({ ...input, discovery: 'indexed', cursor: page.nextCursor })).rejects.toThrow(
+            ForbiddenException
+        )
+    })
 })

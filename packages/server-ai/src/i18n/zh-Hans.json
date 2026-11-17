@@ -76,6 +76,15 @@
         "ErrorWithDiagnostic": "{{message}} 诊断：{{diagnostic}}",
         "MissingMarkdown": "独立验收需要最终回复中的验收意见，或明确指定的报告文件。仅在文件已存在且运行器支持读取时恢复交付。"
     },
+    "ExecutionReview": {
+        "invalid_execution_id": "执行记录 ID 无效。",
+        "invalid_review_page": "复核队列或分页参数无效。",
+        "review_version_changed": "路由版本已变更，请重新加载此案例后提交。",
+        "execution_already_reviewed": "这条执行记录已有其他复核结果。",
+        "source_unavailable": "无法核实本轮原句，请将此案例标记为证据不足。",
+        "invalid_review_evidence": "学习事件与本次复核不匹配。",
+        "invalid_review_observation": "运行观测记录与本次复核不匹配。"
+    },
     "Error": {
         "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
         "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",

@@ -8,6 +8,7 @@ import type {
     ReleasePackage,
     GoldenCaseRevision,
     ReplayCaseResult,
+    EvolutionTargetDescriptor,
     EvaluationMetrics
 } from '@xpert-ai/contracts'
 import type { EvolutionCommandContext } from './agent-evolution-governance.service'
@@ -130,6 +131,22 @@ export function aggregateMetrics(results: ReplayCaseResult[]): EvaluationMetrics
         totalCases: results.length,
         passedCases: candidatePassed
     }
+}
+
+export function aggregateReplaySlices(
+    slices: NonNullable<EvolutionTargetDescriptor['replaySlices']>,
+    results: ReplayCaseResult[]
+) {
+    return slices.map(({ key }) => {
+        const measured = results.filter((result) => result.observations?.some((metric) => metric.slice === key))
+        const { totalCases, baselineAccuracy, candidateAccuracy } = aggregateMetrics(measured)
+        return {
+            slice: key,
+            totalCases,
+            baselineAccuracy: totalCases ? baselineAccuracy : null,
+            candidateAccuracy: totalCases ? candidateAccuracy : null
+        }
+    })
 }
 
 export function toTenantScope(input: { tenantId: string; organizationId?: string | null }): EvolutionTenantScope {

@@ -5,8 +5,8 @@ export type CaseFilter = 'all' | 'improved' | 'regressed' | 'failed' | 'severe'
 export function caseOutcome(row: ReplayCaseResult) {
   return row.candidatePassed ? (row.baselinePassed ? 'kept' : 'improved') : row.baselinePassed ? 'regressed' : 'failed'
 }
-export function filterCases(run: EvaluationRun, filter: CaseFilter) {
-  return run.caseResults.filter(
+export function filterCases(cases: ReplayCaseResult[], filter: CaseFilter) {
+  return cases.filter(
     (row) => filter === 'all' || (filter === 'severe' ? row.severeError : caseOutcome(row) === filter)
   )
 }

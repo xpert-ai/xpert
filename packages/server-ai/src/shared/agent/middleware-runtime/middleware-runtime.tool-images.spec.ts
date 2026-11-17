@@ -32,7 +32,8 @@ function fixture() {
         artifacts,
         { createScopedApi: () => ({}) },
         platform,
-        { createScopedApi: () => ({}) }
+        { createScopedApi: () => ({}) },
+        { forView: () => undefined }
     ]) as AgentMiddlewareRuntimeService
     return { runtime, files, artifacts }
 }

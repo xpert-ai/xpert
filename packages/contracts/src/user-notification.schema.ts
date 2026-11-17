@@ -64,27 +64,52 @@ export const notificationSourceSchema = z
 export const scheduledNotificationOriginSchema = notificationSourceSchema.extend({
   threadId: z.string().uuid().optional()
 })
-export const userNotificationSchema = z
+export const notificationThreadIdSchema = z.string().trim().min(1).max(128)
+export const openConversationActionSchema = z
+  .object({
+    type: z.literal('open_conversation'),
+    assistantId: z.string().uuid(),
+    conversationId: z.string().uuid(),
+    threadId: notificationThreadIdSchema.nullable()
+  })
+  .strict()
+export type OpenConversationAction = Required<z.output<typeof openConversationActionSchema>>
+
+const taskNotificationSchema = z
   .object({
     id: z.string().uuid(),
     kind: z.literal('agent.completed'),
     source: notificationSourceSchema,
     createdAt: z.string().datetime({ offset: true }),
     readAt: z.string().datetime({ offset: true }).nullable(),
-    action: z
-      .object({
-        type: z.literal('open_conversation'),
-        assistantId: z.string().uuid(),
-        conversationId: z.string().uuid(),
-        threadId: z.string().uuid().nullable()
-      })
-      .strict()
+    action: openConversationActionSchema
   })
   .strict()
-export type UserNotification = Omit<Required<z.output<typeof userNotificationSchema>>, 'source' | 'action'> & {
+type TaskNotification = Omit<Required<z.output<typeof taskNotificationSchema>>, 'source' | 'action'> & {
   source: Required<z.output<typeof notificationSourceSchema>>
   action: Required<NonNullable<z.output<typeof userNotificationSchema>['action']>>
 }
+export const agentOutputOriginSchema = z
+  .object({ type: z.literal('agent_output'), deliveryId: z.string().uuid() })
+  .strict()
+const outputNotificationSchema = taskNotificationSchema.extend({
+  kind: z.literal('agent.output'),
+  source: agentOutputOriginSchema,
+  titles: z.array(z.string().min(1).max(240)).min(1).max(20),
+  action: openConversationActionSchema.nullable()
+})
+export const userNotificationSchema = z.discriminatedUnion('kind', [taskNotificationSchema, outputNotificationSchema])
+export type UserNotification =
+  | TaskNotification
+  | {
+      id: string
+      kind: 'agent.output'
+      createdAt: string
+      readAt: string | null
+      source: Required<z.output<typeof agentOutputOriginSchema>>
+      titles: string[]
+      action: OpenConversationAction | null
+    }
 export const notificationSnapshotSchema = z
   .object({
     supported: z.literal(true),
@@ -109,6 +134,7 @@ export const notificationChangeSchema = z
   .strict()
 export const notificationOutboxPayloadSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('changed') }).strict(),
+  z.object({ type: z.literal('agent.output.dispatch'), deliveryId: z.string().uuid() }).strict(),
   z
     .object({
       type: z.literal('announcement.scheduled'),
@@ -119,9 +145,14 @@ export const notificationOutboxPayloadSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('agent.completed'), source: scheduledNotificationOriginSchema }).strict()
 ])
+/** Durable worker instructions. An output dispatch points to a delivery whose contents are revalidated at send time. */
 export type NotificationOutboxPayload = z.output<typeof notificationOutboxPayloadSchema>
 
-// Delivery facts never imply human reading, approval or completion of a business action.
+/**
+ * Per-channel outcome. Feishu acceptance requires a provider message ID. In-app delivery means
+ * the notification was persisted. An unknown external outcome must be reconciled before resending.
+ * Reading is recorded separately on the user's notification.
+ */
 export type NotificationDeliveryState = 'pending' | 'accepted' | 'delivered' | 'failed' | 'unknown' | 'cancelled'
 export type NotificationDestination =
   | { type: 'in_app'; tenantId: string; userId: string }
@@ -138,6 +169,9 @@ export type NotificationDestination =
 // object outputs optional. These boundaries validate every required field before narrowing.
 export function parseAnnouncement(value: unknown): Announcement {
   return announcementSchema.parse(value) as Announcement
+}
+export function parseOpenConversationAction(value: unknown): OpenConversationAction {
+  return openConversationActionSchema.parse(value) as OpenConversationAction
 }
 export function parseUserNotification(value: unknown): UserNotification {
   return userNotificationSchema.parse(value) as UserNotification

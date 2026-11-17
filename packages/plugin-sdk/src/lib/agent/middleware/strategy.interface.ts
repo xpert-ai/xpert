@@ -17,6 +17,8 @@ export interface IAgentMiddlewareContext {
   /** Persisted input message for this turn, when available. */
   inputMessageId?: string
   executionId?: string
+  /** Originating Event Inbox receipt of this authorized wake, including same-scope child agents. */
+  readonly eventReceiptId?: string
   /** Omitted for legacy Assistant hosts. Project general agents must explicitly use project_agent. */
   callerType?: AgentInvocationScope['callerType']
   threadId?: string

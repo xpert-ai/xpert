@@ -3,6 +3,7 @@ import { RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { isGraphInterrupt, LangGraphRunnableConfig } from '@langchain/langgraph'
+import { EVENT_RUN_ORIGIN } from '../agent-event/agent-event-run-context'
 import { invocationError } from './invocation-runtime'
 import { Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -44,7 +45,7 @@ export class NativeAgentCompiler {
             xpert: Partial<IXpert>
             options: Pick<
                 XpertAgentSubgraphCommand['options'],
-                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath' | typeof EVENT_RUN_ORIGIN
             > & {
                 leaderKey: string
                 isDraft: boolean
@@ -74,6 +75,7 @@ export class NativeAgentCompiler {
             TAgentSubgraphResult
         >(
             new XpertAgentSubgraphCommand(agent.key, xpert, {
+                [EVENT_RUN_ORIGIN]: options[EVENT_RUN_ORIGIN],
                 executionDefinition: config.executionDefinition,
                 planMode: config.planMode,
                 mute: config.mute,

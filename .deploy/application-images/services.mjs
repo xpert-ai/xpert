@@ -49,6 +49,7 @@ export const services = [
       '.github/workflows/api-runtime-dependencies.yml',
       'apps/api/',
       'docker/.scripts/initdb.d/',
+      'tools/remote-components/',
       'tools/release/',
       'tools/scripts/publish.mjs',
       'tools/scripts/build.mjs',
@@ -92,7 +93,7 @@ export const services = [
     health_check: '.deploy/nsjail-runner/check-image.cjs',
     inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/', ...nsjailRuntimeInputs],
     requiredReleaseInputs: ['.deploy/nsjail-runner/', ...nsjailRuntimeInputs],
-    shared: []
+    shared: ['packages/sandbox-runtime/package.json']
   }
 ]
 

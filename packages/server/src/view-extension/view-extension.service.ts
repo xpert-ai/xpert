@@ -25,6 +25,7 @@ import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
+import { withPluginViewAction } from './view-action-scope'
 import { identifyViewRequest } from './view-request-metrics'
 import { presentViewActionResult } from './view-action-presentation'
 import {
@@ -284,9 +285,11 @@ export class ViewExtensionService {
 			throw new NotFoundException(`Action '${actionKey}' is not supported for view '${viewKey}'`)
 		}
 
-		const result = await Promise.resolve(
-			resolved.provider.executeViewAction(context, resolved.manifestKey, actionKey, request)
-		)
+		const invoke = () =>
+			Promise.resolve(resolved.provider.executeViewAction(context, resolved.manifestKey, actionKey, request))
+		const source = this.providerRegistry.getSource(resolved.provider)
+		const result =
+			source.kind === 'plugin' ? await withPluginViewAction(context, source.pluginName, invoke) : await invoke()
 
 		if (result.refresh) {
 			await this.cacheService.invalidateView(context, viewKey)

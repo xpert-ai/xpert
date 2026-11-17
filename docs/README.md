@@ -146,6 +146,10 @@ completed stages there and update its capability and compatibility boundaries.
 Keep future adapters and rollout proposals in the linked upgrade plan; implementation
 status does not imply deployment acceptance.
 
+## Event Inbox
+
+The [user guide](./en/guides/event-inbox.mdx) and [中文用户指南](./zh-Hans/guides/event-inbox.mdx) cover the three entry points, receipt visibility, and opening a conversation. For binding configuration, rollback, and diagnostics, see [平台操作文档](./operations/event-inbox.md). The [Always-on Agents proposal](./proposal/always-on-agents.md) tracks rollout conditions and future capabilities.
+
 ## Knowledgebase functional documentation
 
 Maintain current behavior in matching `en/guides/knowledgebase/` and
@@ -190,11 +194,9 @@ historical acceptance from newer content-platform and released-package validatio
 Do not treat that remaining acceptance task as unimplemented Project ownership or
 reintroduce the retired standalone Space Volume and migration design.
 
-## Announcements and realtime notifications
+## Announcements, notifications and Agent Outbox
 
-[公告与用户实时通知](./announcements-and-realtime-notifications.md) documents the
-accepted Web/Bosi announcement workflow, permissions, durable delivery and SSE,
-personal scheduled-task results, shared date/time controls, migration and verification.
-The [completed plan index](./plans/2026-10-31-announcements-and-realtime-notifications.md)
-retains the original planning link. Mobile Push and external messaging channels remain
-future integrations; local acceptance does not imply a production release.
+- [Announcements and notifications](./en/guides/notifications.mdx) · [公告与通知中心](./zh-Hans/guides/notifications.mdx)
+- [Agent Outbox](./en/guides/agent-outbox.mdx) · [助手发件箱](./zh-Hans/guides/agent-outbox.mdx)
+- [Human decisions on supplier delays](./en/guides/human-decisions.mdx) · [人工决定：确认供应商延期](./zh-Hans/guides/human-decisions.mdx)
+- [Notification delivery and operations](./operations/notification-delivery.md) covers the plugin handoff, delivery states, API, migrations and recovery.

@@ -3,6 +3,7 @@ import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/co
 import { QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import {
+    AGENT_OUTPUT_ACCEPT,
     PermissionsEnum,
     UserType,
     parseAnnouncement,
@@ -24,7 +25,11 @@ import {
     USER_NOTIFICATION_ENTITIES,
     UserNotificationEntity
 } from './notification.entities'
+import { UserNotificationService } from './notification.service'
 import { UserNotificationModule } from './notification.module'
+import { AgentOutputModule } from './output/output.module'
+import { OutputDispatch } from './output/output-dispatch'
+import { OutputPreferences } from './output/output-preferences'
 import { NotificationWorker } from './notification.worker'
 import { NotificationRealtime } from './notification.realtime'
 import { enqueueNotification } from './notification.outbox'
@@ -44,6 +49,15 @@ const schema = `notification_test_${randomUUID().replace(/-/g, '')}`
 @Global()
 @Module({})
 class TestDatabaseModule {}
+// The legacy clients in this suite opt out of agent outputs. Their graph has no agent bindings.
+@Module({
+    providers: [
+        { provide: OutputDispatch, useValue: {} },
+        { provide: OutputPreferences, useValue: {} }
+    ],
+    exports: [OutputDispatch, OutputPreferences]
+})
+class LegacyClientOutputModule {}
 const input = () =>
     createAnnouncementSchema.parse({
         title: 'Maintenance',
@@ -172,6 +186,8 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
                     UserNotificationModule
                 ]
             })
+                .overrideModule(AgentOutputModule)
+                .useModule(LegacyClientOutputModule)
                 .overrideProvider(REDIS_CLIENT)
                 .useValue(redis)
                 .compile()
@@ -481,6 +497,25 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
             status: ScheduledTaskExecutionStatus.FAILED
         })
         expect(await db.getRepository(NotificationOutbox).count()).toBe(0)
+    })
+    it('negotiates output types by Accept on the unchanged sync and pagination URLs', async () => {
+        const list = jest.spyOn(apps[0].get(UserNotificationService), 'list')
+        try {
+            for (const [accept, enabled] of [
+                [AGENT_OUTPUT_ACCEPT, true],
+                ['application/json', false]
+            ] as const) {
+                for (const path of ['user-notifications/sync?client=web', 'user-notifications?offset=30']) {
+                    const response = await fetch(origins[0] + '/api/' + path, {
+                        headers: { authorization: 'Bearer member', accept }
+                    })
+                    expect(response.status).toBe(200)
+                    expect(list.mock.lastCall?.[2]).toBe(enabled)
+                }
+            }
+        } finally {
+            list.mockRestore()
+        }
     })
     it('bounds connections while serving notifications and draining the outbox by default', async () => {
         const r = apps[0].get(NotificationRealtime)

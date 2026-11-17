@@ -99,6 +99,8 @@ http
     }
     if (req.url === '/__test/status') return res.json({ ...lifecycle.readiness(), bootId, node: process.env.TEST_NODE })
     if (req.url === '/api/health/ready') {
+      if (req.headers['x-test-withdrawing-replica'] === process.env.TEST_NODE)
+        return res.status(503).json({ status: 'withdrawing' })
       res.status(lifecycle.readiness().status === 'ready' ? 200 : 503)
       return res.json(lifecycle.readiness())
     }

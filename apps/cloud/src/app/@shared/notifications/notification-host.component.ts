@@ -19,10 +19,12 @@ import { NotificationCenterComponent } from './notification-center.component'
     >
       @if (notice(); as item) {
         <xp-announcement-notice [item]="item" (dismissed)="dismissNotice()" />
-      } @else if (hint()) {
+      } @else if (hint(); as item) {
         <z-card role="status" class="pointer-events-auto flex-row items-center gap-3 p-4 shadow-lg">
           <button z-button zType="ghost" class="min-w-0 flex-1 whitespace-normal" (click)="openCenter()">
-            {{ 'XP.Notifications.TaskCompleted' | translate }}
+            {{
+              item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate)
+            }}
           </button>
           <button
             z-button
@@ -76,8 +78,9 @@ export class NotificationHostComponent implements OnInit, OnDestroy {
                   !this.seen.has(item.id) &&
                   !item.readAt &&
                   Date.parse(item.createdAt) > this.lastSync - 3000 &&
-                  !this.router.url.includes(item.action.conversationId) &&
-                  (!item.action.threadId || !this.router.url.includes(item.action.threadId))
+                  (!item.action ||
+                    (!this.router.url.includes(item.action.conversationId) &&
+                      (!item.action.threadId || !this.router.url.includes(item.action.threadId))))
               )
             : null
         this.seen = new Set(snapshot.notifications.map((item) => item.id))

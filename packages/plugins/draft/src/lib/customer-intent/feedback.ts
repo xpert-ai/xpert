@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { z } from 'zod'
 import type { EvolutionFeedbackExecution, EvolutionFeedbackProvider, LearningEvent } from '@xpert-ai/contracts'
 import {
   EvolutionRuntimeCapability,
@@ -7,14 +6,14 @@ import {
   type RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import { changeError } from './errors'
-import { intentNode, intentSchema, intentTarget } from './policy'
+import { intentNode, intentTarget } from './policy'
 import { buildIntentCases } from './dataset'
 import { routeDecision } from './decision'
-
-const reviewSchema = z.object({ expectedIntent: intentSchema }).strict()
+import { legacyIntentReviewSchema, recordedRouteDecision, reviewAdapter, reviewedObservations } from './review'
 
 @Injectable()
 export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
+  readonly workbench = reviewAdapter
   readonly routeKey = 'customer-intent'
   readonly executionType = intentNode
   constructor(@Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry) {}
@@ -39,16 +38,13 @@ export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
     execution: EvolutionFeedbackExecution,
     input: unknown
   ) {
-    const parsed = reviewSchema.safeParse(input)
+    const parsed = legacyIntentReviewSchema.safeParse(input)
     if (!parsed.success) changeError('invalid_intent_review')
     const body = parsed.data
     const { id, threadId } = execution
-    if (!id || !threadId) changeError('invalid_execution_context')
+    const decision = recordedRouteDecision(execution)
     const { organizationId } = identity
     const runtime = this.capabilities.require(EvolutionRuntimeCapability)
-    const result = routeDecision.safeParse(execution.outputs?.output)
-    if (!result.success || result.data.executionId !== id) changeError('invalid_execution_context')
-    const decision = result.data
     const scope = { type: 'organization' as const, key: organizationId }
     const correct = decision.intent === body.expectedIntent
     const reviewedAt = (execution.completedAt ?? execution.createdAt).toISOString()
@@ -57,7 +53,7 @@ export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
       event: {
         eventType: 'prediction_reviewed',
         schemaVersion: '1',
-        idempotencyKey: `intent-review:${id}`,
+        idempotencyKey: reviewAdapter.legacyKey(id),
         eventTime: reviewedAt,
         scope,
         executionId: id,
@@ -78,43 +74,14 @@ export class CustomerIntentFeedback implements EvolutionFeedbackProvider {
       }
     })
     if (event.finalOutcomeSummary !== body.expectedIntent) changeError('immutable_review_changed')
-    const common = {
-      scope,
-      executionId: id,
-      subjectKey: threadId,
-      targetId: intentTarget,
-      observedAt: reviewedAt
-    }
-    if (decision.deploymentId)
-      await runtime.recordRuntimeObservation({
-        ...identity,
-        observation: {
-          ...common,
-          observationId: `intent:${id}:primary`,
-          deploymentId: decision.deploymentId,
-          channel: decision.channel,
-          bundleId: decision.bundleId,
-          success: correct,
-          severeError: false,
-          latencyMs: decision.latencyMs
-        }
-      })
-    if (decision.shadow) {
-      const success = decision.shadow.intent === body.expectedIntent
-      await runtime.recordRuntimeObservation({
-        ...identity,
-        observation: {
-          ...common,
-          observationId: `intent:${id}:shadow`,
-          deploymentId: decision.shadow.deploymentId,
-          channel: 'shadow',
-          bundleId: decision.shadow.bundleId,
-          success,
-          baselineSuccess: correct,
-          severeError: correct && !success,
-          latencyMs: decision.shadow.latencyMs
-        }
-      })
+    for (const observation of reviewedObservations(
+      decision,
+      threadId,
+      organizationId,
+      body.expectedIntent,
+      reviewedAt
+    )) {
+      await runtime.recordRuntimeObservation({ ...identity, observation })
     }
     return event
   }

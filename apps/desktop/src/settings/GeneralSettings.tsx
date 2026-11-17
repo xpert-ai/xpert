@@ -69,10 +69,7 @@ export function GeneralSettings({
           {t('Language')}
         </h2>
         <div className="overflow-hidden rounded-xl border">
-          <SettingsRow
-            title={t('Interface language')}
-            description={t('After sign-in, your account language takes priority.')}
-          >
+          <SettingsRow title={t('Interface language')} description={t('Your language choice is saved on this device.')}>
             <div className="w-48">
               <ThemeSelect
                 hideLabel

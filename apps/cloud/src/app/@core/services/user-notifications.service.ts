@@ -1,11 +1,13 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import {
+  AGENT_OUTPUT_ACCEPT,
   RequestScopeLevel,
   Announcement,
   AnnouncementInput,
   NotificationSnapshot,
   UserNotification,
+  type AgentOutputItem,
   parseNotificationSnapshot,
   notificationChangeSchema
 } from '@xpert-ai/contracts'
@@ -240,7 +242,10 @@ export class UserNotificationsService {
       }
       if (!this.isActive() || generation !== this.generation) return
       const response = await firstValueFrom(
-        this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, { params: { client: 'web' } })
+        this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, {
+          params: { client: 'web' },
+          headers: { Accept: AGENT_OUTPUT_ACCEPT }
+        })
       )
       if (generation !== this.generation) return
       const snapshot = parseNotificationSnapshot(response)
@@ -298,13 +303,16 @@ export class UserNotificationsService {
     return firstValueFrom(
       this.http.get<{ items: UserNotification[]; hasMore: boolean; nextOffset: number }>(
         `${API_PREFIX}/user-notifications`,
-        { params: { offset } }
+        { params: { offset }, headers: { Accept: AGENT_OUTPUT_ACCEPT } }
       )
     )
   }
   async read(id: string) {
-    await firstValueFrom(this.http.put(`${API_PREFIX}/user-notifications/${id}/read`, {}))
+    const result = await firstValueFrom(
+      this.http.put<{ read: true; items?: AgentOutputItem[] }>(`${API_PREFIX}/user-notifications/${id}/read`, {})
+    )
     this.scheduleRefresh()
+    return result
   }
   adminList(offset = 0) {
     return firstValueFrom(

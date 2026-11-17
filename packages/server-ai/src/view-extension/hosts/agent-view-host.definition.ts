@@ -8,6 +8,7 @@ import {
     UserType,
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
+    EVENT_INBOX_FEATURE,
     IXpert,
     resolveRuntimeXpert,
     XpertResolvedViewHostContext,
@@ -353,7 +354,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return {
             agentKey,
             capabilities: {
-                features
+                features: [...new Set([...features, EVENT_INBOX_FEATURE])]
             },
             hostState: {
                 agent: {
@@ -388,7 +389,6 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             .map((candidate) => safeExternalAssistantBinding(describeExternalAssistantBinding(xpert, candidate)))
     }
 }
-
 
 function normalizeWorkspaceUploadFile(file: ViewExtensionFileActionFile, fileName: string) {
     return {

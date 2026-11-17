@@ -38,12 +38,28 @@ const main = document.querySelector('main')
 const body = byId('body')
 function toggle() {
   clearTimeout(hoverTimer)
-  if (!state?.active && !state?.tasks.length) return
+  if (!state?.active && !state?.tasks.length && !state?.runs.length) return
   pinned = !state?.expanded
   hoverOpened = false
   void window.bosiIsland.expand(pinned)
 }
-byId('identity').onclick = tasks.onclick = toggle
+function openRunning() {
+  if (!state?.runs.length) return
+  if (pinned && state.expanded && state.runs.length > 1) return toggle()
+  clearTimeout(hoverTimer)
+  pinned = true
+  hoverOpened = false
+  void window.bosiIsland.running(state.runs.length === 1 ? state.runs[0].id : null)
+}
+tasks.onclick = toggle
+byId('identity').onclick = () => {
+  if (state?.runs.length && !state.active && !state.pendingTotal) openRunning()
+  else toggle()
+}
+byId('running').onclick = openRunning
+document.querySelector('.bar').onclick = (event) => {
+  if (!event.target.closest('button') && !byId('running').hidden) openRunning()
+}
 function enter() {
   clearTimeout(hoverTimer)
   document.body.classList.remove('closing')
@@ -119,7 +135,12 @@ window.bosiIsland.subscribe(
     document.body.style.setProperty('--camera-width', next.gap + 'px')
     const first = next.tasks[0]
     byId('greeting').textContent = next.idle ? '👋' : '•••'
-    byId('greeting').hidden = !next.idle && (!next.working || next.active || next.pendingTotal)
+    const showRunning = next.runs.length > 0 && !next.active && !next.pendingTotal
+    byId('greeting').hidden = !next.idle && (!next.working || next.active || next.pendingTotal || showRunning)
+    const runLabel = next.runs.length === 1 ? next.labels.openRun : next.labels.chooseRun
+    byId('running').hidden = !showRunning
+    byId('running').title = runLabel
+    byId('running').setAttribute('aria-label', runLabel)
     byId('greeting').title = next.idle ? next.greeting : (next.working ?? '')
     byId('greeting').setAttribute('aria-label', byId('greeting').title)
     byId('activity').hidden = !next.active
@@ -130,7 +151,7 @@ window.bosiIsland.subscribe(
         : (next.active?.name ?? next.working ?? 'Bosi')
     byId('identity').title =
       owner?.name ?? (next.pendingTotal ? next.labels.tasks : (next.active?.label ?? next.working ?? next.greeting))
-    byId('identity').setAttribute('aria-label', byId('identity').title)
+    byId('identity').setAttribute('aria-label', showRunning ? runLabel : byId('identity').title)
     byId('identity').setAttribute('aria-expanded', String(next.expanded))
     byId('label').textContent = next.active?.label ?? next.labels.tasks
     byId('detail').textContent = next.active?.title ?? ''
@@ -147,8 +168,12 @@ window.bosiIsland.subscribe(
     tasks.setAttribute('aria-label', tasks.title)
     tasks.setAttribute('aria-expanded', String(next.expanded))
     tasks.querySelector('span').textContent = next.pendingTotal
-    list.hidden = !first
-    if (next.assistants || JSON.stringify(previous?.tasks) !== JSON.stringify(next.tasks)) {
+    list.hidden = !first && !next.runs.length
+    if (
+      next.assistants ||
+      JSON.stringify(previous?.tasks) !== JSON.stringify(next.tasks) ||
+      JSON.stringify(previous?.runs) !== JSON.stringify(next.runs)
+    ) {
       list.replaceChildren(
         ...next.tasks.map((task) => {
           const assistant = assistants[task.assistant]
@@ -160,6 +185,19 @@ window.bosiIsland.subscribe(
           action.textContent = task.label + ' ›'
           row.append(assistantAvatar(assistant), name, action)
           row.onclick = () => window.bosiIsland.review(task.id)
+          return row
+        }),
+        ...next.runs.map((run) => {
+          const row = document.createElement('button')
+          const title = document.createElement('strong')
+          const owner = document.createElement('span')
+          title.textContent = run.title
+          owner.className = 'run-owner'
+          owner.textContent = run.assistant
+          row.title = [next.labels.openRun, run.title, run.assistant].join(' · ')
+          row.setAttribute('aria-label', row.title)
+          row.append(title, owner)
+          row.onclick = () => window.bosiIsland.review(run.id)
           return row
         })
       )

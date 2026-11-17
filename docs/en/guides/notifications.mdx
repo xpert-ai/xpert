@@ -1,0 +1,28 @@
+---
+title: 'Announcements and notifications'
+description: 'Read announcements and task results in Web or Bosi Desktop and publish announcements for a tenant.'
+---
+
+Open **Notifications** in Web or Bosi Desktop to see tenant announcements, personal scheduled task results and business reminders from assistants. The badge counts pending announcements and unread notifications in the current snapshot. Open the history list to load older entries.
+
+## Read announcements
+
+A new announcement can appear as a card in the upper-right corner. Expand the card for details or dismiss it. Dismissal syncs across clients for the same account. Offline dismissal hides the card locally and syncs after reconnection. An edit to the same announcement will not show the card again to someone who dismissed it.
+
+History includes announcements that have started and apply to your tenant and client, including dismissed and expired announcements. Withdrawing an announcement removes it from user history.
+
+## Open task results
+
+When a personal scheduled task succeeds and its result conversation is idle and accessible, a notification lets you return to that conversation. Revoking conversation access also removes access to the result. Signing in or reconnecting refreshes the list. Opening the result does not rerun the task.
+
+For procurement reminders, code review results and Feishu private delivery, see [Agent Outbox](/en/guides/agent-outbox).
+
+## Publish an announcement
+
+Administrators with `ANNOUNCEMENT_MANAGE` can manage announcements for the current tenant in Web under **Settings → Announcements** (`/settings/announcements`).
+
+1. Create a draft. Enter a title, body, category, severity, target clients and start time. You can add an expiry time and an HTTPS action link.
+2. Preview and publish. The selected Web or Desktop clients can show the announcement once the start time arrives. Expired announcements leave the pending list.
+3. Edit or withdraw the announcement from the management list and inspect its revision history. The target clients are fixed after publication. To reach different clients or notify people who already dismissed it, publish a copy as a new announcement.
+
+If another administrator saves a new revision first, reload the latest version before saving your edits. Super administrators receive the management permission by default.

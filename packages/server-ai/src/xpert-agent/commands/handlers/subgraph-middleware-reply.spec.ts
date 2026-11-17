@@ -1,3 +1,5 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { EVENT_RUN_ORIGIN } from '../../../agent-event/agent-event-run-context'
 import { AIMessage } from '@langchain/core/messages'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
@@ -9,6 +11,100 @@ const answer = '仓库交接清单每天 18:00 归档。'
 
 describe('middleware responses in the Agent graph', () => {
     afterEach(() => jest.restoreAllMocks())
+    it('only exposes the host receipt in its originating scope', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('buyer')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
+        const receipts: (string | undefined)[] = []
+        const fixture = createInputGraphFixture({
+            observeMiddleware: (context) => receipts.push(context.eventReceiptId)
+        })
+        const origin = {
+            receiptId: 'first',
+            workspaceId: 'workspace',
+            userId: 'buyer',
+            tenantId: 'tenant',
+            organizationId: 'org',
+            xpertId: 'xpert-1',
+            conversationId: 'conversation-1',
+            threadId: config.configurable.thread_id
+        }
+        await fixture.compile({ [EVENT_RUN_ORIGIN]: origin })
+        await fixture.compile({ [EVENT_RUN_ORIGIN]: origin, projectId: 'another' })
+        await fixture.compile({ [EVENT_RUN_ORIGIN]: origin, thread_id: 'another' })
+        const fromJson = JSON.parse(JSON.stringify({ [EVENT_RUN_ORIGIN]: origin, eventReceiptId: 'first' }))
+        await fixture.compile(fromJson)
+        await fixture.compile()
+        expect(receipts).toEqual(['first', undefined, undefined, undefined, undefined])
+    })
+
+    it.each([
+        {
+            scenario: 'same scope',
+            originWorkspace: 'workspace',
+            childWorkspace: 'workspace',
+            parent: 'receipt-1',
+            child: 'receipt-1'
+        },
+        {
+            scenario: 'child leaves scope',
+            originWorkspace: 'workspace',
+            childWorkspace: 'other',
+            parent: 'receipt-1',
+            child: undefined
+        },
+        {
+            scenario: 'parent outside scope',
+            originWorkspace: 'other',
+            childWorkspace: 'other',
+            parent: undefined,
+            child: undefined
+        }
+    ])(
+        'passes only an authorized wake receipt through a local delegation ($scenario)',
+        async ({ originWorkspace, childWorkspace, parent, child }) => {
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('buyer')
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
+            const turns: { agent: string; receipt: string | undefined }[] = []
+            const fixture = createInputGraphFixture({
+                localFollower: { workspaceId: childWorkspace },
+                middlewareStrategy: {
+                    meta: { name: 'receipt-test', label: { en_US: 'Receipt test' } },
+                    createMiddleware: (_options, context) => ({
+                        name: 'receipt-test',
+                        wrapModelCall: (request) => {
+                            turns.push({ agent: context.agentKey, receipt: context.eventReceiptId })
+                            if (context.agentKey === 'buyer') return new AIMessage('checked')
+                            if (request.messages.at(-1)?.getType() === 'tool') return new AIMessage('done')
+                            return new AIMessage({
+                                content: '',
+                                tool_calls: [{ id: 'handoff', name: 'buyer', args: { input: 'Check the quote' } }]
+                            })
+                        }
+                    })
+                }
+            })
+            const graph = await fixture.compile({
+                subscriber: new Subscriber<MessageEvent>(),
+                [EVENT_RUN_ORIGIN]: {
+                    receiptId: 'receipt-1',
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    userId: 'buyer',
+                    workspaceId: originWorkspace,
+                    xpertId: 'xpert-1',
+                    conversationId: 'conversation-1',
+                    threadId: config.configurable.thread_id
+                }
+            })
+            await graph.invoke(input('Delegate the quote check'), config)
+            expect(turns).toEqual([
+                { agent: agentKey, receipt: parent },
+                { agent: 'buyer', receipt: child },
+                { agent: agentKey, receipt: parent }
+            ])
+        }
+    )
+
     it('streams a middleware answer once while running compression and normal turn hooks', async () => {
         const recall = jest.fn()
         const compress = jest.fn()

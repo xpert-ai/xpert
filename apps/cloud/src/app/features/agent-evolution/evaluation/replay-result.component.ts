@@ -1,8 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, input, output, signal } from '@angular/core'
+import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import type { DatasetSnapshot, EvaluationRun, EvolutionTargetDescriptor, ReplayCaseResult } from '@xpert-ai/contracts'
+import {
+  resolveI18nText,
+  type DatasetSnapshot,
+  type EvaluationRun,
+  type EvolutionTargetDescriptor,
+  type ReplayCaseResult
+} from '@xpert-ai/contracts'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import {
@@ -25,6 +31,7 @@ export class ReplayResultComponent {
   readonly snapshot = input<DatasetSnapshot>()
   readonly target = input<EvolutionTargetDescriptor>()
   readonly title = input.required<string>()
+  readonly slice = input<string | null>(null)
   readonly caseId = input<string | null>(null)
   readonly caseIndex = input<string | null>(null)
   readonly caseChanged = output<{ id: string; index: number | null } | null>()
@@ -39,17 +46,28 @@ export class ReplayResultComponent {
   readonly short = compactId
   readonly version = bundleVersion
   readonly outcome = caseOutcome
-  readonly filter = signal<CaseFilter>('all')
-  readonly page = signal(1)
+  readonly cases = computed(() => {
+    const slice = this.slice()
+    const rows = this.run().caseResults
+    // Replay denominators use measured observations; a frozen case may have been excluded when scored.
+    return slice === null ? rows : rows.filter((row) => row.observations?.some((metric) => metric.slice === slice))
+  })
+  readonly sliceLabel = computed(() => {
+    const label = this.target()?.replaySlices?.find((group) => group.key === this.slice())?.label
+    return resolveI18nText(label, this.language()?.lang || this.translate.currentLang) || this.slice()
+  })
+  readonly filter = linkedSignal<ReplayCaseResult[], CaseFilter>({ source: this.cases, computation: () => 'all' })
+  readonly rows = computed(() => filterCases(this.cases(), this.filter()))
+  readonly page = linkedSignal({ source: this.rows, computation: () => 1 })
   readonly copyStatus = signal('')
   readonly selected = computed(() => {
     const rows = this.run().caseResults
     if (this.caseIndex() !== null) {
       const item = rows[Number(this.caseIndex())]
-      return item?.caseId === this.caseId() ? item : undefined
+      return item?.caseId === this.caseId() && this.cases().includes(item) ? item : undefined
     }
     const matches = rows.filter((row) => row.caseId === this.caseId())
-    return matches.length === 1 ? matches[0] : undefined
+    return matches.length === 1 && this.cases().includes(matches[0]) ? matches[0] : undefined
   })
   readonly frozen = computed(() => {
     const item = this.selected()
@@ -66,9 +84,8 @@ export class ReplayResultComponent {
     'improved',
     'regressed',
     'failed',
-    ...(this.run().metrics.severeErrors ? ['severe' as const] : [])
+    ...(this.cases().some((row) => row.severeError) ? ['severe' as const] : [])
   ])
-  readonly rows = computed(() => filterCases(this.run(), this.filter()))
   readonly pages = computed(() => Math.max(1, Math.ceil(this.rows().length / 5)))
   readonly visible = computed(() => this.rows().slice((this.page() - 1) * 5, this.page() * 5))
   readonly baselinePassed = computed(() => this.run().caseResults.filter((row) => row.baselinePassed).length)
@@ -84,11 +101,10 @@ export class ReplayResultComponent {
     }).format(this.run().metrics.accuracyDelta * 100)
   )
   count(filter: CaseFilter) {
-    return filterCases(this.run(), filter).length
+    return filterCases(this.cases(), filter).length
   }
   setFilter(filter: CaseFilter) {
     this.filter.set(filter)
-    this.page.set(1)
   }
   value(row: ReplayCaseResult['candidateOutput'], raw = false) {
     return displayOutput(row, this.target(), this.language()?.lang || this.translate.currentLang, raw)

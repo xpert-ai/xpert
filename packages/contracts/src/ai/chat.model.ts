@@ -341,6 +341,8 @@ export interface IChatConversationMarkReadRequest {
 export interface IChatConversationUnreadXpertsRequest {
   xpertIds: string[]
   includePending?: boolean
+  /** Include the user's accessible running threads for desktop navigation. */
+  includeRunning?: boolean
 }
 
 // Types

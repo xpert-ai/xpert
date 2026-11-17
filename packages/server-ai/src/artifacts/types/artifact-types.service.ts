@@ -63,7 +63,12 @@ export class ArtifactTypesService {
         const provider = this.provider(source)
         const binding = source.typeBinding
         if (!binding) throw unavailable()
-        return { pluginName: binding.pluginName, resourceType: binding.resourceType, title: provider.definition.title }
+        return {
+            pluginName: binding.pluginName,
+            resourceType: binding.resourceType,
+            title: provider.definition.title,
+            ...(provider.definition.icon ? { icon: provider.definition.icon } : {})
+        }
     }
     async authorize(
         source: TypedArtifactSource,

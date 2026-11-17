@@ -3,9 +3,6 @@ import { ResolveExecutionIdentityHandler } from '../../../../server/src/user/exe
 import { ResolveUserOrganizationAccessHandler } from '../../../../server/src/user-organization/commands/handlers/resolve-user-organization-access.handler'
 import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
-// Exercise actor hydration through real workspace authorization, invocation control and delivery.
-// Only persistence and queue I/O are substituted; user relations follow the requested TypeORM query.
-jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
 import { QueryBus } from '@nestjs/cqrs'
 import { DiscoveryService, Reflector } from '@nestjs/core'
@@ -48,6 +45,9 @@ import { RuntimeMessageTransportService } from './runtime-message-transport.serv
 import { RuntimeMessageContinuationService } from './runtime-message-continuation.service'
 import { AgentRuntimeDelivery, AgentRuntimeInbox } from './runtime-message.entity'
 import { runtimeObservationEvent } from './runtime-message-outbox'
+// Exercise actor hydration through real workspace authorization, invocation control and delivery.
+// Only persistence and queue I/O are substituted; user relations follow the requested TypeORM query.
+jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 
 async function fixture(intent: TaskControlIntent = 'terminated') {
     const scope = {

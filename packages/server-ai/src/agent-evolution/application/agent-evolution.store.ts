@@ -52,7 +52,7 @@ import type {
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { createHash } from 'crypto'
-import { DataSource, In, IsNull, Repository } from 'typeorm'
+import { DataSource, type EntityManager, In, IsNull, Repository } from 'typeorm'
 import {
     ActiveCapabilityPointerEntity,
     ApprovalDecisionEntity,
@@ -544,8 +544,8 @@ export class AgentEvolutionStore {
         )
     }
 
-    async saveLearningEvent(tenant: EvolutionTenantScope, event: LearningEvent) {
-        return this.dataSource.transaction(async (manager) => {
+    async saveLearningEvent(tenant: EvolutionTenantScope, event: LearningEvent, transaction?: EntityManager) {
+        const persist = async (manager: EntityManager) => {
             await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
                 JSON.stringify([tenant.tenantId, tenant.organizationId, 'learning', event.idempotencyKey])
             ])
@@ -567,7 +567,8 @@ export class AgentEvolutionStore {
                     value: event
                 })
             )
-        })
+        }
+        return transaction ? persist(transaction) : this.dataSource.transaction(persist)
     }
 
     async findRelatedLearningEvents(tenant: EvolutionTenantScope, seed: LearningEvent) {
