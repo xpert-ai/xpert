@@ -129,11 +129,15 @@ describe('original runtime host control', () => {
     it('keeps successful protocol results unconfirmed until the owned exit receipt arrives', async () => {
         const f = fixture(),
             run = await f.apiA.start(f.request)
+        await f
+            .original()
+            .checkpoint({ status: 'unknown', error: '[activity_incomplete] Earlier inspection incomplete' })
         await f.original().checkpoint({ status: 'succeeded', handle: run.handle, result: { text: 'business done' } })
         expect(f.store.rows.get(run.id).invocation).toMatchObject({
             status: 'unknown',
             result: { text: 'business done' }
         })
+        expect(f.store.rows.get(run.id).invocation.error).toBeUndefined()
         await f.original().checkpoint({
             status: 'succeeded',
             handle: run.handle,
@@ -152,7 +156,52 @@ describe('original runtime host control', () => {
                 observedAt: new Date().toISOString()
             }
         })
-        expect((await f.apiB.inspect(run.id)).status).toBe('succeeded')
+        const final = await f.apiB.inspect(run.id)
+        expect(final.status).toBe('succeeded')
+        expect(final.error).toBeUndefined()
+    })
+    it('keeps the saved successful result when a competing unconfirmed failure arrives during cleanup', async () => {
+        const f = fixture(),
+            run = await f.apiA.start(f.request)
+        await f.original().checkpoint({ status: 'succeeded', handle: run.handle, result: { text: 'saved report' } })
+        const before = structuredClone(f.store.rows.get(run.id).invocation)
+        await f.original().checkpoint({ status: 'failed', error: '[runner_unavailable] concurrent inspect' })
+        expect(f.store.rows.get(run.id).invocation).toEqual(before)
+    })
+    it('replaces a provisional failure only with a verified terminal result from the same execution target', async () => {
+        const f = fixture(),
+            run = await f.apiA.start(f.request)
+        await f
+            .original()
+            .checkpoint({ status: 'failed', error: '[activity_incomplete] Earlier inspection incomplete' })
+        await f.original().checkpoint({ status: 'succeeded', result: { text: 'unconfirmed' } })
+        expect(f.store.rows.get(run.id).invocation.reportedOutcome).toBe('failed')
+        expect(f.store.rows.get(run.id).invocation.result).toBeUndefined()
+        await f.original().checkpoint({
+            status: 'succeeded',
+            handle: run.handle,
+            result: { text: 'verified report' },
+            controlEvidence: {
+                version: 1,
+                source: 'provider',
+                scope: 'operation',
+                state: 'settled',
+                subject: { kind: 'invocation', id: run.id },
+                sessionId: run.handle.sessionId,
+                runId: run.handle.runId,
+                outcome: 'succeeded',
+                target: run.executionTarget,
+                receiptKey: 'exit',
+                observedAt: new Date().toISOString()
+            }
+        })
+        const final = await f.apiB.inspect(run.id)
+        expect(final).toMatchObject({
+            status: 'succeeded',
+            reportedOutcome: 'succeeded',
+            result: { text: 'verified report' }
+        })
+        expect(final.error).toBeUndefined()
     })
     it('routes an approval once to the original host and lets termination supersede queued approval', async () => {
         const f = fixture(),
