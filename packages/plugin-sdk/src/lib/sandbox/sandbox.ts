@@ -30,7 +30,7 @@ import {
   SandboxExecutionOptions
 } from './execution'
 
-import { editCommandResult, sequentialFileEdits } from './file-edits'
+import { editCommandResult, groupedFileEdits, sequentialFileEdits } from './file-edits'
 import { buildEditCommand } from './file-edit-command'
 import { buildListDirCommand } from './directory-listing-command'
 import { workspaceRelativeDisplayPath } from './workspace-path-display'
@@ -863,8 +863,12 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
 
   /** Earlier successful edits remain persisted if a later edit fails. */
   multiEdit(filePath: string, edits: EditOperation[]): Promise<MultiEditResult> {
-    return sequentialFileEdits(filePath, edits, (edit) =>
+    const single = (edit: EditOperation) =>
       this.edit(filePath, edit.oldString, edit.newString, edit.replaceAll ?? false)
+    // Backends with their own edit storage/authorization semantics retain that implementation.
+    if (this.edit !== BaseSandbox.prototype.edit) return sequentialFileEdits(filePath, edits, single)
+    return groupedFileEdits(filePath, edits, (command) =>
+      this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
     )
   }
 }
