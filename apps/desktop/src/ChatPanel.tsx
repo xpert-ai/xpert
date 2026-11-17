@@ -13,7 +13,7 @@ import { Button } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
-import type { OpenConversationAction } from '@xpert-ai/contracts'
+import type { OpenConversationAction, OutputWorkbenchTarget } from '@xpert-ai/contracts'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
 import { assistantAccentColor } from './avatar/color'
@@ -27,6 +27,7 @@ export function ChatPanel({
   config,
   dark,
   initialThread,
+  initialWorkbench,
   initialVoice,
   onConversationRead,
   onOpenConversation,
@@ -38,6 +39,7 @@ export function ChatPanel({
   selectionVersion?: number
   config: ConnectionConfig
   dark: boolean
+  initialWorkbench?: OutputWorkbenchTarget | null
   initialThread: string | null
   initialVoice?: DesktopLastSession['conversation'] | null
   onConversationRead: (botId: string, threadId: string | null) => void
@@ -156,7 +158,19 @@ export function ChatPanel({
       title: { text: name },
       character: { enabled: true, customizable: true, computers }
     }
-    const workbench = {
+    const workbench: NonNullable<ChatKitOptions['workbench']> = {
+      ...(initialWorkbench && !groupId && initialWorkbench.assistantId === activeAssistant
+        ? {
+            navigation: {
+              projectId: initialWorkbench.projectId,
+              view: {
+                viewKey: initialWorkbench.viewKey,
+                selectionId: initialWorkbench.selectionId,
+                layout: 'maximized'
+              }
+            }
+          }
+        : {}),
       enabled: true,
       viewRail: { enabled: true },
       onClientCommand: groupId
@@ -231,7 +245,7 @@ export function ChatPanel({
       api: {
         apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
         xpertId: activeAssistant || undefined,
-        projectId: initialThread ? initialVoice?.projectId : undefined,
+        projectId: initialWorkbench?.projectId ?? (initialThread ? initialVoice?.projectId : undefined),
         getClientSecret: async () => {
           const recovered = <T,>(value: T): T => {
             if (!disposed && activeSessionKey.current === sessionKey) {
@@ -246,6 +260,15 @@ export function ChatPanel({
               return recovered(
                 await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
               )
+            if (initialWorkbench?.projectId) {
+              const session = await invoke('workbenchSession', {
+                botId,
+                target: 'assistant.project',
+                assistantId: activeAssistant,
+                projectId: initialWorkbench.projectId
+              })
+              return recovered({ secret: session.secret, organizationId: session.organizationId })
+            }
             if (initialVoice && initialThread) {
               const session = await invoke('workbenchSession', {
                 botId,

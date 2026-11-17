@@ -1507,5 +1507,12 @@
   "System permissions": "System permissions",
   "Permissions are managed by macOS.": "Permissions are managed by macOS.",
   "Manage": "Manage",
-  "Briefly show the latest assistant reply beside the Dock.": "Briefly show the latest assistant reply beside the Dock."
+  "Briefly show the latest assistant reply beside the Dock.": "Briefly show the latest assistant reply beside the Dock.",
+  "Assistant notifications": "Assistant notifications",
+  "Scheduled tasks": "Scheduled tasks",
+  "Needs your attention": "Needs your attention",
+  "Recent notifications": "Recent notifications",
+  "Awaiting decision": "Awaiting decision",
+  "Assistant notifications, scheduled tasks and announcements": "Assistant notifications, scheduled tasks and announcements",
+  "Read": "Read"
 }

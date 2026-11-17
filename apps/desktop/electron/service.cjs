@@ -516,6 +516,7 @@ class DesktopService {
       responseType = 'json',
       signal,
       accept = 'application/json',
+      prefer,
       errorMessages,
       includeServerMessage = false,
       viewProjectId,
@@ -527,6 +528,7 @@ class DesktopService {
     const headers = {
       'Content-Type': 'application/json',
       Accept: accept,
+      ...(prefer ? { Prefer: prefer } : {}),
       'Accept-Language': this.config.locale,
       language: this.config.locale
     }
@@ -589,6 +591,7 @@ class DesktopService {
         responseType,
         signal,
         accept,
+        prefer,
         errorMessages,
         includeServerMessage,
         viewProjectId,

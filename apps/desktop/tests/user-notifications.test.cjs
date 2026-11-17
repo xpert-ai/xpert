@@ -1,7 +1,11 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
-const { UserNotifications, createNotificationMethods, installUserNotifications } = require('../electron/user-notifications.cjs')
+const {
+  UserNotifications,
+  createNotificationMethods,
+  installUserNotifications
+} = require('../electron/user-notifications.cjs')
 const { DesktopService } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const id = 'a1111111-1111-4111-8111-111111111111'
@@ -38,6 +42,7 @@ test('legacy APIs receive only supported query parameters when desktop requests 
       assert.equal(url.search, '?client=desktop')
       return snapshot()
     }
+    assert.equal(options.prefer, 'return=representation')
     assert.equal(url.search, '?offset=30')
     return { items: [], nextOffset: 30 }
   })

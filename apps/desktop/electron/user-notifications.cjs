@@ -151,7 +151,9 @@ class UserNotifications extends EventEmitter {
         this.dismissals[account] = (this.dismissals[account] || []).filter((value) => value !== id)
         this.service.persist()
       }
-      const snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', { accept: outputAccept })
+      const snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', {
+        accept: outputAccept
+      })
       if (revision !== this.revision) return null
       if (
         !snapshot ||
@@ -240,12 +242,17 @@ function createNotificationMethods(ClientError) {
     notificationHistory(value) {
       return this.request(`/api/announcements/history?client=desktop&offset=${offset(value)}`)
     },
-    notificationPreferences() { return this.request('/api/user-notifications/preferences') },
+    notificationPreferences() {
+      return this.request('/api/user-notifications/preferences')
+    },
     notificationSavePreference(value) {
       return this.request('/api/user-notifications/preferences', { method: 'PUT', body: value })
     },
     notificationList(value) {
-      return this.request(`/api/user-notifications?offset=${offset(value)}`, { accept: outputAccept })
+      return this.request(`/api/user-notifications?offset=${offset(value)}`, {
+        accept: outputAccept,
+        prefer: 'return=representation'
+      })
     },
     async notificationRead(value) {
       const result = await this.request(`/api/user-notifications/${id(value)}/read`, { method: 'PUT', body: {} })

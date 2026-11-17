@@ -1,3 +1,10 @@
+import {
+  outputFieldSchema,
+  outputWorkbenchSchema,
+  type OutputWorkbench,
+  type OutputWorkbenchTarget
+} from './output-workbench.schema'
+export type { OutputWorkbench, OutputWorkbenchTarget } from './output-workbench.schema'
 import { agentOutputReferenceSchema } from './agent-output-reference.schema'
 import { humanDecisionSchema, type HumanDecision } from './human-decision.model'
 import { z } from 'zod/v3'
@@ -6,12 +13,6 @@ import { notificationThreadIdSchema, type OpenConversationAction } from '../user
 /** HTTP Accept profile for notification clients that can display agent outputs in list and sync responses. */
 export const AGENT_OUTPUT_ACCEPT = 'application/json; profile="xpert-agent-output-v1"'
 
-const outputField = z
-  .object({
-    label: z.object({ en_US: z.string().min(1).max(160), zh_Hans: z.string().min(1).max(160) }).strict(),
-    value: z.string().max(4000)
-  })
-  .strict()
 /**
  * A labeled value the source has cleared for this recipient. Notification details and private
  * decision cards share these display fields, for example a supplier's proposed delivery date.
@@ -26,6 +27,7 @@ export interface AgentOutputItem {
   title: string
   action: OpenConversationAction | null
   fields?: AgentOutputField[]
+  workbench?: OutputWorkbenchTarget
 }
 
 const key = agentOutputReferenceSchema.shape.key
@@ -92,7 +94,8 @@ export const agentOutputPresentationSchema = z.discriminatedUnion('status', [
       status: z.literal('visible'),
       title: z.string().trim().min(1).max(240),
       decision: humanDecisionSchema.optional(),
-      fields: z.array(outputField).max(20).optional(),
+      workbench: outputWorkbenchSchema.optional(),
+      fields: z.array(outputFieldSchema).max(20).optional(),
       conversation: z
         .object({ conversationId: uuid, threadId: notificationThreadIdSchema.optional() })
         .strict()
@@ -114,6 +117,7 @@ export type AgentOutputPresentation =
   | {
       status: 'visible'
       title: string
+      workbench?: OutputWorkbench
       decision?: HumanDecision
       fields?: AgentOutputField[]
       conversation?: { conversationId: string; threadId?: string }

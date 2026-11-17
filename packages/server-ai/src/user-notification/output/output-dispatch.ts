@@ -74,7 +74,8 @@ export class OutputDispatch {
                     )
                 )
                 if (result.status === 'unavailable') throw new Error('output_source_unavailable')
-                if (result.status !== 'visible') continue
+                if (result.status !== 'visible' || (operation === 'dispatch' && result.workbench?.state === 'handled'))
+                    continue
                 let action: OpenConversationAction | null = null
                 if (result.conversation) {
                     try {
@@ -99,7 +100,27 @@ export class OutputDispatch {
                     title: result.title,
                     action,
                     ...(operation === 'dispatch' && result.decision ? { decision: result.decision } : {}),
-                    ...(fields ? { fields } : {})
+                    ...(fields ? { fields } : {}),
+                    ...(includeDetails && operation === 'read' && result.workbench
+                        ? {
+                              workbench: {
+                                  title: {
+                                      en_US: result.workbench.title.en_US,
+                                      zh_Hans: result.workbench.title.zh_Hans
+                                  },
+                                  openLabel: {
+                                      en_US: result.workbench.openLabel.en_US,
+                                      zh_Hans: result.workbench.openLabel.zh_Hans
+                                  },
+                                  state: result.workbench.state,
+                                  viewKey: result.workbench.viewKey,
+                                  selectionId: result.workbench.selectionId,
+                                  assistantId: binding.xpertId,
+                                  organizationId: binding.organizationId,
+                                  projectId: binding.projectId
+                              }
+                          }
+                        : {})
                 })
             } catch (error) {
                 if (operation === 'dispatch' && !denied(error)) throw error

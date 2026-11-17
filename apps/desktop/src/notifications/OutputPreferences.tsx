@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { OutputPreference } from '@xpert-ai/contracts'
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
@@ -12,19 +12,21 @@ export function OutputPreferences() {
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [hours, setHours] = useState({ start: '', end: '', zone: '' })
-  const load = async () => {
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    let current = true
     setFailed(false)
-    if (data) {
-      setData(null)
-      setDraft(null)
-      return
+    void invoke('notificationPreferences', undefined)
+      .then((value) => {
+        if (current) setData(value)
+      })
+      .catch(() => {
+        if (current) setFailed(true)
+      })
+    return () => {
+      current = false
     }
-    try {
-      setData(await invoke('notificationPreferences', undefined))
-    } catch {
-      setFailed(true)
-    }
-  }
+  }, [attempt])
   const edit = (kind: string, channel: OutputPreference['channel']) => {
     const saved = data?.preferences.find((p) => p.kind === kind && p.channel === channel)
     setDraft(saved ?? { kind, channel, enabled: channel === 'in_app', quiet: null, integrationId: null })
@@ -55,9 +57,12 @@ export function OutputPreferences() {
   }
   return (
     <section className="space-y-2">
-      <Button variant="outline" onClick={load}>
-        {t('Delivery preferences')}
-      </Button>
+      {!data && !failed && <p role="status">{t('Loading…')}</p>}
+      {!data && failed && (
+        <Button variant="outline" onClick={() => setAttempt((value) => value + 1)}>
+          {t('Retry')}
+        </Button>
+      )}
       {data?.kinds.map((kind) => (
         <div key={kind.key}>
           <h4>{locale.startsWith('zh') ? kind.label.zh_Hans : kind.label.en_US}</h4>

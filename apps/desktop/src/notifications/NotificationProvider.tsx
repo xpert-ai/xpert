@@ -3,19 +3,19 @@ import { CircleCheck, X } from 'lucide-react'
 import {
   parseAnnouncement,
   parseNotificationSnapshot,
-  parseUserNotification,
   type Announcement,
   type NotificationSnapshot,
   type AgentOutputItem,
+  type OutputWorkbenchTarget,
   type UserNotification
 } from '@xpert-ai/contracts'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
-import { t, useLocale } from '../i18n'
-import { OutputPreferences } from './OutputPreferences'
+import { t } from '../i18n'
+import { NotificationCenter } from './NotificationCenter'
 import { AnnouncementNotice, AnnouncementText } from './AnnouncementNotice'
 
-type OutputDetails = { id: string; items: AgentOutputItem[] }
+export type OutputDetails = { id: string; items: AgentOutputItem[] }
 
 const Context = createContext({ open: (_opener?: HTMLElement | null) => {}, count: 0, available: false })
 export const useNotifications = () => useContext(Context)
@@ -24,11 +24,13 @@ export function NotificationProvider({
   children,
   activeThreadId,
   suspended = false,
+  onWorkbench,
   onOpen
 }: {
   children: ReactNode
   suspended?: boolean
   activeThreadId: string | null
+  onWorkbench?: (target: OutputWorkbenchTarget) => void
   onOpen: (item: UserNotification) => Promise<void>
 }) {
   const [snapshot, setSnapshot] = useState<NotificationSnapshot | null>(null)
@@ -185,21 +187,25 @@ export function NotificationProvider({
     }
   }
   const openResult = async (item: UserNotification, memberId?: string) => {
+    setError('')
     try {
       const { items = [] } = await invoke('notificationRead', item.id)
       if (!mounted.current) return
       if (item.kind === 'agent.output') {
         setDetails({ id: item.id, items })
         const entry = memberId ? items.find((entry) => entry.id === memberId) : items.length === 1 ? items[0] : null
-        if (!entry?.action) {
+        if (memberId && !entry) throw new Error(t('Unavailable'))
+        if (entry?.workbench && onWorkbench) {
+          onWorkbench(entry.workbench)
+        } else if (!entry?.action) {
           setHint(null)
           setCenter(true)
           return
-        }
-        await onOpen({ ...item, action: entry.action })
+        } else await onOpen({ ...item, action: entry.action })
       } else {
         await onOpen(item)
       }
+      setDetails(null)
       centerOpener.current = null
       setCenter(false)
       setHint(null)
@@ -219,6 +225,8 @@ export function NotificationProvider({
         open: (opener) => {
           centerOpener.current = opener ?? null
           setAnnouncement(null)
+          setDetails(null)
+          setError('')
           setHint(null)
           setCenter(true)
         }
@@ -326,173 +334,5 @@ export function NotificationProvider({
         />
       )}
     </Context.Provider>
-  )
-}
-
-function NotificationCenter({
-  details,
-  onRestoreFocus,
-  onClose,
-  onOpen,
-  onAnnouncement
-}: {
-  details: OutputDetails | null
-  onRestoreFocus: () => void
-  onClose: () => void
-  onOpen: (item: UserNotification, memberId?: string) => Promise<void>
-  onAnnouncement: (item: Announcement) => void
-}) {
-  const locale = useLocale()
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [notifications, setNotifications] = useState<UserNotification[]>([])
-  const [moreAnnouncements, setMoreAnnouncements] = useState(false)
-  const [moreNotifications, setMoreNotifications] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
-  const loading = useRef(false)
-  const announcementOffset = useRef(0)
-  const offset = useRef(0)
-  const alive = useRef(true)
-  const load = async (kind: 'both' | 'announcements' | 'notifications') => {
-    if (loading.current) return
-    loading.current = true
-    setBusy(true)
-    setFailed(false)
-    try {
-      if (kind !== 'notifications') {
-        const result = await invoke('notificationHistory', announcementOffset.current)
-        if (!alive.current) return
-        const items = result.items.map((item) => parseAnnouncement(item))
-        announcementOffset.current += items.length
-        setAnnouncements((previous) => [...new Map([...previous, ...items].map((item) => [item.id, item])).values()])
-        setMoreAnnouncements(announcementOffset.current < result.total)
-      }
-      if (kind !== 'announcements') {
-        const result = await invoke('notificationList', offset.current)
-        if (!alive.current) return
-        offset.current = result.nextOffset
-        const items = result.items.map((item) => parseUserNotification(item))
-        setNotifications((previous) => [...new Map([...previous, ...items].map((item) => [item.id, item])).values()])
-        setMoreNotifications(result.hasMore)
-      }
-    } catch {
-      if (alive.current) setFailed(true)
-    } finally {
-      loading.current = false
-      if (alive.current) setBusy(false)
-    }
-  }
-  useEffect(() => {
-    alive.current = true
-    void load('both')
-    return () => {
-      alive.current = false
-    }
-  }, [])
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
-    >
-      <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-xl"
-        showCloseButton={false}
-        onCloseAutoFocus={(event) => {
-          event.preventDefault()
-          onRestoreFocus()
-        }}
-      >
-        <DialogHeader>
-          <DialogTitle>{t('Notifications')}</DialogTitle>
-          <DialogDescription>{t('Announcements and scheduled task results')}</DialogDescription>
-        </DialogHeader>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
-          <OutputPreferences />
-          {failed && (
-            <p role="alert">
-              {t('Could not load notifications. Please retry.')}{' '}
-              <Button variant="outline" disabled={busy} onClick={() => void load('both')}>
-                {t('Retry')}
-              </Button>
-            </p>
-          )}
-          <h3 className="font-medium">{t('Announcements')}</h3>
-          {announcements.map((item) => (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className="h-auto w-full justify-start whitespace-normal text-left"
-              onClick={() =>
-                void invoke('notificationAnnouncement', item.id)
-                  .then((value) => {
-                    if (alive.current) onAnnouncement(parseAnnouncement(value))
-                  })
-                  .catch(() => setFailed(true))
-              }
-            >
-              {item.title}
-              {item.expiresAt && Date.parse(item.expiresAt) <= Date.now() ? ` · ${t('Expired')}` : ''}
-            </Button>
-          ))}
-          {moreAnnouncements && (
-            <Button variant="outline" disabled={busy} onClick={() => void load('announcements')}>
-              {t('Load more')}
-            </Button>
-          )}
-          <h3 className="font-medium">{t('Scheduled task results')}</h3>
-          {notifications.map((item) => (
-            <div key={item.id}>
-              <Button
-                variant="ghost"
-                className={`h-auto w-full justify-start whitespace-normal text-left ${item.readAt ? '' : 'font-semibold'}`}
-                onClick={() => void onOpen(item)}
-              >
-                {item.kind === 'agent.output' ? item.titles.join(' · ') : t('Your scheduled task has completed')} ·{' '}
-                {new Date(item.createdAt).toLocaleString()}
-              </Button>
-              {details?.id === item.id && (
-                <ul>
-                  {details.items.map((entry) => (
-                    <li key={entry.id}>
-                      {entry.action ? (
-                        <Button variant="link" onClick={() => void onOpen(item, entry.id)}>
-                          {entry.title}
-                        </Button>
-                      ) : (
-                        entry.title
-                      )}
-                      {entry.fields?.length ? (
-                        <dl>
-                          {entry.fields.map((field, index) => (
-                            <div key={index}>
-                              <dt>{locale.startsWith('zh') ? field.label.zh_Hans : field.label.en_US}</dt>
-                              <dd className="whitespace-pre-wrap">{field.value}</dd>
-                            </div>
-                          ))}
-                        </dl>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-          {moreNotifications && (
-            <Button variant="outline" disabled={busy} onClick={() => void load('notifications')}>
-              {t('Load more')}
-            </Button>
-          )}
-          {busy && <p role="status">{t('Loading…')}</p>}
-          {!busy && !failed && !announcements.length && !notifications.length && <p>{t('No notifications yet')}</p>}
-        </div>
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={onClose}>
-            {t('Close')}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }

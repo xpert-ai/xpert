@@ -1496,5 +1496,12 @@
   "System permissions": "システムの権限",
   "Permissions are managed by macOS.": "権限は macOS が管理します。",
   "Manage": "管理",
-  "Briefly show the latest assistant reply beside the Dock.": "作業が完了すると、Dock の横に最新の返信を短時間表示します。"
+  "Briefly show the latest assistant reply beside the Dock.": "作業が完了すると、Dock の横に最新の返信を短時間表示します。",
+  "Assistant notifications": "アシスタント通知",
+  "Scheduled tasks": "スケジュールタスク",
+  "Needs your attention": "対応が必要",
+  "Recent notifications": "最近の通知",
+  "Awaiting decision": "判断待ち",
+  "Assistant notifications, scheduled tasks and announcements": "アシスタント通知、スケジュールタスク、お知らせ",
+  "Read": "既読"
 }

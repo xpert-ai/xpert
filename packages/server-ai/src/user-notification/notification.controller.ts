@@ -30,9 +30,15 @@ export class UserNotificationController {
     list(
         @Query(new ZodValidationPipe(page, invalidNotification))
         query: z.output<typeof page>,
-        @Headers('accept') accept?: string
+        @Headers('accept') accept?: string,
+        @Headers('prefer') prefer?: string
     ) {
-        return this.service.list(query.offset, query.limit, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
+        return this.service.list(
+            query.offset,
+            query.limit,
+            accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
+            prefer === 'return=representation'
+        )
     }
     @Get('sync')
     @Header('Cache-Control', 'no-store')
@@ -43,8 +49,12 @@ export class UserNotificationController {
     ) {
         return this.service.snapshot(query.client, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
     }
-    @Get('preferences') listPreferences() { return this.preferences.list() }
-    @Put('preferences') savePreference(@Body(new ZodValidationPipe(outputPreferenceSchema, invalidNotification)) input: OutputPreference) {
+    @Get('preferences') listPreferences() {
+        return this.preferences.list()
+    }
+    @Put('preferences') savePreference(
+        @Body(new ZodValidationPipe(outputPreferenceSchema, invalidNotification)) input: OutputPreference
+    ) {
         return this.preferences.save(input)
     }
     @Sse('stream')

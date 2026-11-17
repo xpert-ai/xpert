@@ -420,6 +420,54 @@ integration('agent output with separate PostgreSQL transactions and worker lease
         }
     })
 
+    it('keeps a handled decision in history and rechecks access for every open', async () => {
+        const ref = reference()
+        pending = [ref]
+        await collect()
+        const message = await db.manager.findOneByOrFail(AgentOutputMessage, { outputKey: ref.key })
+        const { deliveryId } = await db.manager.findOneByOrFail(AgentOutputMember, {
+            messageId: message.id,
+            channel: 'in_app'
+        })
+        const original = source.resolveForRecipient
+        const label = { en_US: 'Decision', zh_Hans: '采购决定' }
+        let state: 'pending' | 'handled' = 'pending'
+        let allowed = true
+        source.resolveForRecipient = async (ctx, value) =>
+            value.key !== ref.key
+                ? original(ctx, value)
+                : !allowed
+                  ? { status: 'forbidden' }
+                  : {
+                        status: 'visible',
+                        title: 'Case C',
+                        workbench: {
+                            state,
+                            title: label,
+                            openLabel: label,
+                            viewKey: 'fixture__workbench',
+                            selectionId: ctx.sourceBindingRef
+                        }
+                    }
+        try {
+            await dispatch.dispatch(await lease(deliveryId), deliveryId)
+            const list = () => asRecipient(() => notifications.list(0, 100, true, true))
+            const find = async () =>
+                (await list()).items.find((n) => n.kind === 'agent.output' && n.source.deliveryId === deliveryId)
+            const notice = await find()
+            expect(notice).toMatchObject({ items: [{ workbench: { state: 'pending', assistantId: binding.xpertId } }] })
+            const read = () => asRecipient(() => notifications.read(notice!.id))
+            expect(await read()).toMatchObject({ items: [{ workbench: { state: 'pending' } }] })
+            state = 'handled'
+            expect(await find()).toMatchObject({ id: notice!.id, items: [{ workbench: { state: 'handled' } }] })
+            allowed = false
+            await expect(read()).rejects.toThrow()
+            expect(await find()).toBeUndefined()
+        } finally {
+            source.resolveForRecipient = original
+        }
+    })
+
     it('delivers a non-UUID branch and preserves the title when optional navigation is invalid or inaccessible', async () => {
         const ref = reference(),
             conversationId = randomUUID()

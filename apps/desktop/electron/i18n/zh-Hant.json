@@ -1507,5 +1507,12 @@
   "System permissions": "系統權限",
   "Permissions are managed by macOS.": "權限由 macOS 管理。",
   "Manage": "管理",
-  "Briefly show the latest assistant reply beside the Dock.": "助理完成工作時，在停靠欄旁短暫顯示最新回覆。"
+  "Briefly show the latest assistant reply beside the Dock.": "助理完成工作時，在停靠欄旁短暫顯示最新回覆。",
+  "Assistant notifications": "助理通知",
+  "Scheduled tasks": "排程任務",
+  "Needs your attention": "待你處理",
+  "Recent notifications": "最近通知",
+  "Awaiting decision": "待決定",
+  "Assistant notifications, scheduled tasks and announcements": "助理通知、排程任務與公告",
+  "Read": "已讀"
 }

@@ -1,3 +1,5 @@
+import type { AgentOutputItem } from './always-on/agent-output.model'
+import { outputFieldSchema, outputWorkbenchTargetSchema } from './always-on/output-workbench.schema'
 import { z } from 'zod/v3'
 
 // Application types are independent of delivery channels and external account identities.
@@ -95,6 +97,20 @@ export const agentOutputOriginSchema = z
 const outputNotificationSchema = taskNotificationSchema.extend({
   kind: z.literal('agent.output'),
   source: agentOutputOriginSchema,
+  items: z
+    .array(
+      z
+        .object({
+          id: z.string().uuid(),
+          title: z.string().min(1).max(240),
+          action: openConversationActionSchema.nullable(),
+          fields: z.array(outputFieldSchema).max(20).optional(),
+          workbench: outputWorkbenchTargetSchema.optional()
+        })
+        .strict()
+    )
+    .max(20)
+    .optional(),
   titles: z.array(z.string().min(1).max(240)).min(1).max(20),
   action: openConversationActionSchema.nullable()
 })
@@ -107,6 +123,7 @@ export type UserNotification =
       createdAt: string
       readAt: string | null
       source: Required<z.output<typeof agentOutputOriginSchema>>
+      items?: AgentOutputItem[]
       titles: string[]
       action: OpenConversationAction | null
     }

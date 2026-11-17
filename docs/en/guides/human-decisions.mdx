@@ -5,6 +5,21 @@ description: 'Respond to a proposed delivery date in the procurement workbench o
 
 When a supplier moves delivery from December 1 to December 8, the procurement assistant can ask the buyer to decide on that quote revision. You can close the chat and answer later. The procurement case keeps the decision from either the workbench or your private Feishu chat.
 
+## Who proposes the delay and who can accept it
+
+Three business roles take part. The **supplier** proposes a new delivery date. The **procurement assistant** detects the delay, requests a decision and follows up on the outcome. The **designated buyer** decides whether to accept. Xpert identifies the assistant by its Assistant ID and attributes the decision to the buyer who made it.
+
+When the supplier submits quotes through an API and the buyer answers in Feishu, the workflow uses four identities.
+
+| Identity                  | Role in the workflow                                                                                                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supplier’s API client     | Submits a quote revision and proposed delivery date using the supplier’s credentials.                                                                                                                           |
+| Feishu bot’s app identity | Xpert uses the configured bot to send the decision card to the buyer’s private chat. When the buyer quotes the card, Xpert uses the original message to identify the case, quote revision and decision request. |
+| Buyer’s Feishu account    | Identifies the person who replied. Xpert uses the existing identity link to find that person’s platform account.                                                                                                |
+| Buyer’s Xpert account     | The procurement plugin checks that the account belongs to the designated buyer and still has access to act on the case. It then records the buyer, choice and time against that quote revision.                 |
+
+In acceptance case C, the tester uploads a new quote from `测试供应商` to simulate the supplier submitting revision 5. Supplier API access can be verified separately. Acting as the buyer, the tester then quotes the new revision 5 card in their private Feishu chat and replies `接受本次延期`. To verify the outcome, look for the decision on revision 5 under the buyer account `Inbox` in the `Event Inbox Acceptance` organization, and for the assistant’s report in the original procurement conversation.
+
 ## Decide in the procurement workbench
 
 1. Open a Procurement Quote Comparison case you created and can still manage. Under **Buyer decisions**, choose **Enable buyer decisions**. Quote events must be enabled for the case, with an active source binding for the procurement assistant.
