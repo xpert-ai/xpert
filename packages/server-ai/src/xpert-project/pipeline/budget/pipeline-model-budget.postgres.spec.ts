@@ -13,7 +13,7 @@ import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execut
 import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.entity'
 import { ProjectPipelineEventEntity } from '../persistence/pipeline.entity'
 import { pipelineModelBudgetDenials, readPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
-import { registerBudgetDenialOrderingTests } from './pipeline-model-budget-denial.postgres-cases'
+import { registerBudgetDenialOrderingTests } from './pipeline-model-budget-denial.postgres.test-fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
 import { AgentRuntimeInbox } from '../../../handoff/runtime-messaging/runtime-message.entity'
