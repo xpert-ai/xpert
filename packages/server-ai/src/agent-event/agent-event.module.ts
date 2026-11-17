@@ -6,7 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AGENT_EVENT_ENTITIES } from './agent-event.entity'
 import { DiscoveryModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
-import { ManagedQueueModule } from '@xpert-ai/server-core'
+import { PrivateDecisionRouter } from '../user-notification/output/private-decision-router'
+import { OutputPreferences } from '../user-notification/output/output-preferences'
+import { ChatChannelRegistry } from '@xpert-ai/plugin-sdk'
+import { ManagedQueueModule, IntegrationModule } from '@xpert-ai/server-core'
 import { HandoffQueueModule } from '../handoff/message-queue.module'
 import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
@@ -18,6 +21,7 @@ import { AgentEventRuntime, AgentEventSources } from './agent-event.runtime'
 import { AgentEventWakeService } from './agent-event-wake.service'
 import { AgentEventStore } from './agent-event.store'
 
+import { WorkbenchDecisionService } from './workbench-decision.service'
 import { EventBindingAccessService } from './event-binding-access.service'
 import { EventInboxService } from './views/event-inbox.service'
 import { EventInboxViewProvider } from './views/event-inbox.provider'
@@ -27,6 +31,7 @@ import { UserInboxHostDefinition } from './views/user-inbox-host.definition'
     imports: [
         TypeOrmModule.forFeature([...AGENT_EVENT_ENTITIES, FollowUpTimer]),
         DiscoveryModule,
+        IntegrationModule,
         CqrsModule,
         ManagedQueueModule,
         HandoffQueueModule,
@@ -35,10 +40,14 @@ import { UserInboxHostDefinition } from './views/user-inbox-host.definition'
         AssistantSharingModule,
         XpertProjectAccessModule
     ],
-    exports: [FollowUpTimerSource, AgentEventSources, EventBindingAccessService],
+    exports: [OutputPreferences, FollowUpTimerSource, AgentEventSources, EventBindingAccessService],
     controllers: [AgentEventController],
     providers: [
         OutputStore,
+        ChatChannelRegistry,
+        OutputPreferences,
+        PrivateDecisionRouter,
+        WorkbenchDecisionService,
         UserInboxHostDefinition,
         EventBindingAccessService,
         EventInboxService,

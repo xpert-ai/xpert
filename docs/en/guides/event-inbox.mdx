@@ -59,3 +59,9 @@ An Assistant with the scheduler middleware can set a deadline and finish its cur
 | Cancel a pending deadline | Call `delete_scheduler` with `mode: "follow_up"` and its `taskId`. Once the due decision has been recorded, that wake will proceed. |
 
 The host binds the Agent and the thread from the current run. Recurring monitors and cron tasks keep their existing arguments. In Procurement Quote Comparison, the buyer and the Agent manage each delivery risk through the procurement workflow. **Waiting to run** means the due decision has been recorded. **Started** means the platform has admitted the run. A later cancellation or supplier reply updates the risk that the Agent reads.
+
+## When two receipts refer to the same item
+
+Two deadline checks on one delivery risk produce separate receipts. If both refer to the same quote series and revision, they can lead to the same procurement reminder. On its next run, the assistant reads the current quote, supplier reply and published reminder from the procurement case. File Memory can retain user preferences, checkpoints track run progress, and the procurement plugin keeps the quote revision and its disposition.
+
+Code Review identifies an existing review by the PR commit and policy revision. Feishu rechecks the current actor and chat when it resolves a card result. For delivery delays that require a buyer’s choice, see [Human decisions on supplier delays](/en/guides/human-decisions).

@@ -1,0 +1,23 @@
+---
+title: 'Agent Outbox'
+description: 'Receive procurement and code review results in the notification center, choose a Feishu bot, and configure quiet hours.'
+---
+
+When the procurement assistant finds a delivery risk that needs checking, it can notify the buyer after the background run. Two follow-ups on the same risk, quote series and revision produce one in-app reminder. A new quote revision can produce another reminder.
+
+## Choose how to receive results
+
+1. Open **Notifications → Delivery preferences** in Web or Bosi Desktop.
+2. Choose a result type, such as **Delivery check** or **Code review result**. The available types come from assistant sources you can access in the current organization.
+3. Configure **In-app** and **Feishu private chat** separately for each type. In-app delivery is on by default. To enable Feishu, bind your own Feishu identity to your platform account, select a bot integration available in the organization, and save.
+4. To defer a channel, set its time zone and quiet hours. For example, 22:00 to 08:00 in Asia/Shanghai ends the following morning. Other channels keep their own schedules.
+
+A newly enabled channel receives results published after you enable it. Changing bots or rebinding your identity does not redirect queued reminders to the new account. Feishu reminders show the visible item titles. Open the in-app notification for details. A buyer decision uses a separate interactive card. [Human decisions on supplier delays](/en/guides/human-decisions)
+
+## Read a reminder or digest
+
+When quiet hours end, the platform checks which items still apply. If three risks arrived overnight and one has been resolved, the morning digest contains the other two. A digest holds up to 20 items. Extending quiet hours regroups items whose delivery has not started.
+
+Select a notification to see the result fields you can access. A code review can show the PR, review status and commit under review. **Open conversation** is available when the result identifies a conversation you can still read. If one item cannot currently be verified, the other readable notifications and announcements remain available. Reading a notification updates its own read time. Chat messages have a separate unread count.
+
+To trace the incoming event that triggered a follow-up, open the [Event Inbox](/en/guides/event-inbox). For announcements and personal scheduled tasks, see [Announcements and notifications](/en/guides/notifications).

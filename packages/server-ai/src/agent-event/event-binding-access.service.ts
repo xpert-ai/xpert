@@ -41,9 +41,13 @@ export class EventBindingAccessService {
         })
     }
 
-    async assertAccessible(binding: AgentEventBinding) {
+    async assertAccessible(binding: AgentEventBinding, requireCurrentPublication = false) {
         const target = await this.published.getAccessiblePublishedXpert(binding.xpertId)
-        if (target.workspaceId !== binding.workspaceId || target.organizationId !== binding.organizationId)
+        if (
+            target.workspaceId !== binding.workspaceId ||
+            target.organizationId !== binding.organizationId ||
+            (requireCurrentPublication && target.publishAt?.getTime() !== binding.publishedAt.getTime())
+        )
             throw new ForbiddenException()
         if (binding.projectId)
             await this.commands.execute(new AssertProjectAssistantAccessCommand(binding.projectId, binding.xpertId))

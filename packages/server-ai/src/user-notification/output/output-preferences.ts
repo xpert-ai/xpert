@@ -1,10 +1,10 @@
-import { AgentEventSources } from '../../agent-event/agent-event.runtime'
+import { AgentEventSources } from '../../agent-event/agent-event-sources'
 import { AgentEventBinding } from '../../agent-event/agent-event.entity'
 import { EventBindingAccessService } from '../../agent-event/event-binding-access.service'
 import { HttpException, Injectable } from '@nestjs/common'
 import { ExternalIdentityBinding, IntegrationService } from '@xpert-ai/server-core'
 import { ChatChannelRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import type { OutputPreference } from '@xpert-ai/contracts'
+import type { PrivateDecisionFeedbackStatus, PrivateDecisionCard, OutputPreference } from '@xpert-ai/contracts'
 import { DataSource, EntityManager, In } from 'typeorm'
 import {
     AgentOutputPreference,
@@ -86,6 +86,17 @@ export class OutputPreferences {
             (await channel.resolvePrivateDestination(integration, binding.subjectId))
         if (!target) return null
         return {
+            appId: target.appId,
+            recipient: target.recipient,
+            subject: binding.subjectId,
+            sendDecision:
+                channel.sendPrivateDecision &&
+                ((card: PrivateDecisionCard, attemptId: string) =>
+                    channel.sendPrivateDecision!(integration, target.recipient, card, attemptId)),
+            updateDecision:
+                channel.updatePrivateDecision &&
+                ((message: string, status: PrivateDecisionFeedbackStatus, choiceLabel: string) =>
+                    channel.updatePrivateDecision!(integration, message, status, choiceLabel)),
             fingerprint: digest([
                 binding.id,
                 binding.subjectId,

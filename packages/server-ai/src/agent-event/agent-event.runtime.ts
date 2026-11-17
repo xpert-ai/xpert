@@ -1,15 +1,11 @@
 import { OutputStore } from '../user-notification/output/output-store'
 import { ForbiddenException, HttpException, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { DiscoveryService, Reflector } from '@nestjs/core'
+import { AgentEventSources, sourceContext } from './agent-event-sources'
+export { AgentEventSources, sourceContext } from './agent-event-sources'
+import { PrivateDecisionRouter } from '../user-notification/output/private-decision-router'
 import { CommandBus } from '@nestjs/cqrs'
 import { ManagedQueueHandlerRegistryService, ManagedQueueService } from '@xpert-ai/server-core'
-import {
-    AGENT_EVENT_SOURCE,
-    BaseStrategyRegistry,
-    type AgentEventContext,
-    type AgentEventFollowUp,
-    type PluginAgentEventSource
-} from '@xpert-ai/plugin-sdk'
+import { type AgentEventContext, type AgentEventFollowUp, type PluginAgentEventSource } from '@xpert-ai/plugin-sdk'
 import { HandoffOutboxAdapters } from '../handoff/outbox-adapters.service'
 import { RuntimeMessageAccessService } from '../handoff/runtime-messaging/runtime-message-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -17,52 +13,10 @@ import { AssertProjectAssistantAccessCommand } from '../xpert-project/commands/a
 import type { AgentEventBinding } from './agent-event.entity'
 import { AgentEventBindingService } from './agent-event-binding.service'
 import { FollowUpThreadBusy } from './follow-up-timer.constants'
-import { FollowUpTimerSource, timerSource } from './follow-up-timer.source'
 import { AgentEventWakeService } from './agent-event-wake.service'
 import { AgentEventStore } from './agent-event.store'
 
 const queue = { pluginName: '@xpert-ai/platform', queueName: 'agent-event', jobName: 'consume' }
-
-@Injectable()
-export class AgentEventSources extends BaseStrategyRegistry<PluginAgentEventSource> {
-    constructor(
-        discovery: DiscoveryService,
-        reflector: Reflector,
-        private readonly timers?: FollowUpTimerSource
-    ) {
-        super(AGENT_EVENT_SOURCE, discovery, reflector)
-    }
-
-    resolve(binding: Pick<AgentEventBinding, 'adapter' | 'plugin' | 'organizationId'>): PluginAgentEventSource {
-        if (this.timers && binding.plugin === timerSource.plugin && binding.adapter === timerSource.adapter)
-            return this.timers
-        const source = this.get(binding.adapter, binding.organizationId)
-        const provenance = this.getSource(source)
-        if (
-            provenance.kind !== 'plugin' ||
-            provenance.pluginName !== binding.plugin ||
-            source.key !== binding.adapter ||
-            source.protocolVersion !== 1
-        )
-            throw new ForbiddenException('event_source_unavailable')
-        return source
-    }
-}
-
-export function sourceContext(binding: AgentEventBinding, signal: AbortSignal): AgentEventContext {
-    return Object.freeze({
-        bindingId: binding.id,
-        bindingRevision: binding.revision,
-        sourceBindingRef: binding.sourceBindingRef,
-        tenantId: binding.tenantId,
-        organizationId: binding.organizationId,
-        workspaceId: binding.workspaceId,
-        projectId: binding.projectId ?? undefined,
-        userId: binding.userId,
-        xpertId: binding.xpertId,
-        signal
-    })
-}
 
 @Injectable()
 export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
@@ -81,7 +35,8 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
         private readonly published: PublishedXpertAccessService,
         private readonly commands: CommandBus,
         private readonly wakeService?: AgentEventWakeService,
-        private readonly outputs?: OutputStore
+        private readonly outputs?: OutputStore,
+        private readonly decisionRouter?: PrivateDecisionRouter
     ) {}
 
     onModuleInit() {
@@ -208,8 +163,18 @@ export class AgentEventRuntime implements OnModuleInit, OnModuleDestroy {
             await this.withAuthority(binding, context.signal, async () => {
                 try {
                     const delivery = new AbortController()
-                    const signal = AbortSignal.any([context.signal,delivery.signal])
+                    const signal = AbortSignal.any([context.signal, delivery.signal])
                     const wake: AgentEventFollowUp | undefined = this.wakeService && {
+                        ...(this.decisionRouter &&
+                        binding.plugin === '@xpert-ai/plugin-lark' &&
+                        binding.adapter === 'lark.inbound'
+                            ? {
+                                  submitPrivateDecision: (reply) => {
+                                      signal.throwIfAborted()
+                                      return this.decisionRouter.submit(binding, claim, reply, signal)
+                                  }
+                              }
+                            : {}),
                         wake: async (input) => {
                             if (signal.aborted) throw new Error('event_delivery_closed')
                             await this.wakeService.start(binding, claim, input, signal)

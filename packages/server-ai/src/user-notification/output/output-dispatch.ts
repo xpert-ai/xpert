@@ -1,7 +1,12 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { randomUUID } from 'node:crypto'
 import { DataSource } from 'typeorm'
-import { agentOutputPresentationSchema, type AgentOutputItem, type OpenConversationAction } from '@xpert-ai/contracts'
+import {
+    agentOutputPresentationSchema,
+    type HumanDecision,
+    type AgentOutputItem,
+    type OpenConversationAction
+} from '@xpert-ai/contracts'
 import { AgentEventBinding } from '../../agent-event/agent-event.entity'
 import { AgentEventSources, sourceContext } from '../../agent-event/agent-event.runtime'
 import { EventBindingAccessService } from '../../agent-event/event-binding-access.service'
@@ -15,7 +20,7 @@ import {
     UserNotificationEntity
 } from '../notification.entities'
 import { OutputPreferences } from './output-preferences'
-import { lockRecipient, quietUntil } from './output-store'
+import { digest, lockRecipient, quietUntil } from './output-store'
 
 function denied(error: unknown) {
     return error instanceof HttpException && [401, 403, 404].includes(error.getStatus())
@@ -36,11 +41,11 @@ export class OutputDispatch {
         operation: 'read' | 'dispatch',
         includeDetails = false,
         preparedMembers?: AgentOutputMember[]
-    ): Promise<AgentOutputItem[]> {
+    ): Promise<(AgentOutputItem & { decision?: HumanDecision })[]> {
         const members =
             preparedMembers ??
             (await this.db.manager.findBy(AgentOutputMember, { deliveryId: delivery.id, included: true }))
-        const items: AgentOutputItem[] = []
+        const items: (AgentOutputItem & { decision?: HumanDecision })[] = []
         for (const member of members) {
             const message = await this.db.manager.findOneByOrFail(AgentOutputMessage, {
                 id: member.messageId,
@@ -89,7 +94,13 @@ export class OutputDispatch {
                         label: { en_US: label.en_US, zh_Hans: label.zh_Hans },
                         value
                     }))
-                items.push({ id: member.id, title: result.title, action, ...(fields ? { fields } : {}) })
+                items.push({
+                    id: member.id,
+                    title: result.title,
+                    action,
+                    ...(operation === 'dispatch' && result.decision ? { decision: result.decision } : {}),
+                    ...(fields ? { fields } : {})
+                })
             } catch (error) {
                 if (operation === 'dispatch' && !denied(error)) throw error
             }
@@ -147,6 +158,8 @@ export class OutputDispatch {
                   attemptId: string
               ) => Promise<{ status: 'accepted'; messageId: string } | { status: 'failed' | 'unknown' }>)
             | undefined
+        let destination: Awaited<ReturnType<OutputPreferences['target']>>
+        let card: import('@xpert-ai/contracts').PrivateDecisionCard | undefined
         const initialMembers = await this.db.manager.findBy(AgentOutputMember, { deliveryId: id, included: true })
         const initialIds = new Set(initialMembers.map((member) => member.id))
         const result = await this.actors
@@ -154,9 +167,12 @@ export class OutputDispatch {
                 const p = await this.db.manager.findOneBy(AgentOutputPreference, preferenceKey(d))
                 if (d.channel === 'lark' && p?.enabled && p.integrationId && p.revision === d.preferenceRevision) {
                     const target = await this.preferences.target(d, p.integrationId)
-                    if (target && target.fingerprint === p.targetDigest) send = target.send
+                    if (target && target.fingerprint === p.targetDigest) {
+                        send = target.send
+                        destination = target
+                    }
                 }
-                return this.items(d, 'dispatch', false, initialMembers)
+                return this.items(d, 'dispatch', d.channel === 'lark', initialMembers)
             })
             .catch((error) => {
                 if (denied(error)) return []
@@ -222,19 +238,39 @@ export class OutputDispatch {
                 })
                 return 'done'
             }
-            await tx.update(AgentOutputDelivery, id, { attemptId: attempt, attemptedAt: new Date() })
+            const single = result.length === 1 ? result[0] : undefined
+            if (destination?.sendDecision && single?.decision) {
+                card = { title: single.title, fields: single.fields ?? [], decision: single.decision }
+                await tx.update(AgentOutputDelivery, id, {
+                    attemptId: attempt,
+                    attemptedAt: new Date(),
+                    decisionIntegrationId: p!.integrationId,
+                    decisionAppId: destination.appId,
+                    decisionRoute: {
+                        memberId: single.id,
+                        fingerprint: destination.fingerprint,
+                        decision: single.decision
+                    }
+                })
+            } else await tx.update(AgentOutputDelivery, id, { attemptId: attempt, attemptedAt: new Date() })
             return 'send'
         })
         if (outcome === 'send' && send) {
-            const receipt = await send(result.map((i) => i.title).join('\n'), attempt).catch(
-                () => ({ status: 'unknown' }) as const
-            )
+            const receipt = await (
+                card && destination?.sendDecision
+                    ? destination.sendDecision(card, attempt)
+                    : send(result.map((i) => i.title).join('\n'), attempt)
+            ).catch(() => ({ status: 'unknown' }) as const)
             // An affirmative receipt may arrive after the replacement worker has recorded an unknown outcome.
             await this.db.manager.update(
                 AgentOutputDelivery,
                 { id, attemptId: attempt },
                 {
                     state: receipt.status,
+                    decisionChatDigest:
+                        receipt.status === 'accepted' && 'chatId' in receipt && typeof receipt.chatId === 'string'
+                            ? digest([receipt.chatId])
+                            : null,
                     providerMessageId: receipt.status === 'accepted' ? receipt.messageId : null,
                     reason: receipt.status === 'accepted' ? null : 'channel_' + receipt.status
                 }

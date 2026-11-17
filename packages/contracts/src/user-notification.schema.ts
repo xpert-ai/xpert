@@ -65,12 +65,14 @@ export const scheduledNotificationOriginSchema = notificationSourceSchema.extend
   threadId: z.string().uuid().optional()
 })
 export const notificationThreadIdSchema = z.string().trim().min(1).max(128)
-export const openConversationActionSchema = z.object({
-  type: z.literal('open_conversation'),
-  assistantId: z.string().uuid(),
-  conversationId: z.string().uuid(),
-  threadId: notificationThreadIdSchema.nullable()
-}).strict()
+export const openConversationActionSchema = z
+  .object({
+    type: z.literal('open_conversation'),
+    assistantId: z.string().uuid(),
+    conversationId: z.string().uuid(),
+    threadId: notificationThreadIdSchema.nullable()
+  })
+  .strict()
 export type OpenConversationAction = Required<z.output<typeof openConversationActionSchema>>
 
 const taskNotificationSchema = z
@@ -87,7 +89,9 @@ type TaskNotification = Omit<Required<z.output<typeof taskNotificationSchema>>, 
   source: Required<z.output<typeof notificationSourceSchema>>
   action: Required<NonNullable<z.output<typeof userNotificationSchema>['action']>>
 }
-export const agentOutputOriginSchema = z.object({ type: z.literal('agent_output'), deliveryId: z.string().uuid() }).strict()
+export const agentOutputOriginSchema = z
+  .object({ type: z.literal('agent_output'), deliveryId: z.string().uuid() })
+  .strict()
 const outputNotificationSchema = taskNotificationSchema.extend({
   kind: z.literal('agent.output'),
   source: agentOutputOriginSchema,
@@ -95,15 +99,17 @@ const outputNotificationSchema = taskNotificationSchema.extend({
   action: openConversationActionSchema.nullable()
 })
 export const userNotificationSchema = z.discriminatedUnion('kind', [taskNotificationSchema, outputNotificationSchema])
-export type UserNotification = TaskNotification | {
-  id: string
-  kind: 'agent.output'
-  createdAt: string
-  readAt: string | null
-  source: Required<z.output<typeof agentOutputOriginSchema>>
-  titles: string[]
-  action: OpenConversationAction | null
-}
+export type UserNotification =
+  | TaskNotification
+  | {
+      id: string
+      kind: 'agent.output'
+      createdAt: string
+      readAt: string | null
+      source: Required<z.output<typeof agentOutputOriginSchema>>
+      titles: string[]
+      action: OpenConversationAction | null
+    }
 export const notificationSnapshotSchema = z
   .object({
     supported: z.literal(true),
@@ -139,9 +145,14 @@ export const notificationOutboxPayloadSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('agent.completed'), source: scheduledNotificationOriginSchema }).strict()
 ])
+/** Durable worker instructions. An output dispatch points to a delivery whose contents are revalidated at send time. */
 export type NotificationOutboxPayload = z.output<typeof notificationOutboxPayloadSchema>
 
-// Delivery facts never imply human reading, approval or completion of a business action.
+/**
+ * Per-channel outcome. Feishu acceptance requires a provider message ID. In-app delivery means
+ * the notification was persisted. An unknown external outcome must be reconciled before resending.
+ * Reading is recorded separately on the user's notification.
+ */
 export type NotificationDeliveryState = 'pending' | 'accepted' | 'delivered' | 'failed' | 'unknown' | 'cancelled'
 export type NotificationDestination =
   | { type: 'in_app'; tenantId: string; userId: string }

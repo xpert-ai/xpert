@@ -1,5 +1,12 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
-import type { AgentOutputReference, NotificationDeliveryState, OutputQuietHours, AnnouncementInput, NotificationOutboxPayload, UserNotification } from '@xpert-ai/contracts'
+import type {
+    AgentOutputReference,
+    NotificationDeliveryState,
+    OutputQuietHours,
+    AnnouncementInput,
+    NotificationOutboxPayload,
+    UserNotification
+} from '@xpert-ai/contracts'
 
 export abstract class NotificationTenantEntity {
     @PrimaryGeneratedColumn('uuid') id: string
@@ -67,8 +74,11 @@ export class NotificationOutbox extends NotificationTenantEntity {
     @Column({ type: 'varchar', length: 64, nullable: true }) lastError: string | null
 }
 
+/** Durable handoff of one plugin result to one recipient. Retries reuse this message across channels. */
 @Entity('agent_output_message')
-@Index('uq_agent_output_message', ['tenantId', 'organizationId', 'plugin', 'kind', 'outputKey', 'userId'], { unique: true })
+@Index('uq_agent_output_message', ['tenantId', 'organizationId', 'plugin', 'kind', 'outputKey', 'userId'], {
+    unique: true
+})
 export class AgentOutputMessage extends NotificationTenantEntity {
     @Column('uuid') organizationId: string
     @Column('uuid') userId: string
@@ -80,6 +90,7 @@ export class AgentOutputMessage extends NotificationTenantEntity {
     @Column('jsonb') reference: AgentOutputReference
 }
 
+/** Recipient settings for one output kind and channel. The revision fences queued deliveries after a target change. */
 @Entity('agent_output_preference')
 @Index('uq_agent_output_preference', ['tenantId', 'organizationId', 'userId', 'kind', 'channel'], { unique: true })
 export class AgentOutputPreference extends NotificationTenantEntity {
@@ -95,7 +106,13 @@ export class AgentOutputPreference extends NotificationTenantEntity {
     @Column({ type: 'varchar', nullable: true }) targetDigest: string | null
 }
 
+/** One channel attempt or pending batch. Persist attemptId before calling the provider so recovery can detect an uncertain send. */
 @Entity('agent_output_delivery')
+@Index(
+    'uq_agent_output_decision_message',
+    ['tenantId', 'organizationId', 'decisionIntegrationId', 'decisionAppId', 'providerMessageId'],
+    { unique: true, where: '"decisionIntegrationId" IS NOT NULL' }
+)
 @Index('ix_agent_output_batch', ['groupKey', 'state'])
 export class AgentOutputDelivery extends NotificationTenantEntity {
     @Column('uuid') organizationId: string
@@ -107,10 +124,19 @@ export class AgentOutputDelivery extends NotificationTenantEntity {
     @Column('varchar') state: NotificationDeliveryState
     @Column({ type: 'uuid', nullable: true }) attemptId: string | null
     @Column({ type: 'timestamptz', nullable: true }) attemptedAt: Date | null
+    @Column({ type: 'uuid', nullable: true }) decisionIntegrationId: string | null
+    @Column({ type: 'varchar', nullable: true }) decisionAppId: string | null
+    @Column({ type: 'varchar', nullable: true }) decisionChatDigest: string | null
+    @Column({ type: 'jsonb', nullable: true }) decisionRoute: {
+        memberId: string
+        fingerprint: string
+        decision: import('@xpert-ai/contracts').HumanDecision
+    } | null
     @Column({ type: 'varchar', nullable: true }) providerMessageId: string | null
     @Column({ type: 'varchar', nullable: true }) reason: string | null
 }
 
+/** Assigns a message to one batch per channel. Inclusion is frozen at dispatch; reads still recheck current access. */
 @Entity('agent_output_member')
 @Index('uq_agent_output_member', ['messageId', 'channel'], { unique: true })
 @Index('ix_agent_output_members', ['deliveryId'])

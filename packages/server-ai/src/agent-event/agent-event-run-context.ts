@@ -1,6 +1,7 @@
 // A symbol on server-created command options cannot be supplied by a JSON client or restored from a checkpoint.
 export const EVENT_RUN_ORIGIN = Symbol('event-run-origin')
 
+/** Identity and conversation boundaries that must still match when a wake delegates to another agent. */
 interface EventRunScope {
     tenantId: string
     organizationId?: string | null
@@ -12,6 +13,7 @@ interface EventRunScope {
     threadId?: string
 }
 
+/** Host-only provenance for this invocation. Child agents receive it only while the caller remains in scope. */
 export interface EventRunOptions {
     [EVENT_RUN_ORIGIN]?: EventRunScope & { receiptId: string }
 }

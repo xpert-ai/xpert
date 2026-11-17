@@ -1,16 +1,28 @@
 import 'reflect-metadata'
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
+import { ForbiddenException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { parseOpenConversationAction } from '@xpert-ai/contracts'
-import { ChatChannelRegistry, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
-import { IntegrationService } from '@xpert-ai/server-core'
+import {
+    ChatChannelRegistry,
+    RequestContextMiddleware,
+    type RuntimeCapabilityRegistry,
+    WorkbenchDecisionCapability,
+    XPERT_RUNTIME_CAPABILITIES_TOKEN
+} from '@xpert-ai/plugin-sdk'
+import { withPluginViewAction } from '../../../../server/src/view-extension/view-action-scope'
+import { WorkbenchDecisionService } from '../../agent-event/workbench-decision.service'
+import { RuntimeCapabilityModule } from '../../shared/runtime/runtime-capability.module'
+import { PrivateDecisionRouter } from './private-decision-router'
+import { digest } from './output-store'
+import { ExternalIdentityBinding, IntegrationService } from '@xpert-ai/server-core'
 import { AnnouncementService } from '../../announcement/announcement.service'
 import { UserNotificationService } from '../notification.service'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { Test } from '@nestjs/testing'
+import { Test, type TestingModule } from '@nestjs/testing'
 import { DataSource, EntitySchema } from 'typeorm'
 import type { AgentOutputReference, AgentOutputSource } from '@xpert-ai/plugin-sdk'
 import { AgentEventBinding } from '../../agent-event/agent-event.entity'
@@ -48,12 +60,16 @@ const integration = process.env.NOTIFICATIONS_PG_URL ? describe : describe.skip
 integration('agent output with separate PostgreSQL transactions and worker leases', () => {
     const schema = 'agent_output_test_' + randomUUID().replace(/-/g, '')
     const scope = { tenantId: randomUUID(), userId: randomUUID(), organizationId: randomUUID() }
+    let mod: TestingModule
     let db: DataSource, dispatch: OutputDispatch, binding: AgentEventBinding, store: OutputStore
     const kind = 'fixture.output',
         quietKind = 'fixture.quiet'
     const send = jest.fn(async () => ({ status: 'accepted', messageId: 'channel-message' }))
     const target = jest.fn(async () => ({ fingerprint: 'verified', send }))
-    let notifications: UserNotificationService, preferences: OutputPreferences
+    let notifications: UserNotificationService,
+        preferences: OutputPreferences,
+        router: PrivateDecisionRouter,
+        capabilities: RuntimeCapabilityRegistry
     const conversationAction = jest.fn(async (b: AgentEventBinding, conversationId: string, threadId?: string) =>
         parseOpenConversationAction({ type: 'open_conversation', assistantId: b.xpertId, conversationId, threadId })
     )
@@ -83,6 +99,18 @@ integration('agent output with separate PostgreSQL transactions and worker lease
             extra: { options: '-c search_path=' + schema + ',public' },
             entities: [
                 ...USER_NOTIFICATION_ENTITIES,
+                new EntitySchema<ExternalIdentityBinding>({
+                    name: 'ExternalIdentityBinding',
+                    target: ExternalIdentityBinding,
+                    tableName: 'external_identity_binding',
+                    columns: {
+                        id: { type: 'uuid', primary: true },
+                        tenantId: { type: 'uuid' },
+                        userId: { type: 'uuid' },
+                        provider: { type: 'varchar' },
+                        subjectId: { type: 'varchar' }
+                    }
+                }),
                 new EntitySchema<AgentEventBinding>({
                     target: AgentEventBinding,
                     name: 'AgentEventBinding',
@@ -96,6 +124,8 @@ integration('agent output with separate PostgreSQL transactions and worker lease
                         xpertId: { type: 'uuid' },
                         plugin: { type: 'varchar' },
                         adapter: { type: 'varchar' },
+                        capture: { type: 'boolean', default: true },
+                        projectId: { type: 'uuid', nullable: true },
                         sourceBindingRef: { type: 'varchar' },
                         revision: { type: 'int' },
                         state: { type: 'varchar' }
@@ -105,12 +135,19 @@ integration('agent output with separate PostgreSQL transactions and worker lease
         }).initialize()
         await db.query('CREATE SCHEMA "' + schema + '"')
         await db.query(
-            'CREATE TABLE tenant (id uuid PRIMARY KEY); CREATE TABLE "user"(id uuid PRIMARY KEY); CREATE TABLE agent_event_binding(id uuid PRIMARY KEY,"tenantId" uuid,"organizationId" uuid,"userId" uuid,"workspaceId" uuid,"xpertId" uuid,plugin varchar,adapter varchar,"sourceBindingRef" varchar,revision integer,state varchar)'
+            'CREATE TABLE tenant (id uuid PRIMARY KEY); CREATE TABLE "user"(id uuid PRIMARY KEY); CREATE TABLE agent_event_binding(id uuid PRIMARY KEY,"tenantId" uuid,"organizationId" uuid,"userId" uuid,"workspaceId" uuid,"xpertId" uuid,"projectId" uuid,capture boolean default true,plugin varchar,adapter varchar,"sourceBindingRef" varchar,revision integer,state varchar)'
         )
         await db.query(`CREATE TABLE role (id uuid PRIMARY KEY, "tenantId" uuid, name varchar);
             CREATE TABLE role_permission (id uuid PRIMARY KEY, "createdAt" timestamptz, "updatedAt" timestamptz,
                 "tenantId" uuid, "roleId" uuid, permission varchar, enabled boolean)`)
-        for (const migration of ['20261031010000-user-notifications', '20261116090000-agent-output']) {
+        await db.query(
+            'CREATE TABLE external_identity_binding (id uuid PRIMARY KEY,"tenantId" uuid,"userId" uuid,provider varchar,"subjectId" varchar)'
+        )
+        for (const migration of [
+            '20261031010000-user-notifications',
+            '20261116090000-agent-output',
+            '20261117090000-private-decisions'
+        ]) {
             await db.query(readFileSync(join(__dirname, '../migrations', migration + '.sql'), 'utf8'))
         }
         await db.query('INSERT INTO tenant VALUES ($1)', [scope.tenantId])
@@ -126,9 +163,12 @@ integration('agent output with separate PostgreSQL transactions and worker lease
             adapter: 'fixture',
             plugin: 'fixture'
         })
-        const mod = await Test.createTestingModule({
+        mod = await Test.createTestingModule({
+            imports: [RuntimeCapabilityModule],
             providers: [
                 OutputDispatch,
+                PrivateDecisionRouter,
+                WorkbenchDecisionService,
                 OutputStore,
                 UserNotificationService,
                 { provide: 'preferenceEditor', useClass: OutputPreferences },
@@ -152,7 +192,10 @@ integration('agent output with separate PostgreSQL transactions and worker lease
                 { provide: OutputPreferences, useValue: { target } }
             ]
         }).compile()
+        await mod.init()
         dispatch = mod.get(OutputDispatch)
+        router = mod.get(PrivateDecisionRouter)
+        capabilities = mod.get(XPERT_RUNTIME_CAPABILITIES_TOKEN)
         store = mod.get(OutputStore)
         notifications = mod.get(UserNotificationService)
         preferences = mod.get('preferenceEditor')
@@ -168,9 +211,38 @@ integration('agent output with separate PostgreSQL transactions and worker lease
     }
 
     afterAll(async () => {
+        await mod?.close()
         if (db?.isInitialized) {
             await db.query('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE')
             await db.destroy()
+        }
+    })
+    it('checks private decision columns and detects an incorrectly rebuilt message index', async () => {
+        const check = readFileSync(join(__dirname, '../migrations/checks/20261117090000-private-decisions.sql'), 'utf8')
+        const runner = db.createQueryRunner()
+        await runner.startTransaction()
+        try {
+            expect(await runner.query(check)).toEqual([])
+            await runner.query('DROP INDEX uq_agent_output_decision_message')
+            await runner.query(`CREATE UNIQUE INDEX uq_agent_output_decision_message ON agent_output_delivery
+                ("tenantId","organizationId","decisionIntegrationId","decisionAppId","providerMessageId")`)
+            expect(await runner.query(check)).toEqual([{ missing: 'uq_agent_output_decision_message' }])
+            await runner.query('ALTER TABLE agent_output_delivery ALTER COLUMN "decisionRoute" TYPE json')
+            await runner.query('ALTER TABLE agent_output_delivery DROP COLUMN "decisionChatDigest"')
+            await runner.query('ALTER TABLE agent_output_delivery ALTER COLUMN "decisionAppId" SET NOT NULL')
+            await runner.query('DROP INDEX uq_agent_output_decision_message')
+            await runner.query(
+                'CREATE UNIQUE INDEX uq_agent_output_decision_message ON agent_output_delivery ("providerMessageId")'
+            )
+            expect((await runner.query(check)).map((r: { missing: string }) => r.missing).sort()).toEqual([
+                'decisionAppId',
+                'decisionChatDigest',
+                'decisionRoute',
+                'uq_agent_output_decision_message'
+            ])
+        } finally {
+            await runner.rollbackTransaction()
+            await runner.release()
         }
     })
     const collect = () => store.collect(binding, sourceContext(binding, new AbortController().signal), source)
@@ -425,5 +497,214 @@ integration('agent output with separate PostgreSQL transactions and worker lease
         })
         await edit(30)
         expect((await db.manager.findOneByOrFail(AgentOutputDelivery, { id: ids[0] })).state).toBe('delivered')
+    })
+    it('binds a private reply to the original member, verified human, channel revision and quote', async () => {
+        const integrationId = randomUUID(),
+            chatId = 'test-dm',
+            parentId = 'test-original',
+            receiptId = randomUUID()
+        const ref = { ...reference(), kind: 'fixture.buyer', revision: 'r8' }
+        const chosen = { key: 'accept', replyCommand: '确认', label: { en_US: 'Accept', zh_Hans: '选择接受' } }
+        const decision = {
+            type: 'human_decision' as const,
+            schemaVersion: 1 as const,
+            requestVersion: 4,
+            choices: [chosen, { key: 'reject', label: { en_US: 'Decline', zh_Hans: '不接受' } }]
+        }
+        const pref = await db.manager.save(AgentOutputPreference, {
+            ...scope,
+            channel: 'lark',
+            kind: ref.kind,
+            revision: 1,
+            enabled: true,
+            enabledSince: new Date(0),
+            integrationId,
+            targetDigest: 'verified'
+        })
+        const identity = await db.manager.save(ExternalIdentityBinding, {
+            ...scope,
+            id: randomUUID(),
+            provider: 'lark',
+            subjectId: 'bound-union'
+        })
+        const { id: messageId } = await db.manager.save(AgentOutputMessage, {
+            ...scope,
+            bindingId: binding.id,
+            bindingRevision: 1,
+            plugin: binding.plugin,
+            kind: ref.kind,
+            outputKey: ref.key,
+            reference: ref
+        })
+        const d = await db.manager.save(AgentOutputDelivery, {
+            ...scope,
+            channel: 'lark',
+            kind: ref.kind,
+            groupKey: randomUUID(),
+            preferenceRevision: 1,
+            state: 'accepted',
+            attemptId: randomUUID(),
+            providerMessageId: parentId,
+            decisionAppId: 'verified-app',
+            decisionIntegrationId: integrationId,
+            decisionChatDigest: digest([chatId])
+        })
+        const member = await db.manager.save(AgentOutputMember, {
+            tenantId: scope.tenantId,
+            deliveryId: d.id,
+            messageId,
+            channel: 'lark',
+            included: true
+        })
+        await db.manager.update(AgentOutputDelivery, d.id, {
+            decisionRoute: { memberId: member.id, fingerprint: 'verified', decision }
+        })
+        const channel = {
+            ...binding,
+            plugin: '@xpert-ai/plugin-lark',
+            adapter: 'lark.inbound',
+            sourceBindingRef: integrationId
+        }
+        const event = {
+            type: 'lark.message.received',
+            subject: { kind: 'lark-chat', key: chatId }
+        } as import('@xpert-ai/plugin-sdk').PluginAgentEvent
+        const reply = {
+            parentId,
+            chatId,
+            openId: 'buyer-open',
+            unionId: 'bound-union',
+            input: { type: 'quoted_text' as const, text: '确认' }
+        }
+        const run = (overrides: Partial<typeof reply> = {}, channelOverride = {}) =>
+            router.submit(
+                { ...channel, ...channelOverride },
+                { receiptId, event },
+                { ...reply, ...overrides },
+                new AbortController().signal
+            )
+        const decisionId = randomUUID()
+        type SubmitDecision = NonNullable<AgentOutputSource['submitDecision']>
+        const submit = jest.fn<ReturnType<SubmitDecision>, Parameters<SubmitDecision>>(async () => ({
+            status: 'recorded',
+            decisionId
+        }))
+        const patchError = new ForbiddenException('provider refused the patch')
+        const updateDecision = jest.fn(async () => {}).mockRejectedValueOnce(patchError)
+        source.submitDecision = submit
+        target.mockReset().mockImplementation(async () => ({
+            fingerprint: 'verified',
+            appId: 'verified-app',
+            recipient: 'buyer-open',
+            subject: 'bound-union',
+            updateDecision,
+            send
+        }))
+        try {
+            expect(await run({ openId: 'other-person' })).toEqual({ status: 'forbidden' })
+            expect(await run({ unionId: 'other-union' })).toEqual({ status: 'forbidden' })
+            expect(await run({ parentId: 'forward' })).toEqual({ status: 'unrelated' })
+            expect(await run({ chatId: 'other-dm' })).toEqual({ status: 'forbidden' })
+            expect(await run({ input: { type: 'quoted_text', text: chosen.label.zh_Hans } })).toEqual({
+                status: 'forbidden'
+            })
+            expect(await run({}, { sourceBindingRef: randomUUID() })).toEqual({ status: 'unrelated' })
+            expect(submit).not.toHaveBeenCalled()
+            expect(updateDecision).not.toHaveBeenCalled()
+            // The source has committed. A channel error, even HTTP 403, must reach the receipt retry loop.
+            await expect(run()).rejects.toBe(patchError)
+            expect(await run()).toEqual({ status: 'recorded', decisionId })
+            expect(updateDecision.mock.calls).toEqual([
+                [parentId, 'recorded', chosen.label.zh_Hans],
+                [parentId, 'recorded', chosen.label.zh_Hans]
+            ])
+            expect(submit.mock.calls.map(([, input]) => input.commandId)).toEqual([receiptId, receiptId])
+            expect(submit).toHaveBeenCalledWith(
+                expect.objectContaining({ userId: scope.userId, bindingId: binding.id }),
+                {
+                    schemaVersion: 1,
+                    requestId: ref.key,
+                    requestVersion: 4,
+                    sourceRevision: 'r8',
+                    choice: 'accept',
+                    commandId: receiptId
+                },
+                'lark'
+            )
+            for (const status of ['already_recorded', 'stale', 'closed'] as const) {
+                submit.mockResolvedValueOnce({ status })
+                expect(await run()).toEqual({ status })
+                expect(updateDecision).toHaveBeenLastCalledWith(parentId, status, chosen.label.zh_Hans)
+            }
+            updateDecision.mockClear()
+            for (const status of ['conflicting_choice', 'forbidden'] as const) {
+                submit.mockResolvedValueOnce({ status })
+                expect(await run()).toEqual({ status })
+            }
+            submit.mockClear()
+            await db.manager.update(AgentOutputMessage, messageId, { reference: { ...ref, key: randomUUID() } })
+            expect(await run()).toEqual({ status: 'forbidden' })
+            await db.manager.update(AgentOutputMessage, messageId, { reference: ref })
+            // Another instance revokes the producer after the channel input has reached identity resolution.
+            const verifiedTarget = await target()
+            target.mockImplementationOnce(async () => {
+                await db.manager.update(AgentEventBinding, binding.id, { state: 'paused', revision: 2 })
+                return verifiedTarget
+            })
+            expect(await run()).toEqual({ status: 'forbidden' })
+            await db.manager.update(AgentEventBinding, binding.id, { state: 'enabled', revision: 3 })
+            expect(await run()).toEqual({ status: 'forbidden' })
+            expect(submit).not.toHaveBeenCalled()
+            await db.manager.update(AgentEventBinding, binding.id, { revision: 1 })
+
+            await db.manager.update(AgentOutputPreference, pref.id, { revision: 2 })
+            expect(await run()).toEqual({ status: 'forbidden' })
+            await db.manager.update(AgentOutputPreference, pref.id, { revision: 1 })
+            await db.manager.delete(ExternalIdentityBinding, identity.id)
+            expect(await run()).toEqual({ status: 'forbidden' })
+            expect(submit).not.toHaveBeenCalled()
+            expect(updateDecision).not.toHaveBeenCalled()
+        } finally {
+            delete source.submitDecision
+            await db.manager.update(AgentEventBinding, binding.id, { state: 'enabled', revision: 1 })
+            target.mockImplementation(async () => ({ fingerprint: 'verified', send }))
+        }
+    })
+
+    it('requires an active authorized view invocation for the exact published source binding', async () => {
+        const context = {
+            ...scope,
+            workspaceId: binding.workspaceId,
+            hostType: 'agent',
+            hostId: binding.xpertId
+        } as import('@xpert-ai/contracts').XpertResolvedViewHostContext
+        const submit = jest.fn(async () => ({ status: 'recorded' as const, decisionId: randomUUID() }))
+        source.submitDecision = submit
+        const command = {
+            schemaVersion: 1 as const,
+            requestId: 'review/42',
+            sourceRevision: 'head-sha',
+            requestVersion: 1,
+            commandId: randomUUID(),
+            choice: 'accept'
+        }
+        expect(WorkbenchDecisionCapability.id).toBe('platform.view.workbench-decision')
+        const workbench = capabilities.require(WorkbenchDecisionCapability)
+        const apply = () => workbench.submit(binding.adapter, binding.sourceBindingRef, command)
+        const run = (plugin: string, userId = scope.userId) =>
+            withPluginViewAction({ ...context, userId }, plugin, apply)
+        try {
+            expect(await apply()).toEqual({ status: 'forbidden' })
+            expect(await run('unrelated-plugin')).toEqual({ status: 'forbidden' })
+            expect(await run(binding.plugin, randomUUID())).toEqual({ status: 'forbidden' })
+            expect((await run(binding.plugin)).status).toBe('recorded')
+            expect(submit).toHaveBeenCalledWith(expect.objectContaining({ userId: scope.userId }), command, 'workbench')
+            await db.manager.update(AgentEventBinding, binding.id, { state: 'revoked' })
+            expect(await run(binding.plugin)).toEqual({ status: 'forbidden' })
+            expect(submit).toHaveBeenCalledTimes(1)
+        } finally {
+            delete source.submitDecision
+            await db.manager.update(AgentEventBinding, binding.id, { state: 'enabled' })
+        }
     })
 })
