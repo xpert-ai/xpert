@@ -1,5 +1,9 @@
 # Owning a Coding task through self-verification
 
+Coordinator reference for writing a delegated task brief. Include its applicable
+requirements in that brief; require the CLI to read this file only when the file
+has actually been supplied in its prepared context.
+
 Use the assigned objective, workspace, authorized development target and selected
 skills. Implement the deliverable, build/package it, deploy to that target and
 exercise its actual application surface before submitting it for review. A task
@@ -91,3 +95,13 @@ instructions and inspect its startup command capabilities. A historical untracke
 script does not define the current tool contract. Coding CLI owns services it
 starts; their lifetime may end with the task. Record reproducible startup details
 for the independent reviewer without asking the host to relay service commands.
+
+## Keep evidence readable
+
+Return a short result with the candidate identity, outcome, checks performed,
+evidence paths and remaining issues. Keep raw request/response dumps and build
+logs in separate files instead of appending them to the report read by the
+coordinator on every turn. Preserve those files for independent inspection.
+A short report is not a substitute for real testing. Coordinators can use
+`project_read_task_result` when `project_get_task` returns an explicit excerpt;
+read the relevant pages and independent findings before recording acceptance.
