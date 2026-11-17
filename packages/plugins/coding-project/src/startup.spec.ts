@@ -51,9 +51,28 @@ describe.each(['cli', 'current-instance'] as const)('Coding delivery startup: %s
       throw new Error('Unexpected catalog operation')
     }
     const bindings = jest.fn(async () => ({ items: saved, next: null }))
+    const list = jest.fn(async () => ({
+      canManage: true,
+      assistants: [],
+      items: [
+        {
+          contributionKey: 'coding_project',
+          configuration: {
+            ...template,
+            binding: {
+              ...template.binding,
+              limits: {
+                ...template.binding.limits!,
+                nativeModelBudget: { maxCalls: 300, maxTokens: 25000000, reservationTokens: 10000 }
+              }
+            }
+          }
+        }
+      ]
+    }))
     f.capabilities.register(ProjectPipelineCatalogRuntimeCapability, {
       bindings,
-      list: unexpectedCatalogOperation,
+      list,
       binding: unexpectedCatalogOperation,
       configure: unexpectedCatalogOperation
     })
@@ -64,6 +83,7 @@ describe.each(['cli', 'current-instance'] as const)('Coding delivery startup: %s
 
     expect(result).toMatchObject({ instanceId, reused: false })
     expect(saved).toHaveLength(1)
+    expect(saved[0].configuration.binding.limits?.nativeModelBudget?.maxTokens).toBe(25000000)
     const executors = saved[0].configuration.binding.executorBindings
     expect(executors?.coordinator).toEqual({
       kind: 'assistant',
@@ -97,6 +117,14 @@ describe.each(['cli', 'current-instance'] as const)('Coding delivery startup: %s
     expect(configure).toHaveBeenCalledTimes(1)
     expect(start).toHaveBeenCalledTimes(1)
     expect(bindings).toHaveBeenCalledTimes(1)
+    expect(list).toHaveBeenCalledTimes(1)
+    expect(list).toHaveBeenCalledWith(f.context, { protocol: 3 })
+    // A new delivery in the same Project reuses its saved binding, including the chosen ceiling.
+    await service.start(f.context, randomUUID(), f.context.executor.xpertId, { ...input, title: 'Next delivery' })
+    expect(configure).toHaveBeenCalledTimes(1)
+    expect(list).toHaveBeenCalledTimes(1)
+    expect(bindings).toHaveBeenCalledTimes(2)
+    expect(saved[0].configuration.binding.limits?.nativeModelBudget?.maxTokens).toBe(25000000)
     expect(JSON.stringify(template)).toBe(original)
   })
 })

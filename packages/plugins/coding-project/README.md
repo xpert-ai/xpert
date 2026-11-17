@@ -141,7 +141,7 @@ The packaged `cloud-project-delivery` skill is vendored from the corresponding
 `xpert-skills/skills/development-technical` source. Keep its reference files together.
 The generic CLI model profiles and Computer isolation remain platform infrastructure.
 
-Native Pipeline model budgets default to 2,000,000 tokens. A signed-in human Project
+Native Pipeline model budgets use the resolved defaults described below. A signed-in human Project
 owner or manager can inspect the effective policy, usage and audit history with
 `GET /api/xpert-project/:projectId/pipelines/:instanceId/native-model-budget`.
 To increase the existing instance ceiling, call
@@ -164,3 +164,9 @@ cost cap. Full delegated-budget attribution remains a known infrastructure gap.
 The host must provide `ProjectTasksApi.readAcceptance` through `platform.project.tasks`.
 This plugin requires formal coordinator acceptance that references an independent execution-review report. The coordinator reads the Markdown report and records the decision; the plugin does not infer a verdict from report wording. Fixture tests, plugin loading and real
 cross-instance delivery are distinct verification layers.
+
+## Execution defaults
+
+New task attempts inherit the host execution policy: 12 hours by default, configurable with `XPERT_TASK_EXECUTION_MAX_DURATION_SECONDS`. An explicit Project duration remains subject to the tenant ceiling.
+
+New pipeline configurations inherit the host-native model Token default (`XPERT_PIPELINE_DEFAULT_MAX_TOKENS`, 100 million by default). Each configuration declaration opts in through `nativeModelBudgetPolicy.maxTokensDefaultSource: 'host'` and declares an independent `maximum`: 300 calls, 100 million Tokens and a 10000-Token reservation. The resolved Token default stays between the binding's 10000-Token reservation and that ceiling. A lower host default does not lower the user-configurable ceiling; a higher host default does not raise it. The existing catalog capability returns concrete values for both configuration forms and automatic delivery startup; forms do not control inheritance. Native CLI account usage is separate. Existing bindings, pipeline budgets and running task deadlines are not rewritten; an existing budget still uses the audited increase workflow.

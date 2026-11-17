@@ -54,6 +54,12 @@ export interface IBillingConfiguration {
 export interface IPluginConfig {
   appPlatform?: AppPlatformConfiguration | null
   billing?: IBillingConfiguration
+  projectExecutionOptions?: {
+    /** Default task duration and tenant ceiling when no explicit execution policy exists, in seconds. */
+    taskMaxDurationSeconds: number
+    /** Default native-model Token ceiling for new pipeline configurations opting into host defaults. */
+    pipelineMaxTokens: number
+  }
   /** Cloud URL, inherited from the existing CLIENT_BASE_URL setting. */
   clientBaseUrl?: string
   managedQueueOptions?: {
