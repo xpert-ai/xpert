@@ -1,5 +1,19 @@
 # @xpert-ai/desktop
 
+## 0.5.1
+
+### Patch Changes
+
+- 60a5eeb: Complete Japanese translations for notification delivery preferences.
+  Correct the isolated contracts package exports so Bosi builds resolve the emitted
+  runtime bundle instead of looking for a nested dist directory.
+- 55991d5: Route desktop updates by network exit region, fall back between Aliyun OSS and GitHub, and check GitHub on manual checks when the mirror has no newer version.
+- f417c34: Upgrade ChatKit UI to 0.26.0 and shared types to 0.23.0, with compatible Angular,
+  Web Component and Web Shared packages. Bring compact file resource cards,
+  document plugin navigation and published child-assistant tool details to Cloud
+  and Bosi, keeping workspace and deployment dependency resolutions aligned.
+  - @xpert-ai/desktop-protocol@0.5.3
+
 ## 0.5.0
 
 ### Minor Changes

@@ -1,5 +1,17 @@
 # @xpert-ai/xpert-api
 
+## 3.37.0
+
+### Patch Changes
+
+- f417c34: Upgrade ChatKit UI to 0.26.0 and shared types to 0.23.0, with compatible Angular,
+  Web Component and Web Shared packages. Bring compact file resource cards,
+  document plugin navigation and published child-assistant tool details to Cloud
+  and Bosi, keeping workspace and deployment dependency resolutions aligned.
+- 50dd6cf: Let tools declare which inputs, outputs and errors conversation participants can see. Application users can see the registered tool name, icon and declared details without assistant configuration permissions. Live updates and conversation history use the same tool message, while the model receives the full tool result.
+- 793e1f4: Carry declared Artifact icons and rendering families through catalog metadata so resource lists can display explicit type icons. Keep the shared icon schema composable while preserving required output fields in published declarations.
+- c4ee3aa: Add explicit catalog refresh, indexed cursor reads and suppression-only path coverage for Spaces. Preserve live source authorization while bounding candidate reads and remove repeated Project checks within one page request. Validate persisted path metadata before using it to suppress duplicate files.
+
 ## 3.36.0
 
 ### Minor Changes
