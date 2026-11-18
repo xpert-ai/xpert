@@ -64,11 +64,7 @@ export class TaskControlCoordinator {
                         this.commands.execute(new ControlOwnedExecutionCommand(task.id))
                     )
             } else if (task.kind === 'handoff') {
-                const children = (await this.tasks.descendants(task.id)).filter(
-                    (child) => child.parentId === task.id && child.kind === 'managed-queue'
-                )
-                if (children.length && children.every((child) => child.state === 'completed'))
-                    await this.tasks.receipt(task.id, 'completed')
+                await this.tasks.settleHandoffReceipt(task.id)
             }
             await this.tasks.delivered(task.id, token, null)
         } catch (error) {

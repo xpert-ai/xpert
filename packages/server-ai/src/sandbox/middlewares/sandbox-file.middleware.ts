@@ -406,7 +406,7 @@ CRITICAL FORMAT REQUIREMENTS:
             {
                 name: 'sandbox_multi_edit_file',
                 description:
-                    'Perform multiple sequential edits on a single file in one operation. Each result reports oldLines/newLines, changed, and diff.removed/diff.added for that step, not the net diff of the batch. All edits are applied sequentially, with each edit operating on the result of the previous edit. This is not atomic: earlier successful edits remain saved if a later edit fails. Read the current file after failure and apply only the remaining changes. Use unique exact text from a fresh read, and prefer a small focused batch.',
+                    'Perform multiple sequential edits on a single file in one operation. Each result reports oldLines/newLines, changed, and diff.removed/diff.added for that step, not the net diff of the batch. All edits are applied sequentially, with each edit operating on the result of the previous edit. On a confirmed mismatch, failedEdit identifies the stopping point. If a batch receipt is lost, appliedEdits counts only confirmed edits and unconfirmedEdits gives the inclusive range to check. Read the current file after failure and apply only changes still missing. Use unique exact text from a fresh read, and prefer a small focused batch.',
                 schema: multiEditToolSchema,
                 verboseParsingErrors: true,
                 metadata: workspaceFileMutationMetadata

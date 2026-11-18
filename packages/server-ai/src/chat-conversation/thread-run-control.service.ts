@@ -39,6 +39,8 @@ import { clearThreadDisplayPause, readThreadDisplayPause } from './thread-displa
 import { recoveryConflict } from './recovery/recovery-error'
 import { threadGraphRevisionMatches } from './thread-graph-revision'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
+import { ThreadMaintenanceScan } from './thread-maintenance-scan'
+import { finalizeInterruptedToolMessages } from './interrupted-tool-messages'
 
 export { threadGraphRevision } from './thread-graph-revision'
 
@@ -60,6 +62,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
     private timer?: ReturnType<typeof setInterval>
     private maintaining = false
     private stopping = false
+    private readonly stoppingScan = new ThreadMaintenanceScan()
+    private readonly expiredScan = new ThreadMaintenanceScan()
 
     onModuleInit() {
         this.timer = setInterval(() => void this.maintainLeases(), 15_000)
@@ -116,39 +120,51 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                     else this.logger.warn('Run ownership renewal failed; will retry')
                 }
             }
-            const stopping = await this.threads
-                .createQueryBuilder('thread')
-                .where("thread.runControl ->> 'state' IN (:...states)", {
+            const failed = (scan: string) => (thread?: ChatConversationThread) =>
+                this.logger.warn({
+                    message: t('server-ai:Error.RunReconciliationDeferred', {
+                        defaultValue: 'Run reconciliation is deferred; the remaining candidates will still be checked.'
+                    }),
+                    scan,
+                    threadId: thread?.threadId,
+                    executionId: thread?.runControl?.executionId,
+                    reason: thread ? 'candidate_failed' : 'scan_failed'
+                })
+            await this.stoppingScan.run(
+                this.threads.createQueryBuilder('thread').where("thread.runControl ->> 'state' IN (:...states)", {
                     states: ['terminating', 'pausing', 'settling']
-                })
-                .take(50)
-                .getMany()
-            for (const thread of stopping) {
-                const executionId = thread.runControl.executionId
-                const drained = await this.dataSource.transaction((manager) =>
-                    this.controls.drainedExecution(manager, executionId)
-                )
-                if (drained)
-                    await this.finish(
-                        thread.threadId,
-                        executionId,
-                        'interrupted',
-                        thread.runControl.state === 'terminating' ? 'Canceled by user' : null
+                }),
+                async (thread) => {
+                    const executionId = thread.runControl.executionId
+                    const drained = await this.dataSource.transaction((manager) =>
+                        this.controls.drainedExecution(manager, executionId)
                     )
-            }
-            const expired = await this.threads
-                .createQueryBuilder('thread')
-                .where('thread.status IN (:...statuses)', { statuses: ['busy', 'pausing'] })
-                .andWhere(`thread.metadata -> :leaseKey ->> 'expiresAt' <= :now`, {
-                    leaseKey: RUN_LEASE_KEY,
-                    now: new Date().toISOString()
-                })
-                .take(50)
-                .getMany()
-            for (const thread of expired) {
-                if (this.stopping) break
-                await this.recoverExpiredRun(thread.threadId)
-            }
+                    if (drained)
+                        await this.finish(
+                            thread.threadId,
+                            executionId,
+                            'interrupted',
+                            thread.runControl.state === 'terminating' ? 'Canceled by user' : null
+                        )
+                },
+                failed('stopping'),
+                () => this.stopping
+            )
+            await this.expiredScan.run(
+                this.threads
+                    .createQueryBuilder('thread')
+                    .where('thread.status IN (:...statuses)', { statuses: ['busy', 'pausing'] })
+                    .andWhere(`thread.metadata -> :leaseKey ->> 'expiresAt' <= :now`, {
+                        leaseKey: RUN_LEASE_KEY,
+                        now: new Date().toISOString()
+                    })
+                    .andWhere("COALESCE(thread.runControl ->> 'state', '') NOT IN (:...excluded)", {
+                        excluded: ['settling', 'input_wait']
+                    }),
+                (thread) => this.recoverExpiredRun(thread.threadId),
+                failed('expired'),
+                () => this.stopping
+            )
         } catch {
             this.logger.warn('Run ownership reconciliation failed; will retry without replaying execution')
         } finally {
@@ -203,6 +219,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
                     completedAt: new Date()
                 }
             )
+            await finalizeInterruptedToolMessages(manager, thread, lease.executionId)
             await manager.update(
                 ChatMessage,
                 { ...scope, executionId: lease.executionId, status: In(['thinking', 'reasoning', 'answering']) },
@@ -274,7 +291,8 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             const lease = readRunLease(thread.metadata)
             if (
                 lease &&
-                (lease.executionId !== executionId || lease.owner !== this.owner ||
+                (lease.executionId !== executionId ||
+                    lease.owner !== this.owner ||
                     Date.parse(lease.expiresAt) <= Date.now())
             )
                 throw threadControlConflict('RunNotActive', 'This run is no longer active.')
@@ -721,6 +739,7 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             } else if (control?.state === 'pausing' && (!drained || !familyDrained)) {
                 return thread.status
             }
+            if (control?.state === 'terminating') await finalizeInterruptedToolMessages(manager, thread, executionId)
             if (control?.state === 'pausing' && control.checkpoint && status === 'interrupted') {
                 control.state = 'paused'
                 status = 'paused'

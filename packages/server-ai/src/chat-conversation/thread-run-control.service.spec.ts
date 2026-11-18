@@ -58,6 +58,7 @@ describe('ThreadRunControlService', () => {
                       ? threadRepository
                       : checkpointRepository
             ),
+            findOneBy: jest.fn().mockResolvedValue(null),
             update: jest.fn(),
             save: jest.fn(async () => thread)
         } as unknown as EntityManager

@@ -55,6 +55,7 @@ BEGIN
     ALTER TABLE execution_task_publication ADD PRIMARY KEY (id);
   END IF;
 END $$;
+ALTER TABLE execution_task_publication ADD COLUMN IF NOT EXISTS diagnostic jsonb;
 -- Audit metadata is new; timestamps record migration time, actors remain unknown.
 DO $$
 DECLARE table_name text; relation record;

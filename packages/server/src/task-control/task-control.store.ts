@@ -2,7 +2,10 @@
 // An expired worker lease is not evidence that its handler exited; claims never time out into replay.
 // Only explicit paused receipts permit resumption. Detached/shared boundaries start new ancestry.
 import { Injectable } from '@nestjs/common'
-import { DataSource, EntityManager, In, IsNull, LessThanOrEqual } from 'typeorm'
+import { DataSource, EntityManager, In, IsNull, LessThanOrEqual, Raw } from 'typeorm'
+import type { HandoffTaskReceipt, TaskPublicationDiagnostic } from '@xpert-ai/contracts'
+import { readHandoffReceipt } from './handoff-receipt'
+import { handoffRecoveryEvidence, legacyHandoffOutcome } from './handoff-recovery'
 import { createHash, randomUUID } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
 import { z } from 'zod'
@@ -150,7 +153,14 @@ export class TaskControlStore {
 
 	async publications(transport: TaskControlPublication['transport']) {
 		return this.database.getRepository(TaskControlPublication).find({
-			where: { transport, publishedAt: IsNull(), nextAttemptAt: LessThanOrEqual(new Date()) },
+			where: {
+				transport,
+				publishedAt: IsNull(),
+				nextAttemptAt: LessThanOrEqual(new Date()),
+				diagnostic: Raw(
+					(alias) => `(${alias} IS NULL OR jsonb_extract_path_text(${alias}, 'retryable') = 'true')`
+				)
+			},
 			order: { nextAttemptAt: 'ASC' },
 			take: 50
 		})
@@ -164,13 +174,171 @@ export class TaskControlStore {
 		await this.database.getRepository(TaskControlPublication).update({ targetId: id, result: IsNull() }, { result })
 	}
 
-	async published(id: string, success: boolean) {
-		await this.database
-			.getRepository(TaskControlPublication)
-			.update(
-				{ targetId: id },
-				success ? { publishedAt: new Date() } : { nextAttemptAt: new Date(Date.now() + 5000) }
+	async published(id: string, success: boolean, diagnostic?: TaskPublicationDiagnostic) {
+		await this.database.getRepository(TaskControlPublication).update(
+			{ targetId: id, publishedAt: IsNull() },
+			success
+				? { publishedAt: new Date(), diagnostic: null }
+				: {
+						nextAttemptAt: new Date(Date.now() + 5000),
+						...(diagnostic ? { diagnostic } : {})
+					}
+		)
+	}
+
+	/** Bind callback admission to the actual worker claim, before any business side effects. */
+	async startHandoff(id: string, workerId: string): Promise<string | null> {
+		return this.database.transaction(async (manager) => {
+			const task = await this.lock(manager, id)
+			const worker = await this.read(workerId, manager)
+			this.assertHandoffWorker(task, worker)
+			if (task.state === 'completed') return null
+			const publication = await manager.findOneByOrFail(TaskControlPublication, { targetId: id })
+			this.assertHandoffPublication(task, publication)
+			if (
+				task.state !== 'queued' ||
+				task.claim ||
+				publication.result ||
+				!worker.claim ||
+				worker.state !== 'running'
 			)
+				throw new TaskControlRejected('claimed')
+			const intent = await this.intentOf(manager, task)
+			if (intent === 'terminated' || (intent === 'paused' && !task.drainOnPause))
+				throw new TaskControlRejected(intent)
+			task.claim = worker.claim
+			task.state = 'running'
+			await manager.save(task)
+			return worker.claim
+		})
+	}
+
+	/** Persist the handler return and its task receipt together, fenced by the original claim. */
+	async recordHandoffReceipt(id: string, receipt: HandoffTaskReceipt) {
+		return this.database.transaction(async (manager) => {
+			const task = await this.lock(manager, id)
+			this.assertHandoffWorker(task, await this.read(receipt.workerId, manager))
+			const publication = await manager.findOneByOrFail(TaskControlPublication, { targetId: id })
+			this.assertHandoffPublication(task, publication)
+			if (publication.result) {
+				if (!isDeepStrictEqual(publication.result, JSON.parse(JSON.stringify(receipt))))
+					throw new TaskControlRejected('scope')
+				return
+			}
+			if (task.claim !== receipt.workerClaim || task.state === 'completed')
+				throw new TaskControlRejected('claimed')
+			publication.result = receipt
+			await manager.save(publication)
+			await this.applyHandoffReceipt(task, receipt, manager)
+		})
+	}
+
+	/** Worker completion alone is insufficient: retries and uncertain callback outcomes stay pending. */
+	async settleHandoffReceipt(id: string) {
+		return this.database.transaction(async (manager) => {
+			const task = await this.lock(manager, id)
+			if (task.kind !== 'handoff') throw new TaskControlRejected('scope')
+			if (task.state === 'completed') return true
+			const publication = await manager.findOneBy(TaskControlPublication, { targetId: id })
+			if (publication) this.assertHandoffPublication(task, publication)
+			const receipt = readHandoffReceipt(publication?.result)
+			if (!receipt || receipt.outcome === 'uncertain' || task.claim !== receipt.workerClaim) return false
+			this.assertHandoffWorker(task, await this.read(receipt.workerId, manager))
+			await this.applyHandoffReceipt(task, receipt, manager)
+			return true
+		})
+	}
+
+	private assertHandoffWorker(task: ExecutionTaskControl, worker: ExecutionTaskControl | null) {
+		if (
+			task.kind !== 'handoff' ||
+			!worker ||
+			worker.kind !== 'managed-queue' ||
+			worker.parentId !== task.id ||
+			worker.rootId !== task.rootId ||
+			worker.tenantId !== task.tenantId ||
+			worker.organizationId !== task.organizationId
+		)
+			throw new TaskControlRejected('scope')
+	}
+
+	private assertHandoffPublication(task: ExecutionTaskControl, publication: TaskControlPublication) {
+		if (
+			publication.transport !== 'handoff' ||
+			publication.tenantId !== task.tenantId ||
+			publication.organizationId !== task.organizationId
+		)
+			throw new TaskControlRejected('scope')
+	}
+
+	private async applyHandoffReceipt(task: ExecutionTaskControl, receipt: HandoffTaskReceipt, manager: EntityManager) {
+		task.state = receipt.outcome === 'uncertain' ? 'unknown' : 'completed'
+		task.outcome = receipt.outcome === 'uncertain' ? null : receipt.outcome
+		if (task.state === 'completed') task.claim = null
+		task.nextCheckAt = new Date(Date.now() + 1000)
+		await manager.save(task)
+	}
+
+	/** Trusted maintenance caller supplies exact scope; reports contain no callback payload or credentials. */
+	async inspectHandoff(scope: TaskControlScope, id: string) {
+		return this.database.transaction(async (manager) => {
+			const task = await this.lock(manager, id)
+			this.assertHandoffScope(task, scope)
+			const publication = await manager.findOneByOrFail(TaskControlPublication, { targetId: id })
+			this.assertHandoffPublication(task, publication)
+			const children = (await this.descendants(id, manager)).filter((child) => child.id !== id)
+			return {
+				targetId: id,
+				revision: task.revision,
+				state: task.state,
+				outcome: task.outcome,
+				evidence: handoffRecoveryEvidence(task, publication, children),
+				diagnostic: publication.diagnostic,
+				workers: children
+					.filter((child) => child.parentId === id && child.kind === 'managed-queue')
+					.map((child) => ({ id: child.id, state: child.state, outcome: child.outcome }))
+			}
+		})
+	}
+
+	/**
+	 * Repairs one legacy handler return with a successful worker exit; never dispatches work.
+	 * @deprecated #1413 historical repair only. Remove after legacy workers retire,
+	 * legacy tasks are resolved or archived out of runtime, and the repair window and callers retire.
+	 * Removal gates: docs/operations/handoff-receipt-recovery.md.
+	 */
+	async recoverLegacyHandoffReceipt(scope: TaskControlScope, id: string, revision: number) {
+		return this.database.transaction(async (manager) => {
+			const task = await this.lock(manager, id)
+			this.assertHandoffScope(task, scope)
+			if (task.revision !== revision || task.claim) throw new TaskControlRejected('claimed')
+			if (task.state === 'completed') return false
+			const publication = await manager.findOneByOrFail(TaskControlPublication, { targetId: id })
+			this.assertHandoffPublication(task, publication)
+			const children = (await this.descendants(id, manager)).filter((child) => child.id !== id)
+			const outcome = legacyHandoffOutcome(publication, children)
+			if (!outcome) return false
+			task.state = 'completed'
+			task.outcome = outcome
+			task.revision++
+			publication.diagnostic = {
+				code: 'receipt_recovered',
+				retryable: false,
+				recordedAt: new Date().toISOString()
+			}
+			await manager.save(publication)
+			await manager.save(task)
+			return true
+		})
+	}
+
+	private assertHandoffScope(task: ExecutionTaskControl, scope: TaskControlScope) {
+		if (
+			task.kind !== 'handoff' ||
+			task.tenantId !== scope.tenantId ||
+			task.organizationId !== (scope.organizationId ?? null)
+		)
+			throw new TaskControlRejected('scope')
 	}
 
 	async desired(id: string, manager = this.database.manager): Promise<TaskControlIntent> {
@@ -279,7 +447,26 @@ export class TaskControlStore {
 			const task = await this.lock(manager, id)
 			if (task.state !== 'queued' || task.claim || (await this.intentOf(manager, task)) !== 'terminated')
 				return false
+			if (task.kind === 'handoff') {
+				const publication = await manager.findOneBy(TaskControlPublication, { targetId: id })
+				// Keep this evidence guard after legacy recovery retires: old queued records may have unrecorded effects.
+				// Cancellation cannot infer that an unsupported publication never executed.
+				if (
+					!z.object({ receiptProtocol: z.literal(1) }).safeParse(publication?.payload).success ||
+					publication.result
+				)
+					return false
+				const children = (await this.descendants(id, manager)).filter((child) => child.id !== id)
+				if (
+					children.some(
+						(child) => child.claim || child.outcome || !['queued', 'completed'].includes(child.state)
+					)
+				)
+					return false
+			}
 			await this.receipt(id, 'completed', undefined, manager)
+			// Deprecated raw-result encoding (#1413): migrate this cancellation writer and its waiter together.
+			// Retirement must preserve cancellation results without fabricating a worker/callback receipt.
 			if (task.kind === 'handoff')
 				await manager.update(
 					TaskControlPublication,
