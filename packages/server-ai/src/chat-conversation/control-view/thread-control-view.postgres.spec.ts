@@ -12,6 +12,7 @@ import { ThreadDTO } from '../../ai/dto/thread.dto'
 import { CopilotCheckpoint } from '../../copilot-checkpoint/copilot-checkpoint.entity'
 import { ThreadControlProjection } from './thread-control-projection.entity'
 import { threadGraphRevision } from '../thread-graph-revision'
+import { ExecutionControlEvidenceService } from '../../execution-control/execution-control-evidence.service'
 
 const url = process.env.XPERT_PAUSE_TEST_DATABASE_URL
 const integration = url ? describe : describe.skip
@@ -22,6 +23,23 @@ integration('public controls with actual durable execution / PostgreSQL', () => 
     })
     afterEach(async () => {
         await f.close()
+    })
+
+    it('shows unknown platform result delivery as confirming while preserving stop controls', async () => {
+        const evidence = await new ExecutionControlEvidenceService(f.db, f.tasks).read(f.executionId, f.tenant)
+        if (evidence.source !== 'platform') throw new Error('Registered platform execution required')
+        const reader = jest.spyOn(ExecutionControlEvidenceService.prototype, 'read').mockResolvedValue({
+            ...evidence,
+            state: 'unknown',
+            reason: 'result_delivery_failed'
+        })
+        try {
+            const { controlView } = await f.views.read(f.threadId)
+            expect(controlView).toMatchObject({ state: 'confirming', actions: { canTerminate: true, canRetry: false } })
+            threadControlViewSchema.parse(controlView)
+        } finally {
+            reader.mockRestore()
+        }
     })
 
     it('keeps accepted termination visible across refresh/replicas until the actual tool exits', async () => {

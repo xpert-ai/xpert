@@ -35,6 +35,7 @@ describe('Project general-agent Runtime tools', () => {
             open: { target: 'workbench.view', viewKey: 'platform.project-tasks__timeline' }
         }
         const receipt = {
+            projectId,
             status: 'running',
             projectTaskId: randomUUID(),
             taskExecutionId: card.resource.id,

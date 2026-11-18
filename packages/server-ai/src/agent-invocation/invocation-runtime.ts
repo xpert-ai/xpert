@@ -1,7 +1,7 @@
-import { hasPendingInvocationDelivery, recoverInvocationDelivery } from './invocation-delivery-recovery'
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 // A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
+import { hasPendingInvocationDelivery, recoverInvocationDelivery } from './invocation-delivery-recovery'
 import {
     checkedControlObservation,
     invocationCanRelease,
@@ -58,6 +58,11 @@ export interface AgentInvocationAccess {
     isSuspension?(error: unknown): boolean
 }
 
+/**
+ * Host lifecycle coordinator for native and external Agent invocations.
+ * Owns scoped authorization, idempotent admission, durable state and completion reconciliation.
+ * Strategies own execution protocols and resources; callers own business acceptance decisions.
+ */
 export class AgentInvocationRuntime {
     private readonly hostId = randomUUID()
     private readonly owned = new Map<
@@ -66,7 +71,10 @@ export class AgentInvocationRuntime {
     >()
     private scanningOwned = false
 
-    /** Durable intent is the delivery mechanism. Polling does not depend on a transient notification. */
+    /**
+     * Reconcile executions owned by this host boot using persisted control intent.
+     * Restore the actor for ordinary reads; authorized stop delivery survives access revocation.
+     */
     async reconcileOwned(
         withActor: (scope: AgentInvocationScope, work: () => Promise<AgentInvocation>) => Promise<AgentInvocation> = (
             _scope,
@@ -100,6 +108,7 @@ export class AgentInvocationRuntime {
         }
     }
 
+    /** Bind host persistence and strategy lookup, with optional activity and task-control integration. */
     constructor(
         private readonly store: AgentInvocationStore,
         private readonly registry: AgentRuntimeRegistry,
@@ -107,6 +116,7 @@ export class AgentInvocationRuntime {
         private readonly tasks?: TaskControlStore
     ) {}
 
+    /** Check background/recovery support without launching work or granting access to the target. */
     assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
         const strategy = this.registry
             .listRegistrations(organizationId)
@@ -116,6 +126,7 @@ export class AgentInvocationRuntime {
             throw invocationError('Unsupported')
     }
 
+    /** Capture a trusted caller scope; every returned operation still enforces its current authorization. */
     scoped(access: AgentInvocationAccess): AgentInvocationApi {
         const scope = structuredClone(access.scope)
         if (
@@ -142,6 +153,7 @@ export class AgentInvocationRuntime {
         }
     }
 
+    /** Recollect requested output from a finished invocation, reauthorizing after I/O without rerunning work. */
     private async recoverDelivery(id: string, access: AgentInvocationAccess, input: AgentDeliveryRecovery) {
         const parsed = agentDeliveryRecoverySchema.safeParse(input)
         if (!parsed.success) throw invocationError('InvalidRequest')
@@ -178,6 +190,7 @@ export class AgentInvocationRuntime {
         return next.invocation
     }
 
+    /** Reserve an idempotent call and its execution target before dispatch; ambiguous launches stay recoverable. */
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {
         const originalAccess = access
         const requestedExecutionId = access.scope.parentExecutionId
@@ -318,9 +331,16 @@ export class AgentInvocationRuntime {
                 latest &&
                 latest.invocation.revision > record.invocation.revision &&
                 (isAgentInvocationTerminal(latest.invocation.status) || latest.invocation.status !== observation.status)
-                    ? (await this.updateLatest(id, access, { ...observation, status: latest.invocation.status }, true))
-                          .invocation
-                    : (await this.updateLatest(id, access, observation, true)).invocation
+                    ? (
+                          await this.updateLatest(
+                              id,
+                              access,
+                              { ...observation, status: latest.invocation.status },
+                              record.invocation,
+                              true
+                          )
+                      ).invocation
+                    : (await this.updateLatest(id, access, observation, record.invocation, true)).invocation
             if (task && invocationCanRelease(saved)) await this.tasks.receipt(task.id, 'completed', taskClaim)
             return saved.control ? this.control(id, access, 'inspect') : saved
         } catch (error) {
@@ -336,9 +356,9 @@ export class AgentInvocationRuntime {
                     id,
                     access,
                     nativeGraphCancellation(id, error.executionId, error.message),
+                    record.invocation,
                     true,
-                    true,
-                    { value: undefined }
+                    true
                 )
                 if (task && invocationCanRelease(saved.invocation))
                     await this.tasks.receipt(task.id, 'completed', taskClaim)
@@ -351,6 +371,7 @@ export class AgentInvocationRuntime {
                         id,
                         access,
                         { status: 'failed', error: error.message, controlEvidence: notStartedEvidence(id, 'failed') },
+                        record.invocation,
                         true,
                         true
                     )
@@ -364,6 +385,7 @@ export class AgentInvocationRuntime {
                     status: suspended ? 'waiting' : 'unknown',
                     ...(suspended ? {} : { error: invocationError('DispatchUnknown').message })
                 },
+                record.invocation,
                 true
             )
             if (task && suspended) await this.tasks.receipt(task.id, 'paused', taskClaim)
@@ -375,6 +397,10 @@ export class AgentInvocationRuntime {
         }
     }
 
+    /**
+     * Inspect, cancel or answer an existing invocation through its pinned strategy and execution target.
+     * Persist stop/response intent before delivery; observation alone never authorizes a replacement launch.
+     */
     private async control(
         id: string,
         access: AgentInvocationAccess,
@@ -462,6 +488,7 @@ export class AgentInvocationRuntime {
                             status: 'unknown',
                             error: invocationError('DispatchUnknown').message
                         },
+                        record.invocation,
                         true
                     )
                 ).invocation
@@ -531,12 +558,10 @@ export class AgentInvocationRuntime {
             if (!claimed) return (await this.store.read(id, access.scope)).invocation
             observation = await strategy.respond(handle, input.interactionId, input.response, context)
         } else observation = await strategy.inspect(handle, context)
-        return (
-            await this.updateLatest(id, access, observation, false, false, { value: record.invocation.executionTarget })
-        ).invocation
+        return (await this.updateLatest(id, access, observation, record.invocation)).invocation
     }
 
-    /** A coordinator proved this exact revision exited via its historical interrupt and completed child. */
+    /** Confirm native graph cancellation at the exact revision proved by its interrupt and completed child. */
     async confirmCheckpointCancellation(record: StoredAgentInvocation): Promise<boolean> {
         const { invocation } = record
         if (!isBuiltinInlineGraph(record) || invocation.status !== 'cancelling' || invocation.control) return false
@@ -544,6 +569,7 @@ export class AgentInvocationRuntime {
         return Boolean(await this.save(record, observation, false, 'finish'))
     }
 
+    /** Persist a host-routed interaction response with CAS so ambiguous delivery cannot be sent twice. */
     private async saveHostResponse(
         record: StoredAgentInvocation,
         hostResponse: NonNullable<AgentInvocation['hostResponse']>
@@ -560,7 +586,7 @@ export class AgentInvocationRuntime {
         return (await this.store.replace(next, record.invocation.revision)) ? next : undefined
     }
 
-    /** Pause changes an execution attempt, never the idempotency identity of its calls. */
+    /** Resolve resumed task attempts to their original call scope without crossing tenant or organization boundaries. */
     async resolveIdentityScope(scope: Readonly<AgentInvocationScope>): Promise<AgentInvocationScope> {
         const task = await this.tasks?.execution(scope.parentExecutionId)
         if (!task) return { ...scope }
@@ -570,10 +596,15 @@ export class AgentInvocationRuntime {
         return { ...scope, parentExecutionId: task.attempts[0] }
     }
 
+    /** Normalize call identity across task resumes while retaining the caller's authorization and capabilities. */
     private async stableAccess(access: AgentInvocationAccess): Promise<AgentInvocationAccess> {
         return { ...access, scope: await this.resolveIdentityScope(access.scope) }
     }
 
+    /**
+     * Give a strategy its trusted execution scope, saved outcome and generation-bound checkpoint callback.
+     * Checkpoints capture the current revision at submission; polling uses the snapshot taken before adapter I/O.
+     */
     private context(record: StoredAgentInvocation, access: AgentInvocationAccess): AgentRuntimeContext {
         return {
             invocationId: record.invocation.id,
@@ -595,37 +626,39 @@ export class AgentInvocationRuntime {
             ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),
             checkpoint: async (observation) => {
                 const current = await this.store.read(record.invocation.id, access.scope)
+                if (!current) throw invocationError('NotFound')
                 if (
-                    !executionRuntimeTargetsEqual(
-                        current?.invocation.executionTarget,
-                        record.invocation.executionTarget
-                    )
+                    !executionRuntimeTargetsEqual(current.invocation.executionTarget, record.invocation.executionTarget)
                 )
                     throw invocationError('CallConflict')
-                await this.updateLatest(record.invocation.id, access, observation, false, false, {
-                    value: record.invocation.executionTarget
-                })
+                await this.updateLatest(record.invocation.id, access, observation, current.invocation)
             }
         }
     }
 
+    /** Resolve the originally admitted provider source/version without falling back to a different installation. */
     private pinned(record: StoredAgentInvocation): IAgentRuntimeStrategy {
         const strategy = this.registry.getPinned(record.invocation.request.target.provider, record.providerSource)
         if (!strategy) throw invocationError('ProviderChanged')
         return strategy
     }
 
+    /** Hide invocations whose complete captured scope differs from the authorized caller scope. */
     private assertScope(record: StoredAgentInvocation, scope: AgentInvocationScope) {
         if (canonical(record.invocation.scope) !== canonical(scope)) throw invocationError('NotFound')
     }
 
+    /**
+     * Validate an observation and merge it with CAS against the host snapshot used to obtain it.
+     * Stale observations cannot replace a saved outcome; fresh corrections still require matching completion evidence.
+     */
     private async updateLatest(
         id: string,
         access: AgentInvocationAccess,
         observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,
+        observed: Pick<AgentInvocation, 'executionTarget' | 'revision'>,
         finishStart = false,
-        hostEvidence = false,
-        expectedTarget?: { value: AgentInvocation['executionTarget'] }
+        hostEvidence = false
     ) {
         // A successful provider result supersedes an earlier observation error even while exit proof
         // keeps its public status unknown. Previous diagnostics remain in the observation event history.
@@ -633,10 +666,7 @@ export class AgentInvocationRuntime {
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
-            if (
-                expectedTarget &&
-                !executionRuntimeTargetsEqual(latest.invocation.executionTarget, expectedTarget.value)
-            )
+            if (!executionRuntimeTargetsEqual(latest.invocation.executionTarget, observed.executionTarget))
                 throw invocationError('CallConflict')
             if (invocationCanRelease(latest.invocation)) return latest
             if (latest.invocation.runnerTermination) return latest
@@ -650,6 +680,21 @@ export class AgentInvocationRuntime {
                       this.pinned(latest),
                       latest.providerSource.kind === 'builtin'
                   )
+            // An older read may confirm the same saved outcome, but cannot correct it or
+            // replace its contents. Conflicting outcomes require a fresh host snapshot.
+            const staleOutcome =
+                latest.invocation.reportedOutcome &&
+                !latest.invocation.control &&
+                latest.invocation.revision !== observed.revision
+            if (
+                latest.invocation.reportedOutcome &&
+                !latest.invocation.control &&
+                (!isAgentInvocationTerminal(observation.status) ||
+                    (staleOutcome &&
+                        (observation.status !== latest.invocation.reportedOutcome ||
+                            !isAgentInvocationTerminal(checked.status))))
+            )
+                return latest
             // Competing unconfirmed inspections cannot replace a saved terminal result while cleanup
             // is pending. Matching exit evidence may resolve an earlier provisional outcome.
             if (
@@ -660,10 +705,23 @@ export class AgentInvocationRuntime {
             )
                 return latest
             // A late progress event cannot undo an accepted cancellation request.
-            const next =
-                latest.invocation.control && !isAgentInvocationTerminal(checked.status)
-                    ? { ...observation, ...checked, status: 'cancelling' as const }
-                    : { ...observation, ...checked }
+            const next: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'> = staleOutcome
+                ? {
+                      status: checked.status,
+                      controlEvidence: checked.controlEvidence,
+                      result: latest.invocation.result
+                  }
+                : latest.invocation.control && !isAgentInvocationTerminal(checked.status)
+                  ? { ...observation, ...checked, status: 'cancelling' }
+                  : { ...observation, ...checked }
+            if (latest.invocation.reportedOutcome && !latest.invocation.control && !staleOutcome) {
+                // Same-outcome reconciliation keeps durable output; explicit delivery recovery
+                // can revise it. Fresh validated metadata/diagnostics remain useful during settlement.
+                next.handle = checked.handle ?? latest.invocation.handle
+                if (observation.status === latest.invocation.reportedOutcome || checked.result === undefined)
+                    next.result = latest.invocation.result ?? checked.result
+                if (observation.status !== latest.invocation.reportedOutcome) next.error = checked.error
+            }
             if (latest.invocation.control && next.control) next.control = latest.invocation.control
             if (
                 ['succeeded', 'failed', 'cancelled'].includes(observation.status) &&
@@ -684,6 +742,10 @@ export class AgentInvocationRuntime {
         throw invocationError('ConcurrentUpdate')
     }
 
+    /**
+     * Persist one revision while retaining host-owned identity/control fields and the first confirmed completion time.
+     * A lost CAS returns no record for reconciliation, or rejects when the caller requires exclusive admission.
+     */
     private async save(
         record: StoredAgentInvocation,
         observation: AgentRuntimeObservation & Pick<Partial<AgentInvocation>, 'control'>,

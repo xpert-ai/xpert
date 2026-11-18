@@ -6,6 +6,7 @@ import { ExecutionControlEvidence, unknownExecutionControl } from '@xpert-ai/con
 import { TaskControlStore } from '@xpert-ai/server-core'
 import { ExecutionControl } from './execution-control.entity'
 import { validateExecutionControl } from './execution-control.store'
+import { readRuntimeResultSettlement } from '../handoff/runtime-messaging/runtime-result-settlement'
 
 @Injectable()
 export class ExecutionControlEvidenceService {
@@ -76,11 +77,28 @@ export class ExecutionControlEvidenceService {
                 local?.graphEnded &&
                 local.tenantId === scope.tenantId &&
                 local.organizationId === (scope.organizationId ?? null)
-            const ended =
+            const executionEnded =
                 graphEnded &&
                 toolsEnded &&
                 task.state === 'completed' &&
                 family.every((target) => target.state === 'completed')
+            const settlement =
+                executionEnded && desired === 'running'
+                    ? await readRuntimeResultSettlement(
+                          manager,
+                          scope,
+                          family.filter((target) => target.kind === 'invocation').map((target) => target.resourceId)
+                      )
+                    : 'settled'
+            const reason =
+                settlement === 'blocked'
+                    ? 'result_delivery_blocked'
+                    : settlement === 'failed'
+                      ? 'result_delivery_failed'
+                      : settlement === 'unconfirmed'
+                        ? 'result_delivery_unconfirmed'
+                        : undefined
+            const ended = executionEnded && settlement === 'settled'
             const paused =
                 graphEnded &&
                 toolsEnded &&
@@ -91,16 +109,19 @@ export class ExecutionControlEvidenceService {
                 source: 'platform',
                 subject,
                 scope: 'owned_subtree',
-                state: ended
-                    ? 'settled'
-                    : desired === 'terminated'
-                      ? 'terminating'
-                      : paused
-                        ? 'paused'
-                        : desired === 'paused'
-                          ? 'pausing'
-                          : 'running',
+                state: reason
+                    ? 'unknown'
+                    : ended
+                      ? 'settled'
+                      : desired === 'terminated'
+                        ? 'terminating'
+                        : paused
+                          ? 'paused'
+                          : desired === 'paused'
+                            ? 'pausing'
+                            : 'running',
                 desired,
+                ...(reason ? { reason } : {}),
                 taskId: task.id,
                 rootId: task.rootId,
                 revision: task.revision,

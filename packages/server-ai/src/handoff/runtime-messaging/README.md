@@ -15,6 +15,8 @@ All existing-conversation root chat commands enter the shared thread admission g
 
 The model notification is host-authored reference text. Executor summaries, logs and artifacts are retrieved through authorized tools as tool data, never copied into user/system instructions. No tokens or closures are persisted in messages.
 
+Completion evidence reads `readRuntimeResultSettlement` in the same database snapshot as the owned execution ledger. A result already consumed by a bounded wait or follow-up takes precedence over delayed outbox acknowledgement. Consumption is matched by scoped invocation and owner across result revisions because the invocation pins its recipient and all revisions share one consumption key. Pending consumption holds completion open. Blocked or failed delivery, or a received result without its consumption record, produces platform `unknown` evidence with a `result_delivery_*` reason; it preserves the current execution identity and cannot prove successful completion. Explicit pause and termination retain their existing control semantics. This read never claims results, restarts work or schedules another polling loop.
+
 ## Observation and Project projection
 
 `RuntimeObservationMonitorService` leases due Invocation records independently of the parent turn. It observes existing handles and never launches them. `ProjectTaskDispatchRecoveryService` separately replays committed pending dispatch intents with the original call ID and current authorization; ambiguous launches are never repeated.
@@ -26,6 +28,8 @@ Automatic projection requires the latest implementation attempt, unchanged speci
 ## Operations
 
 Apply `xpert-project/migrations/20261006-project-task-runtime.sql`, then [20261006-runtime-reliable-replies.sql](migrations/20261006-runtime-reliable-replies.sql) before starting the updated host. Both migrations are additive and repeatable. Old attempts without a captured projection revision do not automatically overwrite Task decisions. Historical terminal calls are not automatically awakened; new committed observations create delivery intents.
+
+[20261118000100-runtime-result-settlement.sql](migrations/20261118000100-runtime-result-settlement.sql) adds partial indexes for scoped result settlement reads on both messaging tables. It preserves existing records and transport scheduling indexes.
 
 - `GET /api/agent-invocations/:id/delivery`: owner-scoped delivery and consumption receipts, stable consumer execution ID, attempts and diagnostic codes. Owners with active organization membership can inspect transport failures even when a binding is revoked; this endpoint does not expose executor result bodies or grant runtime access.
 - `POST /api/agent-invocations/:id/delivery/redrive`, body `{}`: reauthorize the original reply target and reschedule blocked/failed transport. Retain claims, phases and user-stop barriers. For `consumer_outcome_unknown`, inspect the recorded execution; redrive only checks that same identity. For an explicit user stop, read the result in a manual turn rather than bypassing the stop.

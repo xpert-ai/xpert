@@ -8,6 +8,7 @@ import signal
 import subprocess
 import sys
 import time
+from source_checkout import source_revision
 
 from configuration import assert_project, default_state, load, prepare
 from platform_services import configure_oidc, infrastructure, initialize, run_command, verify_local_terminal
@@ -71,8 +72,7 @@ def status(config):
     supervisor = json.loads((state / 'supervisor-identity.json').read_text()) if owns_supervisor(config) else None
     infra_ready = all(services[name]['healthy'] for name in ('postgres', 'redis'))
     marker = Path(config['runtime']) / '.xpert-runtime-ready.json'
-    revision = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=config['platform'],
-                              capture_output=True, text=True, check=True).stdout.strip()
+    revision = source_revision(config['platform'])
     api_ready = infra_ready and services['api']['healthy'] and not restore_pending
     result = {'status': 'platform_ready' if ready else ('api_ready' if api_ready else 'infrastructure_ready' if infra_ready else 'not_ready'), 'mode': 'process',
         'platform': config['platform'], 'state': str(state), 'projectRoot': config.get('projectRoot'), 'services': services,

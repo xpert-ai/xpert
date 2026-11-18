@@ -17,7 +17,7 @@
         "TemporaryFileCleanupFailed": "语音转文字临时音频文件删除失败。"
     },
     "RuntimeReply": {
-        "Completed": "受托运行时已结束，请读取获准的执行结果并决定下一步。Invocation：{{invocationId}}。",
+        "Completed": "受托运行时已结束。进程结束不代表业务验收通过；请读取执行报告和成果导出诊断，再决定继续实现、独立验收或收尾。仅在成果文件已存在时重新收集；文件缺失时应继续原任务完成工作。Invocation：{{invocationId}}。",
         "ProjectTask": " 项目任务：{{taskId}}。执行尝试：{{attemptId}}。"
     },
     "BosiStartConversation": "你好，Bosi！",
@@ -437,6 +437,7 @@
         "AgentInvocationDispatchUnknown": "智能体执行结果未知，请先核对状态再重试。",
         "AgentInvocationNotFound": "当前执行范围内未找到此智能体调用。",
         "AgentInvocationUnsupported": "该智能体执行器不支持此操作。",
+        "ProjectTaskDeliveryRecoveryRejected": "交付物重新收集被拒绝（{{reason}}）。请读取当前任务及调用版本。只有执行成功且已保存结果时，才能重新读取约定文件。对失败或未完成的工作，请通过已授权的项目文件工具查看已有报告，再决定续做或阻塞。重新收集不能创建缺失文件，请勿重复提交不变的请求。",
         "AgentInvocationDeliveryRecoveryUnavailable": "运行器无法从原执行中重新读取所选报告或文件。恢复交付不会重新执行任务。",
         "AgentInvocationInteractionConflict": "此智能体交互已不再等待回复。",
         "AgentInvocationMissingResult": "智能体执行器未返回有效结果。",

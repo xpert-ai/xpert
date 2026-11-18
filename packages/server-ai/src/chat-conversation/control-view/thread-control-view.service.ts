@@ -225,6 +225,7 @@ export class ThreadControlViewService {
         if (control?.state === 'settling') return 'settling'
         if (control?.state === 'paused') return evidence?.state === 'paused' ? 'paused' : 'confirming'
         if (control?.state === 'pausing') return 'pausing'
+        if (evidence?.state === 'unknown') return 'confirming'
         if (control) return evidence?.source === 'platform' ? 'running' : 'confirming'
         if (evidence?.source === 'platform' && evidence.state !== 'settled') return 'confirming'
         if (['busy', 'pausing', 'paused'].includes(thread.status)) return 'confirming'

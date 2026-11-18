@@ -17,7 +17,7 @@
         "TemporaryFileCleanupFailed": "Failed to delete a temporary speech-to-text audio file."
     },
     "RuntimeReply": {
-        "Completed": "A delegated runtime has finished. Inspect its authorized result and decide the next step. Invocation: {{invocationId}}.",
+        "Completed": "A delegated runtime has finished. Process completion does not establish business acceptance. Read its authorized result and report/artifact delivery diagnostics, then decide the next step. Recover collection only for files that exist; missing implementation requires a scoped continuation, not repeated collection. Invocation: {{invocationId}}.",
         "ProjectTask": " Project task: {{taskId}}. Attempt: {{attemptId}}."
     },
     "BosiStartConversation": "Hello, Bosi!",
@@ -437,6 +437,7 @@
         "AgentInvocationDispatchUnknown": "The Agent execution outcome is unknown; reconcile it before retrying.",
         "AgentInvocationNotFound": "Agent invocation was not found in this execution scope.",
         "AgentInvocationUnsupported": "This Agent runtime does not support the requested operation.",
+        "ProjectTaskDeliveryRecoveryRejected": "Delivery recovery was rejected ({{reason}}). Read the current task and invocation revision. Recovery only rereads requested files for a succeeded execution with a stored result. For failed or incomplete work, inspect any existing report through authorized Project file tools and decide continuation or blockage. Missing files cannot be created by recovery; do not repeat an unchanged request.",
         "AgentInvocationDeliveryRecoveryUnavailable": "The runtime cannot reread the selected report or files from the original execution. Delivery recovery does not run the task again.",
         "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
         "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
