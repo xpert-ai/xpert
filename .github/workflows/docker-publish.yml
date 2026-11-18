@@ -1,4 +1,5 @@
 # Invariants: validate the exact source SHA and publish the health-checked image.
+# Each main push publishes all application images under both main and latest.
 # PRs and develop build without registry credentials; main retries reuse the verified artifact.
 name: Publish Application Docker images
 

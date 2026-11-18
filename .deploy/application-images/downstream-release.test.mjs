@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
-import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
+import { assertUnversionedTags, fixture, mainSyncFixture } from './release-test-fixture.mjs'
 const [api, web] = services
 
 const upstreamPlan = (f, options = {}) =>
@@ -13,11 +13,12 @@ const upstreamPlan = (f, options = {}) =>
     event: 'push',
     ref: 'refs/heads/main',
     upstreamMainSha: f.main,
+    applicationNames: [api.name, web.name],
     retainedChangesetPolicy: 'candidate',
     ...options
   })
 
-test('explicit upstream baselines authorize only candidates on develop, main and PRs', (t) => {
+test('explicit upstream baselines do not authorize numbered releases', (t) => {
   const f = mainSyncFixture(t)
   for (const [event, ref, channel] of [
     ['push', 'refs/heads/develop', 'develop'],
@@ -31,7 +32,7 @@ test('explicit upstream baselines authorize only candidates on develop, main and
       assert.equal(image.baseVersion, index === 0 ? '1.11.1' : '1.1.1')
       assert.equal(image.versioned, false)
       assert.equal(image.stable, false)
-      assert.deepEqual(tags(image), [image.version, `sha-${f.after}`, `${channel}-candidate`])
+      assertUnversionedTags(image, channel, f.after)
     }
   }
 })
@@ -56,13 +57,14 @@ test('unmerged upstream versions and arbitrary local increases cannot become bas
   assert.throws(() => upstreamPlan(f, { upstreamMainSha: 'upstream/main' }), /Exact upstream main commit SHA/)
 })
 
-test('upstream baseline adoption without remaining application notes cannot publish', (t) => {
+test('upstream baseline adoption without remaining application notes publishes only rolling tags', (t) => {
   const f = mainSyncFixture(t)
   f.remove('downstream')
   const plan = upstreamPlan(f, { after: f.commit() })
-  assert.equal(plan.publish, false)
+  assert.equal(plan.publish, true)
   assert.equal(plan.validate, true)
-  assert.deepEqual(plan.matrix.include, [])
+  assert.equal(plan.matrix.include.length, 2)
+  for (const image of plan.matrix.include) assertUnversionedTags(image, 'main', plan.sha)
 })
 
 test('adopting an upstream baseline preserves shared-package release declarations', (t) => {
@@ -84,8 +86,8 @@ test('a new fixed group can align to the verified upstream baseline while retain
   assert.ok(plan.matrix.include.every((image) => image.baseVersion === '1.12.0' && !image.versioned && !image.stable))
 })
 
-test('a merge verifies upstream versioning notes absent from the main baseline and only builds candidates', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+test('a merge verifies upstream versioning notes absent from the main baseline and keeps numbered releases gated', (t) => {
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   const contracts = '@xpert-ai/contracts'
   f.note('old-web', [web.name, contracts])
   const before = f.commit()
@@ -132,15 +134,11 @@ test('a merge verifies upstream versioning notes absent from the main baseline a
       ['xpert-api', 'xpert-webapp']
     )
     for (const image of plan.matrix.include) {
-      assert.equal(image.version, `1.1.1-candidate.${channel}.${after.slice(0, 12)}`)
+      assert.equal(image.baseVersion, '1.1.1')
       assert.equal(image.versioned, true)
       assert.equal(image.stable, false)
-      assert.equal(image.target, 'candidate')
-      assert.deepEqual(image.tags.split('\n'), [
-        `type=raw,value=${image.version}`,
-        `type=raw,value=sha-${after}`,
-        `type=raw,value=${channel}-candidate`
-      ])
+      assert.equal(image.target, channel === 'main' ? 'production' : 'candidate')
+      assertUnversionedTags(image, channel, after)
       assert.ok(image.changesets.includes('.changeset/upstream-minor.md'))
       assert.ok(image.changesets.includes('.changeset/downstream-apps.md'))
     }
@@ -148,7 +146,7 @@ test('a merge verifies upstream versioning notes absent from the main baseline a
 
   f.write('README.md', 'Source-only follow-up after the merge')
   const next = f.commit()
-  assert.equal(f.plan(after, next, 'push', 'refs/heads/main').build, false)
+  assert.equal(f.plan(after, next, 'push', 'refs/heads/main').build, true)
   f.remove('downstream-apps')
   f.version(api, '1.1.1')
   f.version(web, '1.1.1')
@@ -158,7 +156,7 @@ test('a merge verifies upstream versioning notes absent from the main baseline a
 })
 
 test('a merge verifies every upstream release in a continuous version chain', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   const contracts = '@xpert-ai/contracts'
   f.note('upstream-patch', [api.name, web.name, contracts])
   const before = f.commit()
@@ -209,26 +207,22 @@ test('a merge verifies every upstream release in a continuous version chain', (t
       ['xpert-api', 'xpert-webapp']
     )
     for (const image of plan.matrix.include) {
-      assert.equal(image.version, `1.1.1-candidate.${channel}.${after.slice(0, 12)}`)
+      assert.equal(image.baseVersion, '1.1.1')
       assert.equal(image.versioned, true)
       assert.equal(image.stable, false)
-      assert.equal(image.target, 'candidate')
+      assert.equal(image.target, channel === 'main' ? 'production' : 'candidate')
       assert.deepEqual(image.changesets, [
         '.changeset/upstream-patch.md',
         '.changeset/upstream-minor.md',
         '.changeset/downstream-apps.md'
       ])
-      assert.deepEqual(image.tags.split('\n'), [
-        `type=raw,value=${image.version}`,
-        `type=raw,value=sha-${after}`,
-        `type=raw,value=${channel}-candidate`
-      ])
+      assertUnversionedTags(image, channel, after)
     }
   }
 })
 
 test('a valid final release cannot hide a missing intermediate application declaration', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.version(api, '1.0.1')
   f.commit()
   f.note('upstream-minor', [api.name], 'minor')
@@ -241,7 +235,7 @@ test('a valid final release cannot hide a missing intermediate application decla
 })
 
 test('a valid final release cannot hide an incorrect intermediate version bump', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.note('upstream-patch', [api.name])
   f.commit()
   f.remove('upstream-patch')
@@ -257,7 +251,7 @@ test('a valid final release cannot hide an incorrect intermediate version bump',
 })
 
 test('every intermediate release still enforces shared package coverage', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   const contracts = '@xpert-ai/contracts'
   f.note('shared-only', [contracts])
   f.commit()
@@ -275,7 +269,7 @@ test('every intermediate release still enforces shared package coverage', (t) =>
 })
 
 test('release evidence from a sibling branch cannot fill an intermediate version gap', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.git('checkout', '-qb', 'patch')
   f.note('upstream-patch', [api.name])
   f.commit()
@@ -310,7 +304,7 @@ test('release evidence from a sibling branch cannot fill an intermediate version
 })
 
 test('fresh downstream notes cannot authorize a version bump without a verified upstream release', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.version(api, '1.1.0')
   f.commit()
   f.note('downstream-apps', [api.name])
@@ -318,7 +312,7 @@ test('fresh downstream notes cannot authorize a version bump without a verified 
 })
 
 test('merged upstream notes must still authorize the exact version increase', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.note('upstream-patch', [api.name])
   f.commit()
   f.remove('upstream-patch')
@@ -329,18 +323,19 @@ test('merged upstream notes must still authorize the exact version increase', (t
 })
 
 test('historical source versioning without remaining downstream notes cannot promote stable tags', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.note('upstream', [api.name], 'minor')
   f.commit()
   f.remove('upstream')
   f.version(api, '1.1.0')
   const plan = f.plan(f.initial, f.commit(), 'push', 'refs/heads/main')
-  assert.equal(plan.publish, false)
-  assert.deepEqual(plan.matrix.include, [])
+  assert.equal(plan.publish, true)
+  assert.equal(plan.matrix.include.length, 2)
+  for (const image of plan.matrix.include) assertUnversionedTags(image, 'main', plan.sha)
 })
 
 test('historical version evidence still enforces shared package release coverage', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   const contracts = '@xpert-ai/contracts'
   f.note('upstream-app', [api.name], 'minor')
   f.commit()
@@ -357,7 +352,7 @@ test('historical version evidence still enforces shared package release coverage
 })
 
 test('an application version increase without consuming any pending note still fails', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.note('downstream-apps', [api.name])
   const before = f.commit()
   f.version(api, '1.0.1')
@@ -365,7 +360,7 @@ test('an application version increase without consuming any pending note still f
 })
 
 test('fresh downstream notes beside consumed upstream notes also prevent stable promotion', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.note('upstream', [api.name], 'minor')
   const before = f.commit()
   f.remove('upstream')
@@ -382,7 +377,7 @@ test('fresh downstream notes beside consumed upstream notes also prevent stable 
 })
 
 test('aggregated fixed-group releases preserve the highest downstream candidate bump', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.write(
     '.changeset/config.json',
     JSON.stringify({ privatePackages: { version: true }, fixed: [[api.name, web.name]] })
@@ -421,14 +416,14 @@ test('aggregated fixed-group releases preserve the highest downstream candidate 
     assert.equal(image.baseVersion, '2.0.0')
     assert.equal(image.versioned, true)
     assert.equal(image.stable, false)
-    assert.equal(image.target, 'candidate')
+    assert.equal(image.target, 'production')
     assert.deepEqual(image.changesets, [`.changeset/upstream-${index === 0 ? 'api' : 'web'}.md`])
-    assert.ok(!image.tags.includes('value=latest'))
+    assertUnversionedTags(image, 'main', after)
   }
 })
 
 test('fixed-group upstream versioning retains downstream notes without authorizing stable tags', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { applicationNames: [api.name, web.name], retainedChangesetPolicy: 'candidate' })
   f.write(
     '.changeset/config.json',
     JSON.stringify({ privatePackages: { version: true }, fixed: [[api.name, web.name]] })

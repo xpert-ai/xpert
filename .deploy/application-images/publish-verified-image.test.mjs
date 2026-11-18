@@ -13,9 +13,10 @@ const repositories = [
 
 function fixture({ version = '1.0.1', existing = {}, localId = verifiedId, revision = sha, inspectError } = {}) {
   const tags = repositories.flatMap((repo) =>
-    [version, `sha-${sha}`, ...(version.includes('candidate') ? ['develop-candidate'] : ['main', 'latest'])].map(
-      (tag) => `${repo}:${tag}`
-    )
+    [
+      version,
+      ...(version.includes('candidate') ? [`sha-${sha}`, 'develop-candidate'] : [`sha-${sha}`, 'main', 'latest'])
+    ].map((tag) => `${repo}:${tag}`)
   )
   const calls = []
   const options = {
@@ -126,4 +127,24 @@ test('registry outages or permission errors are not treated as missing tags', ()
     assert.throws(f.push)
     assert.ok(!f.calls.some(([cmd]) => cmd === 'push' || cmd === 'tag'))
   }
+})
+
+test('a rolling main build pushes its SHA once per registry and refuses the obsolete alias', () => {
+  const version = `sha-${sha}`
+  const f = fixture({ version })
+  f.push()
+  assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 9)
+  const invalid = fixture({ version })
+  invalid.options.tags.push(`${repositories[0]}:main-candidate`)
+  assert.throws(invalid.push, /Unexpected release tag/)
+  assert.ok(!invalid.calls.some(([cmd]) => cmd === 'push'))
+})
+
+test('a superseded main run finishes immutable tags and skips both aliases', () => {
+  const f = fixture()
+  f.options.shouldPromote = () => false
+  f.push()
+  const writes = f.calls.filter(([cmd]) => cmd === 'push')
+  assert.equal(writes.length, 6)
+  assert.ok(writes.every(([, tag]) => !/:(main|latest)$/.test(tag)))
 })
