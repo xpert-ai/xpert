@@ -444,7 +444,11 @@ export class NsjailRunnerClient {
                 result = parseExecutionResult(Reflect.get(event, 'result'))
             } else if (type === 'error') {
                 const status = readNumber(event, 'status')
-                throw new NsjailRunnerRequestError('Sandbox execution failed', status ?? 500, readString(event, 'error') ?? undefined)
+                throw new NsjailRunnerRequestError(
+                    'Sandbox execution failed',
+                    status ?? 500,
+                    readString(event, 'error') ?? undefined
+                )
             }
         }
 
@@ -474,10 +478,16 @@ export class NsjailRunnerClient {
         return result
     }
 
-    async uploadFiles(runtimeId: string, files: NsjailFileUpload[], storageBudget?: SandboxStorageAllowance): Promise<NsjailFileUploadResult[]> {
+    async uploadFiles(
+        runtimeId: string,
+        files: NsjailFileUpload[],
+        storageBudget?: SandboxStorageAllowance
+    ): Promise<NsjailFileUploadResult[]> {
         const value = await this.requestJson(`/v1/runtimes/${encodeURIComponent(runtimeId)}/files/upload`, {
             body: { files, ...(storageBudget ? { storageBudget } : {}) },
-            method: 'POST'
+            method: 'POST',
+            // Uploads under a storage budget snapshot and commit the entire workspace.
+            timeoutMs: storageBudget ? 120_000 : DEFAULT_REQUEST_TIMEOUT_MS
         })
         return parseFileUploadResults(value)
     }

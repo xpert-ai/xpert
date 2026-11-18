@@ -12,6 +12,22 @@ describe('NsjailRunnerClient', () => {
         fetchSpy.mockRestore()
     })
 
+    it('allows a storage-budget upload to finish snapshotting a large workspace', async () => {
+        jest.useFakeTimers()
+        try {
+            fetchSpy.mockImplementationOnce(async (_, options) => {
+                await new Promise((resolve) => setTimeout(resolve, 11_000))
+                if (options?.signal?.aborted) throw new Error('Upload aborted during snapshot')
+                return new Response('[]', { status: 200 })
+            })
+            const upload = client.uploadFiles('a'.repeat(32), [], { maxWorkspaceBytes: 1024, maxTemporaryBytes: 512 })
+            await jest.advanceTimersByTimeAsync(11_000)
+            await expect(upload).resolves.toEqual([])
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
     it('checks authenticated Runner health', async () => {
         fetchSpy.mockResolvedValue(
             new Response(JSON.stringify({ status: 'ok' }), {
