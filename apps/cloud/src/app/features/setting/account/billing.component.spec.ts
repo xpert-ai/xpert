@@ -20,6 +20,7 @@ import { Store } from '../../../@core/state'
 import { CopilotUsageService } from '../../../@core/services/copilot-usage.service'
 import { XpAccountBillingComponent } from './billing.component'
 import { ExecutionUsageComponent } from './execution-usage.component'
+import { AppPlatformService } from '../../../@core/services/app-platform.service'
 
 const period = {
   currentPeriodStart: new Date('2026-10-01T00:00:00Z'),
@@ -89,9 +90,17 @@ describe('personal billing settings', () => {
     TestBed.configureTestingModule({
       imports: [XpAccountBillingComponent, TranslateModule.forRoot()],
       providers: [
+        { provide: AppPlatformService, useValue: { getStorageUsage: () => of(null) } },
         { provide: MembershipService, useValue: membership },
         { provide: ToastrService, useValue: { error: jest.fn() } },
-        { provide: Store, useValue: { userRolePermissions$: new BehaviorSubject([]), hasPermission: () => true, selectOrganizationId: () => new BehaviorSubject('org-a') } },
+        {
+          provide: Store,
+          useValue: {
+            userRolePermissions$: new BehaviorSubject([]),
+            hasPermission: () => true,
+            selectOrganizationId: () => new BehaviorSubject('org-a')
+          }
+        },
         { provide: CopilotUsageService, useValue: usage }
       ]
     })

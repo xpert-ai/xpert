@@ -24,6 +24,9 @@
 
   <z-tab-group [preserveContent]="true" animationDuration="0ms">
     <z-tab [label]="'XP.BillingSettings.PlanAndBalance' | translate" bodyClass="pt-6">
+      @if (canInspectStorage()) {
+        <xp-account-storage-usage class="mb-6 block" />
+      }
       @if (loading()) {
         <ng-container [ngTemplateOutlet]="loadingState" />
       } @else if (loadFailed()) {

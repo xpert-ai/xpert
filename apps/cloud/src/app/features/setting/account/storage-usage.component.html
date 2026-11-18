@@ -1,0 +1,66 @@
+@if (loading() || failed() || usage()) {
+  <z-card class="block min-w-0 shadow-none" [attr.aria-busy]="loading()">
+    <z-card-header class="flex flex-row flex-wrap items-start justify-between gap-3 px-5 py-5">
+      <div class="min-w-0">
+        <z-card-title class="text-base">{{ 'XP.StorageUsage.Title' | translate }}</z-card-title>
+        <z-card-subtitle class="mt-1">{{ 'XP.StorageUsage.Description' | translate }}</z-card-subtitle>
+      </div>
+      <button z-button zType="outline" zSize="sm" type="button" [zDisabled]="loading()" (click)="load()">
+        <z-icon zType="refresh" [class]="loading() ? 'motion-safe:animate-spin' : ''" />
+        {{ 'XP.StorageUsage.Refresh' | translate }}
+      </button>
+    </z-card-header>
+    <z-card-content class="space-y-4 px-5 pt-0 pb-5" aria-live="polite">
+      @if (failed()) {
+        <p role="alert" class="text-sm text-destructive">{{ 'XP.StorageUsage.LoadFailed' | translate }}</p>
+      } @else if (usage(); as account) {
+        @if (snapshot(); as measured) {
+          <div class="flex flex-wrap items-baseline justify-between gap-2 tabular-nums">
+            <p>
+              <span class="text-2xl font-semibold">{{ bytes(measured.usedBytes) }}</span>
+              <span class="text-sm text-muted-foreground"> / {{ bytes(account.limitBytes) }}</span>
+            </p>
+            <p class="text-sm">{{ 'XP.StorageUsage.Remaining' | translate }} {{ bytes(remaining()) }}</p>
+          </div>
+          <z-progress-bar
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="progress()"
+            [progress]="progress()"
+            zShape="default"
+            [attr.aria-label]="'XP.StorageUsage.Title' | translate"
+          />
+          <p class="text-xs text-muted-foreground">
+            {{ 'XP.StorageUsage.Used' | translate }} {{ percentage() | number: '1.0-1' }}%
+          </p>
+          @if (exceeded()) {
+            <p role="alert" class="text-sm text-destructive">{{ 'XP.StorageUsage.Full' | translate }}</p>
+          }
+          <dl class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
+            <div class="flex justify-between gap-4">
+              <dt class="text-sm text-muted-foreground">{{ 'XP.StorageUsage.Files' | translate }}</dt>
+              <dd class="text-sm tabular-nums">{{ bytes(measured.fileBytes) }}</dd>
+            </div>
+            <div class="flex justify-between gap-4">
+              <dt class="text-sm text-muted-foreground">{{ 'XP.StorageUsage.Records' | translate }}</dt>
+              <dd class="text-sm tabular-nums">{{ bytes(measured.databaseBytes) }}</dd>
+            </div>
+          </dl>
+          <p class="text-xs text-muted-foreground">
+            {{ 'XP.StorageUsage.UpdatedAt' | translate }} {{ measured.measuredAt | date: 'medium' }}
+          </p>
+          @if (measured.stale || measured.refreshPending) {
+            <p class="text-xs text-muted-foreground">{{ 'XP.StorageUsage.Delayed' | translate }}</p>
+          }
+          <p class="text-xs text-muted-foreground">{{ 'XP.StorageUsage.EstimateHint' | translate }}</p>
+        } @else {
+          <p class="text-sm">{{ 'XP.StorageUsage.Limit' | translate }} {{ bytes(account.limitBytes) }}</p>
+          <p class="text-sm text-muted-foreground">{{ 'XP.StorageUsage.Pending' | translate }}</p>
+        }
+      } @else {
+        <p class="text-sm text-muted-foreground">{{ 'XP.StorageUsage.Loading' | translate }}</p>
+      }
+    </z-card-content>
+  </z-card>
+}

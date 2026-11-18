@@ -9,6 +9,7 @@ import { User, UserOrganization } from '@xpert-ai/server-core'
 import { APP_PLATFORM_QUEUE, AppPlatformService } from './app-platform.service'
 import { AppPlatformDelivery } from './app-platform-delivery.entity'
 import { platformConfigurationSnapshotSchema } from './platform-configuration-snapshot'
+import { PlatformStorageUsageService } from './storage/platform-storage-usage.service'
 
 jest.mock('@xpert-ai/server-config', () => ({
     ...jest.requireActual('@xpert-ai/server-config'),
@@ -53,7 +54,13 @@ describe('App delivery account boundary and scheduling', () => {
     const users = { findOne: jest.fn() }
     const memberships = { find: jest.fn() }
     const insert = { insert: jest.fn(), values: jest.fn(), orIgnore: jest.fn(), execute: jest.fn() }
-    const deliveries = { findOneBy: jest.fn(), findOneByOrFail: jest.fn(), createQueryBuilder: jest.fn() }
+    const deliveries = {
+        find: jest.fn(),
+        findOneBy: jest.fn(),
+        findOneByOrFail: jest.fn(),
+        createQueryBuilder: jest.fn()
+    }
+    const storage = { snapshot: jest.fn() }
     const queue = { getJob: jest.fn(), add: jest.fn() }
 
     beforeEach(async () => {
@@ -97,7 +104,8 @@ describe('App delivery account boundary and scheduling', () => {
                     }
                 },
                 { provide: getRepositoryToken(AppPlatformDelivery), useValue: deliveries },
-                { provide: getQueueToken(APP_PLATFORM_QUEUE), useValue: queue }
+                { provide: getQueueToken(APP_PLATFORM_QUEUE), useValue: queue },
+                { provide: PlatformStorageUsageService, useValue: storage }
             ]
         }).compile()
         service = module.get(AppPlatformService)
@@ -106,6 +114,66 @@ describe('App delivery account boundary and scheduling', () => {
     afterEach(async () => {
         await module.close()
         jest.restoreAllMocks()
+    })
+
+    it('reads only the current account snapshot and uses the lowest enforced delivery limit', async () => {
+        const second = structuredClone(configuration)
+        second.environment.plans[second.definition.entitlements.defaultPlanRef].maxStorageBytes = 100
+        deliveries.find.mockResolvedValue([
+            row,
+            Object.assign(new AppPlatformDelivery(), row, { configuration: second })
+        ])
+        const measuredAt = new Date(Date.now() - 600_000)
+        storage.snapshot.mockResolvedValue({
+            externalBytes: 120,
+            databaseBytes: 30,
+            measuredAt,
+            refreshRequested: true
+        })
+        expect(await service.storageForCurrentUser()).toEqual({
+            limitBytes: 100,
+            snapshot: {
+                fileBytes: 120,
+                databaseBytes: 30,
+                usedBytes: 150,
+                measuredAt: measuredAt.toISOString(),
+                stale: true,
+                refreshPending: true
+            }
+        })
+        expect(deliveries.find).toHaveBeenCalledWith({ where: { tenantId: 'tenant', userId: 'user' } })
+        expect(storage.snapshot).toHaveBeenCalledWith(row)
+        expect(queue.add).not.toHaveBeenCalled()
+        expect(deliveries.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it.each([null, { externalBytes: 0, databaseBytes: 0, measuredAt: null, refreshRequested: false }])(
+        'does not report missing measurements as zero usage',
+        async (snapshot) => {
+            deliveries.find.mockResolvedValue([row])
+            storage.snapshot.mockResolvedValue(snapshot)
+            expect(await service.storageForCurrentUser()).toEqual({ limitBytes: 2 * 1024 ** 3, snapshot: null })
+        }
+    )
+
+    it('does not provision an account when reading storage', async () => {
+        deliveries.find.mockResolvedValue([])
+        expect(await service.storageForCurrentUser()).toBeNull()
+        expect(storage.snapshot).not.toHaveBeenCalled()
+        expect(queue.add).not.toHaveBeenCalled()
+    })
+
+    it('rejects a foreign organization before reading its storage', async () => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('another-organization')
+        await expect(service.storageForCurrentUser()).rejects.toThrow('application_organization_denied')
+        expect(storage.snapshot).not.toHaveBeenCalled()
+        expect(deliveries.find).not.toHaveBeenCalled()
+    })
+
+    it('requires an authenticated application user to read storage', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(null)
+        await expect(service.storageForCurrentUser()).rejects.toThrow('application_user_required')
+        expect(storage.snapshot).not.toHaveBeenCalled()
     })
 
     it('exposes branding without the protected provisioning configuration', () => {
