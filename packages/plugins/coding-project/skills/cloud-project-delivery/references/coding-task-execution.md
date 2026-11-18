@@ -33,18 +33,26 @@ the requested behavior and the final deployment/review obligations intact.
 ## Repair and submit
 
 Keep one useful execution active through slow installation, compilation and live
-checks. A bounded shell/readiness wait is an observation window, not the task's
-execution deadline or proof of failure. Inspect the same process, recent logs and
-remaining budget; continue waiting while it progresses. Diagnose a concrete failure
-before restarting. At the real deadline or an unresolved blocker, return a precise
-checkpoint rather than repeating setup or claiming completion. The CLI decides
-these actions using the application's environment commands and selected skills.
+checks. A pending shell/readiness response is an observation, not proof of failure.
+Check the same process and recent log progress, then continue that operation.
+Do not stop a progressing build merely to return an environment-only report when
+implementation, deployment and testing are still required. While setup runs,
+implement or test independent parts when they do not need the unfinished build.
+Diagnose a concrete failure before restarting. Return a checkpoint only when a
+specific unresolved dependency or missing authority prevents further progress.
 
 Reuse the selected checkout, verified dependencies, build outputs and exact candidate
 when resuming. Start only services needed by the requested check. A task limited to
 release materials or reports should reuse existing evidence and perform only the
 missing checks; it does not require a fresh full-stack build. A live deployment or
 independent execution review still needs actual runtime evidence for that candidate.
+
+On a technical retry, first read the previous result and inspect its named paths.
+An interrupted model request does not imply an empty workspace. Continue the
+remaining steps in that checkout; avoid a second extraction or a new environment
+directory unless the existing one is demonstrably unusable. Read host-prepared
+identity/template files directly when supplied; do not retype their identifiers
+from a coordinating message into delivery metadata.
 
 Ordinary coding, packaging, deployment and environment failures belong to this
 execution. Keep a short hypothesis and perform the next discriminating check.

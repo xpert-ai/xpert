@@ -74,8 +74,11 @@ Assistant coordination skills are not automatically CLI dependencies. For missin
 catalog entries report the concrete missing knowledge, not an invented path. On a technical retry, inspect and reuse existing
 tasks and evidence before creating another task. Do not mistake a Pipeline coordinator
 execution for a Computer task holding the workspace.
-When retrying under a new operation ID, update an unfinished task's manifest work identity
-to the current stage context before dispatching it; use the latest task revision.
+The stage context supplies `manifestContextPath`, a Project-relative file containing
+the host-prepared version, phase and exact work identity. Pass this path to the CLI;
+it reads those fields directly instead of transcribing IDs from task instructions.
+A retry supplies a new file. Update the unfinished task's brief to reference that
+file and the remaining work, reuse its checkout and use the latest task revision.
 
 The main Assistant coordinates; Coding CLI tasks perform implementation, environment
 setup, packaging, installation, real checks and ordinary repairs. A different review
