@@ -86,6 +86,8 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "RunReconciliationDeferred": "运行调和已延后，其他候选任务仍将继续检查。",
+        "ToolFinalResultMissing": "工具执行已结束，但缺少最终结果。已完成的输出已保留。",
         "HandoffDispatchUncertain": "回调执行结果不确定，已暂停自动重放。",
         "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
         "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",

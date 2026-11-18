@@ -86,6 +86,8 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "RunReconciliationDeferred": "Run reconciliation is deferred; the remaining candidates will still be checked.",
+        "ToolFinalResultMissing": "Tool execution ended without a final result. Completed output was preserved.",
         "HandoffDispatchUncertain": "Callback execution is uncertain; automatic replay is withheld.",
         "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
         "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",
