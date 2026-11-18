@@ -185,6 +185,7 @@ export function planFromSnapshot(
         isDefault: false,
         period: snapshot.period,
         includedPoints: snapshot.includedPoints,
+        includedStorageBytes: snapshot.includedStorageBytes ?? null,
         allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),
         modelMultipliers: snapshot.modelMultipliers?.map((rule) => ({ ...rule })),
         rateLimits: snapshot.rateLimits?.map((rule) => ({ ...rule }))

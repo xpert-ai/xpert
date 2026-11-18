@@ -47,14 +47,7 @@ export class AppPlatformService {
         if (!deliveries.length) return null
         if (deliveries.some((delivery) => delivery.organizationId !== organizationId))
             throw platformFailure('application_organization_denied', 403)
-        // Storage is shared across the account's deliveries; the database enforces the lowest limit.
-        const limitBytes = Math.min(
-            ...deliveries.map(
-                ({ configuration }) =>
-                    configuration.environment.plans[configuration.definition.entitlements.defaultPlanRef]
-                        .maxStorageBytes
-            )
-        )
+        const limitBytes = await this.storageUsage.limit(deliveries[0])
         const snapshot = await this.storageUsage.snapshot(deliveries[0])
         return {
             limitBytes,

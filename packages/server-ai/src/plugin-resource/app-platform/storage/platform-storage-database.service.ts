@@ -74,7 +74,7 @@ export class PlatformStorageDatabaseService implements OnApplicationBootstrap, O
             for (const account of accounts) {
                 if (this.stopping) return
                 try {
-                    if (this.usage.needsRefresh(account, await this.usage.snapshot(account)))
+                    if (await this.usage.needsRefresh(account, await this.usage.snapshot(account)))
                         await this.usage.refresh(account)
                 } catch {
                     this.logger.warn('An account storage snapshot could not be refreshed; previous usage is retained')

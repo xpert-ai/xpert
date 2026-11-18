@@ -185,7 +185,7 @@ describe('ChatConversationThreadService', () => {
         const manager = {
             query: jest.fn(),
             getRepository: (entity: unknown) =>
-                entity === AppPlatformDelivery ? { findOneBy: async () => null } : { findOne: async () => thread },
+                entity === AppPlatformDelivery ? { find: async () => [] } : { findOne: async () => thread },
             save
         }
         const service = createService({
@@ -215,12 +215,17 @@ describe('ChatConversationThreadService', () => {
             countBy: jest.fn().mockResolvedValue(active)
         }
         const accounts = {
-            findOneBy: jest.fn().mockResolvedValue({
-                configuration: {
-                    definition: { entitlements: { defaultPlanRef: 'trial' } },
-                    environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+            find: jest.fn().mockResolvedValue([
+                {
+                    tenantId: 'tenant',
+                    userId: 'user',
+                    organizationId: 'organization',
+                    configuration: {
+                        definition: { entitlements: { defaultPlanRef: 'trial' } },
+                        environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+                    }
                 }
-            })
+            ])
         }
         const manager = {
             query: jest.fn(async (sql: string) => {
@@ -230,7 +235,12 @@ describe('ChatConversationThreadService', () => {
                 }
                 return [{ externalBytes: used, databaseBytes: 0, measuredAt: new Date() }]
             }),
-            getRepository: (entity: unknown) => (entity === AppPlatformDelivery ? accounts : threads),
+            getRepository: (entity: unknown) =>
+                entity === AppPlatformDelivery
+                    ? accounts
+                    : entity === ChatConversationThread
+                      ? threads
+                      : { findOne: async () => null },
             save: jest.fn(async () => thread)
         }
         const service = createService({

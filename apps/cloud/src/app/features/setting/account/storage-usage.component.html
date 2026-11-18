@@ -36,6 +36,7 @@
           </p>
           @if (exceeded()) {
             <p role="alert" class="text-sm text-destructive">{{ 'XP.StorageUsage.Full' | translate }}</p>
+            <p class="text-sm text-muted-foreground">{{ 'XP.StorageEntitlement.RetentionHint' | translate }}</p>
           }
           <dl class="grid gap-3 border-t border-border pt-4 sm:grid-cols-2">
             <div class="flex justify-between gap-4">

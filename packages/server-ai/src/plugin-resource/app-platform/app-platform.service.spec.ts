@@ -60,11 +60,12 @@ describe('App delivery account boundary and scheduling', () => {
         findOneByOrFail: jest.fn(),
         createQueryBuilder: jest.fn()
     }
-    const storage = { snapshot: jest.fn() }
+    const storage = { snapshot: jest.fn(), limit: jest.fn() }
     const queue = { getJob: jest.fn(), add: jest.fn() }
 
     beforeEach(async () => {
         jest.resetAllMocks()
+        storage.limit.mockResolvedValue(2 * 1024 ** 3)
         jest.mocked(getConfig).mockReturnValue({ ...baseConfig, appPlatform: configuration })
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -116,7 +117,8 @@ describe('App delivery account boundary and scheduling', () => {
         jest.restoreAllMocks()
     })
 
-    it('reads only the current account snapshot and uses the lowest enforced delivery limit', async () => {
+    it('reads only the current account snapshot and uses the effective storage allowance', async () => {
+        storage.limit.mockResolvedValue(100)
         const second = structuredClone(configuration)
         second.environment.plans[second.definition.entitlements.defaultPlanRef].maxStorageBytes = 100
         deliveries.find.mockResolvedValue([

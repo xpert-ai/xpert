@@ -260,6 +260,12 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "StorageEntitlement": {
+      "PlanCapacity": "套餐存储容量（GiB）",
+      "PlanHint": "留空沿用应用基础容量。容量为总上限，不按月累加；已生效周期保留快照权益。",
+      "InvalidCapacity": "请输入 1 至 8,388,607 之间的整数 GiB，或留空。",
+      "RetentionHint": "已有文件会保留，仍可下载或删除；新增写入需要足够的可用容量。"
+    },
     "StorageUsage": {
       "Title": "存储空间",
       "Description": "当前应用账号的存储占用。",

@@ -130,6 +130,25 @@ describe('MembershipAdminComponent', () => {
     expect(template).toContain("setActiveTab('users')")
   })
 
+  it('round-trips paid storage in GiB and rejects invalid capacity', () => {
+    component.edit({ ...targetPlan, includedStorageBytes: 20 * 1024 ** 3 })
+    const control = component.planForm.controls.includedStorageGiB
+    expect(control.value).toBe(20)
+    for (const value of [0, -1, 1.5, 8388608]) {
+      control.setValue(value)
+      expect(control.valid).toBe(false)
+    }
+    control.setValue(50)
+    membershipService.updatePlan.mockReturnValue(of({ ...targetPlan, includedStorageBytes: 50 * 1024 ** 3 }))
+    component.save()
+    expect(membershipService.updatePlan).toHaveBeenCalledWith(
+      targetPlan.id,
+      expect.objectContaining({ includedStorageBytes: 50 * 1024 ** 3 })
+    )
+    control.setValue(null)
+    expect(control.valid).toBe(true)
+  })
+
   it('round-trips the explicit plan level in the edit form', () => {
     component.edit(targetPlan)
 

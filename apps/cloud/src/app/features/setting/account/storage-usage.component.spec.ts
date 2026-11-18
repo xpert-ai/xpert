@@ -51,6 +51,15 @@ describe('account storage display', () => {
     expect(host.querySelector('[role="alert"]')?.textContent).toContain('存储空间已满')
   })
 
+  it('reflects a newly assigned storage allowance on refresh', async () => {
+    const { component, host, fixture } = await render()
+    platform.getStorageUsage.mockReturnValue(of({ ...measured, limitBytes: 20 * 1024 ** 3 }))
+    await component.load()
+    fixture.detectChanges()
+    expect(component.exceeded()).toBe(false)
+    expect(host.textContent).toContain('20 GiB')
+  })
+
   it('distinguishes unmeasured usage from an empty account', async () => {
     platform.getStorageUsage.mockReturnValue(of({ limitBytes: measured.limitBytes, snapshot: null }))
     const { host } = await render()

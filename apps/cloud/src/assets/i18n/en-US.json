@@ -54,6 +54,12 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "StorageEntitlement": {
+      "PlanCapacity": "Included storage (GiB)",
+      "PlanHint": "Leave empty to use the application base allowance. Capacity is a total limit, not a monthly accumulation; effective periods retain their entitlement snapshots.",
+      "InvalidCapacity": "Enter a whole number from 1 to 8,388,607 GiB, or leave blank.",
+      "RetentionHint": "Existing files are retained. You can download or delete them; new writes require available capacity."
+    },
     "StorageUsage": {
       "Title": "Storage",
       "Description": "Storage used across your application account.",

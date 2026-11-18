@@ -10,6 +10,7 @@ import { AppPlatformDelivery } from '../app-platform-delivery.entity'
 import { AppPlatformStorageRoot } from './platform-storage-object.entity'
 import { canonicalStoragePath, measureStorageTrees, storageContains } from './storage-tree'
 import { platformFailure } from '../platform-error'
+import { accountStorageLimit } from './platform-storage-limit'
 const identities = z.array(z.object({ id: z.string().uuid() }))
 const storedObjects = z.array(
     z.object({ key: z.string(), provider: z.string(), bytes: z.coerce.number().nonnegative().safe() })
@@ -36,6 +37,13 @@ const resourceTables = {
 export class PlatformStorageUsageService {
     constructor(private readonly database: DataSource) {}
 
+    async limit(delivery: AppPlatformDelivery): Promise<number> {
+        const accounts = await this.database.getRepository(AppPlatformDelivery).find({
+            where: { tenantId: delivery.tenantId, userId: delivery.userId }
+        })
+        return accountStorageLimit(this.database.manager, accounts)
+    }
+
     async snapshot(delivery: AppPlatformDelivery): Promise<StorageUsageSnapshot | null> {
         return (
             snapshots.parse(
@@ -47,10 +55,8 @@ export class PlatformStorageUsageService {
         )
     }
 
-    needsRefresh(delivery: AppPlatformDelivery, snapshot: StorageUsageSnapshot | null) {
-        const limit =
-            delivery.configuration.environment.plans[delivery.configuration.definition.entitlements.defaultPlanRef]
-                .maxStorageBytes
+    async needsRefresh(delivery: AppPlatformDelivery, snapshot: StorageUsageSnapshot | null) {
+        const limit = await this.limit(delivery)
         const age = snapshot?.measuredAt ? Date.now() - snapshot.measuredAt.getTime() : Infinity
         const interval =
             snapshot && snapshot.externalBytes + snapshot.databaseBytes >= limit * 0.9

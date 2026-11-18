@@ -40,6 +40,12 @@
     "USERS": "用戶"
   },
   "XP": {
+    "StorageEntitlement": {
+      "PlanCapacity": "套餐儲存容量（GiB）",
+      "PlanHint": "留空沿用應用基礎容量。容量為總上限，不按月累加；已生效週期保留快照權益。",
+      "InvalidCapacity": "請輸入 1 至 8,388,607 之間的整數 GiB，或留空。",
+      "RetentionHint": "已有檔案會保留，仍可下載或刪除；新增寫入需要足夠的可用容量。"
+    },
     "StorageUsage": {
       "Title": "儲存空間",
       "Description": "目前應用程式帳號的儲存用量。",

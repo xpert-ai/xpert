@@ -28,6 +28,7 @@ import {
     IsString,
     IsUUID,
     MaxLength,
+    Max,
     Min,
     ValidateNested
 } from 'class-validator'
@@ -127,6 +128,13 @@ export class CreateMembershipPlanDto {
     @IsNumber({ allowInfinity: false, allowNaN: false })
     @Min(0)
     includedPoints?: number | null
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(Number.MAX_SAFE_INTEGER)
+    includedStorageBytes?: number | null
 
     @IsOptional()
     @IsArray()
