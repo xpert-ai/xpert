@@ -2,10 +2,28 @@ import { AIMessage, ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { channelName } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
+import { platformFailure } from '../../../plugin-resource/app-platform/platform-error'
 import { ToolNode } from './tool_node'
 import { createAgentToolInput } from './agent-tool-input'
 
 describe('ToolNode', () => {
+    it('stops instead of asking the model to retry when account storage is full', async () => {
+        const invoke = jest.fn(async () => {
+            throw platformFailure('application_storage_limit', 413)
+        })
+        const node = new ToolNode([tool(invoke, { name: 'save', schema: z.object({}) })], { toolName: 'Save' })
+        await expect(
+            node.invoke({
+                messages: [
+                    new AIMessage({
+                        content: '',
+                        tool_calls: [{ name: 'save', args: {}, id: 'save-1', type: 'tool_call' }]
+                    })
+                ]
+            })
+        ).rejects.toThrow('APP_PLATFORM_FAILURE:application_storage_limit')
+        expect(invoke).toHaveBeenCalledTimes(1)
+    })
     it.each([undefined, () => null, () => [], () => [{ id: 'other', state: {} }]])(
         'fails before middleware when referenced state is unavailable',
         async (read) => {

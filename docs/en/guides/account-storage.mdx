@@ -1,0 +1,81 @@
+---
+title: 'Account storage and plan capacity'
+description: 'Check application account storage, configure membership capacity, and resume work after storage runs out or a plan expires.'
+---
+
+Account storage holds files and application records for managed applications. Users can see used space, remaining space and their capacity limit. Administrators can provide more capacity through membership plans.
+
+This feature applies to [managed application](/en/guides/managed-apps) accounts provisioned through App Platform. An account's managed applications share storage capacity within the same tenant. Changing capacity does not change access to files, projects or shared resources.
+
+## Check storage usage
+
+In Web, open **Settings → Account → Usage & Billing** (`/settings/account/billing`). Select **Plan & balance** and find **Storage**.
+
+The panel shows:
+
+- Used space, the current capacity limit, remaining space and the percentage used.
+- Separate usage for **Files** and **Application records**.
+- The most recent measurement time and messages for pending measurements, delayed statistics or loading failures.
+
+Usage is an estimate collected periodically. After uploading or deleting files, allow time for the statistics to update, then select **Refresh usage** to read the latest result. This button does not immediately rescan every file. Before the first measurement, usage is unknown rather than zero. The capacity limit reflects your currently valid entitlements.
+
+If the panel is missing, confirm that the account has a provisioned managed application and permission to access account billing and use applications. Accounts without managed applications may not show this panel. See [Roles and permissions](/en/guides/role-permissions).
+
+## How capacity is calculated
+
+Each managed application account has a base allowance. An active membership plan can increase total account capacity without reducing that base allowance. If several application configurations apply to the account, the lower base limit applies. When multiple membership capacities are valid, the largest applies; they are not added together.
+
+| Situation                                                                                                | Account capacity |
+| -------------------------------------------------------------------------------------------------------- | ---------------- |
+| Base allowance of 2 GiB; no storage capacity set on the plan                                             | 2 GiB            |
+| Base allowance of 2 GiB; a currently valid plan includes 20 GiB                                          | 20 GiB           |
+| Base allowance of 2 GiB; both 20 GiB and 50 GiB membership capacities apply                              | 50 GiB           |
+| Base allowance of 2 GiB; the 20 GiB membership capacity expires with no other valid capacity entitlement | 2 GiB            |
+
+These amounts are examples. Check the account page for the actual limit. 1 GiB = 1,024 MiB. Plan capacity is the total space you may occupy, not an amount added each month. Renewing the same plan does not accumulate storage capacity.
+
+## Configure plan capacity as an administrator
+
+Administrators with membership management permissions can manage plans and user memberships under **Settings → Membership** (`/settings/membership`).
+
+1. Confirm that the current tenant or organization scope matches the target application account.
+2. Create or edit a plan under **Plan configuration**.
+3. Enter a positive whole number in **Included storage (GiB)**, such as `20`. Leaving it blank grants no additional membership capacity; the account still uses its base allowance and any other valid entitlements. A blank value does not mean unlimited storage.
+4. Save the plan, then assign an applicable plan to the target account under **User memberships**. Check its effective period and status.
+5. Confirm the current limit in the target account's storage panel.
+
+Membership periods that have already been created retain the capacity established for those periods. Editing the plan catalog does not retroactively change them or immediately expand an existing member's storage. To adjust an existing account, use membership management to check the assignment and the period in which it takes effect.
+
+Historical membership periods without a recorded storage capacity retain the base allowance. Legacy assignments with no period entitlement snapshot can use the configuration of their linked plan.
+
+## Insufficient capacity and plan expiry
+
+Plan capacity applies only while both the membership and its period are valid. A future period that has not started, a paused or expired membership, or a period that is cancelled or pending a refund does not provide that period's extra capacity. Other valid entitlements continue to apply under the rules above.
+
+After capacity decreases, used space may exceed the new limit. Existing files are retained; expiry or excess usage does not automatically delete them.
+
+| Operation                                                                       | Behavior when capacity is insufficient                    |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Read or download existing files                                                 | Available under the existing access permissions           |
+| Delete files you no longer need                                                 | Available; released space appears after statistics update |
+| Replace a file without increasing storage usage                                 | Available, subject to other file rules                    |
+| Upload new files, save generated files or make other writes that increase usage | Rejected if they would exceed the capacity limit          |
+| Start a new Agent task                                                          | Blocked when the capacity limit is reached                |
+
+Storage capacity and model points are managed separately. Adding points does not automatically add storage, and adding storage does not add points. Limits on individual uploads, temporary directories, project counts and concurrent tasks still apply independently.
+
+## Resume a task stopped by insufficient storage
+
+When an Agent tool explicitly reports insufficient account storage, the run ends while retaining its execution record and existing checkpoints. This prevents the model from repeatedly changing arguments and retrying the same capacity problem. Results that have already been saved remain available.
+
+1. Delete files you no longer need, or ask an administrator to adjust your effective plan capacity.
+2. Allow usage statistics to update and confirm that enough space remains for the task's new results.
+3. Return to the original workbench and use the retry or resume action available for that task.
+
+Restoring capacity does not automatically restart tasks. Resuming from the interruption point depends on the workbench and the task's recovery support. Model calls you initiate again follow the existing points rules. If a capacity error persists, check the measurement time. Contact an administrator if statistics remain outdated or fail to load.
+
+## Editions and purchasing
+
+Storage usage display, plan capacity settings, file retention after expiry and stopping Agent retries when storage is full are common Xpert features. Administrators can assign plans without connecting a payment service.
+
+Online purchasing and payments are provided by Xpert Pro extensions. Purchase options depend on whether the deployment has enabled purchasing, available products and payment configuration. To expand storage, check that the selected plan includes the capacity you need. Buying points alone does not expand storage. If no purchase option is available, contact an administrator for an appropriate plan assignment.
