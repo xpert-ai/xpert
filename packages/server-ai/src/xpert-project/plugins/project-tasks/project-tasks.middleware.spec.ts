@@ -83,6 +83,119 @@ const dispatchInput = () => ({
 })
 const createInput = () => ({ tasks: [{ name: 'Task', requirements: ['Evidence'], steps: [] }] })
 
+it.each([false, true])(
+    'lets coordination dispatch independent group work before waiting (legacy hint=%s)',
+    async (legacy) => {
+        await i18next.init({ lng: 'en', resources: { en: { 'server-ai': en } } })
+        const f = fixture(),
+            middleware = f.strategy.createMiddleware({}, f.context)
+        const groupInput = () => ({
+            taskId: randomUUID(),
+            expectedRevision: 1,
+            target: { type: 'group_member' as const, participantId: randomUUID() }
+        })
+        const first = groupInput(),
+            second = groupInput(),
+            tool = middleware.tools.find((item) => item.name === ProjectToolEnum.DispatchTask)
+        f.execute.mockImplementation(async (command) => {
+            if (!(command instanceof DispatchProjectTaskCommand)) throw new Error('Unexpected command')
+            return {
+                projectId: f.context.projectId,
+                projectTaskId: command.input.taskId,
+                taskExecutionId: randomUUID(),
+                invocationId: randomUUID(),
+                status: 'running'
+            }
+        })
+        const config = (id: string) => ({ configurable: { thread_id: f.context.threadId, tool_call_id: id } })
+        const receipt = await tool.invoke(first, config('first'))
+        const messages = [
+            new AIMessage({ content: '', tool_calls: [{ id: 'first', name: tool.name, args: first }] }),
+            new ToolMessage({
+                name: tool.name,
+                tool_call_id: 'first',
+                content: JSON.stringify(legacy ? { ...receipt, nextAction: 'await_result' } : receipt)
+            })
+        ]
+        const request = {
+            model: new FakeStreamingChatModel({ sleep: 0 }),
+            messages,
+            tools: middleware.tools,
+            state: { messages },
+            runtime: {}
+        } as ModelRequest
+        const next = new AIMessage({ content: '', tool_calls: [{ id: 'second', name: tool.name, args: second }] })
+        const waiting = new AIMessage('Both independent tasks are running; I will continue when results arrive.')
+        const handler = jest.fn(async (_request: ModelRequest) => next)
+        expect(await middleware.wrapModelCall(request, handler)).toBe(next)
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(handler.mock.calls[0][0].messages).toEqual(messages)
+        const secondReceipt = await tool.invoke(next.tool_calls[0].args, config(next.tool_calls[0].id))
+        expect(f.execute.mock.calls.map(([command]) => command)).toEqual([
+            expect.objectContaining({ input: expect.objectContaining({ taskId: first.taskId }) }),
+            expect.objectContaining({ input: expect.objectContaining({ taskId: second.taskId }) })
+        ])
+        handler.mockResolvedValueOnce(waiting)
+        const afterDispatch = [
+            ...messages,
+            next,
+            new ToolMessage({ name: tool.name, tool_call_id: 'second', content: JSON.stringify(secondReceipt) })
+        ]
+        expect(
+            await middleware.wrapModelCall(
+                { ...request, messages: afterDispatch, state: { messages: afterDispatch } },
+                handler
+            )
+        ).toBe(waiting)
+        expect(handler).toHaveBeenCalledTimes(2)
+    }
+)
+
+it('lets coordination consume another tool result returned alongside a running delegation', async () => {
+    await i18next.init({ lng: 'en', resources: { en: { 'server-ai': en } } })
+    const f = fixture(),
+        middleware = f.strategy.createMiddleware({}, f.context)
+    const input = dispatchInput(),
+        tool = middleware.tools.find((item) => item.name === ProjectToolEnum.DispatchTask)
+    f.execute.mockImplementationOnce(async () => ({
+        projectId: f.context.projectId,
+        projectTaskId: input.taskId,
+        taskExecutionId: randomUUID(),
+        invocationId: randomUUID(),
+        status: 'running'
+    }))
+    const receipt = await tool.invoke(input, {
+        configurable: { thread_id: f.context.threadId, tool_call_id: 'dispatch' }
+    })
+    const messages = [
+        new AIMessage({
+            content: '',
+            tool_calls: [
+                { id: 'dispatch', name: tool.name, args: input },
+                { id: 'read', name: 'read_requirements', args: {} }
+            ]
+        }),
+        new ToolMessage({ name: tool.name, tool_call_id: 'dispatch', content: JSON.stringify(receipt) }),
+        new ToolMessage({
+            name: 'read_requirements',
+            tool_call_id: 'read',
+            content: 'Another task needs clarification.'
+        })
+    ]
+    const request = {
+        model: new FakeStreamingChatModel({ sleep: 0 }),
+        messages,
+        tools: middleware.tools,
+        state: { messages },
+        runtime: {}
+    } as ModelRequest
+    const response = new AIMessage('The other task needs clarification before I can delegate it.')
+    const handler = jest.fn(async (_request: ModelRequest) => response)
+    expect(await middleware.wrapModelCall(request, handler)).toBe(response)
+    expect(handler).toHaveBeenCalledTimes(1)
+    expect(handler.mock.calls[0][0].messages).toEqual(messages)
+})
+
 function longHistoryFixture() {
     const f = fixture()
     const taskIds = [randomUUID(), randomUUID()]

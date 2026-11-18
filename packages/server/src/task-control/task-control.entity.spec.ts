@@ -127,6 +127,31 @@ integration.each(['fresh', 'legacy'] as const)('task control %s migration / Post
 			await runner.release()
 		}
 	})
+	it('adds publication diagnostics idempotently without changing existing ownership or results', async () => {
+		const before = await database.query(
+			'SELECT "targetId", payload, result, "tenantId", "organizationId" FROM execution_task_publication'
+		)
+		await database.query('ALTER TABLE execution_task_publication DROP COLUMN diagnostic')
+		const migration = readFileSync(
+			join(__dirname, 'migrations/20261118000000-task-publication-diagnostics.sql'),
+			'utf8'
+		)
+		await database.query(migration)
+		await database.query(migration)
+		expect(
+			await database.query(
+				'SELECT "targetId", payload, result, "tenantId", "organizationId" FROM execution_task_publication'
+			)
+		).toEqual(before)
+		expect(
+			await database.query(
+				readFileSync(
+					join(__dirname, 'migrations/checks/20261118000000-task-publication-diagnostics.sql'),
+					'utf8'
+				)
+			)
+		).toEqual([])
+	})
 	it('retains stable task identity, termination, claims and published results across repeated registration', async () => {
 		if (mode === 'fresh') {
 			await store.publish(input, { job: 'saved' })

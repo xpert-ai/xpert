@@ -17,6 +17,7 @@ import { evidenceSchema, type Phase } from './schemas'
 import { refs } from './constants'
 import { workPrompt } from './prompts'
 import { deploymentRequestRef } from './deployment-request'
+import { prepareManifestContext } from './manifest-context'
 
 @Injectable()
 @Adapter('subject', refs.subject)
@@ -104,6 +105,7 @@ export class CodingOperations {
     if (phase !== 'development') await this.approved(c)
     if (phase === 'git') await this.evidence.input(c, 'deployment')
     await this.store.begin(c, phase)
+    await prepareManifestContext(this.store.capabilities, c, phase)
     return {
       prompt: workPrompt(phase, delivery.requirement, c, candidate),
       context: { codingDeliveryId: delivery.id, codingOperationId: c.work.operationId }

@@ -11,6 +11,9 @@ import type {
 @Entity('agent_runtime_delivery')
 @Index(['messageId'], { unique: true })
 @Index(['state', 'nextAttemptAt'])
+@Index('IDX_runtime_delivery_result_scope', ['tenantId', 'organizationId', 'invocationId'], {
+    where: "event->>'kind' = 'result'"
+})
 export class AgentRuntimeDelivery extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar' }) messageId: string
     @Column({ type: 'uuid' }) invocationId: string
@@ -27,6 +30,9 @@ export class AgentRuntimeDelivery extends TenantOrganizationBaseEntity {
 @Entity('agent_runtime_inbox')
 @Index(['tenantId', 'organizationId', 'ownerId', 'consumptionKey'], { unique: true })
 @Index(['state', 'nextAttemptAt'])
+@Index('IDX_runtime_inbox_result_scope', ['tenantId', 'organizationId', 'invocationId', 'ownerId'], {
+    where: "event->>'kind' = 'result'"
+})
 export class AgentRuntimeInbox extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar' }) consumptionKey: string
     @Column({ type: 'varchar' }) messageId: string

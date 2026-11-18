@@ -15,6 +15,7 @@ import shutil
 import stat
 import subprocess
 import uuid
+from source_checkout import source_revision
 
 from processes import SERVICES, assert_port_free, healthy, service_pid, sql, stop
 from runtime import atomic_json, digest
@@ -58,7 +59,9 @@ def binding(config, project):
              state / 'redis.conf', state / 'oidc-jwks.json',
              state / 'admin-credentials.json',
              Path(config['runtime']) / '.xpert-runtime-ready.json']
-    revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=platform, text=True).strip()
+    # Archives have no commit boundary. As with dirty Git worktrees, allow source
+    # edits while restoring data; path, configuration and dependency identity stay pinned.
+    revision = source_revision(platform) if (platform / '.git').exists() else 'archive'
     return {'project': token(project), 'platform': str(platform), 'state': str(state),
             'revision': revision, 'files': {str(p): digest(p) if p.exists() else None for p in files}}
 

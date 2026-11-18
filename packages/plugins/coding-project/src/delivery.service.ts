@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common'
 import { t } from 'i18next'
 import { deliveryGraphSummary } from './context-summary'
+import { prepareManifestContext } from './manifest-context'
 import { createHash } from 'node:crypto'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
@@ -237,6 +238,13 @@ export class CodingDeliveryService {
           : gitManifestSchema
     const candidate =
       work.phase === 'development' ? null : await this.evidence.input({ ...work.context, actor: c.actor }, 'candidate')
+    // Older or resumed operations may predate file preparation. Recreate only
+    // the pinned identity, using the current caller's Project authorization.
+    const manifestContext = await prepareManifestContext(
+      this.store.capabilities,
+      { ...work.context, actor: c.actor },
+      work.phase
+    )
     return {
       deliveryId: delivery.id,
       revision: work.requirementVersion,
@@ -248,6 +256,7 @@ export class CodingDeliveryService {
       candidate,
       candidateDigest: candidate ? digest(candidate) : null,
       manifestSchema: zodToJsonSchema(schema),
+      manifestContextPath: manifestContext.path,
       graph: delivery.instanceId
         ? deliveryGraphSummary(
             await this.store.capabilities.require(ProjectPipelinesRuntimeCapability).graph(c, delivery.instanceId)

@@ -1,6 +1,11 @@
+// Invariants: controlled callbacks publish and consume the same admitted contract.
+// Callback returns are durable receipts; transport redelivery never authorizes business replay.
 import { runWithHandoffMessageContext } from './message-context'
 import {
     TaskControlStore,
+    readHandoffReceipt,
+    TaskControlRejected,
+    publicationDiagnostic,
     withTaskControl,
     taskControlId,
     ManagedQueueService,
@@ -9,7 +14,11 @@ import {
 import { Interval } from '@nestjs/schedule'
 import { MessageDispatcherService } from './message-dispatcher.service'
 import { z } from 'zod'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
+import type { HandoffTaskReceipt } from '@xpert-ai/contracts'
+import { t } from 'i18next'
+import { parseControlledMessage, parseProcessResult } from './controlled-message.schema'
+import { HANDOFF_CONTROL_HANDLER } from './handoff-publication'
 import {
     HandoffEnqueueAndWaitOptions,
     HandoffEnqueueOptions,
@@ -19,6 +28,7 @@ import {
     RequirePermissionOperation
 } from '@xpert-ai/plugin-sdk'
 import { randomUUID } from 'crypto'
+import { isDeepStrictEqual } from 'node:util'
 import { HandoffPendingResultService } from './pending-result.service'
 import { DEFAULT_HANDOFF_MAX_ATTEMPTS } from './constants'
 import { HandoffRouteResolution, HandoffRouteResolver } from './dispatcher/handoff-route-resolver.service'
@@ -26,6 +36,8 @@ import { HandoffQueueEnqueueItem, HandoffQueueGatewayService } from './dispatche
 
 @Injectable()
 export class HandoffQueueService implements HandoffPermissionService {
+    private readonly logger = new Logger(HandoffQueueService.name)
+    private readonly receipts = new Map<string, HandoffTaskReceipt>()
     constructor(
         private readonly queueGateway: HandoffQueueGatewayService,
         private readonly routeResolver: HandoffRouteResolver,
@@ -52,7 +64,7 @@ export class HandoffQueueService implements HandoffPermissionService {
 
     /**
      * Controlled messages also read their durable result, so another replica can settle the waiter.
-     * Progress events and legacy messages retain the process-local callback behavior.
+     * Progress events and messages without a controlled parent retain process-local callbacks.
      */
     @RequirePermissionOperation('handoff', 'wait')
     async enqueueAndWait(message: HandoffMessage, options?: HandoffEnqueueAndWaitOptions): Promise<ProcessResult> {
@@ -72,8 +84,13 @@ export class HandoffQueueService implements HandoffPermissionService {
                     reading = true
                     void this.tasks
                         .publication(targetId)
-                        .then((row) => {
-                            if (row?.result) this.pendingResults.resolve(normalized.id, parseProcessResult(row.result))
+                        .then(async (row) => {
+                            const receipt = readHandoffReceipt(row?.result)
+                            if (receipt) this.pendingResults.resolve(normalized.id, parseProcessResult(receipt.result))
+                            // Deprecated raw-result format (#1413): remove after all writers, including settleUnstarted(),
+                            // migrate and no retained raw results remain readable. Repair preserves the original format.
+                            else if (row?.result && (await this.tasks.read(targetId))?.state === 'completed')
+                                this.pendingResults.resolve(normalized.id, parseProcessResult(row.result))
                         })
                         .catch(() => undefined)
                         .finally(() => {
@@ -94,39 +111,51 @@ export class HandoffQueueService implements HandoffPermissionService {
     private publishing = false
     onModuleInit() {
         this.unregisterControlled = this.handlers.register({
-            pluginName: '@xpert-ai/handoff',
-            queueName: 'handoff-control-v2',
-            jobName: 'dispatch',
+            ...HANDOFF_CONTROL_HANDLER,
             handler: async (job, context) => {
                 const message = parseControlledMessage(job.data)
                 if (!context.control) throw new Error('Handoff requires controlled worker')
+                const publication = await this.tasks.publication(message.control.targetId)
+                const saved = parseControlledMessage(
+                    z.object({ message: z.unknown() }).parse(publication?.payload).message
+                )
+                if (!isDeepStrictEqual(message, saved)) throw new TaskControlRejected('scope')
                 const task = await this.tasks.read(message.control.targetId)
-                const worker = await this.tasks.read(context.control.reference.targetId)
                 if (
                     !task ||
-                    worker?.parentId !== task.id ||
                     task.tenantId !== message.tenantId ||
-                    task.organizationId !== (message.headers?.organizationId ?? null)
+                    task.organizationId !== (message.headers?.organizationId ?? null) ||
+                    task.resourceId !== message.id
                 )
                     throw new Error('Handoff control scope mismatch')
-                await this.tasks.receipt(task.id, 'running')
+                const claim = await this.tasks.startHandoff(task.id, context.control.reference.targetId)
+                if (!claim) return
+                let result: ProcessResult
+                let outcome: HandoffTaskReceipt['outcome']
                 try {
-                    const result = await this.dispatcher.dispatch(message, context.control)
-                    await this.tasks.publicationResult(task.id, result)
+                    result = await this.dispatcher.dispatch(message, context.control)
                     if (result.status === 'ok' && result.outbound?.length) await this.enqueueMany(result.outbound)
-                    if (result.status === 'retry') {
-                        // A handler has already run. Do not turn a transport retry into an unproven business replay.
-                        await this.tasks.receipt(task.id, 'unknown')
-                    } else await this.tasks.receipt(task.id, 'completed')
-                    this.pendingResults.resolve(message.id, result)
-                } catch (error) {
-                    await this.tasks.publicationResult(task.id, {
+                    outcome = result.status === 'ok' ? 'succeeded' : result.status === 'dead' ? 'failed' : 'uncertain'
+                } catch {
+                    result = {
                         status: 'dead',
-                        reason: 'Handler failed; automatic replay withheld'
-                    })
-                    await this.tasks.receipt(task.id, 'unknown')
-                    throw error
+                        reason: t('server-ai:Error.HandoffDispatchUncertain', {
+                            defaultValue: 'Callback execution is uncertain; automatic replay is withheld.'
+                        })
+                    }
+                    outcome = 'uncertain'
                 }
+                this.receipts.set(task.id, {
+                    version: 1,
+                    kind: 'handoff-receipt',
+                    workerId: context.control.reference.targetId,
+                    workerClaim: claim,
+                    outcome,
+                    result
+                })
+                await this.flushReceipt(task.id)
+                // Another replica's waiter reads the same receipt from persistence.
+                if (!this.receipts.has(task.id)) this.pendingResults.resolve(message.id, result)
             }
         })
     }
@@ -142,9 +171,7 @@ export class HandoffQueueService implements HandoffPermissionService {
         return runWithHandoffMessageContext(message, () =>
             withTaskControl(message.control, () =>
                 this.managed.enqueue({
-                    pluginName: '@xpert-ai/handoff',
-                    queueName: 'handoff-control-v2',
-                    jobName: 'dispatch',
+                    ...HANDOFF_CONTROL_HANDLER,
                     jobId: `handoff-v2-${message.id}`,
                     payload: message,
                     tenantId: message.tenantId,
@@ -158,30 +185,74 @@ export class HandoffQueueService implements HandoffPermissionService {
         )
     }
 
+    private async flushReceipt(id: string) {
+        const receipt = this.receipts.get(id)
+        if (!receipt) return
+        try {
+            await this.tasks.recordHandoffReceipt(id, receipt)
+            this.receipts.delete(id)
+        } catch {
+            this.logger.warn({ message: 'Handoff receipt persistence pending', targetId: id })
+        }
+    }
+
     @Interval(2000)
     async reconcileControlledPublications() {
         if (this.publishing) return
         this.publishing = true
         try {
+            for (const id of this.receipts.keys()) await this.flushReceipt(id)
             for (const row of await this.tasks.publications('handoff')) {
                 try {
                     const parsed = z
-                        .object({ message: z.unknown(), delayMs: z.number(), drainOnPause: z.boolean() })
+                        .object({
+                            message: z.unknown(),
+                            delayMs: z.number(),
+                            drainOnPause: z.boolean(),
+                            controlContract: z.string().optional()
+                        })
                         .parse(row.payload)
+                    // Keep this isolation after legacy readers/repair retire: unsupported outboxes must never dispatch.
+                    // Missing protocol metadata cannot prove that an older worker never executed the callback.
+                    if (parsed.controlContract !== HANDOFF_CONTROL_HANDLER.controlContract) {
+                        await this.tasks.published(row.targetId, false, {
+                            code: 'legacy_review',
+                            retryable: false,
+                            recordedAt: new Date().toISOString()
+                        })
+                        continue
+                    }
                     const message = parseControlledMessage(parsed.message)
-                    const { delayMs, drainOnPause } = parsed
-                    if (message.control.targetId !== row.targetId)
-                        throw new Error('Handoff publication identity mismatch')
+                    if (
+                        message.control.targetId !== row.targetId ||
+                        message.tenantId !== row.tenantId ||
+                        (message.headers?.organizationId ?? null) !== row.organizationId
+                    )
+                        throw new TaskControlRejected('scope')
                     const task = await this.tasks.read(row.targetId)
-                    if (task.state !== 'completed') await this.publishControlled(message, delayMs, drainOnPause)
-                    await this.tasks.published(row.targetId, true)
-                } catch {
-                    await this.tasks.published(row.targetId, false)
+                    if (!task) throw new TaskControlRejected('missing')
+                    if (await this.tasks.settleUnstarted(task.id)) continue
+                    if (task.state === 'completed' || row.result) {
+                        await this.tasks.settleHandoffReceipt(task.id)
+                        await this.tasks.published(row.targetId, true)
+                    } else if (task.state === 'queued' && !task.claim) {
+                        await this.publishControlled(message, parsed.delayMs, parsed.drainOnPause)
+                        await this.tasks.published(row.targetId, true)
+                    }
+                } catch (error) {
+                    await this.recordPublicationFailure(row.targetId, error)
                 }
             }
         } finally {
             this.publishing = false
         }
+    }
+
+    private async recordPublicationFailure(id: string, error: unknown) {
+        const diagnostic = publicationDiagnostic(error)
+        await this.tasks.published(id, false, diagnostic)
+        this.logger.warn({ message: 'Handoff publication deferred', targetId: id, ...diagnostic })
+        return diagnostic
     }
 
     private normalize(message: HandoffMessage, route: HandoffRouteResolution): HandoffMessage {
@@ -218,14 +289,17 @@ export class HandoffQueueService implements HandoffPermissionService {
             const controlled = { ...queueItem.message, control: { version: 2 as const, targetId } }
             await this.tasks.publish(registration, {
                 message: controlled,
+                receiptProtocol: 1,
+                controlContract: HANDOFF_CONTROL_HANDLER.controlContract,
                 delayMs: options?.delayMs ?? 0,
                 drainOnPause
             })
             try {
                 await this.publishControlled(controlled, options?.delayMs ?? 0, drainOnPause)
                 await this.tasks.published(targetId, true)
-            } catch {
-                await this.tasks.published(targetId, false)
+            } catch (error) {
+                const diagnostic = await this.recordPublicationFailure(targetId, error)
+                if (!diagnostic.retryable) throw error
             }
             return targetId
         } else await this.queueGateway.enqueue(queueItem.queueName, queueItem.message, queueItem.options)
@@ -261,45 +335,4 @@ export class HandoffQueueService implements HandoffPermissionService {
             headers: headers as HandoffMessage['headers']
         }
     }
-}
-
-const controlledMessageSchema = z.object({
-    id: z.string(),
-    type: z.string(),
-    version: z.number().int(),
-    tenantId: z.string().uuid(),
-    sessionKey: z.string(),
-    businessKey: z.string(),
-    attempt: z.number().int(),
-    maxAttempts: z.number().int(),
-    enqueuedAt: z.number(),
-    traceId: z.string(),
-    parentMessageId: z.string().optional(),
-    payload: z.record(z.string(), z.unknown()),
-    headers: z.record(z.string(), z.string()).optional(),
-    control: z.object({ version: z.literal(2), targetId: z.string().uuid() }),
-    controlPolicy: z.enum(['attached', 'detached', 'shared']).optional()
-})
-
-function parseControlledMessage(value: unknown): HandoffMessage & { control: { version: 2; targetId: string } } {
-    return controlledMessageSchema.parse(value) as HandoffMessage & { control: { version: 2; targetId: string } }
-}
-
-function parseProcessResult(value: unknown): ProcessResult {
-    return z
-        .discriminatedUnion('status', [
-            z.object({
-                status: z.literal('ok'),
-                outbound: z
-                    .array(
-                        controlledMessageSchema
-                            .omit({ control: true })
-                            .extend({ control: controlledMessageSchema.shape.control.optional() })
-                    )
-                    .optional()
-            }),
-            z.object({ status: z.literal('retry'), delayMs: z.number(), reason: z.string().optional() }),
-            z.object({ status: z.literal('dead'), reason: z.string() })
-        ])
-        .parse(value) as ProcessResult
 }

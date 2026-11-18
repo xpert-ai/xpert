@@ -7,6 +7,7 @@ import re
 import secrets
 import shutil
 import subprocess
+from source_checkout import source_git
 import tempfile
 
 from runtime import ROOT, atomic_json, architecture, install
@@ -152,7 +153,7 @@ def prepare(args):
     source_env = platform_path / '.env'
     if source_env.exists() or source_env.is_symlink():
         raise RuntimeError('Source checkout already has .env; use a dedicated checkout')
-    subprocess.run(['git', 'check-ignore', '-q', '.env'], cwd=platform_path, check=True)
+    source_git(platform_path, ['check-ignore', '-q', '.env'], check=True)
     prefix = install(cache)
     for folder in ('logs', 'postgres', 'redis', 'sandbox', 'data', 'templates'):
         (state / folder).mkdir(exist_ok=True, mode=0o700)

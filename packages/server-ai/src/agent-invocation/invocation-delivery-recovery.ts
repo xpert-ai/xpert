@@ -64,10 +64,8 @@ export async function recoverInvocationDelivery(
         }
     }
     if (delivery.mode !== 'none' && result.export?.status !== 'completed') {
-        const selection = delivery.paths ?? input.paths
-        const paths = selection
-            ? [...new Set([...selection, ...(delivery.reportPath ? [delivery.reportPath] : [])])]
-            : []
+        const selection = delivery.paths ?? input.paths ?? []
+        const paths = [...new Set([...selection, ...(delivery.reportPath ? [delivery.reportPath] : [])])]
         if (!paths.length)
             result.export = { mode: delivery.mode, status: 'failed', error: 'delivery_selection_required' }
         else

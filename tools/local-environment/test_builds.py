@@ -126,10 +126,11 @@ class BuildReuseTests(unittest.TestCase):
             'build-remote-components': {'outputs': ['{projectRoot}/src/**/remote-components/**/app.js']}
         }}))
         generated = 'packages/server-ai/src/review/remote-components/view/app.js'
-        plugin_generated = 'packages/plugins/example/remote-components/view/app.js'
-        self.write('packages/plugins/example/project.json', json.dumps({'targets': {
-            'generate-remote-components': {'outputs': ['{projectRoot}/remote-components/view/app.js']}
-        }}))
+        # Use the actual target: undeclared generated assets previously made a
+        # successful first platform build look like a concurrent source edit.
+        project = 'packages/plugins/draft/project.json'
+        self.write(project, (Path(__file__).resolve().parents[2] / project).read_text())
+        plugin_generated = 'packages/plugins/draft/remote-components/intent-review/app.css'
         real_run = subprocess.run
         def run(command, **kwargs):
             if '--build-only' in command:

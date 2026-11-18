@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from configuration import child_environment, load
 from runtime import atomic_json, digest, lock_file
 from progress import phase, emit
+from source_checkout import source_git
 
 VERSION = 1
 OUTPUTS = {
@@ -80,7 +81,7 @@ def generated_assets(root, service):
 
 def source_fingerprint(config, service):
     root = Path(config['platform'])
-    listed = subprocess.check_output(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=root)
+    listed = source_git(root, ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], check=True).stdout
     names = set()
     for raw in listed.split(b'\0'):
         if not raw:

@@ -218,3 +218,15 @@ it('refuses a concurrent result change after collection instead of overwriting i
     await expect(f.api.recoverDelivery(f.invocation.id, { expectedRevision: 3 })).rejects.toThrow()
     expect(f.store.rows.get(f.invocation.id).invocation.result.report.status).toBe('failed')
 })
+
+it('recovers a report-only file selection without requiring another explicit path list', async () => {
+    const f = await fixture()
+    const recovered = await f.api.recoverDelivery(f.invocation.id, { expectedRevision: 3 })
+    expect(recovered.result.export.status).toBe('completed')
+    expect(f.runner.collectArtifacts).toHaveBeenCalledWith(f.invocation.handle.runner, {
+        mode: 'files',
+        paths: ['output/report.md']
+    })
+    expect(f.strategy.start).not.toHaveBeenCalled()
+    expect(f.runner.start).not.toHaveBeenCalled()
+})

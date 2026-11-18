@@ -30,7 +30,7 @@ export class ProjectTaskRuntimeReadService {
         private readonly commandBus: CommandBus
     ) {}
 
-    async get(projectId: string, taskId: string) {
+    async get(projectId: string, taskId: string, observe = true) {
         if (!z.string().uuid().safeParse(taskId).success) throw projectTaskRuntimeError('Invalid')
         const actor = this.context.actor()
         await this.access.assertCanRead(projectId)
@@ -77,7 +77,9 @@ export class ProjectTaskRuntimeReadService {
                 reference.taskExecutionId !== execution.id
             )
                 throw projectTaskRuntimeError('Invalid')
-            const invocation = await this.factory.createCapturedApi(record.invocation.scope).inspect(record.id)
+            const invocation = observe
+                ? await this.factory.createCapturedApi(record.invocation.scope).inspect(record.id)
+                : record.invocation
             const where = {
                 invocationId: invocation.id,
                 tenantId: actor.tenantId,
@@ -190,10 +192,13 @@ export class ProjectTaskRuntimeReadService {
     }
 
     async readResult(projectId: string, input: TaskResultRead) {
-        const detail = await this.get(projectId, input.taskId)
+        // Paging must not refresh the runner and invalidate the very revision being read.
+        // Delegation prompts are immutable for an execution; live progress cannot invalidate them.
+        const detail = await this.get(projectId, input.taskId, false)
         const attempt = detail.executions.find((execution) => execution.id === input.executionId)
         if (!attempt || !('invocationRevision' in attempt)) throw projectTaskRuntimeError('NotFound')
-        if (attempt.invocationRevision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
+        if (input.source !== 'prompt' && attempt.invocationRevision !== input.expectedRevision)
+            throw projectTaskRuntimeError('Conflict')
         let text: string
         if (input.source === 'prompt') {
             const actor = this.context.actor()

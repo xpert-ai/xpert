@@ -5,6 +5,7 @@ import { TaskControlStore, ExecutionTaskControl, TaskControlPublication } from '
 import { ExecutionControl } from '../../../../execution-control/execution-control.entity'
 import { ExecutionControlStore } from '../../../../execution-control/execution-control.store'
 import { ExecutionControlEvidenceService } from '../../../../execution-control/execution-control-evidence.service'
+import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../../../handoff/runtime-messaging/runtime-message.entity'
 
 /** Explicit simulated completion for bridge fixtures; actual ledger integration uses controlLedger below. */
 export function nativeCompletion(
@@ -29,7 +30,13 @@ export function nativeCompletion(
 
 export async function controlLedger(db: DataSource) {
     const runner = db.createQueryRunner()
-    for (const type of [ExecutionControl, ExecutionTaskControl, TaskControlPublication])
+    for (const type of [
+        ExecutionControl,
+        ExecutionTaskControl,
+        TaskControlPublication,
+        AgentRuntimeDelivery,
+        AgentRuntimeInbox
+    ])
         await runner.createTable(Table.create(db.getMetadata(type), db.driver), true)
     await runner.release()
     const tasks = new TaskControlStore(db)

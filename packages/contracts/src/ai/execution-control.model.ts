@@ -14,6 +14,8 @@ export type TExecutionWorkReceipt = {
   id: string
   executionId: string
   settled: boolean
+  /** Actual tool callback exit time; absent on historical receipts. */
+  settledAt?: string
 }
 
 /** Internal control facts; public clients receive a separate control view. */

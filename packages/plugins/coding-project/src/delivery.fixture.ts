@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { ConflictException } from '@nestjs/common'
 import { DataSource, EntitySchema } from 'typeorm'
 import {
   DefaultRuntimeCapabilityRegistry,
@@ -9,6 +10,7 @@ import {
   ProjectPipelineEvidenceRuntimeCapability,
   ProjectPipelineCommandsRuntimeCapability,
   ProjectConfigurationRuntimeCapability,
+  ProjectFilesRuntimeCapability,
   type ProjectConfigurationApi,
   type ProjectPipelineAssistantContext,
   type ProjectTaskAcceptanceReceipt,
@@ -191,6 +193,25 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
     })
   })
   capabilities.register(ArtifactsRuntimeCapability, artifactApi)
+  const projectFiles = new Map<string, Buffer>()
+  capabilities.register(ProjectFilesRuntimeCapability, {
+    list: async () => [],
+    mkdir: async () => undefined,
+    move: async () => {
+      throw new Error('Unexpected move')
+    },
+    read: async ({ path }) => {
+      const buffer = projectFiles.get(path)
+      if (!buffer) throw new Error('Missing file')
+      return { buffer, sha256: createHash('sha256').update(buffer).digest('hex') }
+    },
+    write: async ({ path, buffer, expectedHash }) => {
+      if (expectedHash !== null) throw new Error('Unexpected file overwrite')
+      if (projectFiles.has(path)) throw new ConflictException('File conflict')
+      projectFiles.set(path, Buffer.from(buffer))
+      return { sha256: createHash('sha256').update(buffer).digest('hex') }
+    }
+  })
   let accepted: ProjectTaskAcceptanceReceipt
   const readAcceptance = jest.fn<Promise<ProjectTaskAcceptanceReceipt | null>, [ProjectTaskContext, string]>(
     async () => accepted
@@ -329,6 +350,7 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
     operations,
     policy,
     capabilities,
+    projectFiles,
     access,
     artifacts,
     artifactApi,

@@ -8,3 +8,5 @@ export * from './task-control.runner'
 export * from './task-control-publication.entity'
 
 export * from './task-control.fence'
+export * from './handoff-receipt'
+export * from './publication-diagnostic'
