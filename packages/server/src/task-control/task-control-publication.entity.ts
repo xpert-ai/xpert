@@ -1,4 +1,4 @@
-import type { ITaskControlPublication, TaskControlTransport } from '@xpert-ai/contracts'
+import type { ITaskControlPublication, TaskControlTransport, TaskPublicationDiagnostic } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '../core/entities/tenant-organization-base.entity'
 import { Column, Entity, Index } from 'typeorm'
 
@@ -12,6 +12,7 @@ export class TaskControlPublication extends TenantOrganizationBaseEntity impleme
 	@Column({ type: 'varchar' }) transport: TaskControlTransport
 	@Column({ type: 'jsonb' }) payload: unknown
 	@Column({ type: 'jsonb', nullable: true }) result: unknown | null
+	@Column({ type: 'jsonb', nullable: true }) diagnostic: TaskPublicationDiagnostic | null
 	@Column({ type: 'timestamptz', default: () => 'now()' }) nextAttemptAt: Date
 	@Column({ type: 'timestamptz', nullable: true }) publishedAt: Date | null
 }

@@ -86,6 +86,7 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "HandoffDispatchUncertain": "回调执行结果不确定，已暂停自动重放。",
         "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
         "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",
         "CollaborationInvalidRevision": "协作资源版本无效。",

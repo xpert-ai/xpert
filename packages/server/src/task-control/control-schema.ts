@@ -51,6 +51,7 @@ export const taskControlSchema: readonly ControlSchemaRequirement[] = [
 			'transport',
 			'payload',
 			'result',
+			'diagnostic',
 			'nextAttemptAt',
 			'publishedAt'
 		]

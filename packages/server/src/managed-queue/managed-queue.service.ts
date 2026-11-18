@@ -1,4 +1,4 @@
-import { TaskControlStore, taskControlId } from '../task-control'
+import { TaskControlStore, taskControlId, publicationDiagnostic } from '../task-control'
 import { ControlRuntimeAdmissionService, controlAdmissionUnavailable } from '../task-control'
 import { Interval } from '@nestjs/schedule'
 import { randomUUID } from 'node:crypto'
@@ -115,8 +115,8 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			try {
 				await this.admittedQueueFor(executionPool).add(envelope.jobName, controlled, options)
 				await this.controls.published(targetId, true)
-			} catch {
-				await this.controls.published(targetId, false)
+			} catch (error) {
+				await this.controls.published(targetId, false, publicationDiagnostic(error))
 			}
 			return { jobId }
 		}
@@ -277,8 +277,8 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 						removeOnFail: false
 					})
 					await this.controls.published(row.targetId, true)
-				} catch {
-					await this.controls.published(row.targetId, false)
+				} catch (error) {
+					await this.controls.published(row.targetId, false, publicationDiagnostic(error))
 				}
 			}
 		} finally {

@@ -48,8 +48,35 @@ export interface ITaskControlPublication extends IBasePerTenantAndOrganizationEn
   transport: TaskControlTransport
   payload: unknown
   result: unknown | null
+  diagnostic?: TaskPublicationDiagnostic | null
   nextAttemptAt: Date
   publishedAt: Date | null
 }
 
 export type TaskControlTransport = 'handoff' | 'managed-queue' | 'managed-queue-v3'
+
+/** Safe publication evidence; never contains handler errors, payloads or credentials. */
+export interface TaskPublicationDiagnostic {
+  code:
+    | 'schema'
+    | 'worker'
+    | 'handler'
+    | 'protocol'
+    | 'scope'
+    | 'payload'
+    | 'transport'
+    | 'legacy_review'
+    | 'receipt_recovered'
+  retryable: boolean
+  recordedAt: string
+}
+
+/** The callback returned; uncertain results do not authorize settlement or replay. */
+export interface HandoffTaskReceipt {
+  version: 1
+  kind: 'handoff-receipt'
+  workerId: string
+  workerClaim: string
+  outcome: 'succeeded' | 'failed' | 'uncertain'
+  result: unknown
+}
