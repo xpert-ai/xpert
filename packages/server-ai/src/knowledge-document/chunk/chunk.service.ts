@@ -1,3 +1,5 @@
+import { tenantLibraryReadQuery } from '../tenant-library-read'
+import type { FindManyOptions } from 'typeorm'
 import { IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, ConflictException, Inject, Injectable, Logger } from '@nestjs/common'
@@ -32,6 +34,13 @@ export class KnowledgeDocumentChunkService extends TenantOrganizationAwareCrudSe
         repo: Repository<KnowledgeDocumentChunk>
     ) {
         super(repo)
+    }
+
+    override async findAll(options?: FindManyOptions<KnowledgeDocumentChunk>) {
+        const query = tenantLibraryReadQuery(this.repository, options ?? {})
+        if (!query) return super.findAll(options)
+        const [items, total] = await query.getManyAndCount()
+        return { items, total }
     }
 
     async findAncestors(id: string) {
