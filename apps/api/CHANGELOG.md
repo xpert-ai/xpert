@@ -1,5 +1,7 @@
 # @xpert-ai/xpert-api
 
+## 3.37.1
+
 ## 3.37.0
 
 ### Patch Changes

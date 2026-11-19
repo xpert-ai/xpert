@@ -1,5 +1,17 @@
 # @xpert-ai/server-ai
 
+## 3.37.1
+
+### Patch Changes
+
+- @xpert-ai/server-auth@3.37.1
+- @xpert-ai/server-common@3.37.1
+- @xpert-ai/server-config@3.37.1
+- @xpert-ai/contracts@3.37.1
+- @xpert-ai/plugin-sdk@3.37.1
+- @xpert-ai/server-core@3.37.1
+- @xpert-ai/desktop-protocol@0.5.4
+
 ## 3.37.0
 
 ### Minor Changes

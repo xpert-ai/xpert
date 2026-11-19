@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.37.1
+
+### Patch Changes
+
+- b9a475b: Preserve the first Assistant submission while a newly created conversation is synchronized with the route, preventing an empty conversation when Project navigation is delayed.
+
 ## 3.37.0
 
 ### Patch Changes
