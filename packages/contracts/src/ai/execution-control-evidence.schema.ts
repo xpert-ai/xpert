@@ -50,7 +50,9 @@ export const executionControlEvidenceSchema = z.discriminatedUnion('source', [
       source: z.literal('platform'),
       subject,
       scope: z.literal('owned_subtree'),
-      state: z.enum(['running', 'pausing', 'paused', 'terminating', 'settled']),
+      state: z.enum(['running', 'pausing', 'paused', 'terminating', 'settled', 'unknown']),
+      /** Result return could not finish; retain platform execution identity without asserting completion. */
+      reason: z.enum(['result_delivery_blocked', 'result_delivery_failed', 'result_delivery_unconfirmed']).optional(),
       desired: z.enum(['running', 'paused', 'terminated']),
       taskId: z.string().uuid(),
       rootId: z.string().uuid(),

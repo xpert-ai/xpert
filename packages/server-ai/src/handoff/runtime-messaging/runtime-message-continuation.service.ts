@@ -205,6 +205,10 @@ export class RuntimeMessageContinuationService {
                 consumer: { type: 'follow_up', executionId }
             }
             const target = reply.dispatch.replyTo
+            // A durable result starts a new graph turn of the same logical task. Bind it
+            // before releasing admission so observers cannot settle the old parent while
+            // this continuation starts. User stop/pause remains enforced by the task store.
+            if (parent) await this.tasks.bind(parent.currentExecutionId, executionId, manager)
             await manager
                 .getRepository(XpertAgentExecution)
                 .createQueryBuilder()

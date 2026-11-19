@@ -5,13 +5,16 @@ import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platfor
 function fixture() {
     const snapshot = { externalBytes: 60, databaseBytes: 30, measuredAt: new Date() }
     const delivery = {
+        tenantId: 'tenant',
+        userId: 'user',
+        organizationId: 'organization',
         configuration: {
             definition: { entitlements: { defaultPlanRef: 'trial' } },
             environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
         }
     }
-    const accounts = { findOneBy: jest.fn().mockResolvedValue(delivery) }
-    const threads = { countBy: jest.fn().mockResolvedValue(0) }
+    const accounts = { find: jest.fn().mockResolvedValue([delivery]) }
+    const threads = { findOne: jest.fn().mockResolvedValue(null), countBy: jest.fn().mockResolvedValue(0) }
     const manager = {
         query: jest.fn(async (sql: string) => (sql.includes('app_platform_storage_usage') ? [snapshot] : [])),
         getRepository: (entity: unknown) => (entity === AppPlatformDelivery ? accounts : threads)
@@ -41,7 +44,7 @@ describe('managed account run admission', () => {
         const f = fixture()
         f.snapshot.measuredAt = new Date(Date.now() - 16 * 60_000)
         await expect(assertAppPlatformRunCapacity(f.manager as never)).rejects.toMatchObject({ status: 503 })
-        f.accounts.findOneBy.mockResolvedValue(null)
+        f.accounts.find.mockResolvedValue([])
         await expect(assertAppPlatformRunCapacity(f.manager as never)).resolves.toBeUndefined()
     })
     it('preserves the independent simultaneous-run cap below the storage limit', async () => {

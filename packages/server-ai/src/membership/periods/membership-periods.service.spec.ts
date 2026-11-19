@@ -264,6 +264,7 @@ describe('MembershipService: periods', () => {
         const plan = createPlan({
             id: 'plan-prepaid',
             name: 'Original plan',
+            includedStorageBytes: 20 * 1024 ** 3,
             includedPoints: 3000,
             allowedModels: [{ provider: 'openai', model: 'gpt-4.1' }]
         })
@@ -279,6 +280,7 @@ describe('MembershipService: periods', () => {
             actorId: 'buyer-1'
         })
         plan.name = 'Changed plan'
+        plan.includedStorageBytes = 100 * 1024 ** 3
         plan.includedPoints = 9999
         const repeatedResult = await service.appendMembershipPeriods({
             tenantId: 'tenant-1',
@@ -300,6 +302,7 @@ describe('MembershipService: periods', () => {
         ])
         expect(periods[0].planSnapshot).toMatchObject({
             name: 'Original plan',
+            includedStorageBytes: 20 * 1024 ** 3,
             includedPoints: 3000,
             allowedModels: [{ provider: 'openai', model: 'gpt-4.1' }]
         })

@@ -17,7 +17,7 @@
         "TemporaryFileCleanupFailed": "语音转文字临时音频文件删除失败。"
     },
     "RuntimeReply": {
-        "Completed": "受托运行时已结束，请读取获准的执行结果并决定下一步。Invocation：{{invocationId}}。",
+        "Completed": "受托运行时已结束。进程结束不代表业务验收通过；请读取执行报告和成果导出诊断，再决定继续实现、独立验收或收尾。仅在成果文件已存在时重新收集；文件缺失时应继续原任务完成工作。Invocation：{{invocationId}}。",
         "ProjectTask": " 项目任务：{{taskId}}。执行尝试：{{attemptId}}。"
     },
     "BosiStartConversation": "你好，Bosi！",
@@ -86,6 +86,9 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "RunReconciliationDeferred": "运行调和已延后，其他候选任务仍将继续检查。",
+        "ToolFinalResultMissing": "工具执行已结束，但缺少最终结果。已完成的输出已保留。",
+        "HandoffDispatchUncertain": "回调执行结果不确定，已暂停自动重放。",
         "ViewLocalDraftUnavailable": "当前成果不支持本机草稿或访问已被撤销。",
         "CollaborationEngineMismatch": "协作协议已变化，请重新打开成果。",
         "CollaborationInvalidRevision": "协作资源版本无效。",
@@ -437,6 +440,7 @@
         "AgentInvocationDispatchUnknown": "智能体执行结果未知，请先核对状态再重试。",
         "AgentInvocationNotFound": "当前执行范围内未找到此智能体调用。",
         "AgentInvocationUnsupported": "该智能体执行器不支持此操作。",
+        "ProjectTaskDeliveryRecoveryRejected": "交付物重新收集被拒绝（{{reason}}）。请读取当前任务及调用版本。只有执行成功且已保存结果时，才能重新读取约定文件。对失败或未完成的工作，请通过已授权的项目文件工具查看已有报告，再决定续做或阻塞。重新收集不能创建缺失文件，请勿重复提交不变的请求。",
         "AgentInvocationDeliveryRecoveryUnavailable": "运行器无法从原执行中重新读取所选报告或文件。恢复交付不会重新执行任务。",
         "AgentInvocationInteractionConflict": "此智能体交互已不再等待回复。",
         "AgentInvocationMissingResult": "智能体执行器未返回有效结果。",
@@ -1407,7 +1411,8 @@
         "ApplicationProfileInvalid": "请仅修改姓名。",
         "ApplicationPasswordInvalid": "请输入当前密码以及至少 8 个字符的新密码。",
         "ApplicationRuntimeFailed": "任务未能完成，请重试或联系平台支持。",
-        "application_storage_limit": "存储空间不足，请删除不再需要的文件后重试。",
+        "MembershipStorageInvalid": "存储容量必须为正整数且不能超过安全整数范围。",
+        "application_storage_limit": "存储空间已满。请在账号用量页查看容量，联系管理员调整额度，或删除不再需要的文件后重试。",
         "application_storage_scope_invalid": "暂时无法确认文件存储范围，请稍后重试。",
         "application_temporary_storage_limit": "本操作所需的临时空间超过账号上限，请联系运营人员。",
         "Notification_busy": "通知连接过多，请稍后重试。",

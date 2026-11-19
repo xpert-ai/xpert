@@ -175,6 +175,114 @@ describe('sandbox file edit feedback', () => {
     expect(readFileSync(join(root, 'body.md'), 'utf8')).toBe(after)
   })
 
+  it('runs one bounded command for 12 dependent edits and commits the successful prefix on mismatch', async () => {
+    writeFileSync(join(root, 'form.md'), 'value-0')
+    const calls = jest.spyOn(sandbox, 'execute')
+    const edits = Array.from({ length: 12 }, (_, i) => ({ oldString: 'value-' + i, newString: 'value-' + (i + 1) }))
+    const result = await sandbox.multiEdit('form.md', [...edits, { oldString: 'missing', newString: 'late' }])
+    expect(calls).toHaveBeenCalledTimes(1)
+    expect(result.progress).toEqual({ mode: 'sequential', appliedEdits: 12, failedEdit: 13 })
+    expect(readFileSync(join(root, 'form.md'), 'utf8')).toBe('value-12')
+  })
+
+  it('keeps indices across bounded batches and honors backends with custom edit implementations', async () => {
+    writeFileSync(join(root, 'form.md'), 'pending')
+    const calls = jest.spyOn(sandbox, 'execute')
+    const edits = Array.from({ length: 40 }, () => ({ oldString: 'pending', newString: 'pending' }))
+    expect((await sandbox.multiEdit('form.md', edits)).progress?.appliedEdits).toBe(40)
+    expect(calls).toHaveBeenCalledTimes(2)
+    const edit = jest.spyOn(sandbox, 'edit').mockResolvedValue({ error: 'backend refused' })
+    expect((await sandbox.multiEdit('form.md', edits)).progress?.failedEdit).toBe(1)
+    expect(edit).toHaveBeenCalledTimes(1)
+    expect(calls).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    ['timeout', (r: ExecuteResponse) => ({ ...r, timedOut: true })],
+    ['truncation', (r: ExecuteResponse) => ({ ...r, truncated: true })],
+    ['malformed JSON', (r: ExecuteResponse) => ({ ...r, output: '{' })],
+    ['invalid metrics', (r: ExecuteResponse) => ({ ...r, output: '[{"code":0,"metrics":{}}]' })],
+    [
+      'contradictory success',
+      (r: ExecuteResponse) => {
+        const steps = JSON.parse(r.output)
+        steps[0].metrics.occurrences = 0
+        return { ...r, output: JSON.stringify(steps) }
+      }
+    ],
+    ['missing step', (r: ExecuteResponse) => ({ ...r, output: JSON.stringify(JSON.parse(r.output).slice(1)) })],
+    [
+      'lost response',
+      () => {
+        throw new Error('connection closed')
+      }
+    ]
+  ] as const)(
+    'keeps the confirmed prefix after %s without replaying or sending later edits',
+    async (_, loseReceipt) => {
+      writeFileSync(join(root, 'form.md'), 'v0')
+      const execute = sandbox.execute.bind(sandbox)
+      const calls = jest
+        .spyOn(sandbox, 'execute')
+        .mockImplementationOnce(execute)
+        .mockImplementationOnce((command) => loseReceipt(execute(command)))
+      const edits = Array.from({ length: 65 }, (_, i) => ({ oldString: 'v' + i, newString: 'v' + (i + 1) }))
+      const result = await sandbox.multiEdit('form.md', edits)
+      expect(result.error).toContain('Read the current file')
+      expect(result.results).toHaveLength(32)
+      expect(result.results?.every((r) => r.changed && r.occurrences === 1)).toBe(true)
+      expect(result.progress).toEqual({ mode: 'sequential', appliedEdits: 32, unconfirmedEdits: { from: 33, to: 64 } })
+      expect(calls).toHaveBeenCalledTimes(2)
+      // The second batch really committed before its receipt was lost. Only 32 may be confirmed to the caller.
+      expect(readFileSync(join(root, 'form.md'), 'utf8')).toBe('v64')
+    }
+  )
+
+  it.each([1, 33])(
+    'returns the confirmed prefix if the final single-edit batch of %i gets no receipt',
+    async (count) => {
+      writeFileSync(join(root, 'form.md'), 'v0')
+      const execute = sandbox.execute.bind(sandbox)
+      const calls = jest.spyOn(sandbox, 'execute')
+      if (count > 1) calls.mockImplementationOnce(execute)
+      calls.mockImplementationOnce(() => ({
+        exitCode: null,
+        truncated: false,
+        output: '',
+        terminationReason: 'deadline'
+      }))
+      const edits = Array.from({ length: count }, (_, i) => ({ oldString: 'v' + i, newString: 'v' + (i + 1) }))
+      const result = await sandbox.multiEdit('form.md', edits)
+      expect(result.results).toHaveLength(count - 1)
+      expect(result.progress).toEqual({
+        mode: 'sequential',
+        appliedEdits: count - 1,
+        unconfirmedEdits: { from: count, to: count }
+      })
+      expect(readFileSync(join(root, 'form.md'), 'utf8')).toBe('v' + (count - 1))
+    }
+  )
+
+  it('reports a confirmed mismatch by its global index in the second batch', async () => {
+    writeFileSync(join(root, 'form.md'), 'v0')
+    const calls = jest.spyOn(sandbox, 'execute')
+    const edits = Array.from({ length: 65 }, (_, i) => ({ oldString: 'v' + i, newString: 'v' + (i + 1) }))
+    edits[34].oldString = 'missing'
+    const result = await sandbox.multiEdit('form.md', edits)
+    expect(result.progress).toEqual({ mode: 'sequential', appliedEdits: 34, failedEdit: 35 })
+    expect(result.results).toHaveLength(35)
+    expect(calls).toHaveBeenCalledTimes(2)
+    expect(readFileSync(join(root, 'form.md'), 'utf8')).toBe('v34')
+  })
+
+  it('preserves the legacy empty-search no-op for direct SDK callers', async () => {
+    writeFileSync(join(root, 'form.md'), '')
+    const result = await sandbox.multiEdit('form.md', [{ oldString: '', newString: 'value' }])
+    expect(result.progress).toEqual({ mode: 'sequential', appliedEdits: 1 })
+    expect(result.results?.[0]).toMatchObject({ occurrences: 1 })
+    expect(readFileSync(join(root, 'form.md'), 'utf8')).toBe('')
+  })
+
   it('returns per-step statistics, accepts no-ops, and preserves partial batch progress', async () => {
     writeFileSync(join(root, 'body.md'), '原文\n')
     const result = await sandbox.multiEdit('body.md', [

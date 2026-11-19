@@ -41,7 +41,7 @@
               },
               {
                 "group": "Managed Applications",
-                "pages": ["en/guides/managed-apps", "en/guides/role-permissions"]
+                "pages": ["en/guides/managed-apps", "en/guides/role-permissions", "en/guides/account-storage"]
               },
               {
                 "group": "Project Pipelines",
@@ -199,7 +199,11 @@
               },
               {
                 "group": "受管应用",
-                "pages": ["zh-Hans/guides/managed-apps", "zh-Hans/guides/role-permissions"]
+                "pages": [
+                  "zh-Hans/guides/managed-apps",
+                  "zh-Hans/guides/role-permissions",
+                  "zh-Hans/guides/account-storage"
+                ]
               },
               {
                 "group": "项目流水线",

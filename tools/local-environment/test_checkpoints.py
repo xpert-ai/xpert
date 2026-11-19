@@ -36,7 +36,7 @@ class CheckpointTests(unittest.TestCase):
         for name, value in [('healthy', True), ('service_pid', 0), ('assert_port_free', None),
                             ('stop', None), ('database_identity', '1234')]:
             self.stack.enter_context(patch('checkpoints.' + name, return_value=value))
-        self.stack.enter_context(patch('checkpoints.subprocess.check_output', return_value='revision\n'))
+        self.stack.enter_context(patch('checkpoints.source_revision', return_value='revision'))
 
     def create(self):
         return cp.create(self.config, 'pre-install', 'project-one')

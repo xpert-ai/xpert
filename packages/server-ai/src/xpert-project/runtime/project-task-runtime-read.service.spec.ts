@@ -360,7 +360,7 @@ describe('direct child task summaries', () => {
 })
 
 describe('authorized result pages', () => {
-    it('reads only the immutable authorized delegation prompt with the observed revision', async () => {
+    it('reads the immutable authorized prompt across live observation revisions without polling', async () => {
         const f = fixture('failed')
         const input = {
             taskId,
@@ -385,7 +385,12 @@ describe('authorized result pages', () => {
             })
         )
         f.invocation.revision = 5
-        await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 409 })
+        expect(await f.service.readResult(projectId, { ...input, expectedRevision: undefined })).toMatchObject({
+            source: 'prompt',
+            text: 'Pinned requi',
+            invocationRevision: 5
+        })
+        expect(f.inspect).not.toHaveBeenCalled()
         f.findOneBy.mockResolvedValue(null)
         await expect(f.service.readResult(projectId, { ...input, expectedRevision: 5 })).rejects.toMatchObject({
             status: 404
@@ -410,6 +415,7 @@ describe('authorized result pages', () => {
         })
         f.invocation.revision = 5
         await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 409 })
+        expect(f.inspect).not.toHaveBeenCalled()
         expect(f.start).not.toHaveBeenCalled()
     })
     it('does not expose another task, restricted result, or revoked project', async () => {

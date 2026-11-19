@@ -116,6 +116,8 @@ export interface IMembershipPlan extends IBasePerTenantAndOrganizationEntityMode
   isDefault?: boolean
   period: MembershipPeriodEnum
   includedPoints: number | null
+  /** Durable account capacity in bytes. Missing/null retains the application's base allowance. */
+  includedStorageBytes?: number | null
   /** @deprecated Sale pricing is owned by the Pro billing product. Retained temporarily for migration only. */
   priceAmount?: number | null
   /** @deprecated Sale pricing is owned by the Pro billing product. Retained temporarily for migration only. */
@@ -134,6 +136,7 @@ export interface IMembershipPlanSnapshot {
   catalogSourcePlanId?: string | null
   period: MembershipPeriodEnum
   includedPoints: number | null
+  includedStorageBytes?: number | null
   allowedModels?: IMembershipAllowedModel[]
   modelMultipliers?: IMembershipModelMultiplier[]
   rateLimits?: IMembershipRateLimit[]

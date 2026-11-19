@@ -155,6 +155,11 @@ export class MembershipAdminComponent implements OnInit {
     ),
     isDefault: this.#formBuilder.nonNullable.control(false),
     includedPoints: new FormControl<number | null>(1000, Validators.min(0)),
+    includedStorageGiB: new FormControl<number | null>(null, [
+      Validators.min(1),
+      Validators.max(8388607),
+      Validators.pattern(/^\d+$/)
+    ]),
     unlimited: this.#formBuilder.nonNullable.control(false),
     description: this.#formBuilder.nonNullable.control(''),
     allowAllModels: this.#formBuilder.nonNullable.control(true)
@@ -252,6 +257,7 @@ export class MembershipAdminComponent implements OnInit {
       status: plan.status,
       isDefault: !!plan.isDefault,
       includedPoints: plan.includedPoints ?? 1000,
+      includedStorageGiB: plan.includedStorageBytes == null ? null : plan.includedStorageBytes / 1024 ** 3,
       unlimited: plan.includedPoints === null,
       description: plan.description ?? '',
       allowAllModels: !(plan.allowedModels ?? []).length
@@ -822,6 +828,7 @@ export class MembershipAdminComponent implements OnInit {
       isDefault: form.isDefault,
       period: MembershipPeriodEnum.Monthly,
       includedPoints: form.unlimited ? null : Number(form.includedPoints ?? 0),
+      includedStorageBytes: form.includedStorageGiB == null ? null : form.includedStorageGiB * 1024 ** 3,
       description: form.description,
       allowedModels: allowAllModels ? [] : this.allowedModels.map((item) => ({ ...item })),
       modelMultipliers: [...this.modelMultipliers]
@@ -839,6 +846,7 @@ export class MembershipAdminComponent implements OnInit {
       status: MembershipPlanStatusEnum.Active,
       isDefault: false,
       includedPoints: 1000,
+      includedStorageGiB: null,
       unlimited: false,
       description: '',
       allowAllModels: true

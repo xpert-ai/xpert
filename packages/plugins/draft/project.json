@@ -72,6 +72,10 @@
     },
     "generate-remote-components": {
       "dependsOn": [{ "target": "build", "projects": ["plugin-sdk"] }],
+      "outputs": [
+        "{projectRoot}/remote-components/intent-review/app.js",
+        "{projectRoot}/remote-components/intent-review/app.css"
+      ],
       "executor": "nx:run-commands",
       "options": {
         "command": "node packages/plugins/draft/remote-components/intent-review/build.mjs"

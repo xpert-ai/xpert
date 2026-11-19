@@ -6,7 +6,8 @@ import { Queue } from 'bull'
 import { DataSource, In, Repository } from 'typeorm'
 import { getConfig } from '@xpert-ai/server-config'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { AIPermissionsEnum } from '@xpert-ai/contracts'
+import { AIPermissionsEnum, AppPlatformStorageUsage } from '@xpert-ai/contracts'
+import { PlatformStorageUsageService, STORAGE_SNAPSHOT_MAX_AGE_MS } from './storage/platform-storage-usage.service'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { AppPlatformDelivery } from './app-platform-delivery.entity'
 import {
@@ -29,7 +30,8 @@ export class AppPlatformService {
     constructor(
         private readonly database: DataSource,
         @InjectRepository(AppPlatformDelivery) private readonly deliveries: Repository<AppPlatformDelivery>,
-        @InjectQueue(APP_PLATFORM_QUEUE) private readonly queue: Queue<AppPlatformJob>
+        @InjectQueue(APP_PLATFORM_QUEUE) private readonly queue: Queue<AppPlatformJob>,
+        private readonly storageUsage: PlatformStorageUsageService
     ) {}
 
     presentation() {
@@ -39,17 +41,38 @@ export class AppPlatformService {
             : { mode: 'standard' as const }
     }
 
+    async storageForCurrentUser(): Promise<AppPlatformStorageUsage | null> {
+        const { tenantId, userId, organizationId } = await this.currentIdentity()
+        const deliveries = await this.deliveries.find({ where: { tenantId, userId } })
+        if (!deliveries.length) return null
+        if (deliveries.some((delivery) => delivery.organizationId !== organizationId))
+            throw platformFailure('application_organization_denied', 403)
+        const limitBytes = await this.storageUsage.limit(deliveries[0])
+        const snapshot = await this.storageUsage.snapshot(deliveries[0])
+        return {
+            limitBytes,
+            snapshot: snapshot?.measuredAt
+                ? {
+                      fileBytes: snapshot.externalBytes,
+                      databaseBytes: snapshot.databaseBytes,
+                      usedBytes: snapshot.externalBytes + snapshot.databaseBytes,
+                      measuredAt: snapshot.measuredAt.toISOString(),
+                      stale: Date.now() - snapshot.measuredAt.getTime() > STORAGE_SNAPSHOT_MAX_AGE_MS,
+                      refreshPending: snapshot.refreshRequested
+                  }
+                : null
+        }
+    }
+
     private async currentIdentity() {
         const tenantId = RequestContext.currentTenantId(),
             userId = RequestContext.currentUserId()
         if (!tenantId || !userId || RequestContext.currentApiPrincipal())
             throw platformFailure('application_user_required', 403)
-        const user = await this.database
-            .getRepository(User)
-            .findOne({
-                where: { id: userId, tenantId, emailVerified: true },
-                relations: ['role', 'role.rolePermissions']
-            })
+        const user = await this.database.getRepository(User).findOne({
+            where: { id: userId, tenantId, emailVerified: true },
+            relations: ['role', 'role.rolePermissions']
+        })
         if (!user || user.isActive === false || !RequestContext.hasPermission(AIPermissionsEnum.APPLICATION_USE))
             throw platformFailure('application_user_required', 403)
         const memberships = await this.database.getRepository(UserOrganization).find({
@@ -152,12 +175,10 @@ export class AppPlatformService {
             applicationAssistantResources(installation).map((entry) => entry.id)
         )
         const assistants = entryIds.length
-            ? await this.database
-                  .getRepository(Xpert)
-                  .find({
-                      where: { id: In(entryIds), tenantId: row.tenantId, organizationId: row.organizationId },
-                      select: ['id', 'slug', 'title', 'name', 'publishAt', 'workspaceId']
-                  })
+            ? await this.database.getRepository(Xpert).find({
+                  where: { id: In(entryIds), tenantId: row.tenantId, organizationId: row.organizationId },
+                  select: ['id', 'slug', 'title', 'name', 'publishAt', 'workspaceId']
+              })
             : []
         return {
             mode: 'managed-apps' as const,

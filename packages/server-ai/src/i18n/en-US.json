@@ -17,7 +17,7 @@
         "TemporaryFileCleanupFailed": "Failed to delete a temporary speech-to-text audio file."
     },
     "RuntimeReply": {
-        "Completed": "A delegated runtime has finished. Inspect its authorized result and decide the next step. Invocation: {{invocationId}}.",
+        "Completed": "A delegated runtime has finished. Process completion does not establish business acceptance. Read its authorized result and report/artifact delivery diagnostics, then decide the next step. Recover collection only for files that exist; missing implementation requires a scoped continuation, not repeated collection. Invocation: {{invocationId}}.",
         "ProjectTask": " Project task: {{taskId}}. Attempt: {{attemptId}}."
     },
     "BosiStartConversation": "Hello, Bosi!",
@@ -86,6 +86,9 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "RunReconciliationDeferred": "Run reconciliation is deferred; the remaining candidates will still be checked.",
+        "ToolFinalResultMissing": "Tool execution ended without a final result. Completed output was preserved.",
+        "HandoffDispatchUncertain": "Callback execution is uncertain; automatic replay is withheld.",
         "ViewLocalDraftUnavailable": "Local drafts are unavailable for this resource or access was revoked.",
         "CollaborationEngineMismatch": "The collaboration protocol changed. Reopen this resource.",
         "CollaborationInvalidRevision": "The collaboration resource revision is invalid.",
@@ -437,6 +440,7 @@
         "AgentInvocationDispatchUnknown": "The Agent execution outcome is unknown; reconcile it before retrying.",
         "AgentInvocationNotFound": "Agent invocation was not found in this execution scope.",
         "AgentInvocationUnsupported": "This Agent runtime does not support the requested operation.",
+        "ProjectTaskDeliveryRecoveryRejected": "Delivery recovery was rejected ({{reason}}). Read the current task and invocation revision. Recovery only rereads requested files for a succeeded execution with a stored result. For failed or incomplete work, inspect any existing report through authorized Project file tools and decide continuation or blockage. Missing files cannot be created by recovery; do not repeat an unchanged request.",
         "AgentInvocationDeliveryRecoveryUnavailable": "The runtime cannot reread the selected report or files from the original execution. Delivery recovery does not run the task again.",
         "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
         "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
@@ -1407,7 +1411,8 @@
         "ApplicationProfileInvalid": "Only name fields can be updated.",
         "ApplicationPasswordInvalid": "Enter your current password and a new password of at least 8 characters.",
         "ApplicationRuntimeFailed": "The task could not be completed. Please try again or contact support.",
-        "application_storage_limit": "Storage limit reached. Remove files you no longer need and try again.",
+        "MembershipStorageInvalid": "Storage capacity must be a positive safe integer in bytes.",
+        "application_storage_limit": "Storage is full. Check account usage, ask your administrator to adjust the allowance, or delete unneeded files before retrying.",
         "application_storage_scope_invalid": "File storage scope could not be verified. Please try again later.",
         "application_temporary_storage_limit": "This operation requires more temporary storage than your account allows. Contact support.",
         "Notification_busy": "Too many notification connections. Retry shortly.",

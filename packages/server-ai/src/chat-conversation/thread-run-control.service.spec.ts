@@ -41,7 +41,7 @@ describe('ThreadRunControlService', () => {
                 .mockResolvedValue({ checkpoint_id: 'saved' })
         }
         const threadRepository = { findOne: jest.fn(async () => thread), countBy: jest.fn().mockResolvedValue(0) }
-        const accounts = { findOneBy: jest.fn().mockResolvedValue(null) }
+        const accounts = { find: jest.fn().mockResolvedValue([]) }
         const usage = { externalBytes: 0, databaseBytes: 0, measuredAt: new Date() }
         const manager = {
             query: jest.fn(async (sql: string) =>
@@ -56,8 +56,11 @@ describe('ThreadRunControlService', () => {
                     ? accounts
                     : entity === ChatConversationThread
                       ? threadRepository
-                      : checkpointRepository
+                      : entity === CopilotCheckpoint
+                        ? checkpointRepository
+                        : { findOne: async () => null }
             ),
+            findOneBy: jest.fn().mockResolvedValue(null),
             update: jest.fn(),
             save: jest.fn(async () => thread)
         } as unknown as EntityManager
@@ -89,12 +92,17 @@ describe('ThreadRunControlService', () => {
         const reference = { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' }
         await f.service.stageCheckpoint('thread', 'run', reference)
         await f.service.finish('thread', 'run', 'interrupted')
-        f.accounts.findOneBy.mockResolvedValue({
-            configuration: {
-                definition: { entitlements: { defaultPlanRef: 'trial' } },
-                environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+        f.accounts.find.mockResolvedValue([
+            {
+                tenantId: 'tenant',
+                userId: 'user',
+                organizationId: 'organization',
+                configuration: {
+                    definition: { entitlements: { defaultPlanRef: 'trial' } },
+                    environment: { plans: { trial: { maxStorageBytes: 100, maxConcurrentRuns: 2 } } }
+                }
             }
-        })
+        ])
         f.usage.externalBytes = used
         f.threadRepository.countBy.mockResolvedValue(active)
         f.threadRepository.findOne.mockClear()

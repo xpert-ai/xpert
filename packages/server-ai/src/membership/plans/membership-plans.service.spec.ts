@@ -18,6 +18,22 @@ describe('MembershipService: plans', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
+    it('creates, edits and clears capacity while rejecting invalid values', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { service } = createScopeInitializationHarness()
+        const plan = await service.createPlan({
+            code: 'storage',
+            name: 'Storage',
+            includedStorageBytes: 20 * 1024 ** 3
+        })
+        expect(plan.includedStorageBytes).toBe(20 * 1024 ** 3)
+        expect((await service.updatePlan(plan.id, { includedStorageBytes: 50 * 1024 ** 3 })).includedStorageBytes).toBe(
+            50 * 1024 ** 3
+        )
+        await expect(service.updatePlan(plan.id, { includedStorageBytes: -1 })).rejects.toThrow()
+        expect((await service.updatePlan(plan.id, { includedStorageBytes: null })).includedStorageBytes).toBeNull()
+    })
     it('deletes only archived plans that are not assigned to users', async () => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)

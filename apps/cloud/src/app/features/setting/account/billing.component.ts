@@ -1,6 +1,7 @@
 import { toSignal } from '@angular/core/rxjs-interop'
 import { map } from 'rxjs'
 import { ExecutionUsageComponent } from './execution-usage.component'
+import { AccountStorageUsageComponent } from './storage-usage.component'
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -30,6 +31,7 @@ import { forkJoin, take } from 'rxjs'
   selector: 'xp-account-billing',
   imports: [
     ExecutionUsageComponent,
+    AccountStorageUsageComponent,
     CommonModule,
     TranslateModule,
     ZardBadgeComponent,
@@ -46,6 +48,10 @@ import { forkJoin, take } from 'rxjs'
 })
 export class XpAccountBillingComponent implements OnInit {
   private readonly store = inject(Store)
+  readonly canInspectStorage = toSignal(
+    this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.APPLICATION_USE))),
+    { initialValue: false }
+  )
   readonly canInspectExecutions = toSignal(
     this.store.userRolePermissions$.pipe(map(() => this.store.hasPermission(AIPermissionsEnum.MODEL_USAGE_MONITOR))),
     { initialValue: false }

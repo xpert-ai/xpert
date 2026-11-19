@@ -4,11 +4,16 @@ import { EntityManager, Repository } from 'typeorm'
 import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
 import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 import type { XpertProject } from '../xpert-project/entities/project.entity'
+import { accountStorageLimit } from '../plugin-resource/app-platform/storage/platform-storage-limit'
 
 export async function applicationResourcePolicy(manager: EntityManager, tenantId: string, userId: string) {
-    const delivery = await manager.getRepository(AppPlatformDelivery).findOneBy({ tenantId, userId })
-    if (!delivery) return null
-    return delivery.configuration.environment.plans[delivery.configuration.definition.entitlements.defaultPlanRef]
+    const deliveries = await manager.getRepository(AppPlatformDelivery).find({ where: { tenantId, userId } })
+    if (!deliveries.length) return null
+    const { configuration } = deliveries[0]
+    return {
+        ...configuration.environment.plans[configuration.definition.entitlements.defaultPlanRef],
+        maxStorageBytes: await accountStorageLimit(manager, deliveries)
+    }
 }
 
 /** Enforces the account's versioned upload limit before persistence or parsing. */

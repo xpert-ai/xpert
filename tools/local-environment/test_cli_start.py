@@ -68,7 +68,7 @@ class CliStartTests(unittest.TestCase):
         self.args.strict = True
         with patch('cli.service_pid', return_value=123), patch('cli.owns_supervisor', return_value=False), \
                 patch('cli.healthy', side_effect=lambda config, name: name != 'web'), \
-                patch('cli.subprocess.run', return_value=SimpleNamespace(stdout='source-revision')):
+                patch('cli.source_revision', return_value='source-revision'):
             self.assertEqual(cli.main(), 1)
         self.assertEqual(json.loads(self.output.getvalue())['status'], 'api_ready')
 

@@ -2,7 +2,12 @@ import { HttpClient } from '@angular/common/http'
 import { Injectable, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
-import { AIPermissionsEnum, AppPlatformDefinition, AppPlatformStatus } from '@xpert-ai/contracts'
+import {
+  AIPermissionsEnum,
+  AppPlatformDefinition,
+  AppPlatformStatus,
+  AppPlatformStorageUsage
+} from '@xpert-ai/contracts'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { defer, distinctUntilChanged, firstValueFrom, map, shareReplay, tap } from 'rxjs'
 import { API_PREFIX, Store } from '../state'
@@ -119,5 +124,8 @@ export class AppPlatformService {
   }
   presentation() {
     return firstValueFrom(this.presentation$)
+  }
+  getStorageUsage() {
+    return this.http.get<AppPlatformStorageUsage | null>(`${API_PREFIX}/app-platform/storage`)
   }
 }

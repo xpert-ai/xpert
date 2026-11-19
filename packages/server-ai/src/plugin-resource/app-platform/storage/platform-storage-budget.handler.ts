@@ -88,13 +88,14 @@ export class CheckStorageQuotaHandler implements ICommandHandler<CheckStorageQuo
             throw platformFailure('application_storage_scope_invalid', 503)
         }
         const used = snapshot.externalBytes + snapshot.databaseBytes
-        if (used >= policy.maxStorageBytes) throw platformFailure('application_storage_limit', 413)
+        const limit = await this.usage.limit(account)
+        if (used >= limit) throw platformFailure('application_storage_limit', 413)
         if (request.kind !== 'sandbox') return null
         if (usesFlattenedSandboxVolumeLayout()) throw platformFailure('application_storage_scope_invalid', 503)
         const root = await this.usage.validateSandboxRoot(account, request.scope, request.root)
         // The runtime receives a hard per-execution ceiling; concurrent runtimes may share estimated free capacity.
         return {
-            maxWorkspaceBytes: (await measureStorageTrees([root])) + Math.max(0, policy.maxStorageBytes - used),
+            maxWorkspaceBytes: (await measureStorageTrees([root])) + Math.max(0, limit - used),
             maxTemporaryBytes: policy.maxTemporaryBytes
         }
     }

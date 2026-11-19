@@ -123,6 +123,26 @@
               {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
             </z-checkbox>
           </z-form-field>
+          <z-form-field class="w-full">
+            <label z-form-label for="settings-includedStorageGiB">{{
+              'XP.StorageEntitlement.PlanCapacity' | translate
+            }}</label>
+            <input
+              z-input
+              id="settings-includedStorageGiB"
+              type="number"
+              min="1"
+              max="8388607"
+              step="1"
+              formControlName="includedStorageGiB"
+            />
+            <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.StorageEntitlement.PlanHint' | translate }}</p>
+            @if (vm.planForm.controls.includedStorageGiB.invalid && vm.planForm.controls.includedStorageGiB.touched) {
+              <p role="alert" class="text-sm text-destructive">
+                {{ 'XP.StorageEntitlement.InvalidCapacity' | translate }}
+              </p>
+            }
+          </z-form-field>
         </div>
       </section>
 

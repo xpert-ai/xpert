@@ -64,6 +64,11 @@ export class AppPlatformController {
     status() {
         return this.platform.ensureForCurrentUser()
     }
+    @Get('storage')
+    @Permissions(AIPermissionsEnum.APPLICATION_USE)
+    storage() {
+        return this.platform.storageForCurrentUser()
+    }
     @Post('retry')
     @Permissions(AIPermissionsEnum.APPLICATION_USE)
     retry(

@@ -312,6 +312,7 @@ export class MembershipPeriodsService {
                 existing.status = MembershipPlanStatusEnum.Active
                 existing.period = snapshot.period
                 existing.includedPoints = snapshot.includedPoints
+                existing.includedStorageBytes = snapshot.includedStorageBytes ?? null
                 existing.priceAmount = null
                 existing.priceCurrency = null
                 existing.allowedModels = snapshot.allowedModels?.map((rule) => ({ ...rule }))
@@ -334,6 +335,7 @@ export class MembershipPeriodsService {
                     isDefault: false,
                     period: snapshot.period,
                     includedPoints: snapshot.includedPoints,
+                    includedStorageBytes: snapshot.includedStorageBytes ?? null,
                     priceAmount: null,
                     priceCurrency: null,
                     allowedModels: snapshot.allowedModels?.map((rule) => ({ ...rule })),

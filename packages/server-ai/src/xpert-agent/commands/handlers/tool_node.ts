@@ -17,6 +17,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import { setContextVariable } from '@langchain/core/context'
 import type { AgentBuiltInState, ToolCallHandler, ToolCallRequest, WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import { resolveAgentToolInput } from './agent-tool-input'
+import { isStorageCapacityFailure } from '../../../plugin-resource/app-platform/platform-error'
 
 export type ToolNodeOptions = {
     name?: string
@@ -174,7 +175,7 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                     }
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } catch (e: any) {
-                    if (!this.handleToolErrors) {
+                    if (!this.handleToolErrors || isStorageCapacityFailure(e)) {
                         throw e
                     }
                     if (

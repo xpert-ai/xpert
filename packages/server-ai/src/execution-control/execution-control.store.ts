@@ -243,12 +243,14 @@ export class ExecutionControlStore {
     }
 
     async settle(executionId: string, workId: string) {
+        const settledAt = new Date().toISOString()
         await this.database.transaction(async (manager) => {
             const record = await this.lock(manager, executionId)
             if (!record) return
             const work = record.root.work.find((work) => work.id === workId && work.executionId === executionId)
             if (work && !work.settled) {
                 work.settled = true
+                work.settledAt = settledAt
                 await manager.save(record.root)
             }
         })
@@ -411,7 +413,14 @@ export function validateExecutionControl(record: ExecutionControl) {
                 rootExecutionId: z.string().min(1)
             }),
             ancestors: z.array(z.string().min(1)).nonempty(),
-            work: z.array(z.object({ id: z.string().min(1), executionId: z.string().min(1), settled: z.boolean() }))
+            work: z.array(
+                z.object({
+                    id: z.string().min(1),
+                    executionId: z.string().min(1),
+                    settled: z.boolean(),
+                    settledAt: z.string().datetime().optional()
+                })
+            )
         })
         .safeParse(record)
     if (

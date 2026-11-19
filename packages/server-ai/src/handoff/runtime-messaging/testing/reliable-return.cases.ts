@@ -39,6 +39,7 @@ import { XpertProjectTaskExecution } from '../../../xpert-project/entities/proje
 import { XpertProjectTask } from '../../../xpert-project/entities/project-task.entity'
 import { queueRecoveryCases } from './queue-recovery.cases'
 import { DeliverGroupTaskResultCommand } from '../../../chat-group/group-project/group-task.commands'
+import { readRuntimeResultSettlement } from '../runtime-result-settlement'
 
 type Fixture = {
     database: DataSource
@@ -198,6 +199,32 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 row: await database.getRepository(AgentRuntimeInbox).findOneBy({ invocationId: result_.invocationId })
             }
         }
+        it('binds a durable return to the original logical task before starting the new turn', async () => {
+            const tasks = new TaskControlStore(database)
+            const parent = await tasks.register({
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                kind: 'execution',
+                resourceId: scope.parentExecutionId,
+                executionId: scope.parentExecutionId,
+                threadId: caller.threadId
+            })
+            await tasks.receipt(parent.id, 'running')
+            const { row } = await receive()
+            await tasks.receipt(parent.id, 'completed')
+            run.mockImplementationOnce(async (command: { options: { execution: { id: string } } }) => {
+                const current = await tasks.execution(scope.parentExecutionId)
+                expect(current.id).toBe(parent.id)
+                expect(current.currentExecutionId).toBe(command.options.execution.id)
+                expect(current.state).toBe('running')
+                await database.getRepository(XpertAgentExecution).update(command.options.execution.id, {
+                    status: XpertAgentExecutionStatusEnum.SUCCESS
+                })
+                return of(undefined)
+            })
+            await continuation.consume(row)
+            expect(run).toHaveBeenCalledTimes(1)
+        })
         it('serializes real root admissions on the thread row', async () => {
             const admission = new ChatExecutionAdmissionService(
                 database,
@@ -334,6 +361,10 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
         it('makes synchronous wait and asynchronous delivery share a claim before notification arrives', async () => {
             const { invocationId, delivery } = await result()
             await inbox.claimWait(new ClaimAgentRuntimeResultsCommand(scope, 'wait-1', [invocationId]))
+            expect(await database.getRepository(AgentRuntimeDelivery).findOneBy({ invocationId })).toMatchObject({
+                state: 'pending'
+            })
+            expect(await readRuntimeResultSettlement(database.manager, scope, [invocationId])).toBe('settled')
             await inbox.receive(envelope(delivery))
             const row = await database.getRepository(AgentRuntimeInbox).findOneBy({ invocationId })
             await continuation.consume(row)

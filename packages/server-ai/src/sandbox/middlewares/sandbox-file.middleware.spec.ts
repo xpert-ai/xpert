@@ -356,6 +356,40 @@ describe('SandboxFileMiddleware', () => {
             filesUpdate: null
         })
     })
+    it('exposes unconfirmed edits and the read action without another backend call', async () => {
+        const created = await createFileTools()
+        const operation = created.tools.find((tool) => tool.name === 'sandbox_multi_edit_file')
+        const progress = { mode: 'sequential', appliedEdits: 1, unconfirmedEdits: { from: 2, to: 2 } }
+        const results = [{ path: '/workspace/page.html', occurrences: 1, changed: true }]
+        const backend = {
+            workingDirectory: '/workspace',
+            multiEdit: jest.fn().mockResolvedValue({
+                path: '/workspace/page.html',
+                error: 'truncated execution receipt',
+                progress,
+                results
+            })
+        }
+        const output = await operation.invoke(
+            {
+                file_path: 'page.html',
+                edits: [
+                    { oldString: 'a', newString: 'b' },
+                    { oldString: 'b', newString: 'c' }
+                ]
+            },
+            { configurable: { sandbox: { backend } } }
+        )
+        expect(JSON.parse(output)).toMatchObject({
+            path: 'page.html',
+            error: 'truncated execution receipt',
+            progress,
+            results,
+            recovery: { read: { tool: 'sandbox_read_file', arguments: { file_path: 'page.html' } } }
+        })
+        expect(backend.multiEdit).toHaveBeenCalledTimes(1)
+    })
+
     it('keeps partial progress and returns a portable read step after a failed batch', async () => {
         const created = await createFileTools()
         const operation = created.tools.find((tool) => tool.name === 'sandbox_multi_edit_file')

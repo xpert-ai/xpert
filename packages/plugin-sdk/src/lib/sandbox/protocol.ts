@@ -159,8 +159,15 @@ export interface MultiEditResult {
   filesUpdate?: Record<string, FileData> | null
   /** Results from each individual edit operation */
   results?: EditResult[]
-  /** Present when the backend reports sequential persistence. Indices are one-based. */
-  progress?: { mode: 'sequential'; appliedEdits: number; failedEdit?: number }
+  /** Indices are one-based. appliedEdits counts only the confirmed prefix. */
+  progress?: {
+    mode: 'sequential'
+    appliedEdits: number
+    /** An edit was confirmed to have failed (for example, its old text did not match). */
+    failedEdit?: number
+    /** Inclusive range of the submitted batch with unknown persistence. Later edits were not sent. */
+    unconfirmedEdits?: { from: number; to: number }
+  }
   /** Metadata for the multi-edit operation, attached to the ToolMessage */
   metadata?: Record<string, unknown>
 }
