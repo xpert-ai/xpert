@@ -50,15 +50,21 @@ function supportsModelCallbacks(model: unknown): model is { callbacks?: Callback
 
 export function createNativeModelBudgetGate(
     commands: CommandBus,
-    actor: PipelineModelBudgetActor,
+    actor: Omit<PipelineModelBudgetActor, 'organizationId'> & { organizationId?: string | null },
     resolveExecutionId?: () => string | undefined
 ) {
+    const budgetActor: PipelineModelBudgetActor = { ...actor, organizationId: actor.organizationId ?? undefined }
     const active = new Map<string, PipelineModelBudgetCall>()
     const admit = async (requestId: string, estimatedTokens: number | undefined) => {
         const configured = AsyncLocalStorageProviderSingleton.getRunnableConfig()?.configurable?.executionId
         const executionId = resolveExecutionId?.() ?? (typeof configured === 'string' ? configured : undefined)
         if (!executionId) return
-        const call = { actor, executionId, requestId, ...(estimatedTokens === undefined ? {} : { estimatedTokens }) }
+        const call = {
+            actor: budgetActor,
+            executionId,
+            requestId,
+            ...(estimatedTokens === undefined ? {} : { estimatedTokens })
+        }
         if (await commands.execute(new AdmitPipelineModelCallCommand(call))) {
             // Eviction only loses local reconciliation; its database hold is retained, never released.
             if (active.size >= 4096) active.delete(active.keys().next().value)

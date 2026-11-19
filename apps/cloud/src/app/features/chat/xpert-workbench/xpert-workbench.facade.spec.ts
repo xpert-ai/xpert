@@ -6,6 +6,8 @@ jest.mock('../../../@core', () => ({
     CLAWXPERT: 'clawxpert'
   },
   AssistantBindingService: class AssistantBindingService {},
+  XpertService: class XpertService {},
+  XpertTypeEnum: { Agent: 'agent' },
   ChatConversationService: class ChatConversationService {},
   Store: class Store {},
   OrderTypeEnum: {
@@ -32,7 +34,13 @@ import { BehaviorSubject, Subject, of, throwError } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
-import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../../@core'
+import {
+  XpertService,
+  AssistantBindingService,
+  ChatConversationService,
+  IChatConversation,
+  Store
+} from '../../../@core'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { XpertWorkbenchFacade } from './xpert-workbench.facade'
 import type { ConversationEntryResolution } from './conversation-entry.resolver'
@@ -48,7 +56,10 @@ describe('XpertWorkbenchFacade', () => {
   let store: {
     organizationId: string | null
     selectOrganizationId: jest.Mock
+    activeScope: { level: 'tenant' } | { level: 'organization'; organizationId: string }
+    selectActiveScope: jest.Mock
   }
+  let xpertService: { getMyAll: jest.Mock }
   let assistantBindingService: {
     getAvailableXperts: jest.Mock
   }
@@ -79,6 +90,8 @@ describe('XpertWorkbenchFacade', () => {
     }
     store = {
       organizationId: 'org-1',
+      activeScope: { level: 'organization', organizationId: 'org-1' },
+      selectActiveScope: jest.fn(() => of(store.activeScope)),
       selectOrganizationId: jest.fn(() => of('org-1'))
     }
     assistantBindingService = {
@@ -99,6 +112,9 @@ describe('XpertWorkbenchFacade', () => {
         ])
       )
     }
+    xpertService = {
+      getMyAll: jest.fn(() => of({ items: [{ id: 'xpert-1', slug: 'sales', latest: true }], total: 1 }))
+    }
     conversationService = {
       getByThreadId: jest.fn(),
       findAllByXpert: jest.fn(() => of({ items: [] as IChatConversation[] }))
@@ -115,6 +131,7 @@ describe('XpertWorkbenchFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         XpertWorkbenchFacade,
+        { provide: XpertService, useValue: xpertService },
         { provide: ActivatedRoute, useValue: { data: routeData, snapshot: { data: routeData.value } } },
         {
           provide: Router,
@@ -155,6 +172,7 @@ describe('XpertWorkbenchFacade', () => {
     await settle()
 
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalled()
+    expect(xpertService.getMyAll).not.toHaveBeenCalled()
     expect(facade.viewState()).toBe('ready')
     expect(facade.xpertId()).toBe('xpert-1')
     expect(facade.assistantId()).toBe('xpert-1')
@@ -164,6 +182,42 @@ describe('XpertWorkbenchFacade', () => {
     expect(projectApi.access).not.toHaveBeenCalled()
     expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
     expect(facade.defaultViewKey()).toBe('provider__metrics')
+  })
+
+  it('loads a tenant Assistant in explicit tenant scope without an organization binding', async () => {
+    store.organizationId = null
+    store.activeScope = { level: 'tenant' }
+    store.selectOrganizationId.mockReturnValue(of(null))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('ready')
+    expect(facade.assistantId()).toBe('xpert-1')
+    expect(xpertService.getMyAll).toHaveBeenCalledWith({
+      where: { type: 'agent', latest: true },
+      order: { createdAt: 'DESC' }
+    })
+    expect(projectApi.access).not.toHaveBeenCalled()
+    expect(assistantBindingService.getAvailableXperts).not.toHaveBeenCalled()
+  })
+
+  it('does not interpret a missing organization as permission to use tenant scope', async () => {
+    store.organizationId = null
+    store.selectOrganizationId.mockReturnValue(of(null))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('organization-required')
+    expect(xpertService.getMyAll).not.toHaveBeenCalled()
+  })
+
+  it('keeps unavailable tenant Assistants blocked by the server-accessible list', async () => {
+    store.organizationId = null
+    store.activeScope = { level: 'tenant' }
+    store.selectOrganizationId.mockReturnValue(of(null))
+    xpertService.getMyAll.mockReturnValue(of({ items: [], total: 0 }))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('error')
+    expect(facade.assistantId()).toBeNull()
   })
 
   function navigateEntry(entry: ConversationEntryResolution) {

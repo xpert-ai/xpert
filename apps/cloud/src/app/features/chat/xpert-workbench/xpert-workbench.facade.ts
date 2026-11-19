@@ -10,6 +10,9 @@ import {
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
+  XpertService,
+  XpertTypeEnum,
+  OrderTypeEnum,
   ChatConversationService,
   getErrorMessage,
   IChatConversation,
@@ -33,6 +36,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #projectNavigationRequestId = 0
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
+  readonly #xpertService = inject(XpertService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #store = inject(Store)
   readonly #router = inject(Router)
@@ -49,6 +53,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     defaultTitle: 'Xpert'
   }
 
+  readonly activeScope = toSignal(this.#store.selectActiveScope(), { initialValue: this.#store.activeScope })
   readonly organizationId = toSignal(this.#store.selectOrganizationId(), {
     initialValue: this.#store.organizationId ?? null
   })
@@ -143,7 +148,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     return xpertId ? `chat-xpert-workbench:${xpertId}` : null
   })
   readonly viewState = computed<WorkbenchChatViewState>(() => {
-    if (!this.organizationId()) {
+    if (!this.organizationId() && (this.activeScope().level !== 'tenant' || this.groupId())) {
       return 'organization-required'
     }
     if (!this.chatkitFrameUrl()) {
@@ -174,7 +179,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       const slug = this.slug()
       const groupId = this.groupId()
 
-      if (!organizationId) {
+      if (!organizationId && this.activeScope().level !== 'tenant') {
         this.#loadRequestId++
         this.availableXperts.set([])
         this.errorMessage.set(null)
@@ -418,7 +423,12 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
     try {
       const xperts = await firstValueFrom(
-        this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
+        this.activeScope().level === 'tenant'
+          ? this.#xpertService.getMyAll({
+              where: { type: XpertTypeEnum.Agent, latest: true },
+              order: { createdAt: OrderTypeEnum.DESC }
+            })
+          : this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
       )
       const normalizedXperts = normalizeXperts(xperts)
       const matchedXpert = normalizedXperts.find((item) => item.slug === slug || item.id === slug)

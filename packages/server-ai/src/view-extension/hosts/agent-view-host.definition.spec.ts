@@ -146,6 +146,7 @@ describe('AgentViewHostDefinition', () => {
         expect(middlewareRegistry.get).toHaveBeenCalledWith('BomDocumentIntakeMiddleware', 'org-1')
         expect(resolved?.context).toMatchObject({
             assistant: {
+                organizationId: 'org-1',
                 instanceId: 'agent-host-1',
                 currentId: 'agent-host-1',
                 versionIds: ['agent-host-1']
