@@ -1,5 +1,14 @@
 # @xpert-ai/xpert-ui
 
+## 3.37.2
+
+### Patch Changes
+
+- ddeee0f: Update ChatKit shared types to 0.23.1 and UI to 0.26.1, keeping workspace,
+  API, Web and Desktop dependency locks aligned with the latest stable releases.
+- 7426cdf: Rotate bounded thread-maintenance scans independently and isolate per-thread failures. Persist actual tool exit times and reconcile interrupted tool projections from matching execution receipts while retaining outputs and historical timing uncertainty.
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+
 ## 3.37.1
 
 ### Patch Changes

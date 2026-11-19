@@ -1,5 +1,18 @@
 # @xpert-ai/server-core
 
+## 3.37.2
+
+### Patch Changes
+
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+- Updated dependencies [ddeee0f]
+- Updated dependencies [7426cdf]
+- Updated dependencies [14635d6]
+    - @xpert-ai/contracts@3.37.2
+    - @xpert-ai/plugin-sdk@3.37.2
+    - @xpert-ai/server-common@3.37.2
+    - @xpert-ai/server-config@3.37.2
+
 ## 3.37.1
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @xpert-ai/desktop
 
+## 0.5.3
+
+### Patch Changes
+
+- ddeee0f: Update ChatKit shared types to 0.23.1 and UI to 0.26.1, keeping workspace,
+  API, Web and Desktop dependency locks aligned with the latest stable releases.
+  - @xpert-ai/desktop-protocol@0.5.5
+
 ## 0.5.2
 
 ### Patch Changes
