@@ -1,5 +1,22 @@
 # @xpert-ai/server-ai
 
+## 3.37.2
+
+### Patch Changes
+
+- 7426cdf: Rotate bounded thread-maintenance scans independently and isolate per-thread failures. Persist actual tool exit times and reconcile interrupted tool projections from matching execution receipts while retaining outputs and historical timing uncertainty.
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+- Updated dependencies [ddeee0f]
+- Updated dependencies [7426cdf]
+- Updated dependencies [14635d6]
+    - @xpert-ai/contracts@3.37.2
+    - @xpert-ai/server-core@3.37.2
+    - @xpert-ai/desktop-protocol@0.5.5
+    - @xpert-ai/plugin-sdk@3.37.2
+    - @xpert-ai/server-auth@3.37.2
+    - @xpert-ai/server-common@3.37.2
+    - @xpert-ai/server-config@3.37.2
+
 ## 3.37.1
 
 ### Patch Changes
