@@ -1,3 +1,5 @@
+# Invariants: each large asset receives a separate one-hour STS session.
+# Serialize complete releases; only the final all-assets verification may advance latest.json.
 name: Mirror Bosi release to OSS
 
 on:
@@ -15,22 +17,23 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: bosi-oss-publisher
+  queue: max
+
+env:
+  BOSI_TAG: ${{ inputs.tag }}
+  PYTHONUNBUFFERED: '1'
 
 jobs:
-  mirror:
+  prepare:
     if: github.repository == 'xpert-ai/xpert' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    environment: bosi-oss
-    concurrency:
-      group: bosi-oss-publisher
-      queue: max
-    env:
-      BOSI_TAG: ${{ inputs.tag }}
-      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
-      BOSI_OSS_REGION: ${{ vars.BOSI_OSS_REGION }}
-      BOSI_OSS_BUCKET: ${{ vars.BOSI_OSS_BUCKET }}
+    timeout-minutes: 20
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      upload: ${{ steps.plan.outputs.upload }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,11 +54,99 @@ jobs:
         run: |
           python -m pip install oss2==2.19.1
           python -m unittest discover -s .deploy/desktop/oss
+      - name: Verify release and plan independent uploads
+        id: plan
+        run: python .deploy/desktop/oss/stages.py prepare "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets" --release "$RUNNER_TEMP/release.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bosi-oss-plan-${{ inputs.tag }}
+          path: ${{ runner.temp }}/oss-plan.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  upload:
+    name: Upload ${{ matrix.asset }}
+    needs: prepare
+    if: needs.prepare.outputs.upload == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    environment: bosi-oss
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      BOSI_ASSET: ${{ matrix.asset }}
+      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
+      BOSI_OSS_REGION: ${{ vars.BOSI_OSS_REGION }}
+      BOSI_OSS_BUCKET: ${{ vars.BOSI_OSS_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install oss2==2.19.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: bosi-oss-plan-${{ inputs.tag }}
+          path: ${{ runner.temp }}
+      - name: Fetch and verify this asset before obtaining credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .deploy/desktop/oss/stages.py fetch "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets" --asset "$BOSI_ASSET"
       - name: Assume Bosi release role
         uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
         with:
           oidc-provider-arn: ${{ vars.BOSI_OSS_OIDC_PROVIDER_ARN }}
           role-to-assume: ${{ vars.BOSI_OSS_ROLE_ARN }}
           role-session-expiration: 3600
-      - name: Mirror assets and advance the public index
-        run: python .deploy/desktop/oss/mirror.py "$RUNNER_TEMP/release.json" "$RUNNER_TEMP/bosi-assets"
+      - name: Upload and verify this immutable asset
+        run: python .deploy/desktop/oss/stages.py upload "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets" --asset "$BOSI_ASSET"
+
+  finalize:
+    name: Verify all assets and publish index
+    needs: [prepare, upload]
+    if: >-
+      ${{ !cancelled() && needs.prepare.result == 'success' &&
+          (needs.upload.result == 'success' ||
+           (needs.prepare.outputs.upload == 'false' && needs.upload.result == 'skipped')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: bosi-oss
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
+      BOSI_OSS_REGION: ${{ vars.BOSI_OSS_REGION }}
+      BOSI_OSS_BUCKET: ${{ vars.BOSI_OSS_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install oss2==2.19.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: bosi-oss-plan-${{ inputs.tag }}
+          path: ${{ runner.temp }}
+      - name: Fetch and verify small metadata files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python .deploy/desktop/oss/stages.py fetch "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets"
+      - name: Assume Bosi release role
+        uses: aliyun/configure-aliyun-credentials-action@1e5248c8d5d93a8781ac344a68e19a43341e79e6 # v1.1.0
+        with:
+          oidc-provider-arn: ${{ vars.BOSI_OSS_OIDC_PROVIDER_ARN }}
+          role-to-assume: ${{ vars.BOSI_OSS_ROLE_ARN }}
+          role-session-expiration: 3600
+      - name: Verify every remote asset and advance the public index
+        run: python .deploy/desktop/oss/stages.py finalize "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets"

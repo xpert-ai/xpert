@@ -12,7 +12,7 @@ import oss2
 from mirror import INDEX_KEY, mirror, next_index, upload_asset, verify_release
 
 
-def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",)):
+def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",), payloads=None):
     files = {}
     for platform, exts in {"mac": ("dmg", "zip"), "win": ("exe", "zip"), "linux": ("AppImage", "tar.gz")}.items():
         for arch in ("arm64", "x64"):
@@ -20,6 +20,7 @@ def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",)):
                 name = f"Bosi-{ver}-{platform}-{arch}.{ext}"
                 files[name] = name.encode()
     files.update({feed: b"metadata" for feed in feeds})
+    files.update(payloads or {})
     files["SHA256SUMS.txt"] = "".join(
         f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name, data in files.items()).encode()
     files["release-manifest.json"] = b"{}"
@@ -45,7 +46,7 @@ class MirrorTests(unittest.TestCase):
         self.assertIn("desktop-x64.yml", assets)
         with self.assertRaisesRegex(ValueError, "stable release"):
             verify_release({**self.release, "draft": True}, self.directory, self.tag)
-        with self.assertRaisesRegex(ValueError, "differs"):
+        with self.assertRaisesRegex(ValueError, "Incomplete Bosi release"):
             verify_release({**self.release, "assets": self.release["assets"][1:]}, self.directory, self.tag)
         (self.directory / "desktop-x64.yml").write_bytes(b"changed!")
         with self.assertRaisesRegex(ValueError, "checksum"):
@@ -82,7 +83,8 @@ class MirrorTests(unittest.TestCase):
             return SimpleNamespace(etag=f"etag-{number}", crc=crc.crc)
 
         bucket.upload_part.side_effect = part
-        with patch("mirror.PART_SIZE", 8), patch("mirror.time.sleep"):
+        with patch("mirror.PART_SIZE", 8), patch("mirror.time.sleep"), \
+                patch("mirror.as_completed", side_effect=lambda futures: reversed(futures)):
             upload_asset(bucket, name, source, asset)
         self.assertEqual(bucket.init_multipart_upload.call_count, 1)
         self.assertEqual(bucket.upload_part.call_count, len(received) + 1)
