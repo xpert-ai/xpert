@@ -113,6 +113,17 @@ limits and reproducible startup details; do not ask the host to relay commands.
 
 ## Keep evidence readable
 
+For a task scoped to testing or investigation, a reproducible negative finding is
+a valid result. Complete the assigned checks, disclose blocked coverage, and hand
+off the findings without repairing product behavior outside the authorized scope.
+Completing this testing task does not mean the application passed acceptance.
+
+Identify the exact test-script version used by each run, together with its command
+exit status and evidence paths. Preserve that script or its content digest. When
+changing the script after a run, rerun the affected checks or clearly distinguish
+the untested version. Report-format and exit-status edits still change the runner.
+Do not label an edited script as the one that generated an earlier receipt.
+
 Return a short result with the candidate identity, outcome, checks performed,
 evidence paths and remaining issues. Keep raw request/response dumps and build
 logs in separate files instead of appending them to the report read by the
