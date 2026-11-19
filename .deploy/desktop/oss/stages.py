@@ -10,8 +10,10 @@ from pathlib import Path
 import re
 import subprocess
 
+from benchmark import cleanup, production_snapshot, require_empty_destination, verify_production_unchanged
+from destination import RELEASE, from_environment
 from mirror import (Asset, PART_SIZE, create_bucket, inspect_file, publish_index,
-                    release_assets, sync_asset, verify_release)
+                    release_assets, sync_asset, verify_release, verify_remote_asset)
 
 
 def prepare(release, directory, tag, plan_file):
@@ -68,21 +70,25 @@ def fetch_files(release, assets, directory, name, run=subprocess.run):
     verify_files(directory, assets, names)
 
 
-def upload_one(bucket, domain, release, assets, directory, name):
+def upload_one(bucket, domain, release, assets, directory, name, destination=RELEASE):
     if name is None:
         raise ValueError("Upload worker must select one verified large asset")
     names = selection(assets, name)
     verify_files(directory, assets, names)
     for selected in names:
-        sync_asset(bucket, domain, directory, release["tag_name"], selected, assets[selected])
+        sync_asset(bucket, domain, directory, release["tag_name"], selected, assets[selected], destination)
 
 
-def finalize(bucket, domain, release, assets, directory):
+def finalize(bucket, domain, release, assets, directory, destination=RELEASE):
     names = selection(assets, None)
     verify_files(directory, assets, names)
     for name in names:
-        sync_asset(bucket, domain, directory, release["tag_name"], name, assets[name])
-    publish_index(bucket, domain, release, assets)
+        sync_asset(bucket, domain, directory, release["tag_name"], name, assets[name], destination)
+    if destination.mode == "release":
+        publish_index(bucket, domain, release, assets, destination)
+    else:
+        for name, asset in assets.items():
+            verify_remote_asset(bucket, domain, release["tag_name"], name, asset, destination=destination)
 
 
 if __name__ == "__main__":
@@ -94,10 +100,16 @@ if __name__ == "__main__":
     parser.add_argument("--asset")
     args = parser.parse_args()
     tag = os.environ["BOSI_TAG"]
+    destination = from_environment()
+    baseline_file = args.plan.with_name("oss-production-before.json")
     if args.phase == "prepare":
         if args.release is None:
             parser.error("prepare requires --release")
-        matrix = prepare(json.loads(args.release.read_text()), args.directory, tag, args.plan)
+        release = json.loads(args.release.read_text())
+        matrix = prepare(release, args.directory, tag, args.plan)
+        if destination.mode == "benchmark":
+            require_empty_destination(os.environ["BOSI_OSS_DOMAIN"], release, destination)
+            baseline_file.write_text(json.dumps(production_snapshot(os.environ["BOSI_OSS_DOMAIN"], release, destination)))
         print(json.dumps(matrix))
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as output:
@@ -111,6 +123,14 @@ if __name__ == "__main__":
                 parser.error("upload requires --asset")
             bucket, domain = create_bucket()
             if args.phase == "upload":
-                upload_one(bucket, domain, release, assets, args.directory, args.asset)
+                upload_one(bucket, domain, release, assets, args.directory, args.asset, destination)
             else:
-                finalize(bucket, domain, release, assets, args.directory)
+                finalize(bucket, domain, release, assets, args.directory, destination)
+                if destination.mode == "benchmark":
+                    verify_production_unchanged(domain, release, destination, baseline_file)
+                    result = {"tag": tag, "prefix": destination.prefix, "assets": len(assets),
+                              "bytes": sum(asset.size for asset in assets.values()), "production_unchanged": True}
+                    result["cleanup"] = cleanup(bucket, release, destination)
+                    verify_production_unchanged(domain, release, destination, baseline_file)
+                    args.plan.with_name("oss-benchmark-result.json").write_text(json.dumps(result, indent=2))
+                    print(json.dumps(result), flush=True)
