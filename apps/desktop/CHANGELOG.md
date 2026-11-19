@@ -1,5 +1,47 @@
 # @xpert-ai/desktop
 
+## 0.5.3
+
+### Patch Changes
+
+- ddeee0f: Update ChatKit shared types to 0.23.1 and UI to 0.26.1, keeping workspace,
+  API, Web and Desktop dependency locks aligned with the latest stable releases.
+  - @xpert-ai/desktop-protocol@0.5.5
+
+## 0.5.2
+
+### Patch Changes
+
+- @xpert-ai/desktop-protocol@0.5.4
+
+## 0.5.1
+
+### Patch Changes
+
+- 60a5eeb: Complete Japanese translations for notification delivery preferences.
+  Correct the isolated contracts package exports so Bosi builds resolve the emitted
+  runtime bundle instead of looking for a nested dist directory.
+- 55991d5: Route desktop updates by network exit region, fall back between Aliyun OSS and GitHub, and check GitHub on manual checks when the mirror has no newer version.
+- f417c34: Upgrade ChatKit UI to 0.26.0 and shared types to 0.23.0, with compatible Angular,
+  Web Component and Web Shared packages. Bring compact file resource cards,
+  document plugin navigation and published child-assistant tool details to Cloud
+  and Bosi, keeping workspace and deployment dependency resolutions aligned.
+  - @xpert-ai/desktop-protocol@0.5.3
+
+## 0.5.0
+
+### Minor Changes
+
+- 291d42f: Choose your language on first launch, browse assistants by workspace, and return to your last conversation. Install organization plugins, use them in chat, and manage workspace connectors from Discovery.
+
+  On macOS, follow activity and pending requests in the Activity Island, open assistants from the Agent Dock, and grant an assistant control of a window you select.
+
+## 0.4.3
+
+### Patch Changes
+
+- @xpert-ai/desktop-protocol@0.5.2
+
 ## 0.4.2
 
 ### Patch Changes

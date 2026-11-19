@@ -1,5 +1,59 @@
 # @xpert-ai/xpert-ui
 
+## 3.37.2
+
+### Patch Changes
+
+- ddeee0f: Update ChatKit shared types to 0.23.1 and UI to 0.26.1, keeping workspace,
+  API, Web and Desktop dependency locks aligned with the latest stable releases.
+- 7426cdf: Rotate bounded thread-maintenance scans independently and isolate per-thread failures. Persist actual tool exit times and reconcile interrupted tool projections from matching execution receipts while retaining outputs and historical timing uncertainty.
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+
+## 3.37.1
+
+### Patch Changes
+
+- b9a475b: Preserve the first Assistant submission while a newly created conversation is synchronized with the route, preventing an empty conversation when Project navigation is delayed.
+
+## 3.37.0
+
+### Patch Changes
+
+- f417c34: Upgrade ChatKit UI to 0.26.0 and shared types to 0.23.0, with compatible Angular,
+  Web Component and Web Shared packages. Bring compact file resource cards,
+  document plugin navigation and published child-assistant tool details to Cloud
+  and Bosi, keeping workspace and deployment dependency resolutions aligned.
+- deccfeb: Open Project DOCX and PDF files through the shared plugin file editor, alongside PPTX, so Cloud uses the registered document rendering, persistence, and access controls.
+- 50dd6cf: Let tools declare which inputs, outputs and errors conversation participants can see. Application users can see the registered tool name, icon and declared details without assistant configuration permissions. Live updates and conversation history use the same tool message, while the model receives the full tool result.
+- 793e1f4: Carry declared Artifact icons and rendering families through catalog metadata so resource lists can display explicit type icons. Keep the shared icon schema composable while preserving required output fields in published declarations.
+- c4ee3aa: Add explicit catalog refresh, indexed cursor reads and suppression-only path coverage for Spaces. Preserve live source authorization while bounding candidate reads and remove repeated Project checks within one page request. Validate persisted path metadata before using it to suppress duplicate files.
+
+## 3.36.0
+
+### Minor Changes
+
+- Add shared contracts and SDK support for operation-based collaboration, version-bound selections, authorized content transfer, provider-owned files, and isolated browser draft bindings. Keep domain persistence in the resource provider while reusing platform authorization and transport.
+
+  Preserve source-issued certification and exact values in analysis evidence, add bounded query reuse with current permission and source checks, and support explicitly accepted group result delegation. Restrict project member responses to public identity fields.
+
+  Adopt the published ChatKit and Workbench packages, integrate local draft storage in Cloud views, and expose approved tool calls to live MCP App views through the existing client-tool execution path.
+
+  Allow native ARM64 browser-video builds with a digest-pinned multi-platform Playwright base while retaining the existing AMD64 child image. Document collaborative artifacts, Sheets, trusted data, deployment and recovery in English and Chinese.
+
+- ab3a8ed: Show the sample count and paired baseline and candidate accuracy for provider-declared groups in the latest target replay. Customer intent routing includes independent order-tracking cases where the customer explicitly declines a refund.
+- 16a4f69: Open the measured cases behind a target's candidate accuracy and inspect individual outcomes in the original replay.
+- 4a9bad9: Consume the updated task result contracts and distinguish execution results, optional file delivery and explicit acceptance decisions.
+- 4a288f9: Expose the Workbench iframe bridge at `@xpert-ai/plugin-sdk/remote-component` so independently built plugin views can request data and run actions in the active scope. Host appearance is passed to the view for rendering.
+
+  Project owners and managers can review customer intent routing across conversations in Workbench, inspect the original turn, and retrieve the receipt for each decision.
+
+### Patch Changes
+
+- c051e4f: Add scoped Event Inbox sources, durable receipts, partitioned recovery, and binding controls.
+- 6889e73: Pin confirmed invocation completion independently of result delivery recovery. Reduce repeated coding delivery context, clarify node execution statistics, and guide feedback-linked rework and evidence-based final reporting.
+
+  Historical invocation snapshots without a confirmed completion timestamp leave runtime timing unavailable instead of deriving it from later metadata updates.
+
 ## 3.35.0
 
 ### Minor Changes

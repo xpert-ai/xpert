@@ -53,6 +53,13 @@ jobs:
         run: npm ci --prefix .deploy/desktop/release-tools --ignore-scripts --no-audit --no-fund
       - name: Verify Changesets gate and isolated dependencies
         run: node --test .deploy/desktop/*.test.*
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify OSS publishing and retry barriers
+        run: |
+          python -m pip install oss2==2.19.1
+          python -m unittest discover -s .deploy/desktop/oss
       - name: Select Desktop release
         id: plan
         env:

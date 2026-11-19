@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import { affectsImage, requiresImageRelease, services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
-import { fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
+import { assertUnversionedTags, fixture, mainSyncFixture, tags } from './release-test-fixture.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
 
@@ -42,12 +42,11 @@ test('newly merged main versions retain downstream notes and authorize only cand
     )
     for (const [i, image] of plan.matrix.include.entries()) {
       assert.equal(image.baseVersion, i === 0 ? '1.11.1' : '1.1.1')
-      assert.equal(image.version, `${image.baseVersion}-candidate.${channel}.${f.after.slice(0, 12)}`)
       assert.equal(image.versioned, false)
       assert.equal(image.stable, false)
-      assert.equal(image.target, 'candidate')
+      assert.equal(image.target, channel === 'main' ? 'production' : 'candidate')
       assert.deepEqual(image.changesets, ['.changeset/downstream.md'])
-      assert.deepEqual(tags(image), [image.version, `sha-${f.after}`, `${channel}-candidate`])
+      assertUnversionedTags(image, channel, f.after)
     }
   }
   assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/main', f.main), /consume all pending/)
@@ -127,7 +126,7 @@ test('upstream main baselines require explicit downstream candidate retention', 
   )
 })
 
-test('upstream CI builds the same candidate on both branches and exports it for publication only on main', (t) => {
+test('upstream CI validates the declared develop candidate and publishes all production images on main', (t) => {
   const f = fixture(t)
   f.note('api')
   const after = f.commit()
@@ -150,9 +149,9 @@ test('upstream CI builds the same candidate on both branches and exports it for 
     assert.equal(plan.publish, branch === 'main')
     assert.deepEqual(
       plan.validationMatrix.include.map((image) => image.image_name),
-      ['xpert-api']
+      branch === 'main' ? ['xpert-api', 'xpert-webapp', 'xpert-nsjail-runner'] : ['xpert-api']
     )
-    assert.equal(plan.validationMatrix.include[0].target, 'candidate')
+    assert.equal(plan.validationMatrix.include[0].target, branch === 'main' ? 'production' : 'candidate')
     assert.equal(plan.validationMatrix.include[0].publish, branch === 'main')
   }
 })
@@ -168,7 +167,7 @@ test('an API Changeset selects only API and publishes candidate/version/SHA tags
   assert.equal(image.image_name, 'xpert-api')
   assert.equal(image.target, 'candidate')
   assert.equal(image.version, `1.1.0-candidate.develop.${after.slice(0, 12)}`)
-  assert.deepEqual(tags(image), [image.version, `sha-${after}`, 'develop-candidate'])
+  assertUnversionedTags(image, 'develop', after)
 })
 test('Web and NsJail Changesets select their own images; NsJail has no Docker target', (t) => {
   const f = fixture(t)
@@ -318,23 +317,23 @@ test('NsJail runtime edits, deletions and renames require an image declaration o
   }
 })
 
-test('a new NsJail declaration publishes a main candidate and a pending note covers later fixes', (t) => {
+test('a new NsJail declaration publishes production aliases and a pending note covers later fixes', (t) => {
   const f = fixture(t)
   f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
   f.note('nsjail', [jail.name])
   const candidate = f.commit()
-  const [image] = f.plan(f.initial, candidate, 'push', 'refs/heads/main').matrix.include
+  const image = f
+    .plan(f.initial, candidate, 'push', 'refs/heads/main')
+    .matrix.include.find((entry) => entry.name === jail.name)
   assert.equal(image.image_name, 'xpert-nsjail-runner')
   assert.equal(image.health_check, '.deploy/nsjail-runner/check-image.cjs')
-  assert.deepEqual(tags(image), [
-    `1.0.1-candidate.main.${candidate.slice(0, 12)}`,
-    `sha-${candidate}`,
-    'main-candidate'
-  ])
+  assertUnversionedTags(image, 'main', candidate)
   f.write('.deploy/nsjail-runner/runner.py', 'protocol 3 repair')
   const repaired = f.plan(candidate, f.commit(), 'push', 'refs/heads/main')
   assert.equal(repaired.validationMatrix.include[0].publish, true)
-  assert.deepEqual(repaired.matrix.include[0].changesets, ['.changeset/nsjail.md'])
+  assert.deepEqual(repaired.matrix.include.find((entry) => entry.name === jail.name).changesets, [
+    '.changeset/nsjail.md'
+  ])
 })
 
 test('NsJail docs and unit tests do not require a release, and API/Web-only consumers stay independent', (t) => {
@@ -353,11 +352,14 @@ test('NsJail docs and unit tests do not require a release, and API/Web-only cons
     ref: 'refs/heads/main',
     applicationNames: [api.name, web.name]
   })
-  assert.equal(plan.publish, false)
-  assert.equal(plan.validate, false)
+  assert.equal(plan.publish, true)
+  assert.deepEqual(
+    plan.matrix.include.map((entry) => entry.name),
+    [api.name, web.name]
+  )
 })
 
-test('a pending-note repair on main remains a candidate, including in its PR', (t) => {
+test('a pending-note repair publishes main aliases only after its PR merges', (t) => {
   const f = fixture(t)
   f.note('api')
   const before = f.commit()
@@ -366,7 +368,7 @@ test('a pending-note repair on main remains a candidate, including in its PR', (
   for (const event of ['push', 'pull_request']) {
     const plan = f.plan(before, after, event, 'refs/heads/main')
     assert.equal(plan.matrix.include[0].stable, false)
-    assert.ok(!tags(plan.matrix.include[0]).includes('latest'))
+    assert.equal(tags(plan.matrix.include[0]).includes('latest'), event === 'push')
     assert.equal(plan.validationMatrix.include[0].publish, event === 'push')
   }
 })
@@ -419,14 +421,28 @@ test('highest pending bump determines a newly requested candidate version', (t) 
   f.note('patch', [web.name])
   assert.equal(f.plan(before, f.commit()).matrix.include[0].baseVersion, '1.1.0')
 })
-test('new main Changesets are candidates and cannot move main/latest', (t) => {
+test('a documentation-only main push publishes every production image without a Changeset', (t) => {
   const f = fixture(t)
-  f.note('api')
-  const [image] = f.plan(f.initial, f.commit(), 'push', 'refs/heads/main').matrix.include
-  assert.equal(image.stable, false)
-  assert.ok(tags(image).includes('main-candidate'))
-  assert.ok(!tags(image).includes('latest'))
-  assert.ok(!tags(image).includes('main'))
+  f.write('README.md', 'documentation only')
+  const after = f.commit()
+  const plan = f.plan(f.initial, after, 'push', 'refs/heads/main')
+  assert.equal(plan.publish, true)
+  assert.deepEqual(
+    plan.matrix.include.map((image) => [image.image_name, image.target]),
+    [
+      ['xpert-api', 'production'],
+      ['xpert-webapp', 'production'],
+      ['xpert-nsjail-runner', '']
+    ]
+  )
+  assert.deepEqual(
+    plan.validationMatrix.include,
+    plan.matrix.include.map((image) => ({ ...image, publish: true }))
+  )
+  for (const image of plan.matrix.include) {
+    assertUnversionedTags(image, 'main', after)
+    assert.deepEqual(image.changesets, [])
+  }
 })
 test('only consumed notes and matching versions on main produce stable images', (t) => {
   const f = fixture(t)
@@ -469,7 +485,7 @@ test('the default policy rejects partial consumption even when the consumed bump
   assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
 })
 test('retained notes produce candidates until a complete release consumes them', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate', applicationNames: [api.name, web.name] })
   f.note('downstream', [api.name, web.name])
   f.note('upstream', [api.name, web.name, contracts], 'minor')
   const before = f.commit()
@@ -491,12 +507,12 @@ test('retained notes produce candidates until a complete release consumes them',
       ['xpert-api', 'xpert-webapp']
     )
     for (const image of plan.matrix.include) {
-      assert.equal(image.version, `1.1.1-candidate.${channel}.${synced.slice(0, 12)}`)
+      assert.equal(image.baseVersion, '1.1.1')
       assert.equal(image.versioned, true)
       assert.equal(image.stable, false)
-      assert.equal(image.target, 'candidate')
+      assert.equal(image.target, channel === 'main' ? 'production' : 'candidate')
       assert.deepEqual(image.changesets, ['.changeset/upstream.md'])
-      assert.deepEqual(tags(image), [image.version, `sha-${synced}`, `${channel}-candidate`])
+      assertUnversionedTags(image, channel, synced)
     }
   }
 
@@ -516,7 +532,7 @@ test('retained notes produce candidates until a complete release consumes them',
   }
 })
 test('retained bumps cannot justify an incorrect version increase', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate', applicationNames: [api.name, web.name] })
   f.note('retained-major', [api.name], 'major')
   f.note('consumed-patch', [api.name])
   const before = f.commit()
@@ -529,14 +545,14 @@ test('retained bumps cannot justify an incorrect version increase', (t) => {
   assert.equal(image.stable, false)
 })
 test('candidate retention still requires consuming an application note before a version increase', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate', applicationNames: [api.name, web.name] })
   f.note('retained', [api.name])
   const before = f.commit()
   f.version(api, '1.0.1')
   assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
 })
 test('fresh notes beside consumed notes also prevent stable promotion under candidate retention', (t) => {
-  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate', applicationNames: [api.name, web.name] })
   f.note('upstream', [api.name], 'minor')
   const before = f.commit()
   f.remove('upstream')
@@ -550,7 +566,7 @@ test('fresh notes beside consumed notes also prevent stable promotion under cand
   const [image] = f.plan(before, after, 'push', 'refs/heads/main').matrix.include
   assert.equal(image.baseVersion, '1.1.1')
   assert.equal(image.stable, false)
-  assert.deepEqual(tags(image), [image.version, `sha-${after}`, 'main-candidate'])
+  assertUnversionedTags(image, 'main', after)
   assert.deepEqual(image.changesets, ['.changeset/upstream.md', '.changeset/downstream-new.md'])
 })
 test('application selection scopes validation while the default still checks NsJail', (t) => {
@@ -669,9 +685,17 @@ test('matching application and shared releases pass the stable coverage check', 
   f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.0.1' }))
   f.version(api, '1.0.1')
   f.version(web, '1.0.1')
-  const images = f.plan(before, f.commit(), 'push', 'refs/heads/main').matrix.include
-  assert.equal(images.length, 2)
-  assert.ok(images.every((image) => image.stable))
+  const after = f.commit()
+  const images = f.plan(before, after, 'push', 'refs/heads/main').matrix.include
+  assert.deepEqual(
+    images.filter((image) => image.stable).map((image) => image.name),
+    [api.name, web.name]
+  )
+  assertUnversionedTags(
+    images.find((image) => image.name === jail.name),
+    'main',
+    after
+  )
 })
 test('PR uses merge base and never grants publishing permissions', (t) => {
   const f = fixture(t)
@@ -716,8 +740,9 @@ test('new fixed groups align to the existing maximum without authorizing stable 
   const after = f.commit()
   for (const ref of ['refs/heads/develop', 'refs/heads/main']) {
     const plan = f.plan(f.before, after, 'push', ref)
-    assert.equal(plan.matrix.include.length, 2)
-    for (const image of plan.matrix.include) {
+    const aligned = plan.matrix.include.filter((image) => image.changesets.length)
+    assert.equal(aligned.length, 2)
+    for (const image of aligned) {
       assert.equal(image.baseVersion, '1.5.0')
       assert.equal(image.versioned, false)
       assert.equal(image.stable, false)
@@ -747,8 +772,10 @@ test('fixed versions apply the highest group bump while requiring application no
   f.version(web, '2.0.0')
   const after = f.commit()
   const plan = f.plan(before, after, 'push', 'refs/heads/main')
-  assert.equal(plan.matrix.include.length, 2)
-  assert.ok(plan.matrix.include.every((image) => image.stable && image.version === '2.0.0'))
+  assert.deepEqual(
+    plan.matrix.include.filter((image) => image.stable).map((image) => image.version),
+    ['2.0.0', '2.0.0']
+  )
 })
 
 test('fixed groups reject partial versioning and incomplete note consumption', (t) => {

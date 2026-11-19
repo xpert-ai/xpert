@@ -1,5 +1,49 @@
 # @xpert-ai/contracts
 
+## 3.37.2
+
+### Patch Changes
+
+- ddeee0f: Update ChatKit shared types to 0.23.1 and UI to 0.26.1, keeping workspace,
+  API, Web and Desktop dependency locks aligned with the latest stable releases.
+- 7426cdf: Rotate bounded thread-maintenance scans independently and isolate per-thread failures. Persist actual tool exit times and reconcile interrupted tool projections from matching execution receipts while retaining outputs and historical timing uncertainty.
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+
+## 3.37.1
+
+## 3.37.0
+
+### Minor Changes
+
+- 50dd6cf: Let tools declare which inputs, outputs and errors conversation participants can see. Application users can see the registered tool name, icon and declared details without assistant configuration permissions. Live updates and conversation history use the same tool message, while the model receives the full tool result.
+- 793e1f4: Carry declared Artifact icons and rendering families through catalog metadata so resource lists can display explicit type icons. Keep the shared icon schema composable while preserving required output fields in published declarations.
+
+### Patch Changes
+
+- f417c34: Upgrade ChatKit UI to 0.26.0 and shared types to 0.23.0, with compatible Angular,
+  Web Component and Web Shared packages. Bring compact file resource cards,
+  document plugin navigation and published child-assistant tool details to Cloud
+  and Bosi, keeping workspace and deployment dependency resolutions aligned.
+
+## 3.36.0
+
+### Minor Changes
+
+- c051e4f: Add scoped Event Inbox sources, durable receipts, partitioned recovery, and binding controls.
+- Add shared contracts and SDK support for operation-based collaboration, version-bound selections, authorized content transfer, provider-owned files, and isolated browser draft bindings. Keep domain persistence in the resource provider while reusing platform authorization and transport.
+
+  Preserve source-issued certification and exact values in analysis evidence, add bounded query reuse with current permission and source checks, and support explicitly accepted group result delegation. Restrict project member responses to public identity fields.
+
+  Adopt the published ChatKit and Workbench packages, integrate local draft storage in Cloud views, and expose approved tool calls to live MCP App views through the existing client-tool execution path.
+
+  Allow native ARM64 browser-video builds with a digest-pinned multi-platform Playwright base while retaining the existing AMD64 child image. Document collaborative artifacts, Sheets, trusted data, deployment and recovery in English and Chinese.
+
+- ab3a8ed: Show the sample count and paired baseline and candidate accuracy for provider-declared groups in the latest target replay. Customer intent routing includes independent order-tracking cases where the customer explicitly declines a refund.
+- 4a9bad9: Allow ordinary task replies, structured runtime data and empty replies without requiring a report. Replace the unreleased coding-review envelopes with plain Markdown; report files and artifact delivery remain optional. Pin review result identity and digest in explicit coordinator decisions, use natural-language rework feedback, and recover report/artifact delivery without rerunning completed execution. Deploy the matching runtime plugin and host together; old result protocols and data formats are not supported.
+- 4a288f9: Expose the Workbench iframe bridge at `@xpert-ai/plugin-sdk/remote-component` so independently built plugin views can request data and run actions in the active scope. Host appearance is passed to the view for rendering.
+
+  Project owners and managers can review customer intent routing across conversations in Workbench, inspect the original turn, and retrieve the receipt for each decision.
+
 ## 3.35.0
 
 ### Minor Changes

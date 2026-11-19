@@ -101,15 +101,20 @@ yourself and then claim the CLI did it.
    blindly repeat a mutating prompt. Managed CLI auth/config is per invocation;
    do not assume a CLI session ID can resume across shell calls. Send a bounded
    repair prompt with the observed state when recovery is needed.
-3. The Coding CLI manages development services with the project's own commands
-   and its available shell/session facilities. For Xpert, use
-   `tools/local-environment/cli.py`; prepare with `--supervisor-mode detached`
-   and use start/status/logs/stop. Background processes are allowed for testing
-   within the current task; record logs, startup commands and the project paths.
-   Services may stop when the task ends or is cancelled. A later task checks and
-   starts the same project instance again before testing. Stop services when done;
-   do not bypass executor cleanup or require a persistent host service.
-   `sandbox_service_start` is a host Assistant tool, not a CLI shell command.
+3. The Coding CLI operates development services locally. Read
+   [Project service handoff](references/project-services.md) when a service must
+   be shared with another Coding task. On a capable Computer, use
+   `computer-service list`, inspect readiness, and reuse healthy instances.
+   Start a foreground project command with the local `computer-service start`
+   only when needed; it runs outside the individual Coding session. The main
+   Assistant decides retention/shutdown from Project settings and remaining work.
+   Keep services across development, independent review, rework and pending human
+   acceptance unless the task explicitly requires task-scoped shutdown. Return
+   service identities and endpoints at handoff. Restart affected services when
+   your assigned work requires it; do not stop the whole environment at task exit.
+   Without this local capability, ordinary child processes can end with the task;
+   disclose that limitation. `sandbox_service_start` is a host Assistant tool,
+   not a CLI shell command.
 4. For local services, open the application's localhost URL and configured port
    in the cloud browser; starting a local process does not create a preview URL.
    Use a forwarded preview URL only when a host capability supplies one. For visual

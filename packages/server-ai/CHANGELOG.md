@@ -1,5 +1,96 @@
 # @xpert-ai/server-ai
 
+## 3.37.2
+
+### Patch Changes
+
+- 7426cdf: Rotate bounded thread-maintenance scans independently and isolate per-thread failures. Persist actual tool exit times and reconcile interrupted tool projections from matching execution receipts while retaining outputs and historical timing uncertainty.
+- 14635d6: Align controlled Handoff producers and workers with admitted queue contracts. Persist fenced callback receipts and safe publication diagnostics, preserve uncertain outcomes without replay, and provide scoped evidence-based recovery for historical callbacks.
+- Updated dependencies [ddeee0f]
+- Updated dependencies [7426cdf]
+- Updated dependencies [14635d6]
+    - @xpert-ai/contracts@3.37.2
+    - @xpert-ai/server-core@3.37.2
+    - @xpert-ai/desktop-protocol@0.5.5
+    - @xpert-ai/plugin-sdk@3.37.2
+    - @xpert-ai/server-auth@3.37.2
+    - @xpert-ai/server-common@3.37.2
+    - @xpert-ai/server-config@3.37.2
+
+## 3.37.1
+
+### Patch Changes
+
+- @xpert-ai/server-auth@3.37.1
+- @xpert-ai/server-common@3.37.1
+- @xpert-ai/server-config@3.37.1
+- @xpert-ai/contracts@3.37.1
+- @xpert-ai/plugin-sdk@3.37.1
+- @xpert-ai/server-core@3.37.1
+- @xpert-ai/desktop-protocol@0.5.4
+
+## 3.37.0
+
+### Minor Changes
+
+- 50dd6cf: Let tools declare which inputs, outputs and errors conversation participants can see. Application users can see the registered tool name, icon and declared details without assistant configuration permissions. Live updates and conversation history use the same tool message, while the model receives the full tool result.
+
+### Patch Changes
+
+- 793e1f4: Carry declared Artifact icons and rendering families through catalog metadata so resource lists can display explicit type icons. Keep the shared icon schema composable while preserving required output fields in published declarations.
+- c4ee3aa: Add explicit catalog refresh, indexed cursor reads and suppression-only path coverage for Spaces. Preserve live source authorization while bounding candidate reads and remove repeated Project checks within one page request. Validate persisted path metadata before using it to suppress duplicate files.
+- Updated dependencies [f417c34]
+- Updated dependencies [50dd6cf]
+- Updated dependencies [793e1f4]
+- Updated dependencies [c4ee3aa]
+    - @xpert-ai/contracts@3.37.0
+    - @xpert-ai/plugin-sdk@3.37.0
+    - @xpert-ai/desktop-protocol@0.5.3
+    - @xpert-ai/server-core@3.37.0
+    - @xpert-ai/server-auth@3.37.0
+    - @xpert-ai/server-common@3.37.0
+    - @xpert-ai/server-config@3.37.0
+
+## 3.36.0
+
+### Minor Changes
+
+- c051e4f: Add scoped Event Inbox sources, durable receipts, partitioned recovery, and binding controls.
+- Add shared contracts and SDK support for operation-based collaboration, version-bound selections, authorized content transfer, provider-owned files, and isolated browser draft bindings. Keep domain persistence in the resource provider while reusing platform authorization and transport.
+
+    Preserve source-issued certification and exact values in analysis evidence, add bounded query reuse with current permission and source checks, and support explicitly accepted group result delegation. Restrict project member responses to public identity fields.
+
+    Adopt the published ChatKit and Workbench packages, integrate local draft storage in Cloud views, and expose approved tool calls to live MCP App views through the existing client-tool execution path.
+
+    Allow native ARM64 browser-video builds with a digest-pinned multi-platform Playwright base while retaining the existing AMD64 child image. Document collaborative artifacts, Sheets, trusted data, deployment and recovery in English and Chinese.
+
+- ab3a8ed: Show the sample count and paired baseline and candidate accuracy for provider-declared groups in the latest target replay. Customer intent routing includes independent order-tracking cases where the customer explicitly declines a refund.
+- 4a9bad9: Allow ordinary task replies, structured runtime data and empty replies without requiring a report. Replace the unreleased coding-review envelopes with plain Markdown; report files and artifact delivery remain optional. Pin review result identity and digest in explicit coordinator decisions, use natural-language rework feedback, and recover report/artifact delivery without rerunning completed execution. Deploy the matching runtime plugin and host together; old result protocols and data formats are not supported.
+- 4a288f9: Expose the Workbench iframe bridge at `@xpert-ai/plugin-sdk/remote-component` so independently built plugin views can request data and run actions in the active scope. Host appearance is passed to the view for rendering.
+
+    Project owners and managers can review customer intent routing across conversations in Workbench, inspect the original turn, and retrieve the receipt for each decision.
+
+### Patch Changes
+
+- 6889e73: Pin confirmed invocation completion independently of result delivery recovery. Reduce repeated coding delivery context, clarify node execution statistics, and guide feedback-linked rework and evidence-based final reporting.
+
+    Historical invocation snapshots without a confirmed completion timestamp leave runtime timing unavailable instead of deriving it from later metadata updates.
+
+- aaff520: Fix production compilation of project task delivery recovery and decision replay against strict contract declarations while preserving runtime validation and authorization.
+- Updated dependencies [c051e4f]
+- Updated dependencies [6889e73]
+- Updated dependencies
+- Updated dependencies [ab3a8ed]
+- Updated dependencies [4a9bad9]
+- Updated dependencies [4a288f9]
+    - @xpert-ai/contracts@3.36.0
+    - @xpert-ai/plugin-sdk@3.36.0
+    - @xpert-ai/server-core@3.36.0
+    - @xpert-ai/desktop-protocol@0.5.2
+    - @xpert-ai/server-auth@3.36.0
+    - @xpert-ai/server-common@3.36.0
+    - @xpert-ai/server-config@3.36.0
+
 ## 3.35.0
 
 ### Minor Changes

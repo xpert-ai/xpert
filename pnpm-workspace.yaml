@@ -16,6 +16,8 @@ catalog:
 
 # Keep overrides here so replacing the root manifest in Docker preserves them.
 overrides:
+  # Retry stapling the accepted macOS ticket when the Apple connection drops.
+  'app-builder-lib>@electron/notarize@2.5.0': 3.1.2
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
   langchain: 0.3.31

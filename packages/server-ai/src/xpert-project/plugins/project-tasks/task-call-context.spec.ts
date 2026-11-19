@@ -74,7 +74,6 @@ it('preserves negative findings, unknown tool output, pending calls, foreign sco
             call,
             new ToolMessage({ content: 'Uncertain outcome', tool_call_id: 'call', name: reply.name, status: 'success' })
         ],
-        [new AIMessage({ content: 'Important finding', tool_calls: call.tool_calls }), reply],
         [
             new AIMessage({
                 content: '',
@@ -88,6 +87,16 @@ it('preserves negative findings, unknown tool output, pending calls, foreign sco
         expect(projectTaskCallReceipts(history, projectId)).toEqual(history)
     }
     expect(projectTaskCallReceipts([call, reply], taskId)).toEqual([call, reply])
+})
+it('keeps the coordinator narrative while compacting its already acknowledged delegation arguments', () => {
+    const { call, reply } = pair()
+    const narrative = new AIMessage({ content: 'A required operation is still failing.', tool_calls: call.tool_calls })
+    const result = projectTaskCallReceipts([narrative, reply], projectId)
+    expect(result).toHaveLength(1)
+    expect(result[0].content).toContain('A required operation is still failing.')
+    expect(result[0].content).toContain(executionId)
+    expect(JSON.stringify(result)).not.toContain('requirementsrequirements')
+    expect(narrative.tool_calls).toEqual(call.tool_calls)
 })
 it('preserves created requirements in the receipt, including a negative constraint', () => {
     const call = new AIMessage({

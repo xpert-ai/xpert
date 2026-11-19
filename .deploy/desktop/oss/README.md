@@ -44,6 +44,9 @@ GitHub 发布正式版后，`Build Bosi Desktop apps` 会调用 `Mirror Bosi rel
 }
 ```
 
+大安装包按 2 MiB 分片上传，每个文件最多同时传输 8 个分片。传输中断时，工作流最多尝试受影响的分片 4 次，并定期输出已完成分片和字节数。全部文件上传并校验后才更新公开索引。
+如需在任务失败时立即清理未合并的分片，发布角色可在同一目录增加 `oss:AbortMultipartUpload`；也可由 Bucket 生命周期规则定期清理未完成的分片。
+
 ## GitHub Actions 设置
 
 在两个仓库的 **Settings → Secrets and variables → Actions → Variables** 设置仓库变量 `BOSI_OSS_DOMAIN`。填写相同的小写域名 `xpert-bosi-releases.oss-cn-hangzhou.aliyuncs.com`。桌面打包任务和官网构建任务都在 environment 之外读取它。官网建议在首次补传后启用。
@@ -58,6 +61,18 @@ GitHub 发布正式版后，`Build Bosi Desktop apps` 会调用 `Mirror Bosi rel
 | `BOSI_OSS_ROLE_ARN`          | 上述 RAM 发布角色的完整 ARN       |
 
 发布使用 GitHub OIDC 换取临时凭证。官网和客户端只持有公开域名。
+
+## 同步任务与超时预算
+
+工作流按整个发布串行排队，防止不同版本同时修改索引；同一发布内按文件并行上传：
+
+1. **prepare（20 分钟）**：从 GitHub 下载完整 Release，校验附件 SHA-256、大小和 `SHA256SUMS.txt`，生成包含 MD5、CRC64 的校验快照。此阶段不获取 OSS 凭据。快照作为当前 run 的 artifact 保留 30 天，后续任务只接受与快照完全一致的文件。
+2. **upload（每个文件 50 分钟，最多 3 个任务并行）**：每个超过 2 MiB 的附件独占一个矩阵任务，下载并核对该文件后才获取新的 3600 秒 STS 凭据。每个任务都核对 OSS 的 SHA-256 元数据、服务端 CRC64、大小和公开 HEAD 响应。某个文件失败不会取消其他上传。
+3. **finalize（15 分钟）**：所有上传成功后，独立获取新凭据，补齐不超过 2 MiB 的小文件，再次核对所有远端附件后才更新 `latest.json`，并检查公开索引和官网 CORS。此任务不会兜底上传缺失的大文件；任一文件缺失、损坏或不可公开访问都会阻止索引切换。没有大文件时可直接进入此阶段。
+
+因此完整发布耗时不再受单个任务的一小时凭据限制，也不需要延长 RAM 会话或扩大 OSS 权限。单文件仍有 50 分钟预算，极慢网络或服务故障仍可能失败。
+
+失败时优先使用 **Re-run failed jobs**。上传任务和最终校验复用同一份快照，已完成且校验一致的对象不会重复上传或覆盖。快照已过期时使用 **Re-run all jobs** 或按同一 tag 新建运行。未完成分片合并的文件会重新上传；旧版补传不会使最新版本或各架构更新源倒退。
 
 ## 首次上线与验收
 

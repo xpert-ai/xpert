@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.5
+
+### Patch Changes
+
+- 1812c71: Rebuild the NsJail runner with the Compute, Document Node and Document Java runtime definitions from the updated Sandbox Runtime suite.
+
 ## 0.4.4
 
 ### Patch Changes

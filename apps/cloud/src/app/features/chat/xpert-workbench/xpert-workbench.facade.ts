@@ -380,7 +380,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const entryKey = `${xpertId}:${JSON.stringify(this.chatkitProjectSelection())}`
+    const entryKey = this.conversationEntryKey()
     if (this.#lastConversationEntryKey === entryKey) {
       return
     }
@@ -493,6 +493,8 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     }
 
     if (threadId) {
+      // ChatKit already owns this entry; route synchronization must not reset its pending submission.
+      this.#lastConversationEntryKey = this.conversationEntryKey()
       this.suppressAutoResume.set(false)
       this.navigateToThread(threadId)
       return
@@ -546,6 +548,10 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     return projectId
       ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c`
       : `/chat/x/${encodeURIComponent(slug)}/c`
+  }
+
+  private conversationEntryKey() {
+    return `${this.xpertId()}:${JSON.stringify(this.chatkitProjectSelection())}`
   }
 
   private isConversationEntryRoute() {

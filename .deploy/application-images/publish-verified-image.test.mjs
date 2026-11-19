@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { test } from 'node:test'
 import { publishVerifiedImage } from './publish-verified-image.mjs'
 
@@ -13,9 +14,10 @@ const repositories = [
 
 function fixture({ version = '1.0.1', existing = {}, localId = verifiedId, revision = sha, inspectError } = {}) {
   const tags = repositories.flatMap((repo) =>
-    [version, `sha-${sha}`, ...(version.includes('candidate') ? ['develop-candidate'] : ['main', 'latest'])].map(
-      (tag) => `${repo}:${tag}`
-    )
+    [
+      version,
+      ...(version.includes('candidate') ? [`sha-${sha}`, 'develop-candidate'] : [`sha-${sha}`, 'main', 'latest'])
+    ].map((tag) => `${repo}:${tag}`)
   )
   const calls = []
   const options = {
@@ -90,6 +92,28 @@ test('partial publication retries skip identical immutable tags and finish other
   assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 10)
 })
 
+test('containerd artifact IDs match exact remote manifest bytes instead of config digests', () => {
+  const raw = JSON.stringify({ config: { digest: otherId } }, null, 2) + '\n'
+  const manifestId = `sha256:${createHash('sha256').update(raw).digest('hex')}`
+  const tag = `${repositories[0]}:1.0.1`
+  const f = fixture({ localId: manifestId })
+  f.options.verifiedId = manifestId
+  const run = f.options.run
+  f.options.run = (args) => (args[0] === 'buildx' && args.at(-1) === tag ? raw : run(args))
+  f.push()
+  assert.ok(!f.calls.some(([cmd, target]) => cmd === 'push' && target === tag))
+  assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 11)
+})
+
+test('a matching config does not authorize a different containerd manifest ID', () => {
+  const raw = JSON.stringify({ config: { digest: otherId }, layers: [] })
+  const manifestId = `sha256:${createHash('sha256').update(raw).digest('hex')}`
+  const f = fixture({ localId: manifestId, existing: { [`${repositories[0]}:1.0.1`]: otherId } })
+  f.options.verifiedId = manifestId
+  assert.throws(f.push, /Refusing to overwrite immutable/)
+  assert.ok(!f.calls.some(([cmd]) => cmd === 'push' || cmd === 'tag'))
+})
+
 test('a mirror push failure never advances channel aliases', () => {
   const f = fixture()
   const run = f.options.run
@@ -126,4 +150,24 @@ test('registry outages or permission errors are not treated as missing tags', ()
     assert.throws(f.push)
     assert.ok(!f.calls.some(([cmd]) => cmd === 'push' || cmd === 'tag'))
   }
+})
+
+test('a rolling main build pushes its SHA once per registry and refuses the obsolete alias', () => {
+  const version = `sha-${sha}`
+  const f = fixture({ version })
+  f.push()
+  assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 9)
+  const invalid = fixture({ version })
+  invalid.options.tags.push(`${repositories[0]}:main-candidate`)
+  assert.throws(invalid.push, /Unexpected release tag/)
+  assert.ok(!invalid.calls.some(([cmd]) => cmd === 'push'))
+})
+
+test('a superseded main run finishes immutable tags and skips both aliases', () => {
+  const f = fixture()
+  f.options.shouldPromote = () => false
+  f.push()
+  const writes = f.calls.filter(([cmd]) => cmd === 'push')
+  assert.equal(writes.length, 6)
+  assert.ok(writes.every(([, tag]) => !/:(main|latest)$/.test(tag)))
 })
