@@ -2,21 +2,16 @@
 // version/SHA tags must identify that same image; only channel aliases may move.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { runDocker } from './docker-command.mjs'
 
 const digestPattern = /^sha256:[a-f0-9]{64}$/
-const docker = (args) =>
-  execFileSync('docker', args, {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 15 * 60_000
-  }).trim()
-
-function remoteImageId(tag, run) {
-  let manifest
+function remoteImageIds(tag, run) {
+  let raw
   try {
-    manifest = JSON.parse(run(['buildx', 'imagetools', 'inspect', '--raw', tag]))
+    raw = run(['buildx', 'imagetools', 'inspect', '--raw', tag])
   } catch (error) {
     const message = String(error.stderr || error.message)
     if (
@@ -26,9 +21,13 @@ function remoteImageId(tag, run) {
       return null
     throw error
   }
+  const manifest = JSON.parse(raw)
+  // Containerd stores use the manifest/index digest as .Id; classic stores use
+  // the config digest. Hash the exact registry bytes, including any whitespace.
+  const ids = [`sha256:${createHash('sha256').update(raw).digest('hex')}`]
   if (manifest.config?.digest) {
     assert.match(manifest.config.digest, digestPattern)
-    return manifest.config.digest
+    return [...ids, manifest.config.digest]
   }
   // Earlier Buildx releases may have attached provenance to a single-platform index.
   const linux = manifest.manifests?.filter(
@@ -39,7 +38,7 @@ function remoteImageId(tag, run) {
   const repository = tag.includes('@') ? tag.split('@')[0] : tag.slice(0, tag.lastIndexOf(':'))
   const child = JSON.parse(run(['buildx', 'imagetools', 'inspect', '--raw', `${repository}@${linux[0].digest}`]))
   assert.match(child.config?.digest ?? '', digestPattern)
-  return child.config.digest
+  return [...ids, linux[0].digest, child.config.digest]
 }
 
 export function publishVerifiedImage({
@@ -48,7 +47,7 @@ export function publishVerifiedImage({
   tags,
   version,
   sha,
-  run = docker,
+  run = runDocker,
   shouldPromote = () => true
 }) {
   assert.match(verifiedId, digestPattern)
@@ -69,9 +68,9 @@ export function publishVerifiedImage({
     const value = tag.slice(tag.lastIndexOf(':') + 1)
     assert.ok(immutable.has(value) || aliases.has(value), `Unexpected release tag: ${tag}`)
     if (aliases.has(value)) return { tag, alias: true, exists: false }
-    const existingId = remoteImageId(tag, run)
-    assert.ok(existingId === null || existingId === verifiedId, `Refusing to overwrite immutable image ${tag}`)
-    return { tag, alias: false, exists: existingId !== null }
+    const existingIds = remoteImageIds(tag, run)
+    assert.ok(existingIds === null || existingIds.includes(verifiedId), `Refusing to overwrite immutable image ${tag}`)
+    return { tag, alias: false, exists: existingIds !== null }
   })
   // Check every immutable target before writing; move aliases only after all mirrors succeed.
   const push = (entry) => {
@@ -93,7 +92,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     sha: process.env.IMAGE_SHA,
     shouldPromote: () => {
       const head = execFileSync('git', ['ls-remote', '--exit-code', 'origin', 'refs/heads/main'], { encoding: 'utf8' })
-      return head.split('\t')[0] === process.env.IMAGE_SHA
+      return head.split('\t')[0] === (process.env.IMAGE_PROMOTION_SHA || process.env.IMAGE_SHA)
     }
   })
 }

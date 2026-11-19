@@ -175,6 +175,20 @@ partial retries. Channel aliases move only after immutable tags succeed on every
 mirror. A superseded run finishes its immutable tags and checks the current Git
 `main` head before moving either alias. The production environment approval remains on the publication job.
 
+Docker containerd stores identify images by their manifest/index digest; classic
+stores use the config digest. The publisher checks these identities against the
+registry's original manifest bytes. Transient pushes retry at most three times,
+with live upload progress; authentication and immutable-tag conflicts stay fatal.
+
+If the publisher itself needs a repair, use **Retry application image publication**
+on `main` with the original workflow run ID. This downloads the original artifacts
+and executes the repaired publisher without rebuilding images. Recovery requires
+a completed `main` push, successful release checks and every image build, and
+unexpired artifacts from that run. Only the explicitly listed publication scripts,
+tests, recovery workflow and release documentation may have changed since the
+source commit. Runtime, dependency and build changes block recovery. Channel
+aliases can advance only while the validated recovery commit remains `main`.
+
 Verified image artifacts are retained for seven days. After artifact expiry a full
 run is required; immutable-tag checks still reject a different rebuilt image for an
 already published version. Formal release versioning and note consumption are
