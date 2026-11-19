@@ -15,9 +15,15 @@ export const appPlatformAppSchema = z
     dependsOn: z.array(key).max(32).default([])
   })
   .strict()
-  .transform(app => ({ ...app, key: app.key, required: app.required, configurationRef: app.configurationRef,
-    dependsOn: app.dependsOn, enabled: app.enabled,
-    appRef: { pluginName: app.appRef.pluginName, appName: app.appRef.appName } }))
+  .transform((app) => ({
+    ...app,
+    key: app.key,
+    required: app.required,
+    configurationRef: app.configurationRef,
+    dependsOn: app.dependsOn,
+    enabled: app.enabled,
+    appRef: { pluginName: app.appRef.pluginName, appName: app.appRef.appName }
+  }))
 
 /** Portable product composition. Credentials and database identities never belong here. */
 export const appPlatformDefinitionSchema = z
@@ -61,7 +67,8 @@ export const appPlatformDefinitionSchema = z
     if (targets.size !== apps.size) fail('Duplicate application installation target')
     if (!apps.get(definition.experience.home)?.required) fail('Home must reference a required application')
     if (!apps.get(definition.experience.home)?.enabled) fail('Home application must be enabled')
-    if (!definition.experience.navigation.includes(definition.experience.home)) fail('Home must be present in navigation')
+    if (!definition.experience.navigation.includes(definition.experience.home))
+      fail('Home must be present in navigation')
     if (new Set(definition.experience.navigation).size !== definition.experience.navigation.length)
       fail('Duplicate navigation entry')
     for (const entry of definition.experience.navigation) if (!apps.has(entry)) fail('Unknown navigation application')
@@ -103,7 +110,9 @@ export const appPlatformDefinitionSchema = z
 export type AppPlatformDefinition = z.output<typeof appPlatformDefinitionSchema>
 export type AppPlatformApp = z.output<typeof appPlatformAppSchema>
 
-const model = z.object({ provider: text, model: text, role: z.enum(['primary', 'secondary', 'embedding', 'reasoning']).optional() }).strict()
+const model = z
+  .object({ provider: text, model: text, role: z.enum(['primary', 'secondary', 'embedding', 'reasoning']).optional() })
+  .strict()
 export const appPlatformEnvironmentSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -115,9 +124,18 @@ export const appPlatformEnvironmentSchema = z
           embedding: model.optional(),
           vision: model.optional(),
           speechToText: model.optional(),
-          auxiliaryModels: z.array(model.extend({ modelType: z.nativeEnum(AiModelTypeEnum) })).max(32).default([]),
-          tools: z.array(z.object({ provider: text, sourceName: text }).strict()).max(32).default([])
-            .refine(items => new Set(items.map(item => item.provider)).size === items.length, 'Duplicate tool provider')
+          auxiliaryModels: z
+            .array(model.extend({ modelType: z.nativeEnum(AiModelTypeEnum) }))
+            .max(32)
+            .default([]),
+          tools: z
+            .array(z.object({ provider: text, sourceName: text }).strict())
+            .max(32)
+            .default([])
+            .refine(
+              (items) => new Set(items.map((item) => item.provider)).size === items.length,
+              'Duplicate tool provider'
+            )
         })
         .strict()
     ),
@@ -129,8 +147,18 @@ export const appPlatformEnvironmentSchema = z
           creditLimit: z.number().positive(),
           maxProjects: z.number().int().min(1).max(10000),
           maxUploadBytes: z.number().int().positive(),
-          maxStorageBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(2 * 1024 ** 3),
-          maxTemporaryBytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).default(256 * 1024 ** 2),
+          maxStorageBytes: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER)
+            .default(2 * 1024 ** 3),
+          maxTemporaryBytes: z
+            .number()
+            .int()
+            .positive()
+            .max(Number.MAX_SAFE_INTEGER)
+            .default(256 * 1024 ** 2),
           maxConcurrentRuns: z.number().int().min(1).max(100)
         })
         .strict()
@@ -177,4 +205,17 @@ export interface AppPlatformStatus {
     errorCode?: string
     entries: Array<{ key: string; id: string; slug?: string; title: string }>
   }>
+}
+
+/** Account-wide storage, using the same snapshot and limits as quota enforcement. */
+export interface AppPlatformStorageUsage {
+  limitBytes: number
+  snapshot: {
+    fileBytes: number
+    databaseBytes: number
+    usedBytes: number
+    measuredAt: string
+    stale: boolean
+    refreshPending: boolean
+  } | null
 }

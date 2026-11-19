@@ -101,7 +101,7 @@ export class MembershipController {
     @Post('plans')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
-    @UseValidationPipe()
+    @UseValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true })
     async createPlan(@Body() input: CreateMembershipPlanDto) {
         return this.service.createPlan(input)
     }
@@ -109,7 +109,7 @@ export class MembershipController {
     @Patch('plans/:id')
     @UseGuards(PermissionGuard)
     @Permissions(AIPermissionsEnum.MEMBERSHIP_EDIT)
-    @UseValidationPipe()
+    @UseValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true })
     async updatePlan(@Param('id') id: string, @Body() input: UpdateMembershipPlanDto) {
         return this.service.updatePlan(id, input)
     }

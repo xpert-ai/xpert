@@ -1,6 +1,6 @@
 import { MembershipSourceEnum } from '@xpert-ai/contracts'
 import { validate } from 'class-validator'
-import { MembershipAssignDto, MembershipPointAdjustDto } from './membership.dto'
+import { CreateMembershipPlanDto, MembershipAssignDto, MembershipPointAdjustDto } from './membership.dto'
 
 describe('MembershipAssignDto', () => {
     it('accepts known membership sources and rejects arbitrary source values', async () => {
@@ -48,4 +48,22 @@ describe('MembershipPointAdjustDto', () => {
             ])
         )
     })
+})
+
+describe('plan storage validation', () => {
+    it.each([null, undefined, 20 * 1024 ** 3])('accepts optional byte capacity %s', async (includedStorageBytes) => {
+        const dto = Object.assign(new CreateMembershipPlanDto(), { code: 'paid', name: 'Paid', includedStorageBytes })
+        expect((await validate(dto)).filter((error) => error.property === 'includedStorageBytes')).toHaveLength(0)
+    })
+    it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+        'rejects invalid byte capacity %s',
+        async (includedStorageBytes) => {
+            const dto = Object.assign(new CreateMembershipPlanDto(), {
+                code: 'paid',
+                name: 'Paid',
+                includedStorageBytes
+            })
+            expect((await validate(dto)).some((error) => error.property === 'includedStorageBytes')).toBe(true)
+        }
+    )
 })

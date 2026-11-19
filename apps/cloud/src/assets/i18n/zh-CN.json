@@ -48,6 +48,29 @@
     "USERS": "用户"
   },
   "XP": {
+    "StorageEntitlement": {
+      "PlanCapacity": "套餐存储容量（GiB）",
+      "PlanHint": "留空沿用应用基础容量。容量为总上限，不按月累加；已生效周期保留快照权益。",
+      "InvalidCapacity": "请输入 1 至 8,388,607 之间的整数 GiB，或留空。",
+      "RetentionHint": "已有文件会保留，仍可下载或删除；新增写入需要足够的可用容量。"
+    },
+    "StorageUsage": {
+      "Title": "存储空间",
+      "Description": "当前应用账号的存储占用。",
+      "Refresh": "刷新用量",
+      "Remaining": "剩余空间",
+      "Used": "已使用",
+      "Full": "存储空间已满，新增上传和生成文件可能失败。请清理不再需要的文件，或联系管理员调整额度。",
+      "Files": "文件",
+      "Records": "应用记录",
+      "UpdatedAt": "统计时间：",
+      "Delayed": "统计存在延迟或正在更新，请稍后刷新查看最新结果。",
+      "EstimateHint": "用量定期统计，上传或删除后可能延迟更新。1 GiB = 1,024 MiB。",
+      "Limit": "存储额度：",
+      "Pending": "等待统计，用量暂时未知。",
+      "Loading": "正在读取存储用量…",
+      "LoadFailed": "暂时无法读取存储用量，请刷新重试。"
+    },
     "ProfileSettings": {
       "ShowWorkspacePet": "显示工作区宠物",
       "WorkspacePetHint": "更改立即生效，仅用于此浏览器中当前账号和组织。",

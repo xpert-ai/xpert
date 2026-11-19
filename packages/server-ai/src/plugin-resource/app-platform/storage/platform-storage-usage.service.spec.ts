@@ -126,19 +126,20 @@ describe('account storage measurement', () => {
         await symlink(directory, f.root)
         await expect(f.service.validateSandboxRoot(f.delivery, resource, f.root)).rejects.toMatchObject({ status: 403 })
     })
-    it('refreshes ordinary accounts every five minutes and near-limit or dirty accounts sooner', () => {
+    it('refreshes ordinary accounts every five minutes and near-limit or dirty accounts sooner', async () => {
         const f = fixture(directory)
+        jest.spyOn(f.service, 'limit').mockResolvedValue(100)
         const snapshot = {
             externalBytes: 10,
             databaseBytes: 0,
             measuredAt: new Date(Date.now() - 61_000),
             refreshRequested: false
         }
-        expect(f.service.needsRefresh(f.delivery, snapshot)).toBe(false)
-        expect(f.service.needsRefresh(f.delivery, { ...snapshot, externalBytes: 90 })).toBe(true)
-        expect(f.service.needsRefresh(f.delivery, { ...snapshot, refreshRequested: true })).toBe(true)
-        expect(f.service.needsRefresh(f.delivery, { ...snapshot, measuredAt: new Date(Date.now() - 301_000) })).toBe(
-            true
-        )
+        expect(await f.service.needsRefresh(f.delivery, snapshot)).toBe(false)
+        expect(await f.service.needsRefresh(f.delivery, { ...snapshot, externalBytes: 90 })).toBe(true)
+        expect(await f.service.needsRefresh(f.delivery, { ...snapshot, refreshRequested: true })).toBe(true)
+        expect(
+            await f.service.needsRefresh(f.delivery, { ...snapshot, measuredAt: new Date(Date.now() - 301_000) })
+        ).toBe(true)
     })
 })

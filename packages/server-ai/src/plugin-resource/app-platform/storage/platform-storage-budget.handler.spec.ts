@@ -21,6 +21,7 @@ function fixture() {
     const accounts = { resolve: jest.fn().mockResolvedValue(account) }
     const snapshot = { externalBytes: 70, databaseBytes: 20, measuredAt: new Date(), refreshRequested: false }
     const usage = {
+        limit: jest.fn().mockResolvedValue(100),
         snapshot: jest.fn().mockResolvedValue(snapshot),
         refresh: jest.fn(),
         requestRefresh: jest.fn(),
@@ -51,6 +52,19 @@ describe('snapshot storage admission', () => {
         await expect(f.handler.execute(new CheckStorageQuotaCommand({ kind, scope: owner }))).rejects.toMatchObject({
             status: 413
         })
+    })
+    it('uses newly purchased capacity without waiting for another usage measurement', async () => {
+        const f = fixture()
+        f.snapshot.externalBytes = 120
+        f.usage.limit.mockResolvedValue(200)
+        await expect(
+            f.handler.execute(new CheckStorageQuotaCommand({ kind: 'write', scope: owner }))
+        ).resolves.toBeNull()
+        f.usage.limit.mockResolvedValue(100)
+        await expect(
+            f.handler.execute(new CheckStorageQuotaCommand({ kind: 'write', scope: owner }))
+        ).rejects.toMatchObject({ status: 413 })
+        expect(f.usage.refresh).not.toHaveBeenCalled()
     })
     it.each([0, -10])('allows a non-growing replacement (%s) even when over quota', async (growthBytes) => {
         const f = fixture()

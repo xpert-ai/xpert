@@ -55,6 +55,29 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "StorageEntitlement": {
+      "PlanCapacity": "Included storage (GiB)",
+      "PlanHint": "Leave empty to use the application base allowance. Capacity is a total limit, not a monthly accumulation; effective periods retain their entitlement snapshots.",
+      "InvalidCapacity": "Enter a whole number from 1 to 8,388,607 GiB, or leave blank.",
+      "RetentionHint": "Existing files are retained. You can download or delete them; new writes require available capacity."
+    },
+    "StorageUsage": {
+      "Title": "Storage",
+      "Description": "Storage used across your application account.",
+      "Refresh": "Refresh usage",
+      "Remaining": "Available",
+      "Used": "Used",
+      "Full": "Storage is full. New uploads and generated files may fail. Remove files you no longer need or contact your administrator to increase the limit.",
+      "Files": "Files",
+      "Records": "Application records",
+      "UpdatedAt": "Last measured:",
+      "Delayed": "Usage statistics are delayed or updating. Refresh later to check the latest measurement.",
+      "EstimateHint": "Usage is measured periodically and may change after uploads or deletions. 1 GiB = 1,024 MiB.",
+      "Limit": "Storage limit:",
+      "Pending": "Waiting for the first usage measurement. Usage is not yet known.",
+      "Loading": "Loading storage usage…",
+      "LoadFailed": "Storage usage is temporarily unavailable. Please refresh to try again."
+    },
     "WebUpdate": {
       "Notice": "The system has been updated. Save your work before refreshing.",
       "UpdateNow": "Update now",

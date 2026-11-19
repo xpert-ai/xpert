@@ -59,6 +59,10 @@ export class MembershipPlan extends TenantOrganizationBaseEntity implements IMem
     @Column({ type: 'bigint', nullable: true, default: 1000, transformer: bigintNumberTransformer })
     includedPoints: number | null
 
+    @ApiPropertyOptional({ type: () => Number })
+    @Column({ type: 'bigint', nullable: true, transformer: bigintNumberTransformer })
+    includedStorageBytes?: number | null
+
     /** @deprecated Read-only compatibility columns for migrating sale prices into Pro billing products. */
     @ApiPropertyOptional({ type: () => Number })
     @Column({

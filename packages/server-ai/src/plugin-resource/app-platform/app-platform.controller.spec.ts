@@ -1,4 +1,6 @@
-import { INestApplication } from '@nestjs/common'
+import { INestApplication, UnauthorizedException } from '@nestjs/common'
+import { PassportStrategy } from '@nestjs/passport'
+import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
@@ -20,11 +22,29 @@ const userId = '00000000-0000-4000-8000-000000000002'
 const use = AIPermissionsEnum.APPLICATION_USE
 const install = AIPermissionsEnum.APPLICATION_INSTALL
 
+// Register rejecting fallbacks for every Pro strategy so anonymous requests remain 401.
+class TestOidcStrategy extends PassportStrategy(Strategy, 'oidc') {
+    constructor() {
+        super({ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: secret })
+    }
+    validate() {
+        throw new UnauthorizedException()
+    }
+}
+class TestApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
+    constructor() {
+        super({ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), secretOrKey: secret })
+    }
+    validate() {
+        throw new UnauthorizedException()
+    }
+}
+
 describe('App platform HTTP boundary', () => {
     let app: INestApplication
     let origin: string
     let grants: AIPermissionsEnum[]
-    const platform = { presentation: jest.fn(), ensureForCurrentUser: jest.fn() }
+    const platform = { presentation: jest.fn(), ensureForCurrentUser: jest.fn(), storageForCurrentUser: jest.fn() }
     const updates = { list: jest.fn(), adopt: jest.fn() }
     const getAuthenticatedUser = jest.fn()
     const token = sign({ id: userId }, secret, { expiresIn: '1h' })
@@ -45,6 +65,8 @@ describe('App platform HTTP boundary', () => {
             providers: [
                 JwtStrategy,
                 BasicStrategy,
+                TestOidcStrategy,
+                TestApiKeyStrategy,
                 { provide: AuthService, useValue: { getAuthenticatedUser, validateUser: jest.fn() } },
                 { provide: ConfigService, useValue: { get: () => secret } },
                 { provide: AppPlatformService, useValue: platform },
@@ -94,6 +116,7 @@ describe('App platform HTTP boundary', () => {
 
     it.each([
         { path: 'me' },
+        { path: 'storage' },
         { path: 'retry', body: {} },
         { path: 'deliveries' },
         { path: 'adopt-definition', body: { deliveryId, expectedDigest } }
@@ -102,6 +125,18 @@ describe('App platform HTTP boundary', () => {
         expect(platform.ensureForCurrentUser).not.toHaveBeenCalled()
         expect(updates.list).not.toHaveBeenCalled()
         expect(updates.adopt).not.toHaveBeenCalled()
+    })
+
+    it('serves own storage to application users without accepting an account selector', async () => {
+        const usage = { limitBytes: 1024, snapshot: null }
+        platform.storageForCurrentUser.mockResolvedValue(usage)
+        const response = await request('storage?userId=another-user')
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual(usage)
+        expect(platform.storageForCurrentUser).toHaveBeenCalledWith()
+        expect(platform.ensureForCurrentUser).not.toHaveBeenCalled()
+        grants = []
+        expect((await request('storage')).status).toBe(403)
     })
 
     it('lets application users inspect and retry only their current account', async () => {

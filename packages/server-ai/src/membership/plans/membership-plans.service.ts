@@ -34,6 +34,7 @@ import {
     translateMembershipError
 } from '../membership-utils'
 import { UserMembership } from '../user-membership.entity'
+import { normalizeIncludedStorageBytes } from '../membership-storage'
 
 @Injectable()
 export class MembershipPlansService {
@@ -80,6 +81,7 @@ export class MembershipPlansService {
             isDefault,
             period: input.period ?? MembershipPeriodEnum.Monthly,
             includedPoints: nonNegativeNumberOrNull(input.includedPoints, DEFAULT_INCLUDED_POINTS),
+            includedStorageBytes: normalizeIncludedStorageBytes(input.includedStorageBytes),
             allowedModels: normalizeAllowedModels(input.allowedModels),
             modelMultipliers: normalizeModelMultipliers(input.modelMultipliers),
             rateLimits: normalizeRateLimits(input.rateLimits)
@@ -178,6 +180,9 @@ export class MembershipPlansService {
             }
             if (input.includedPoints !== undefined) {
                 plan.includedPoints = nextIncludedPoints
+            }
+            if (input.includedStorageBytes !== undefined) {
+                plan.includedStorageBytes = normalizeIncludedStorageBytes(input.includedStorageBytes)
             }
             if (input.allowedModels !== undefined) {
                 plan.allowedModels = normalizeAllowedModels(input.allowedModels)

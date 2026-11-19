@@ -1,3 +1,9 @@
+import { membershipStorageTestSchemas } from '../../../membership/testing/membership-storage.test-schemas'
+import { MembershipPlan } from '../../../membership/membership-plan.entity'
+import { UserMembership } from '../../../membership/user-membership.entity'
+import { MembershipPeriod } from '../../../membership/membership-period.entity'
+import { createMembershipPlanSnapshot } from '../../../membership/membership-plan-snapshot'
+import { MembershipStatusEnum, MembershipPeriodStatusEnum } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -96,6 +102,7 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
             synchronize: true,
             extra: { options: `-c search_path=${schema},public` },
             entities: [
+                ...membershipStorageTestSchemas,
                 new EntitySchema({
                     name: AppPlatformDelivery.name,
                     target: AppPlatformDelivery,
@@ -169,6 +176,9 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
     })
     beforeEach(async () => {
         for (const table of [
+            'user_membership_period',
+            'user_membership',
+            'membership_plan',
             'test_vectors',
             'plugin_test_business',
             'app_platform_storage_usage',
@@ -179,7 +189,7 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
             'file_asset',
             'xpert_project'
         ])
-            await database.query(`TRUNCATE ${table}`)
+            await database.query(`TRUNCATE ${table} CASCADE`)
         await rm(path.join(directory, tenantId), { recursive: true, force: true })
         await capacity(12)
     })
@@ -204,6 +214,51 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
         )[0]
 
     const account = () => database.getRepository(AppPlatformDelivery).findOneByOrFail({ tenantId, userId })
+    it('applies paid capacity immediately, isolates accounts and preserves files on expiry', async () => {
+        await collector.refresh(await account())
+        await volume().writeFile('retained', '1234567890123456')
+        await collector.refresh(await account())
+        await expect(volume().writeFile('blocked', '1')).rejects.toMatchObject({ status: 413 })
+        const plan = await database
+            .getRepository(MembershipPlan)
+            .save({ tenantId, organizationId, includedStorageBytes: 40 })
+        const start = new Date(Date.now() - 60_000),
+            end = new Date(Date.now() + 60_000)
+        const member = await database.getRepository(UserMembership).save({
+            ...owner,
+            planId: plan.id,
+            status: MembershipStatusEnum.Active,
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        const period = await database.getRepository(MembershipPeriod).save({
+            ...owner,
+            membershipId: member.id,
+            status: MembershipPeriodStatusEnum.Active,
+            periodStart: start,
+            periodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        await database.getRepository(MembershipPlan).update(plan.id, { includedStorageBytes: 400 })
+        expect(await collector.limit(await account())).toBe(40)
+        expect(
+            await collector.limit(
+                await database.getRepository(AppPlatformDelivery).findOneByOrFail({ tenantId, userId: otherUser })
+            )
+        ).toBe(12)
+        await volume().writeFile('paid', 'paid file')
+        await collector.refresh(await account())
+        const expired = new Date(Date.now() - 1)
+        await database.getRepository(MembershipPeriod).update(period.id, { periodEnd: expired })
+        await database.getRepository(UserMembership).update(member.id, { currentPeriodEnd: expired })
+        expect(await collector.limit(await account())).toBe(12)
+        await expect(volume().writeFile('blocked-again', '1')).rejects.toMatchObject({ status: 413 })
+        expect(await readFile(path.join(volume().serverRoot, 'retained'), 'utf8')).toBe('1234567890123456')
+        await volume().deleteFile('paid')
+        await volume().writeFile('retained', 'smaller')
+        expect(await readFile(path.join(volume().serverRoot, 'retained'), 'utf8')).toBe('smaller')
+    })
     it('detaches historical triggers and allows SQL writes above quota until reconciliation', async () => {
         await insert('a'.repeat(100))
         await insert('b'.repeat(100))
