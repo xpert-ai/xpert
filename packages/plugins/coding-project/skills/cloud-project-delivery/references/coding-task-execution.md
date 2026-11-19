@@ -100,9 +100,16 @@ Use the current Project's selected checkout, commit and environment receipt.
 Preserve local changes. On continuation reuse its data and caches; on a new
 Project create its own mutable instance. Read the selected checkout's own
 instructions and inspect its startup command capabilities. A historical untracked
-script does not define the current tool contract. Coding CLI owns services it
-starts; their lifetime may end with the task. Record reproducible startup details
-for the independent reviewer without asking the host to relay service commands.
+script does not define the current tool contract. Coding CLI operates services;
+the main Assistant decides retention and final shutdown. When the Computer
+advertises `computer-service`, query it first, check readiness and reuse the same
+Project services across implementation/review/rework. Use its local start command
+with a foreground project launcher for services that must outlive this execution.
+Do not stop them merely because this task finished. Record names, endpoints,
+generation, PID/startTime, startCount and readiness for the reviewer. Stop on the
+coordinator's explicit final-cleanup instruction, or restart an affected service
+as required by assigned work. Without this capability, report session-lifetime
+limits and reproducible startup details; do not ask the host to relay commands.
 
 ## Keep evidence readable
 

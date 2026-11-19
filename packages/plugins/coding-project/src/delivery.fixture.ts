@@ -88,13 +88,14 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   let config = configSchema.parse({ targets: [requirement.target], repositories: [requirement.repository] })
   const capabilities = new DefaultRuntimeCapabilityRegistry()
   let defaultMode: DeliveryMode = 'release'
+  let serviceLifecycle: 'coordinator' | 'task' | undefined
   capabilities.register(
     ProjectConfigurationRuntimeCapability,
     Object.assign({} as ProjectConfigurationApi, {
       getRuntimeConfiguration: async () => ({
         projectType: TYPE,
         revision: 0,
-        effectiveValues: { deliveryMode: defaultMode }
+        effectiveValues: { deliveryMode: defaultMode, ...(serviceLifecycle ? { serviceLifecycle } : {}) }
       })
     })
   )
@@ -364,6 +365,9 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
     readAcceptance,
     setDefaultMode: (value: DeliveryMode) => {
       defaultMode = value
+    },
+    setServiceLifecycle: (value: 'coordinator' | 'task') => {
+      serviceLifecycle = value
     },
     accepted: () => accepted,
     next,
