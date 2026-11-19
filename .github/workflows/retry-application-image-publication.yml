@@ -1,0 +1,113 @@
+# Reuse artifacts from a trusted, health-checked main run after repairing the publisher.
+# Runtime changes block recovery; production credentials stay in the publication job.
+name: Retry application image publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Original Publish Application Docker images run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: application-images-refs/heads/main
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'xpert-ai/xpert' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      promotion_sha: ${{ steps.plan.outputs.promotion_sha }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify recovery boundaries and publisher
+        run: node --test .deploy/application-images/retry-publication.test.mjs .deploy/application-images/publish-verified-image.test.mjs .deploy/application-images/docker-command.test.mjs
+      - name: Validate original run and retained artifacts
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+        run: node .deploy/application-images/retry-publication.mjs
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      LOCAL_IMAGE: ${{ matrix.image_name }}:check-${{ needs.prepare.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+          name: ${{ matrix.artifact }}
+          path: ${{ runner.temp }}/verified-image
+      - name: Load original verified image and read its version
+        id: image
+        shell: bash
+        run: |
+          docker load -i "$RUNNER_TEMP/verified-image/image.tar"
+          image_version=$(docker image inspect "$LOCAL_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.version"}}')
+          [[ "$image_version" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[a-f0-9]{40})$ ]]
+          echo "version=$image_version" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
+            metadc/${{ matrix.image_name }}
+            registry.cn-hangzhou.aliyuncs.com/metad/${{ matrix.image_name }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ steps.image.outputs.version }}
+            type=raw,value=sha-${{ needs.prepare.outputs.sha }}
+            type=raw,value=main
+            type=raw,value=latest
+      - name: Complete publication of the original image
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_VERSION: ${{ steps.image.outputs.version }}
+          IMAGE_SHA: ${{ needs.prepare.outputs.sha }}
+          IMAGE_PROMOTION_SHA: ${{ needs.prepare.outputs.promotion_sha }}
+          VERIFIED_IMAGE_ID_FILE: ${{ runner.temp }}/verified-image/image.id
+        run: node .deploy/application-images/publish-verified-image.mjs

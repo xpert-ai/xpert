@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { test } from 'node:test'
 import { publishVerifiedImage } from './publish-verified-image.mjs'
 
@@ -89,6 +90,28 @@ test('partial publication retries skip identical immutable tags and finish other
   })
   f.push()
   assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 10)
+})
+
+test('containerd artifact IDs match exact remote manifest bytes instead of config digests', () => {
+  const raw = JSON.stringify({ config: { digest: otherId } }, null, 2) + '\n'
+  const manifestId = `sha256:${createHash('sha256').update(raw).digest('hex')}`
+  const tag = `${repositories[0]}:1.0.1`
+  const f = fixture({ localId: manifestId })
+  f.options.verifiedId = manifestId
+  const run = f.options.run
+  f.options.run = (args) => (args[0] === 'buildx' && args.at(-1) === tag ? raw : run(args))
+  f.push()
+  assert.ok(!f.calls.some(([cmd, target]) => cmd === 'push' && target === tag))
+  assert.equal(f.calls.filter(([cmd]) => cmd === 'push').length, 11)
+})
+
+test('a matching config does not authorize a different containerd manifest ID', () => {
+  const raw = JSON.stringify({ config: { digest: otherId }, layers: [] })
+  const manifestId = `sha256:${createHash('sha256').update(raw).digest('hex')}`
+  const f = fixture({ localId: manifestId, existing: { [`${repositories[0]}:1.0.1`]: otherId } })
+  f.options.verifiedId = manifestId
+  assert.throws(f.push, /Refusing to overwrite immutable/)
+  assert.ok(!f.calls.some(([cmd]) => cmd === 'push' || cmd === 'tag'))
 })
 
 test('a mirror push failure never advances channel aliases', () => {
