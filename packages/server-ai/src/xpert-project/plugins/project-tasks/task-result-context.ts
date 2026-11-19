@@ -27,6 +27,11 @@ const taskSchema = z
             z
                 .object({
                     id: z.string().uuid(),
+                    attempt: z.number().int().nonnegative().optional(),
+                    purpose: z
+                        .object({ type: z.enum(['implementation', 'review']) })
+                        .passthrough()
+                        .nullish(),
                     invocationRevision: z.number().optional(),
                     specificationSnapshot: z.object({ digest: z.string() }).passthrough().nullish(),
                     result: resultSchema.nullish(),
@@ -37,15 +42,20 @@ const taskSchema = z
     })
     .passthrough()
 
-const preview = (text: string) =>
-    text.length <= 6000
+const preview = (text: string, historical = false) =>
+    text.length <= (historical ? 1200 : 6000)
         ? text
-        : `${text.slice(0, 3800)}\n\n[Report excerpt: middle omitted. Read exact pages with project_read_task_result.]\n\n${text.slice(-1800)}`
+        : `${text.slice(0, historical ? 650 : 3800)}\n\n[Report excerpt: middle omitted. Read exact pages with project_read_task_result.]\n\n${text.slice(historical ? -350 : -1800)}`
 
 export function projectTaskModelView(value: unknown) {
     const parsed = taskSchema.safeParse(value)
     if (!parsed.success) return value
     const task = parsed.data
+    // Retain the latest implementation and review independently. Unknown legacy ordering stays intact.
+    const current = new Map<string, number>()
+    for (const execution of task.executions)
+        if (execution.attempt !== undefined && execution.purpose)
+            current.set(execution.purpose.type, Math.max(current.get(execution.purpose.type) ?? -1, execution.attempt))
     return {
         ...task,
         ...(task.steps
@@ -63,6 +73,12 @@ export function projectTaskModelView(value: unknown) {
         ...(task.specificationSnapshot ? { specificationSnapshot: { digest: task.specificationSnapshot.digest } } : {}),
         executions: task.executions.map((execution) => {
             const text = execution.result?.text
+            const historical =
+                execution.attempt !== undefined &&
+                execution.purpose &&
+                execution.attempt < (current.get(execution.purpose.type) ?? execution.attempt)
+            const excerpted = (text?.length ?? 0) > (historical ? 1200 : 6000)
+            const sameReview = text !== undefined && text === execution.reviewReport?.markdown
             return {
                 ...execution,
                 specificationSnapshot: execution.specificationSnapshot
@@ -71,9 +87,14 @@ export function projectTaskModelView(value: unknown) {
                 result: execution.result
                     ? {
                           ...execution.result,
-                          text: text === undefined ? undefined : preview(text),
-                          textTruncated: (text?.length ?? 0) > 6000 || execution.result.textTruncated,
-                          ...(text && text.length > 6000
+                          text: sameReview
+                              ? undefined
+                              : text === undefined
+                                ? undefined
+                                : preview(text, Boolean(historical)),
+                          ...(sameReview ? { textSource: 'reviewReport.markdown' } : {}),
+                          textTruncated: excerpted || execution.result.textTruncated,
+                          ...(text && excerpted && !execution.result.excerpt
                               ? {
                                     excerpt: {
                                         totalCharacters: text.length,
@@ -94,7 +115,7 @@ export function projectTaskModelView(value: unknown) {
                 reviewReport: execution.reviewReport
                     ? {
                           ...execution.reviewReport,
-                          markdown: preview(execution.reviewReport.markdown)
+                          markdown: preview(execution.reviewReport.markdown, Boolean(historical))
                       }
                     : execution.reviewReport
             }
@@ -105,12 +126,14 @@ export function projectTaskModelView(value: unknown) {
 /** Reproject legacy large results on resume without rewriting checkpoint/audit history. */
 export function projectTaskModelMessages(messages: BaseMessage[], projectId?: string): BaseMessage[] {
     const seen = new Set<string>()
+    const pages = new Set<string>()
     const projected = [...messages]
         .reverse()
         .map((message) => {
             if (
                 !isToolMessage(message) ||
-                message.name !== ProjectToolEnum.GetTask ||
+                (message.name !== ProjectToolEnum.GetTask && message.name !== ProjectToolEnum.ReadResult) ||
+                message.status === 'error' ||
                 typeof message.content !== 'string'
             )
                 return message
@@ -119,6 +142,20 @@ export function projectTaskModelMessages(messages: BaseMessage[], projectId?: st
                 value = JSON.parse(message.content)
             } catch {
                 return message
+            }
+            if (message.name === ProjectToolEnum.ReadResult) {
+                const page = resultPageSchema.safeParse(value)
+                if (!page.success) return message
+                const key = JSON.stringify(page.data)
+                if (!pages.has(key)) {
+                    pages.add(key)
+                    return message
+                }
+                const { text: _text, ...identity } = page.data
+                return projectedToolMessage(message, {
+                    ...identity,
+                    notice: 'Identical evidence page appears later in this context. This receipt does not supersede or accept its findings.'
+                })
             }
             const task = taskSchema.safeParse(value)
             if (!task.success) return message
@@ -130,16 +167,35 @@ export function projectTaskModelMessages(messages: BaseMessage[], projectId?: st
                 : projectTaskModelView(task.data)
             seen.add(task.data.id)
             // Spreading a BaseMessage also copies lc_kwargs, retaining the original large content.
-            return new ToolMessage({
-                content: JSON.stringify(content),
-                id: message.id,
-                name: message.name,
-                tool_call_id: message.tool_call_id,
-                status: message.status,
-                additional_kwargs: message.additional_kwargs,
-                response_metadata: message.response_metadata
-            })
+            return projectedToolMessage(message, content)
         })
         .reverse()
     return projectId ? projectTaskCallReceipts(projected, projectId) : projected
+}
+
+const resultPageSchema = z
+    .object({
+        taskId: z.string().uuid(),
+        executionId: z.string().uuid(),
+        invocationRevision: z.number().int().nonnegative().optional(),
+        source: z.enum(['report', 'prompt']),
+        offset: z.number().int().nonnegative(),
+        nextOffset: z.number().int().nonnegative().nullable(),
+        totalCharacters: z.number().int().nonnegative(),
+        sha256: z.string(),
+        sourceTruncated: z.boolean(),
+        text: z.string()
+    })
+    .strict()
+
+function projectedToolMessage(message: ToolMessage, content: unknown): ToolMessage {
+    return new ToolMessage({
+        content: JSON.stringify(content),
+        id: message.id,
+        name: message.name,
+        tool_call_id: message.tool_call_id,
+        status: message.status,
+        additional_kwargs: message.additional_kwargs,
+        response_metadata: message.response_metadata
+    })
 }
