@@ -631,6 +631,139 @@ describe('XpertWorkbenchFacade', () => {
     })
   })
 
+  it('preserves a locally created thread while Project route navigation is pending, then allows a new chat', async () => {
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    const control = createMockChatKitControl()
+    await settle()
+    await facade.ensureConversationEntry(control)
+
+    // Project selection first wakes the entry effect on the old blank route.
+    await facade.onChatProjectChange('project-1')
+    await facade.ensureConversationEntry(control)
+    setRoute('/chat/x/sales/p/project-1/c')
+    await settle()
+    control.setThreadId.mockClear()
+    control.focusComposer.mockClear()
+
+    let resolveNavigation!: (opened: boolean) => void
+    router.navigate.mockImplementationOnce(() => new Promise<boolean>((resolve) => (resolveNavigation = resolve)))
+    facade.onChatThreadChange('thread-created')
+    expect(facade.threadId()).toBeNull()
+    expect(facade.suppressAutoResume()).toBe(false)
+    // The detail component schedules this when suppressAutoResume changes.
+    await facade.ensureConversationEntry(control)
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).not.toHaveBeenCalled()
+    expect(control.focusComposer).not.toHaveBeenCalled()
+
+    setRoute('/chat/x/sales/p/project-1/c/thread-created')
+    resolveNavigation(true)
+    await settle()
+    facade.onChatThreadChange(null)
+    setRoute('/chat/x/sales/p/project-1/c')
+    await settle()
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).toHaveBeenCalledTimes(1)
+    expect(control.setThreadId).toHaveBeenCalledWith(null)
+  })
+
+  it.each(['none', 'auto-new'] as const)(
+    'consumes the %s entry before waking automatic initialization',
+    async (mode) => {
+      setRoute(`/chat/x/sales/c?projectMode=${mode}`)
+      const facade = TestBed.inject(XpertWorkbenchFacade)
+      const control = createMockChatKitControl()
+      await settle()
+      facade.suppressAutoResume.set(true)
+      const setSuppression = facade.suppressAutoResume.set.bind(facade.suppressAutoResume)
+      jest.spyOn(facade.suppressAutoResume, 'set').mockImplementation((value) => {
+        setSuppression(value)
+        void facade.ensureConversationEntry(control)
+      })
+
+      facade.onChatThreadChange('thread-created')
+
+      expect(control.setThreadId).not.toHaveBeenCalled()
+      expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'c', 'thread-created'], {
+        queryParamsHandling: 'preserve'
+      })
+    }
+  )
+
+  it('preserves the live thread when its route navigation is cancelled', async () => {
+    setRoute('/chat/x/sales/p/project-1/c')
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    const control = createMockChatKitControl()
+    await settle()
+    router.navigate.mockResolvedValueOnce(false)
+
+    facade.onChatThreadChange('thread-created')
+    await settle()
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).not.toHaveBeenCalled()
+
+    // A later successful synchronization and explicit new chat must still work.
+    facade.onChatThreadChange('thread-created')
+    setRoute('/chat/x/sales/p/project-1/c/thread-created')
+    await settle()
+    facade.onChatThreadChange(null)
+    setRoute('/chat/x/sales/p/project-1/c')
+    await settle()
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).toHaveBeenCalledTimes(1)
+  })
+
+  it('initializes a different Project or Assistant after consuming a locally created thread entry', async () => {
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([
+        { id: 'xpert-1', slug: 'sales', latest: true },
+        { id: 'xpert-2', slug: 'ops', latest: true }
+      ])
+    )
+    setRoute('/chat/x/sales/p/project-1/c')
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    const control = createMockChatKitControl()
+    await settle()
+    facade.onChatThreadChange('thread-created')
+
+    setRoute('/chat/x/sales/p/project-2/c')
+    await settle()
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).toHaveBeenCalledTimes(1)
+
+    setRoute('/chat/x/ops/p/project-2/c')
+    await settle()
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).toHaveBeenCalledTimes(2)
+
+    setRoute('/chat/x/ops/p/project-2/c/historical-thread')
+    await settle()
+    facade.onChatThreadChange('historical-thread')
+    await facade.ensureConversationEntry(control)
+    expect(control.setThreadId).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not let a late cancelled Project switch restore the previous conversation after first send', async () => {
+    setRoute('/chat/x/sales/p/project-1/c')
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    const control = createMockChatKitControl()
+    await settle()
+    let resolveNavigation!: (opened: boolean) => void
+    router.navigate.mockImplementationOnce(() => new Promise<boolean>((resolve) => (resolveNavigation = resolve)))
+    const pendingSwitch = facade.onChatProjectChange('project-2')
+    await facade.onChatProjectChange('project-3')
+    setRoute('/chat/x/sales/p/project-3/c')
+    await settle()
+    facade.onChatThreadChange('thread-created')
+    resolveNavigation(false)
+    await pendingSwitch
+    await facade.ensureConversationEntry(control)
+
+    expect(facade.suppressAutoResume()).toBe(false)
+    expect(facade.projectId()).toBe('project-3')
+    expect(control.setThreadId).not.toHaveBeenCalled()
+  })
+
   function setRoute(url: string) {
     router.url = url
     routerEvents.next(new NavigationEnd(Date.now(), url, url))

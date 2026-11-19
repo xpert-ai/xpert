@@ -1,5 +1,26 @@
 # @xpert-ai/plugin-coding-project
 
+## 0.4.0
+
+### Minor Changes
+
+- 4a9bad9: Allow ordinary task replies, structured runtime data and empty replies without requiring a report. Replace the unreleased coding-review envelopes with plain Markdown; report files and artifact delivery remain optional. Pin review result identity and digest in explicit coordinator decisions, use natural-language rework feedback, and recover report/artifact delivery without rerunning completed execution. Deploy the matching runtime plugin and host together; old result protocols and data formats are not supported.
+
+### Patch Changes
+
+- 6889e73: Pin confirmed invocation completion independently of result delivery recovery. Reduce repeated coding delivery context, clarify node execution statistics, and guide feedback-linked rework and evidence-based final reporting.
+
+  Historical invocation snapshots without a confirmed completion timestamp leave runtime timing unavailable instead of deriving it from later metadata updates.
+
+- Updated dependencies [c051e4f]
+- Updated dependencies [6889e73]
+- Updated dependencies
+- Updated dependencies [ab3a8ed]
+- Updated dependencies [4a9bad9]
+- Updated dependencies [4a288f9]
+  - @xpert-ai/contracts@3.36.0
+  - @xpert-ai/plugin-sdk@3.36.0
+
 ## 0.3.0
 
 - Add a default local development and independent acceptance Pipeline without external destinations.

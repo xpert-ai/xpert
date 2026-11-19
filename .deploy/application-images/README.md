@@ -1,8 +1,8 @@
 # Application Docker image releases
 
 `.github/workflows/docker-publish.yml` validates affected images on pull requests
-and pushes to `develop` / `main`. On pushes to `main`, Changesets authorize publication. Relevant
-source changes trigger validation even without a release note. Arbitrary Git/npm
+and pushes to `develop`. Every push to `main` builds all three images and publishes
+`main` and `latest` for the verified commit. Changesets authorize numbered versions. Arbitrary Git/npm
 tags do not run this workflow.
 
 The workflow checks dependencies, builds each selected image once, checks API/Web
@@ -21,7 +21,7 @@ cache at `ghcr.io/<owner>/<repository>-buildcache:<image>-linux-amd64-main`.
 It also imports any existing `develop` cache.
 The publication job uses the production environment for registry credentials.
 
-## Select images explicitly
+## Select images for a version bump
 
 | Changeset package         | Version source                        | Image                 |
 | ------------------------- | ------------------------------------- | --------------------- |
@@ -34,7 +34,7 @@ to npm. NsJail's manifest versions the Xpert runner image, independently of the
 upstream NsJail binary version pinned in its Dockerfile. Its implementation stays
 in `.deploy/nsjail-runner`.
 
-Add a **new** Changeset for the image(s) to publish, for example:
+Add a **new** Changeset for the image(s) to version, for example:
 
 ```md
 ---
@@ -47,9 +47,9 @@ Fix the API startup configuration.
 This requests only the API image. A single note can name multiple applications.
 Use `patch`, `minor` or `major` as appropriate. Desktop-only changesets, unrelated
 npm package notes, unrelated documentation, and edits/renames of existing notes
-alone do not request Docker publication.
+alone do not request a numbered release.
 
-Once an application has a pending Changeset, a subsequent change to its source,
+On `develop` or a pull request, once an application has a pending Changeset, a subsequent change to its source,
 shared build inputs, Dockerfile or dependency lock requests a new candidate for
 the fixing commit. It reuses the pending note and does not require another note
 just to retry a failed build. Only affected applications are rebuilt; the highest
@@ -67,20 +67,21 @@ safely declare a new runtime change for the next merge.
 The exact NsJail image is checked for isolation and managed `.apps` protection
 before it is saved for publication.
 
-## Candidate and stable versions
+## Branch tags and numbered versions
 
 - A new application note, or a relevant fix with a pending note, on `develop` builds
   `<next-version>-candidate.develop.<sha12>` locally for validation. The highest
   pending bump determines the next version. Registry tags are written only on `main`.
-- New notes and pending-note repairs on `main` produce `candidate.main` versions and the
-  `main-candidate` alias. They do not change `main` or `latest`.
+- Every successful push to `main` publishes API, Web and NsJail with `sha-<full-commit>`,
+  `main` and `latest`, including documentation-only pushes. Both aliases use the same
+  verified image. API and Web use the production stage. NsJail uses its final stage.
 - Land the notes on `main` first. Then merge the Changesets version PR, or use
   `corepack pnpm changeset:version` on a branch from that `main`. This separate
   commit must consume all pending application notes and increase the manifest
   version by their requested bump. The push to `main` builds the stable version
   and publishes `<version>`, `sha-<full-commit>`, `main` and `latest`.
 - A version bump without a previously landed application note does not authorize
-  an image release. Wrong version bumps and unconsumed notes fail before building.
+  a numbered image tag. Wrong version bumps and unconsumed notes fail before building.
   Version commits on `develop` remain candidates. PRs can validate either plan
   but cannot publish images or access registry credentials.
 
@@ -90,15 +91,14 @@ releases must consume every pending group note and keep all members at one versi
 
 When first introducing a fixed group, its manifests may align to the group's
 existing highest version within the same major. All existing notes must remain
-unchanged and every member must use that exact baseline. This alignment can only
-produce candidates; it cannot authorize stable tags or consume release notes.
+unchanged and every member must use that exact baseline. Alignment preserves pending notes. A numbered tag still requires a version release.
 The core platform group starts at `3.24.0`, with `3.25.0` queued as its next minor.
 
 When a single outgoing batch also merges `main`, alignment may use the highest
 version from that newly merged ancestor. A removed note counts as already consumed
 only if its unchanged content existed at the common fork and is absent from the
 merged main tree. Downstream notes must still be retained. This remains a candidate
-baseline, never authorization for stable tags.
+baseline for a future numbered release.
 
 When `main` is merged back into `develop`, its application and shared-package
 versions are already the release baseline. The workflow supplies the fetched
@@ -113,8 +113,7 @@ not require consuming the downstream application notes a second time.
 Downstream wrappers may explicitly select `retainedChangesetPolicy: 'candidate'`
 when synchronizing upstream releases. The version increase must match the notes
 actually consumed. If application notes remain, the next candidate version is
-calculated from the new manifest and those remaining notes, including on `main`;
-stable aliases stay disabled. A version bump consuming no application note still
+calculated from the new manifest and those remaining notes, for validation and `develop` builds. Production aliases on `main` follow the exact commit. A version bump consuming no application note still
 fails. The default policy remains `reject`.
 
 Fixed groups use the highest bump among consumed group notes for an opted-in
@@ -132,7 +131,7 @@ Downstream callers can pass an exact `upstreamMainSha` together with candidate
 retention. Only the upstream ancestor already merged into the checked source and
 newly introduced since the previous revision can supply an adopted baseline.
 Fixed-group alignment may use this verified baseline. Adoption cannot authorize
-stable aliases, use an unmerged upstream version, or replace application notes.
+numbered tags, use an unmerged upstream version, or replace application notes.
 
 ### Optional downstream hook policy
 
@@ -173,7 +172,22 @@ rebuilding. The publisher verifies the artifact's image ID, source revision and
 version labels before writing any tags. Existing version and SHA tags must resolve
 to that same image; a different image is rejected. Matching tags are skipped during
 partial retries. Channel aliases move only after immutable tags succeed on every
-mirror. The production environment approval remains on the publication job.
+mirror. A superseded run finishes its immutable tags and checks the current Git
+`main` head before moving either alias. The production environment approval remains on the publication job.
+
+Docker containerd stores identify images by their manifest/index digest; classic
+stores use the config digest. The publisher checks these identities against the
+registry's original manifest bytes. Transient pushes retry at most three times,
+with live upload progress; authentication and immutable-tag conflicts stay fatal.
+
+If the publisher itself needs a repair, use **Retry application image publication**
+on `main` with the original workflow run ID. This downloads the original artifacts
+and executes the repaired publisher without rebuilding images. Recovery requires
+a completed `main` push, successful release checks and every image build, and
+unexpired artifacts from that run. Only the explicitly listed publication scripts,
+tests, recovery workflow and release documentation may have changed since the
+source commit. Runtime, dependency and build changes block recovery. Channel
+aliases can advance only while the validated recovery commit remains `main`.
 
 Verified image artifacts are retained for seven days. After artifact expiry a full
 run is required; immutable-tag checks still reject a different rebuilt image for an
@@ -197,11 +211,11 @@ When consuming shared package notes with a version increase, consume and version
 the corresponding application notes in the same release. Merely adding an
 application candidate note at this stage is insufficient. Errors list the exact
 missing applications. Existing pending shared notes on an unrelated push are
-ignored, so a Desktop update does not request application images or fail coverage.
+ignored, so a Desktop update does not request a numbered application release.
 
 Dockerfile, dependency-lock and configuration changes need an application note when
-they should ship. An existing pending application note is sufficient for a relevant
-repair; path changes without one trigger validation only.
+they should request a numbered release. On `develop` and PRs, changes without an
+application note trigger validation only.
 
 ## Local verification
 

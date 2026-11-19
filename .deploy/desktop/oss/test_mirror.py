@@ -9,10 +9,10 @@ from unittest.mock import MagicMock, patch
 
 import oss2
 
-from mirror import INDEX_KEY, mirror, next_index, verify_release
+from mirror import INDEX_KEY, mirror, next_index, upload_asset, verify_release
 
 
-def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",)):
+def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",), payloads=None):
     files = {}
     for platform, exts in {"mac": ("dmg", "zip"), "win": ("exe", "zip"), "linux": ("AppImage", "tar.gz")}.items():
         for arch in ("arm64", "x64"):
@@ -20,6 +20,7 @@ def fixture(directory, ver="0.4.1", feeds=("desktop-x64.yml",)):
                 name = f"Bosi-{ver}-{platform}-{arch}.{ext}"
                 files[name] = name.encode()
     files.update({feed: b"metadata" for feed in feeds})
+    files.update(payloads or {})
     files["SHA256SUMS.txt"] = "".join(
         f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name, data in files.items()).encode()
     files["release-manifest.json"] = b"{}"
@@ -45,7 +46,7 @@ class MirrorTests(unittest.TestCase):
         self.assertIn("desktop-x64.yml", assets)
         with self.assertRaisesRegex(ValueError, "stable release"):
             verify_release({**self.release, "draft": True}, self.directory, self.tag)
-        with self.assertRaisesRegex(ValueError, "differs"):
+        with self.assertRaisesRegex(ValueError, "Incomplete Bosi release"):
             verify_release({**self.release, "assets": self.release["assets"][1:]}, self.directory, self.tag)
         (self.directory / "desktop-x64.yml").write_bytes(b"changed!")
         with self.assertRaisesRegex(ValueError, "checksum"):
@@ -61,6 +62,56 @@ class MirrorTests(unittest.TestCase):
         self.assertEqual(backfill["tag"], newer["tag_name"])
         self.assertEqual(backfill["feeds"]["desktop-arm64.yml"], self.tag)
         self.assertEqual(backfill["feeds"]["desktop-x64.yml"], newer["tag_name"])
+
+    def test_large_installer_retries_only_the_interrupted_part(self):
+        name = "Bosi-0.4.1-mac-arm64.dmg"
+        source = self.directory / name
+        asset = verify_release(self.release, self.directory, self.tag)[name]
+        bucket = MagicMock()
+        bucket.init_multipart_upload.return_value.upload_id = "session"
+        received = {}
+
+        def part(key, upload_id, number, data, headers):
+            self.assertEqual((key, upload_id), (name, "session"))
+            self.assertEqual(headers["Content-MD5"], oss2.utils.content_md5(data))
+            if number == 2 and number not in received:
+                received[number] = None
+                raise oss2.exceptions.RequestError(TimeoutError("write timed out"))
+            received[number] = data
+            crc = oss2.utils.Crc64()
+            crc.update(data)
+            return SimpleNamespace(etag=f"etag-{number}", crc=crc.crc)
+
+        bucket.upload_part.side_effect = part
+        with patch("mirror.PART_SIZE", 8), patch("mirror.time.sleep"), \
+                patch("mirror.as_completed", side_effect=lambda futures: reversed(futures)):
+            upload_asset(bucket, name, source, asset)
+        self.assertEqual(bucket.init_multipart_upload.call_count, 1)
+        self.assertEqual(bucket.upload_part.call_count, len(received) + 1)
+        self.assertEqual(bucket.init_multipart_upload.call_args.kwargs["headers"]["x-oss-meta-sha256"], asset.sha256)
+        args, kwargs = bucket.complete_multipart_upload.call_args
+        self.assertEqual(args[:2], (name, "session"))
+        self.assertEqual(kwargs["headers"]["x-oss-forbid-overwrite"], "true")
+        parts = args[2]
+        self.assertEqual(b"".join(received[p.part_number] for p in parts), source.read_bytes())
+        self.assertEqual(oss2.utils.calc_obj_crc_from_parts(parts), asset.crc64)
+        bucket.abort_multipart_upload.assert_not_called()
+
+    def test_failed_part_is_never_published(self):
+        name = "Bosi-0.4.1-mac-arm64.dmg"
+        asset = verify_release(self.release, self.directory, self.tag)[name]
+        bucket = MagicMock()
+        bucket.init_multipart_upload.return_value.upload_id = "session"
+        failure = oss2.exceptions.RequestError(TimeoutError("write timed out"))
+        bucket.upload_part.side_effect = failure
+        bucket.abort_multipart_upload.side_effect = oss2.exceptions.AccessDenied(403, {}, b"", {})
+        with patch("mirror.PART_SIZE", asset.size - 1), patch("mirror.time.sleep"):
+            with self.assertRaises(oss2.exceptions.RequestError) as result:
+                upload_asset(bucket, name, self.directory / name, asset)
+        self.assertIs(result.exception, failure)
+        self.assertEqual(sum(c.args[2] == 1 for c in bucket.upload_part.call_args_list), 4)
+        bucket.complete_multipart_upload.assert_not_called()
+        bucket.abort_multipart_upload.assert_called_once_with(name, "session")
 
     def test_retry_after_interruption_and_public_read_failure(self):
         bucket = MagicMock()

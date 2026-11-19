@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -6,7 +7,7 @@ import { services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
-export function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
+export function fixture(t, { legacy = false, retainedChangesetPolicy, applicationNames } = {}) {
   const cwd = mkdtempSync(path.join(tmpdir(), 'application-images-'))
   t.after(() => rmSync(cwd, { recursive: true, force: true }))
   const git = (...args) =>
@@ -47,7 +48,7 @@ export function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
   write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
   const initial = commit()
   const plan = (before, after, event = 'push', ref = 'refs/heads/develop', mainSha) =>
-    releasePlan({ cwd, before, after, event, ref, mainSha, retainedChangesetPolicy })
+    releasePlan({ cwd, before, after, event, ref, mainSha, retainedChangesetPolicy, applicationNames })
   return { cwd, git, write, version, note, remove, commit, initial, plan }
 }
 export const tags = (image) => image.tags.split('\n').map((tag) => tag.replace('type=raw,value=', ''))
@@ -82,4 +83,15 @@ export function mainSyncFixture(t) {
   )
   const after = f.git('rev-parse', 'HEAD')
   return { ...f, main, before, after }
+}
+
+export function assertUnversionedTags(image, channel, sha) {
+  assert.equal(image.stable, false)
+  if (channel === 'main') {
+    assert.equal(image.version, `sha-${sha}`)
+    assert.deepEqual(tags(image), [`sha-${sha}`, 'main', 'latest'])
+  } else {
+    assert.equal(image.version, `${image.baseVersion}-candidate.${channel}.${sha.slice(0, 12)}`)
+    assert.deepEqual(tags(image), [image.version, `sha-${sha}`, `${channel}-candidate`])
+  }
 }

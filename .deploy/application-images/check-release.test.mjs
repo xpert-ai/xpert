@@ -178,7 +178,7 @@ test('runtime version releases can consume notes without adding a replacement', 
   f.git('add', '.')
   assert.equal((await f.check()).plan.matrix.include[0].versioned, true)
   const [plan] = await checkPushReleases(f.push(before, f.commit(), 'refs/heads/main'), { cwd: f.cwd })
-  assert.equal(plan.matrix.include[0].stable, true)
+  assert.equal(plan.matrix.include.find((entry) => entry.name === jail.name).stable, true)
 })
 
 test('runtime documentation and unit tests do not need a fresh release note', async (t) => {
@@ -218,8 +218,9 @@ test('pre-push checks source-only NsJail changes across the complete outgoing ba
   f.note('nsjail', [jail.name])
   const fixed = f.commit()
   const [plan] = await checkPushReleases(f.push(f.initial, fixed, 'refs/heads/main'), { cwd: f.cwd })
-  assert.equal(plan.matrix.include[0].image_name, 'xpert-nsjail-runner')
-  assert.match(plan.matrix.include[0].tags, /main-candidate/)
+  const image = plan.matrix.include.find((entry) => entry.name === jail.name)
+  assert.deepEqual(image.changesets, ['.changeset/nsjail.md'])
+  assert.match(image.tags, /type=raw,value=latest$/)
 })
 
 test('editing an old application note does not satisfy a new shared package declaration', async (t) => {
@@ -381,7 +382,7 @@ test('pre-push uses the outgoing policy and a fresh upstream baseline across the
   f.git('update-ref', 'refs/xpert/application-images/upstream-main', f.initial)
   f.write('.deploy/application-images/release-policy.json', 'invalid working-tree policy')
   const [plan] = await checkPushReleases(f.push(f.before, after, 'refs/heads/main'), { cwd: f.cwd })
-  assert.equal(plan.matrix.include.length, 2)
+  assert.equal(plan.matrix.include.length, 3)
   assert.ok(plan.matrix.include.every((image) => !image.versioned && !image.stable))
   assert.equal(f.git('rev-parse', 'refs/xpert/application-images/upstream-main'), f.main)
 })

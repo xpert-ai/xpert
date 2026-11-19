@@ -1,5 +1,5 @@
 // Invariants: pending application notes authorize candidates for relevant fixes.
-// Downstream sync may explicitly retain notes, but can then build candidates only.
+// Every main push publishes production aliases. Changesets govern numbered releases.
 // Aggregated syncs must verify hidden note consumption at every source version commit.
 // Versions adopted from newly merged main histories are candidate baselines only.
 // Stable images require complete consumption on main with the exact version bump.
@@ -129,7 +129,7 @@ export function releasePlan({
     const basis = fixed.basis(name, phase, notes, retainedForCandidate)
     return bump(basis?.version ?? version, basis?.notes ?? notes)
   }
-  const include = []
+  const declarations = new Map()
   for (const service of selectedServices) {
     const current = read(after, service.manifest)
     const previous = oldTree.has(service.manifest) ? read(before, service.manifest) : current
@@ -190,30 +190,17 @@ export function releasePlan({
       baseVersion = plannedVersion(service.name, current.version, remaining, 'after')
       evidence = (requested.length ? requested : remaining).map((note) => note.file)
     }
-    const stable = versioned && !retainedForCandidate && event === 'push' && ref === 'refs/heads/main'
-    const channel = event === 'pull_request' ? 'pr' : ref === 'refs/heads/main' ? 'main' : 'develop'
-    const version = stable ? baseVersion : `${baseVersion}-candidate.${channel}.${after.slice(0, 12)}`
-    include.push({
-      name: service.name,
-      image_name: service.image_name,
-      dockerfile: service.dockerfile,
-      node_options: service.node_options,
-      health_check: service.health_check,
-      target: service.image_name === 'xpert-nsjail-runner' ? '' : stable ? 'production' : 'candidate',
-      version,
+    declarations.set(service.name, {
       baseVersion,
-      stable,
       versioned,
-      tags: [version, `sha-${after}`, ...(stable ? ['main', 'latest'] : [`${channel}-candidate`])]
-        .map((value) => `type=raw,value=${value}`)
-        .join('\n'),
+      numbered: versioned && !retainedForCandidate,
       changesets: [...new Set(evidence)]
     })
   }
 
   const missing = new Set()
   for (const service of selectedServices) {
-    if (requiresImageRelease(service, changedFiles) && !include.some((image) => image.name === service.name))
+    if (requiresImageRelease(service, changedFiles) && !declarations.has(service.name))
       missing.add(`${service.name}: add an application Changeset for changed image runtime inputs`)
     for (const manifest of service.shared) {
       const current = read(after, manifest)
@@ -224,7 +211,7 @@ export function releasePlan({
         !adoptedBaselineVersion(manifest, read(before, manifest).version, current.version) &&
         oldNotes.some((note) => note.name === current.name && !newTree.has(note.file))
       if (!newlyDeclared && !consumed) continue
-      const image = include.find((entry) => entry.name === service.name)
+      const image = declarations.get(service.name)
       if (
         !image ||
         (newlyDeclared && !fresh.some((note) => note.name === service.name)) ||
@@ -237,24 +224,47 @@ export function releasePlan({
   }
   assert.equal(missing.size, 0, `Missing application image release declarations:\n${[...missing].join('\n')}`)
   const canPublish = event === 'push' && !buildOnly
-  const validation = selectedServices.flatMap((service) => {
-    const release = include.find((image) => image.name === service.name)
-    if (!release && !affectsImage(service, changedFiles)) return []
-    return [
-      {
-        ...(release ?? {
-          name: service.name,
-          image_name: service.image_name,
-          dockerfile: service.dockerfile,
-          node_options: service.node_options,
-          health_check: service.health_check,
-          target: service.image_name === 'xpert-nsjail-runner' ? '' : 'production',
-          version: read(after, service.manifest).version
-        }),
-        publish: canPublish && Boolean(release)
-      }
-    ]
-  })
+  const channel = event === 'pull_request' ? 'pr' : ref === 'refs/heads/main' ? 'main' : 'develop'
+  const mainPush = channel === 'main'
+  const revisionTag = `sha-${after}`
+  const include = []
+  const validation = []
+  for (const service of selectedServices) {
+    const declaration = declarations.get(service.name)
+    if (!mainPush && !declaration && !affectsImage(service, changedFiles)) continue
+    const baseVersion = declaration?.baseVersion ?? read(after, service.manifest).version
+    const image = {
+      name: service.name,
+      image_name: service.image_name,
+      dockerfile: service.dockerfile,
+      node_options: service.node_options,
+      health_check: service.health_check,
+      target: service.image_name === 'xpert-nsjail-runner' ? '' : mainPush || !declaration ? 'production' : 'candidate',
+      version: baseVersion
+    }
+    if (!mainPush && !declaration) {
+      validation.push({ ...image, publish: false })
+      continue
+    }
+    const stable = mainPush && Boolean(declaration?.numbered)
+    const version = mainPush
+      ? stable
+        ? baseVersion
+        : revisionTag
+      : `${baseVersion}-candidate.${channel}.${after.slice(0, 12)}`
+    const aliases = mainPush ? ['main', 'latest'] : [`${channel}-candidate`]
+    const release = {
+      ...image,
+      version,
+      baseVersion,
+      stable,
+      versioned: declaration?.versioned ?? false,
+      tags: [...new Set([version, revisionTag, ...aliases])].map((value) => `type=raw,value=${value}`).join('\n'),
+      changesets: declaration?.changesets ?? []
+    }
+    include.push(release)
+    validation.push({ ...release, publish: canPublish })
+  }
   return {
     build: include.length > 0,
     publish: canPublish && include.length > 0,
