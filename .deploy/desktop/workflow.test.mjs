@@ -88,10 +88,22 @@ test('OSS uploads receive independent credential budgets after fetching their ve
     assert.ok(fetchIndex >= 0 && authIndex > fetchIndex)
     assert.equal(job.steps[authIndex].with['role-session-expiration'], 3600)
     assert.ok(job['timeout-minutes'] < 60)
-    assert.match(job.steps.at(-1).run, /stages\.py (upload|finalize)/)
+    assert.ok(job.steps.some((step) => /stages\.py (upload|finalize)/.test(step.run)))
   }
   assert.match(upload.steps.at(-1).run, /--asset "\$BOSI_ASSET"/)
-  assert.doesNotMatch(finalize.steps.at(-1).run, /--asset/)
+  assert.doesNotMatch(finalize.steps.find((step) => step.run?.includes('stages.py finalize')).run, /--asset/)
+})
+
+test('isolated benchmarks are opt-in manual runs with production snapshots retained', () => {
+  assert.equal(mirrorWorkflow.on.workflow_dispatch.inputs.benchmark.type, 'boolean')
+  assert.equal(mirrorWorkflow.on.workflow_dispatch.inputs.benchmark.default, false)
+  assert.equal(mirrorWorkflow.on.workflow_call.inputs.benchmark, undefined)
+  assert.equal(mirrorWorkflow.env.BOSI_OSS_BENCHMARK, "${{ inputs.benchmark && 'true' || 'false' }}")
+  const snapshot = mirrorWorkflow.jobs.prepare.steps.find((step) => step.uses === 'actions/upload-artifact@v4')
+  assert.match(snapshot.with.path, /oss-production-before\.json/)
+  const evidence = mirrorWorkflow.jobs.finalize.steps.find((step) => step.uses === 'actions/upload-artifact@v4')
+  assert.equal(evidence.if, '${{ always() && inputs.benchmark }}')
+  assert.match(evidence.with.path, /oss-benchmark-result\.json/)
 })
 
 test('the index waits for every upload, permits empty matrices, and never runs after failure or cancellation', () => {
