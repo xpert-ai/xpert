@@ -1,4 +1,5 @@
 import { t } from 'i18next'
+import { documentFingerprintFilter } from './document-fingerprint-filter'
 import { createHash } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -118,9 +119,11 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
         }
         const folderPath = normalizeKnowledgebaseFolderPath(command.input.folderPath)
         const folderMode = command.input.folderMode ?? 'direct'
+        const fingerprint = documentFingerprintFilter(command.input)
         const { items, total } = await this.documentService.findAll({
             where: {
                 knowledgebaseId,
+                ...fingerprint.where,
                 ...(hasParentBoundary ? { parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : IsNull() } : {}),
                 ...(folderPath !== undefined
                     ? {
@@ -165,7 +168,8 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
             documents: items.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry)),
             total,
             page,
-            pageSize
+            pageSize,
+            ...(fingerprint.appliedFilters ? { appliedFilters: fingerprint.appliedFilters } : {})
         }
     }
 }
