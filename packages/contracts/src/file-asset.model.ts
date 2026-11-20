@@ -3,13 +3,7 @@ import { IStorageFile } from './storage-file.model'
 export type FileAssetStatus = 'success' | 'partial_success' | 'failed'
 export type FileAssetDestinationKind = 'storage' | 'volume' | 'sandbox'
 export type FileAssetSourceKind = 'multipart' | 'storage_file' | 'local_file' | 'buffer'
-export type FileUploadVolumeCatalog =
-  | 'projects'
-  | 'users'
-  | 'knowledges'
-  | 'skills'
-  | 'xperts'
-  | 'user-xperts'
+export type FileUploadVolumeCatalog = 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | 'user-xperts'
 
 export type FileUploadSandboxMode = 'mounted_workspace' | 'backend_upload'
 
@@ -24,6 +18,13 @@ export interface IFileAssetSource {
   metadata?: Record<string, any>
 }
 
+/** Serializable public failure details, independent of the upload transport. */
+export interface IFileUploadFailure {
+  statusCode: number
+  code?: string
+  message: string | string[]
+}
+
 export interface IFileAssetDestination {
   kind: FileAssetDestinationKind
   status: 'success' | 'failed'
@@ -32,6 +33,7 @@ export interface IFileAssetDestination {
   referenceId?: string
   metadata?: Record<string, any>
   error?: string
+  failure?: IFileUploadFailure
 }
 
 export interface IFileAsset {

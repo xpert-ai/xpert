@@ -10,7 +10,7 @@ import type {
     TChatRequestHuman,
     XpertWorkspaceDataScope
 } from '@xpert-ai/contracts'
-import { getFileAssetDestination, getStorageFileFromAsset, UploadFileCommand } from '@xpert-ai/server-core'
+import { requireFileAssetDestination, getStorageFileFromAsset, UploadFileCommand } from '@xpert-ai/server-core'
 import { isUUID } from 'class-validator'
 import mime from 'mime-types'
 import path from 'path'
@@ -517,10 +517,7 @@ async function createFileAssetFromDataUrl(
             metadata: buildFileAssetMetadata(file, 'chat_request_data_url')
         })
     )
-    const destination = getFileAssetDestination(uploadAsset, DEFAULT_UPLOAD_TARGET.kind)
-    if (!destination || destination.status !== 'success') {
-        throw new BadRequestException(destination?.error || 'Failed to upload chat request file')
-    }
+    requireFileAssetDestination(uploadAsset, DEFAULT_UPLOAD_TARGET.kind)
 
     const storageFile = getStorageFileFromAsset(uploadAsset)
     if (!storageFile?.id) {

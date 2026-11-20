@@ -4,6 +4,22 @@ jest.mock('./public-xpert-principal', () => ({
     getPublicXpertSessionConversationScope: jest.fn()
 }))
 
+// Keep controller coverage at the command boundary, without loading parser/plugin modules.
+jest.mock('../file-understanding', () => ({
+    CreateFileAssetCommand: class {
+        constructor(readonly input: unknown) {}
+    },
+    EnqueueFileParseCommand: class {
+        constructor(readonly input: unknown) {}
+    },
+    DeleteFileAssetCommand: class {
+        constructor(readonly input: unknown) {}
+    },
+    GetFileAssetByStorageFileQuery: class {
+        constructor(readonly input: unknown) {}
+    }
+}))
+
 jest.mock('../file-understanding/file-asset-access.service', () => ({
     FileAssetAccessService: class FileAssetAccessService {}
 }))
@@ -12,7 +28,7 @@ import {
     assertPublicXpertSessionConversationAccess,
     getPublicXpertSessionConversationScope
 } from './public-xpert-principal'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, HttpException } from '@nestjs/common'
 import { CreateFileAssetCommand } from '../file-understanding'
 import { ContextsController } from './context.controller'
 
@@ -55,6 +71,32 @@ describe('ContextsController restricted uploads', () => {
         await expect(controller.create(file)).rejects.toBe(failure)
         expect(commandBus.execute).toHaveBeenCalledTimes(1)
         expect(commandBus.execute).toHaveBeenCalledWith(new AssertAppPlatformUploadCommand(4))
+    })
+
+    it('maps a structured quota failure before parsing without a caller flag', async () => {
+        ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(undefined)
+        const failure = { statusCode: 413, code: 'application_storage_limit', message: 'Storage is full.' }
+        const commandBus = {
+            execute: jest
+                .fn()
+                .mockResolvedValueOnce(undefined)
+                .mockResolvedValueOnce({
+                    status: 'failed',
+                    destinations: [{ kind: 'storage', status: 'failed', failure }]
+                })
+        }
+        const controller = new ContextsController(
+            { execute: jest.fn() } as never,
+            commandBus as never,
+            {} as never,
+            { assertUploadScope: jest.fn() } as never
+        )
+        const error = await controller.create(file).catch((error) => error)
+        expect(error).toBeInstanceOf(HttpException)
+        expect(error.getStatus()).toBe(413)
+        expect(error.getResponse()).toEqual(failure)
+        expect(commandBus.execute.mock.calls[1][0].input).not.toHaveProperty('propagateHttpErrors')
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
     })
 
     it('rejects a client-selected upload strategy before dispatching an upload', async () => {

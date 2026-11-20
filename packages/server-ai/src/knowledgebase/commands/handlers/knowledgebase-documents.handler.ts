@@ -5,7 +5,7 @@ import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { TextDecoder } from 'node:util'
-import { BadRequestException, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
+import { BadRequestException, Injectable, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
@@ -25,10 +25,11 @@ import {
     KnowledgebaseReadImageResult,
     KnowledgebaseReadTextResult,
     DocumentTransformerRegistry,
+    RequestContext,
     WORKSPACE_FILES_SOURCE
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { getFileAssetDestination, RequestContext, UploadFileCommand } from '@xpert-ai/server-core'
+import { requireFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import * as tar from 'tar'
 import { ILike, In, IsNull, Not, Raw } from 'typeorm'
 import unzipper from 'unzipper'
@@ -794,10 +795,7 @@ async function uploadKnowledgebaseBufferFile(
             ]
         })
     )
-    const destination = getFileAssetDestination(asset, 'volume')
-    if (!destination || destination.status !== 'success') {
-        throw new InternalServerErrorException(destination?.error || 'Failed to upload knowledgebase file')
-    }
+    const destination = requireFileAssetDestination(asset, 'volume')
 
     return {
         name: input.fileName,

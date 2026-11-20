@@ -1042,6 +1042,7 @@
         "ProjectEditorRequired": "需要项目编辑者权限。",
         "ProjectFileRequired": "必须提供项目文件。",
         "ProjectFileUploadFailed": "项目文件上传失败。",
+        "FileUploadFailed": "文件上传失败。",
         "ProjectInvitationEmailMismatch": "此项目邀请属于其他邮箱地址。",
         "ProjectInvitationInvalid": "项目邀请无效或已过期。",
         "ProjectInvitationNotFound": "未找到项目邀请。",

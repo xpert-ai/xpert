@@ -17,7 +17,7 @@ import {
     ZodValidationPipe,
     SecretTokenService,
     UploadFileCommand,
-    getFileAssetDestination,
+    requireFileAssetDestination,
     getStorageFileFromAsset
 } from '@xpert-ai/server-core'
 import {
@@ -209,10 +209,7 @@ export class AIV1Controller {
             })
         )
 
-        const destination = getFileAssetDestination(asset, target.kind)
-        if (!destination || destination.status !== 'success') {
-            throw new BadRequestException(destination?.error || `Failed to upload file to target '${target.kind}'`)
-        }
+        const destination = requireFileAssetDestination(asset, target.kind)
 
         if (target.kind === 'storage') {
             const storageFile = getStorageFileFromAsset(asset)

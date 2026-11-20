@@ -16,6 +16,7 @@ jest.mock('../file-storage', () => ({
 	}
 }))
 
+import { HttpException } from '@nestjs/common'
 import { UploadFileService } from './upload-file.service'
 import { StorageTargetStrategy } from './strategies/storage-target.strategy'
 import { TUploadFileSource } from './types'
@@ -85,4 +86,78 @@ describe('UploadFileService content classification', () => {
 			)
 		}
 	)
+})
+
+describe('UploadFileService failure results', () => {
+	it('preserves quota status, code and localized message without a caller flag', async () => {
+		const failure = new HttpException({ code: 'application_storage_limit', message: '存储空间已满。' }, 413)
+		failure.message = 'APP_PLATFORM_FAILURE:application_storage_limit'
+		const strategy = { upload: jest.fn().mockRejectedValue(failure) }
+		const service = new UploadFileService({} as never, { get: () => strategy } as never)
+		const result = await service.upload({
+			source: { kind: 'buffer', buffer: Buffer.from('x'), originalName: 'file.txt' },
+			targets: [{ kind: 'storage' }]
+		})
+		expect(result.status).toBe('failed')
+		expect(result.destinations).toEqual([
+			{
+				kind: 'storage',
+				status: 'failed',
+				error: 'APP_PLATFORM_FAILURE:application_storage_limit',
+				failure: { statusCode: 413, code: 'application_storage_limit', message: '存储空间已满。' }
+			}
+		])
+	})
+
+	it('keeps multi-target partial results for existing command callers', async () => {
+		const strategy = {
+			upload: jest
+				.fn()
+				.mockRejectedValueOnce(new HttpException('capacity exceeded', 413))
+				.mockResolvedValueOnce({ kind: 'volume', status: 'success', path: 'report.txt' })
+		}
+		const service = new UploadFileService({} as never, { get: () => strategy } as never)
+		const result = await service.upload({
+			source: { kind: 'buffer', buffer: Buffer.from('x'), originalName: 'file.txt' },
+			targets: [{ kind: 'storage' }, { kind: 'volume', catalog: 'projects' }]
+		})
+		expect(result.status).toBe('partial_success')
+		expect(result.destinations.map((item) => item.status)).toEqual(['failed', 'success'])
+		expect(result.destinations[0].failure).toEqual({ statusCode: 413, message: 'capacity exceeded' })
+	})
+
+	it('waits for all targets and retains every typed failure', async () => {
+		let release: () => void = () => {
+			throw Error('upload has not started')
+		}
+		const pending = new Promise<void>((resolve) => {
+			release = resolve
+		})
+		const strategy = {
+			upload: jest
+				.fn()
+				.mockRejectedValueOnce(new HttpException('capacity exceeded', 413))
+				.mockImplementationOnce(async () => {
+					await pending
+					throw new HttpException('access denied', 403)
+				})
+		}
+		const service = new UploadFileService({} as never, { get: () => strategy } as never)
+		let completed = false
+		const upload = service
+			.upload({
+				source: { kind: 'buffer', buffer: Buffer.from('x'), originalName: 'file.txt' },
+				targets: [{ kind: 'storage' }, { kind: 'volume', catalog: 'projects' }]
+			})
+			.then((result) => {
+				completed = true
+				return result
+			})
+		await new Promise((resolve) => setImmediate(resolve))
+		expect(completed).toBe(false)
+		release()
+		const result = await upload
+		expect(result.status).toBe('failed')
+		expect(result.destinations.map((item) => item.failure?.statusCode)).toEqual([413, 403])
+	})
 })
