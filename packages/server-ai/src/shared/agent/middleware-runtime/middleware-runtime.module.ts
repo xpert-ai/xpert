@@ -14,11 +14,13 @@ import { CopilotUsageModule } from '../../../copilot-usage'
 import { RuntimeCapabilityModule } from '../../runtime'
 import { AgentEvolutionModule } from '../../../agent-evolution/agent-evolution.module'
 import { ExecutionObservationModule } from '../../../xpert-agent-execution/observability/observation.module'
+import { ConversationRuntimeModule } from '../../../chat-conversation/conversation-runtime.module'
 
 @Global()
 @Module({
     imports: [
         CqrsModule,
+        ConversationRuntimeModule,
         RuntimeCapabilityModule,
         ExecutionObservationModule,
         AgentEvolutionModule,

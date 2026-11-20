@@ -130,6 +130,7 @@ import { nativeInvocationTool } from '../../../agent-invocation/graph-tool'
 import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime/index'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
+import { CONVERSATION_TURN, type ConversationMiddlewareContext } from '../../../chat-conversation/conversation-turn'
 import { parseXmlString } from './types'
 import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
@@ -877,11 +878,30 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             visibleMiddlewareNodes,
             selectedRuntimeConnectorBindings
         )
-        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi({
-            ...middlewareRuntimeScope,
-            ...connectorScope
-        })
-        const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> & RuntimeResourceMiddlewareContext = {
+        const conversationTurn =
+            options.conversationId && thread_id && execution.id && runtimeUserId && runtimeXpert.tenantId
+                ? {
+                      conversationId: options.conversationId,
+                      threadId: thread_id,
+                      executionId: execution.id,
+                      inputMessageId: options.inputMessageId,
+                      tenantId: runtimeXpert.tenantId,
+                      organizationId: runtimeOrganizationId,
+                      userId: runtimeUserId,
+                      isStart,
+                      leaderKey,
+                      context: options.context && { ...options.context }
+                  }
+                : undefined
+        const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi(
+            { ...middlewareRuntimeScope, ...connectorScope },
+            undefined,
+            conversationTurn
+        )
+        const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> &
+            RuntimeResourceMiddlewareContext &
+            ConversationMiddlewareContext = {
+            [CONVERSATION_TURN]: conversationTurn,
             executionId: execution.id,
             [RUNTIME_RESOURCE_SKILLS]:
                 options.executionDefinition?.skills[agent.key] ?? dynamicResources?.skillSources ?? [],

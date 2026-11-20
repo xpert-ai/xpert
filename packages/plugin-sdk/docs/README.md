@@ -85,13 +85,13 @@ export class DashboardPluginModule {}
 
 Import `WidgetActionProvider`, `IWidgetActionProvider` and `WidgetActionContext` from `@xpert-ai/plugin-sdk`. Each map entry implements `IWidgetActionHandler`; local names contain only letters, digits, underscores or hyphens. The host resolves the exact provider namespace and an explicitly declared own action. It does not invoke arbitrary provider methods or inherited object properties. Registration and unloading apply to the whole action set.
 
-The host checks thread access, the assistant message and its stored action declaration. The domain service validates the form, authorizes the caller for the target resource and handles repeated submissions. An action entry for a dynamically reconstructed card can set `widgetSource: 'receipt'`. Its `execute` handler must then verify the thread, assistant message, Widget ID and allowed operation against its own server record before changing state. Message rendering and action handling remain separate contracts; register both providers in the same business module.
+The host checks thread access, the assistant message and the current action declaration restored from a server-issued Widget reference. Client-editable message content cannot authorize an action. The domain service validates the form, authorizes the caller for the target resource and handles repeated submissions. An action entry for a dynamically reconstructed card can set `widgetSource: 'receipt'`. Its `execute` handler must then verify the thread, assistant message, Widget ID and allowed operation against its own server record before changing state. Message rendering and action handling remain separate contracts; register both providers in the same business module.
 
 Both decorators declare a registration category and name. Before Nest constructs providers, the host checks the name against the installing plugin and rejects duplicate names within a category and installation scope. New plugin-owned named strategies can use `definePluginRegistration(metadataKey, kind)` for the same preflight.
 
 ### Publish and restore a dynamic card
 
-Register a `@MessageWidgetProvider` alongside the action provider in the plugin module. Issue a reference before the assistant reply's completion event. The host binds the calling execution and thread. A producer that already knows the persisted assistant message may specify `messageId` in that thread. Both forms use a stable Widget ID from the domain record. Reissuing the same binding is idempotent.
+Register a `@MessageWidgetProvider` alongside the action provider in the plugin module. Calling `publishWidget()` during an active reply emits a Widget block at that point in the message stream, after its reference is persisted. The host binds the calling execution and thread, saves the block's position in the reply, and starts a separate text block for subsequent text. A producer that already knows the persisted assistant message may specify `messageId` in that thread. Both forms use a stable Widget ID from the domain record. Reissuing the same binding updates the original block without moving it. References without a streamed position remain recoverable at the end of the reply.
 
 ```ts
 @MessageWidgetProvider('@example/dashboard:review')
@@ -111,7 +111,7 @@ export class DashboardReviewCards implements IMessageWidgetProvider {
 }
 ```
 
-Import the capability, provider and types from `@xpert-ai/plugin-sdk`. Pass the registry from the current middleware invocation. Add `DashboardReviewCards` and the action provider to the same module's providers. Both message completion and history reads call `resolve` with the issued references for that provider. Return authorized `{ messageId, widget }` pairs with the original Widget IDs and current `serverActions`. To show a card in restricted sessions, explicitly set `visibleInRestrictedSessions = true` and return only fields safe for that viewer. Unloading the provider hides its cards. Reinstalling the owning provider can restore them from the same references.
+Import the capability, provider and types from `@xpert-ai/plugin-sdk`. Pass the registry from the current middleware invocation. Add `DashboardReviewCards` and the action provider to the same module's providers. Live publication, message completion, history reads and reconnect snapshots call `resolve` with the issued references for that provider and restore each card at its original position. Return authorized `{ messageId, widget }` pairs with the original Widget IDs and current `serverActions`. To show a card in restricted sessions, explicitly set `visibleInRestrictedSessions = true` and return only fields safe for that viewer. Provider resolution is bounded to two seconds; unavailable cards are omitted without blocking the reply indefinitely. Unloading the provider hides its cards. Reinstalling the owning provider can restore them from the same references.
 
 ## Decorator-driven business Tools
 

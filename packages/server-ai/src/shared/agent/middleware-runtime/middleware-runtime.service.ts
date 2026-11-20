@@ -17,6 +17,7 @@ import {
     ArtifactsRuntimeCapability,
     CollaborationRuntimeCapability,
     ConnectorRuntimeCapability,
+    ConversationRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     FileRuntimeCapability,
     ExecutionObservabilityRuntimeCapability,
@@ -38,6 +39,8 @@ import { normalizeOptionalString } from '../../runtime/runtime-input'
 import { createToolImagesApi } from '../../runtime/tool-images-runtime'
 import { ExecutionReviewService } from '../../../agent-evolution/execution-review/execution-review.service'
 import { ExecutionObservationService } from '../../../xpert-agent-execution/observability/observation.service'
+import { ConversationRuntimeService } from '../../../chat-conversation/conversation-runtime'
+import type { ConversationTurn } from '../../../chat-conversation/conversation-turn'
 
 export type { AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 
@@ -64,7 +67,8 @@ export class AgentMiddlewareRuntimeService {
         private readonly platformCapabilities: RuntimeCapabilityRegistry,
         @Inject(ExecutionObservationService)
         private readonly executionObservation: Pick<ExecutionObservationService, 'createScopedApi'>,
-        @Inject(ExecutionReviewService) private readonly reviews: Pick<ExecutionReviewService, 'forView'>
+        @Inject(ExecutionReviewService) private readonly reviews: Pick<ExecutionReviewService, 'forView'>,
+        @Inject(ConversationRuntimeService) private readonly conversations: Pick<ConversationRuntimeService, 'forTurn'>
     ) {}
 
     createModelClient<T = AgentMiddlewareModelClient>(
@@ -112,7 +116,8 @@ export class AgentMiddlewareRuntimeService {
      */
     createScopedApi(
         scope: AgentMiddlewareRuntimeScope = {},
-        authorizedView?: AuthorizedMiddlewareView
+        authorizedView?: AuthorizedMiddlewareView,
+        conversationTurn?: ConversationTurn
     ): AgentMiddlewareRuntimeApi {
         scope = {
             ...scope,
@@ -143,6 +148,8 @@ export class AgentMiddlewareRuntimeService {
             ],
             this.platformCapabilities
         )
+        if (conversationTurn)
+            capabilities.register(ConversationRuntimeCapability, this.conversations.forTurn(conversationTurn))
         const reviewApi = this.reviews.forView(scope, authorizedView)
         if (reviewApi) capabilities.register(ExecutionReviewRuntimeCapability, reviewApi)
         const runtimeFactory = this.platformCapabilities.get(AgentRuntimeFactoryCapability)

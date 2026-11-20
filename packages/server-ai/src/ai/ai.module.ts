@@ -1,3 +1,4 @@
+import { AIWidgetsModule } from './widgets/ai-widgets.module'
 import { ConversationArtifactShares } from './conversation-sharing/conversation-artifact-shares.service'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
 import { ConversationSharingController, SharedConversationController } from './conversation-sharing/share.controller'
@@ -35,7 +36,7 @@ import { XpertToolsetModule } from '../xpert-toolset/xpert-toolset.module'
 import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
-import { RouterModule } from '@nestjs/core'
+import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CopilotModule } from '../copilot'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
@@ -89,6 +90,7 @@ import { AI_ROUTE_PATH } from './ai-route'
                 module: AIModule
             }
         ]),
+        DiscoveryModule,
         ContentResourceModule,
         ArtifactsModule,
         WorkspaceFilesRuntimeModule,
@@ -125,6 +127,7 @@ import { AI_ROUTE_PATH } from './ai-route'
         forwardRef(() => EnvironmentModule),
         forwardRef(() => ChatConversationModule),
         forwardRef(() => ChatMessageModule),
+        AIWidgetsModule,
         forwardRef(() => ChatMessageFeedbackModule),
         forwardRef(() => FileUnderstandingModule),
         SseStreamModule,

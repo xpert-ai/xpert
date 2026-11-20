@@ -1,3 +1,4 @@
+import { MessageWidgets } from '../chat-message/widgets/message-widgets'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { runtimeStream, usesRuntimePresentation } from './runtime-presentation'
@@ -125,8 +126,18 @@ export class ThreadsController {
         private readonly redisSseStreamService: RedisSseStreamService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
         @Optional() private readonly threadRunControl?: ThreadRunControlService,
-        @Optional() private readonly activity?: ThreadActivityService
+        @Optional() private readonly activity?: ThreadActivityService,
+        @Optional() private readonly widgets?: MessageWidgets
     ) {}
+
+    private presentRunStream(stream: Parameters<typeof runtimeStream>[0], threadId: string) {
+        const restricted = usesRuntimePresentation()
+        return runtimeStream(
+            stream,
+            restricted,
+            this.widgets && ((ids) => this.widgets.resolve(threadId, ids, restricted))
+        )
+    }
 
     // Threads: A thread contains the accumulated outputs of a group of runs.
 
@@ -310,7 +321,7 @@ export class ThreadsController {
             }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
-                writeSseResponse(req, res, runtimeStream(stream))
+                writeSseResponse(req, res, this.presentRunStream(stream, thread_id))
                 return
             }
             const owner = buildSseConnectionOwner(req, {
@@ -336,7 +347,7 @@ export class ThreadsController {
                 }
             })
             startSseHeartbeat(res)
-            writeSseResponse(req, res, runtimeStream(sseStream))
+            writeSseResponse(req, res, this.presentRunStream(sseStream, thread_id))
         } catch (error) {
             console.error('Error starting run stream:')
             console.error(error)
@@ -437,7 +448,7 @@ export class ThreadsController {
         })
 
         startSseHeartbeat(res)
-        return runtimeStream(stream)
+        return this.presentRunStream(stream, thread_id)
     }
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
