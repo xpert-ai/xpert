@@ -1,0 +1,88 @@
+---
+title: 'Prepare a project when starting a conversation'
+description: 'Configure project selection and first-send creation, including permissions, files, retry behavior, and application-owned setup.'
+---
+
+An Assistant that always works in a project can prepare one when the user sends the first message. Opening the Assistant or choosing **Create on send** does not create a project. The first request and its attachments enter the prepared project, and the conversation stays visible while the workbench updates its route.
+
+For an Assistant that combines discussion with project work, allow a personal conversation first and use [Move a conversation into a project](/en/guides/conversation-project-move) when the user asks to begin project work.
+
+## Choose the startup policy
+
+The Assistant's `team.options.workspaceScope` controls its project requirement and what happens when a new conversation has no project.
+
+| Configuration                                  | Behavior                                                                                                                |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `mode: project-required`, `onMissing: create`  | Default to creating a project on the first send; the user can choose an accessible existing project instead.            |
+| `mode: project-required`, no `onMissing`       | Require an existing project before execution.                                                                           |
+| `mode: project-preferred`                      | The workbench defaults to personal chat, including when `onMissing` is configured. Project selection remains available. |
+| `mode: project-required`, `onMissing: confirm` | Record pending application setup on send. The application's explicit confirmation creates the project later.            |
+
+For a dedicated production Assistant:
+
+```yaml
+team:
+  options:
+    workspaceScope:
+      mode: project-required
+      onMissing: create
+```
+
+For a mixed Assistant:
+
+```yaml
+team:
+  options:
+    workspaceScope:
+      mode: project-preferred
+```
+
+The second policy allows personal chat; enable the project capability separately to offer selection during a conversation. Startup policy does not install middleware or tools. Apply configuration changes to the published Assistant before using them.
+
+## Use the project selector
+
+The Assistant entry opens a blank conversation without adopting the project of a previous conversation. Starting a new conversation from inside a project retains that project.
+
+ChatKit submits an explicit `projectSelection` with a send request:
+
+| Mode       | Meaning                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auto-new` | Use the configured creation or confirmation policy. With `onMissing: create`, create on send, ignoring stale project context from the host. |
+| `none`     | Keep the conversation personal. The server saves this choice so a reload cannot silently apply project defaults.                            |
+| `existing` | Use the specified `projectId` after checking access and Assistant compatibility.                                                            |
+
+Required-project Assistants hide the personal option and reject an explicit `none` request. Switching the selector clears the previous business-view selection and request context. Once the conversation has a project, further sends reuse that binding. Retrying, resuming, and following up on an execution never create another project.
+
+An ordinary send cannot change the project of a saved conversation or override its persisted personal choice. An eligible personal conversation uses the separate, explicit [move-and-continue flow](/en/guides/conversation-project-move).
+
+## Creation and permissions
+
+The authenticated Agent Protocol send entry prepares the project before applying the Assistant principal. The server checks the human caller's conversation access, project creation permission, feature availability, published Assistant, organization, and configured project type. Automatic user-owned creation is confined to this entry; an internal `XpertChatCommand` call does not opt into it.
+
+Direct project types support first-send creation. For an entity-bound application type, its registered provider must explicitly implement `createForConversation`. The application creates its business record through that entry and returns the project state. An unavailable or unsupported provider fails the request; the platform does not substitute a generic project.
+
+Creation locks and rereads the conversation row. Project creation, the canonical Assistant-family binding, and conversation binding commit together. The ordinary bootstrap requires an empty conversation with no saved messages, goals, file links, attachments, or executions. It cannot move an established personal conversation.
+
+Concurrent first sends reuse the binding that commits first. A failed binding rolls back creation. Workspace initialization after commit is idempotent, so retrying an initialization failure does not create a second project. A concurrent personal selection cannot overwrite a project binding or leave a project ID paired with a personal choice.
+
+## Files and conversation continuity
+
+Attachments uploaded for the first send retain their `FileAsset` handles. Existing authorization and normalization link them to the saved conversation and project. Assets owned by another project cannot be reassigned through this flow. Uploads after the conversation starts resolve its persisted project.
+
+The workbench reads the saved conversation at conversation start, response completion, and history load. It updates the project URL while retaining the mounted ChatKit instance for the same thread, preserving history, streaming, and the composer. Navigating to another thread restores normal scope isolation.
+
+ChatKit resolves the persisted runtime project separately from its initial mount identity. Project controls and file selectors use that runtime scope, and the bound project name remains visible. The host and ChatKit UI must both support this behavior.
+
+The server records the provisional project name in `settings.conversationBootstrap`. Business provisioning can reconcile that name once. Explicit user renaming resolves the provisional name and is preserved by subsequent provisioning. Renaming does not move storage volumes.
+
+## Application confirmation
+
+`onMissing: confirm` supports an application-specific setup flow. The first send records `projectCreation.status: awaiting_confirmation` without creating a project or its business resources. An authorized application later confirms the name and configuration through `ProjectProvisioningApi.confirmConversation`.
+
+The server checks the caller, Assistant, pending state, and confirmation identity. A repeated confirmation reuses the saved project and can retry initialization. This explicitly pending setup can acquire its first project after setup messages exist; ordinary personal chat cannot use that exception. Pending application setup is also excluded from the conversation move flow.
+
+## Check the behavior
+
+Use a fresh conversation for each path. Confirm that opening the composer creates nothing; sending creates one project; selecting an existing project creates none; and retries retain the saved binding. With a first-send attachment, verify that the original message and file remain available after route synchronization. For a mixed Assistant, verify that ordinary discussion stays personal after a refresh.
+
+Relevant implementation areas are `ai/project-selection.ts`, `ai/commands/handlers/run-create-stream.handler.ts`, `xpert-project/services/conversation-project.service.ts`, and `xpert-project/services/project-type.service.ts` under `packages/server-ai/src`. The workbench integration lives under `apps/cloud/src/app/features/chat/xpert-workbench`.
