@@ -15,13 +15,7 @@ export class ProjectSelectionService {
     ) {}
 
     async request(turn: ConversationTurn) {
-        if (
-            !turn.isStart ||
-            turn.leaderKey ||
-            turn.context?.supportsServerWidgetActions !== true ||
-            turn.context?.supportsProjectSelection !== true
-        )
-            throw new ForbiddenException('Project selection unavailable')
+        if (!turn.isStart || turn.leaderKey) throw new ForbiddenException('Project selection unavailable')
         await assertConversationTurnAccess(this.queries, turn)
         await issueProjectSelection(this.db, turn)
     }

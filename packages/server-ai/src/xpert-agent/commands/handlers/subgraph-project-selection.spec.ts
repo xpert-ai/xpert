@@ -13,7 +13,6 @@ describe('project selection in a compiled Agent graph', () => {
             additionalMiddlewareStrategies: [new ProjectMiddleware({ request: requestProjectSelection })]
         })
         const options = {
-            context: { supportsServerWidgetActions: true, supportsProjectSelection: true },
             inputMessageId: 'human'
         }
         const graph = await fixture.compile(options)
@@ -54,9 +53,7 @@ describe('project selection in a compiled Agent graph', () => {
             additionalMiddlewareStrategies: [new ProjectMiddleware({ request: requestProjectSelection })]
         })
         fixture.toolRun.mockResolvedValueOnce('PROJECT_REQUIRED')
-        const graph = await fixture.compile({
-            context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
-        })
+        const graph = await fixture.compile()
         fixture.model
             .mockResolvedValueOnce(
                 new AIMessage({ content: '', tool_calls: [{ id: 'work', name: 'test_operation', args: {} }] })
@@ -77,9 +74,7 @@ describe('project selection in a compiled Agent graph', () => {
     it('does not inject project selection into an Assistant without the project middleware', async () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner')
         const fixture = createInputGraphFixture()
-        const graph = await fixture.compile({
-            context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
-        })
+        const graph = await fixture.compile()
         await graph.invoke(input('hi'), config)
         expect(fixture.bindTools.mock.lastCall[0]).not.toContainEqual(
             expect.objectContaining({ name: 'request_project_selection' })

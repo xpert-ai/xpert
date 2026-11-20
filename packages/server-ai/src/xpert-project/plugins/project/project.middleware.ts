@@ -50,7 +50,7 @@ export class ProjectMiddleware implements IAgentMiddlewareStrategy {
             .parse(options ?? {})
         const turn = context[CONVERSATION_TURN]
         if (context.projectId || !turn) return { name: PROJECT_MIDDLEWARE, tools: [] }
-        const scope = { ...turn, context: turn.context && { ...turn.context } }
+        const scope = { ...turn }
         const picker = tool(
             async () => {
                 await this.selections.request(scope)

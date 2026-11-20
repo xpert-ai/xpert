@@ -239,8 +239,7 @@ suite('move an existing text conversation at the run boundary', () => {
             organizationId: org,
             executionId: run,
             inputMessageId: message,
-            isStart: true,
-            context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
+            isStart: true
         })
         const offer = await service.pending(thread)
         expect(offer.assistantMessageId).toBe(ai)
@@ -369,8 +368,7 @@ suite('move an existing text conversation at the run boundary', () => {
                 userId: user,
                 tenantId: tenant,
                 organizationId: org,
-                isStart: true,
-                context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
+                isStart: true
             }
             const registry = new DefaultRuntimeCapabilityRegistry().register(
                 ConversationRuntimeCapability,

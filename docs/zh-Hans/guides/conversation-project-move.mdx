@@ -13,7 +13,7 @@ description: '在个人会话中选择或创建项目，保留历史，并自动
 
 **项目任务**继续由 `ProjectTasksMiddleware` 负责。项目任务和实时看板也通过能力装配附带 `ProjectMiddleware`。同时启用时，会复用同一 Agent 上相同 provider 的连接，只暴露一个选择工具。取消独立的项目管理选项后，只要其他已开启能力仍需项目选择，该中间件就会保留。已有已发布助理需重新应用能力配置，或更新并发布模板，才能获得这个连接。
 
-混合助理使用 `workspaceScope.mode: project-preferred`，默认从个人聊天开始。Web 客户端需要支持消息 Widget 服务端动作和项目选择，对应运行上下文标记为 `supportsServerWidgetActions` 和 `supportsProjectSelection`。
+混合助理使用 `workspaceScope.mode: project-preferred`，默认从个人聊天开始。ChatKit 渲染消息 Widget，并通过 SDK 提交动作。项目模块根据经过授权的会话范围和迁移资格决定是否发卡，无需客户端声明能力标记。
 
 ## 在对话里选择目标
 

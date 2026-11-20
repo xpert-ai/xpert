@@ -1,6 +1,5 @@
 import { ForbiddenException } from '@nestjs/common'
 import type { QueryBus } from '@nestjs/cqrs'
-import type { TChatOptions } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { assertPublicXpertSessionConversationAccess } from '../ai/public-xpert-principal'
 import { AssertChatConversationAccessQuery } from './queries/conversation-assert-access.query'
@@ -16,7 +15,6 @@ export interface ConversationTurn {
     userId: string
     isStart: boolean
     leaderKey?: string
-    context?: TChatOptions['context']
 }
 
 export const CONVERSATION_TURN = Symbol('conversation-turn')

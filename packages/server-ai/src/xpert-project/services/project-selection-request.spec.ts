@@ -18,8 +18,7 @@ describe('Project selection admission', () => {
         conversationId: 'conversation',
         threadId: 'thread',
         executionId: 'execution',
-        isStart: true,
-        context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
+        isStart: true
     }
     beforeEach(() => {
         jest.clearAllMocks()
@@ -31,25 +30,21 @@ describe('Project selection admission', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    it('authorizes the captured actor, thread and restricted session before entering the existing transaction', async () => {
+    it('issues a card without client capability flags after authorizing the actor, thread and restricted session', async () => {
         await service.request(turn)
         expect(queries.execute).toHaveBeenCalledTimes(1)
         expect(assertPublicXpertSessionConversationAccess).toHaveBeenCalledWith({ id: turn.conversationId }, queries)
         expect(db.transaction).toHaveBeenCalledTimes(1)
     })
 
-    it.each([
-        { isStart: false },
-        { leaderKey: 'parent' },
-        { context: undefined },
-        { context: { supportsServerWidgetActions: true } },
-        { context: { supportsProjectSelection: true } },
-        { context: { supportsServerWidgetActions: true, supportsProjectSelection: 'true' } }
-    ])('rejects unsupported entry or client context before issuing a card: %j', async (override) => {
-        await expect(service.request({ ...turn, ...override })).rejects.toThrow('Project selection unavailable')
-        expect(queries.execute).not.toHaveBeenCalled()
-        expect(db.transaction).not.toHaveBeenCalled()
-    })
+    it.each([{ isStart: false }, { leaderKey: 'parent' }])(
+        'rejects unsupported execution entry before issuing a card: %j',
+        async (override) => {
+            await expect(service.request({ ...turn, ...override })).rejects.toThrow('Project selection unavailable')
+            expect(queries.execute).not.toHaveBeenCalled()
+            expect(db.transaction).not.toHaveBeenCalled()
+        }
+    )
 
     it.each(['userId', 'tenantId', 'organizationId'] as const)('rejects a changed %s', async (key) => {
         await expect(service.request({ ...turn, [key]: 'other' })).rejects.toThrow('actor unavailable')

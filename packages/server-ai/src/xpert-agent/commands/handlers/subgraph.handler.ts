@@ -889,8 +889,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                       organizationId: runtimeOrganizationId,
                       userId: runtimeUserId,
                       isStart,
-                      leaderKey,
-                      context: options.context && { ...options.context }
+                      leaderKey
                   }
                 : undefined
         const middlewareRuntime = this.agentMiddlewareRuntimeService.createScopedApi(

@@ -17,8 +17,7 @@ describe('ProjectMiddleware', () => {
             executionId: 'execution',
             userId: 'user',
             tenantId: 'tenant',
-            isStart: true,
-            context: { supportsServerWidgetActions: true, supportsProjectSelection: true }
+            isStart: true
         },
         tenantId: 'tenant',
         userId: 'user',
@@ -52,11 +51,11 @@ describe('ProjectMiddleware', () => {
     })
 
     it('calls the injected project service with a captured host turn without requiring a RuntimeCapability', async () => {
-        const turn = { ...context[CONVERSATION_TURN], context: { ...context[CONVERSATION_TURN].context } }
+        const turn = { ...context[CONVERSATION_TURN] }
         const expected = structuredClone(turn)
         const middleware = strategy.createMiddleware({}, { ...context, [CONVERSATION_TURN]: turn })
         turn.userId = 'changed'
-        turn.context.supportsProjectSelection = false
+        turn.threadId = 'changed'
         const picker = middleware.tools[0]
         if (!('invoke' in picker)) throw new Error('Selection tool missing')
         await picker.invoke({})

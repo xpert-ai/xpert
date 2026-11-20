@@ -13,7 +13,7 @@ Enable **Project management** (`project-management`) during Assistant creation, 
 
 **Project tasks** retains task management in `ProjectTasksMiddleware`. Project Tasks and Live Dashboard also include `ProjectMiddleware` through capability composition. Enabling them together reuses the same provider connection on an Agent and exposes one selector. Disabling standalone Project management retains the selector while another enabled capability needs it. Existing published Assistants obtain the connection by reapplying capability configuration or updating and publishing their template.
 
-Use `workspaceScope.mode: project-preferred` to start a mixed Assistant in personal chat. The Web client must support message Widget server actions and project selection; the corresponding runtime context flags are `supportsServerWidgetActions` and `supportsProjectSelection`.
+Use `workspaceScope.mode: project-preferred` to start a mixed Assistant in personal chat. ChatKit renders the message Widget and submits its actions through the SDK. The project module decides whether to issue the card based on the authenticated conversation scope and migration eligibility; no client capability flags are required.
 
 ## Select a destination in the conversation
 

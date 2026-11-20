@@ -5,7 +5,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
 
-// Managed execution accepts Project scope and the client’s interaction capabilities;
+// Managed execution accepts Project scope;
 // environment and model configuration always come from the published installation.
 // ChatKit represents a conversation without a Project as null after history restoration.
 const projectIdSchema = z
@@ -14,9 +14,7 @@ const projectIdSchema = z
     .transform((value) => value ?? undefined)
 const contextSchema = z
     .object({
-        projectId: projectIdSchema,
-        supportsServerWidgetActions: z.boolean().optional(),
-        supportsProjectSelection: z.boolean().optional()
+        projectId: projectIdSchema
     })
     .strip()
 // File and reference handles retain their existing resource-authorization boundary.
