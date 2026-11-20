@@ -20,6 +20,8 @@
     "announcement_dismissal",
     "app_platform_storage_relation",
     "app_platform_storage_usage",
+    "app_platform_storage_usage_legacy",
+    "app_platform_storage_grant",
     "artifact_draft",
     "artifact_reference",
     "artifact_use_grant",

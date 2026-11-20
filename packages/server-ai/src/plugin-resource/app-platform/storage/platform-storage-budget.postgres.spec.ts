@@ -83,7 +83,12 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
         }
     }
     const volume = () =>
-        new TestVolumes(commandVolumeWriteBudget(commands as never)).resolve({ tenantId, catalog: 'users', userId })
+        new TestVolumes(commandVolumeWriteBudget(commands as never)).resolve({
+            tenantId,
+            organizationId,
+            catalog: 'users',
+            userId
+        })
     beforeAll(async () => {
         if (!new URL(url!).pathname.endsWith('_test')) throw new Error('Use a disposable _test database')
         directory = await realpath(await mkdtemp(path.join(tmpdir(), 'storage-budget-')))
@@ -171,11 +176,55 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
         await database.query(
             await readFile(path.join(__dirname, 'migrations/20261031120000-approximate-storage.sql'), 'utf8')
         )
+        // An existing 10 GiB grant must survive conversion from account snapshots.
+        await capacity(10 * 1024 ** 3)
+        await database.query(
+            'INSERT INTO app_platform_storage_usage ("tenantId","userId","externalBytes") VALUES ($1,$2,123)',
+            [tenantId, userId]
+        )
+        const readOrganizationMigration = await readFile(
+            path.join(__dirname, 'migrations/20261120120000-organization-storage.sql'),
+            'utf8'
+        )
+        await database.transaction((manager) => manager.query(readOrganizationMigration))
+        const legacyPlan = await database
+            .getRepository(MembershipPlan)
+            .save({ tenantId, organizationId, includedStorageBytes: 5 * 1024 ** 3 })
+        await database.getRepository(UserMembership).save({
+            ...owner,
+            planId: legacyPlan.id,
+            status: MembershipStatusEnum.Active,
+            currentPeriodStart: new Date(Date.now() - 60_000),
+            currentPeriodEnd: new Date(Date.now() + 60_000),
+            planSnapshot: createMembershipPlanSnapshot(legacyPlan)
+        })
+        await database.query(
+            await readFile(path.join(__dirname, 'migrations/20261120121000-organization-storage-grants.sql'), 'utf8')
+        )
         collector = new PlatformStorageUsageService(database)
+        expect(await collector.limit(await account())).toBe(10 * 1024 ** 3)
+        expect(
+            (
+                await database.query(
+                    'SELECT bytes::text FROM app_platform_storage_grant WHERE "tenantId"=$1 AND "organizationId"=$2',
+                    [tenantId, organizationId]
+                )
+            )[0].bytes
+        ).toBe(String(5 * 1024 ** 3))
+        expect(
+            (
+                await database.query(
+                    'SELECT "externalBytes"::int AS bytes FROM app_platform_storage_usage_legacy WHERE "tenantId"=$1 AND "userId"=$2',
+                    [tenantId, userId]
+                )
+            )[0].bytes
+        ).toBe(123)
+        expect(await collector.snapshot(await account())).toMatchObject({ measuredAt: null, refreshRequested: true })
         service = new CheckStorageQuotaHandler(new StorageQuotaAccountResolver(database), collector)
     })
     beforeEach(async () => {
         for (const table of [
+            'app_platform_storage_grant',
             'user_membership_period',
             'user_membership',
             'membership_plan',
@@ -208,8 +257,8 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
     const usage = async () =>
         (
             await database.query(
-                'SELECT "externalBytes"::int external,"databaseBytes"::int stored FROM app_platform_storage_usage WHERE "tenantId"=$1 AND "userId"=$2',
-                [tenantId, userId]
+                'SELECT "externalBytes"::int external,"databaseBytes"::int stored FROM app_platform_storage_usage WHERE "tenantId"=$1 AND "organizationId"=$2',
+                [tenantId, organizationId]
             )
         )[0]
 
@@ -259,6 +308,132 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
         await volume().writeFile('retained', 'smaller')
         expect(await readFile(path.join(volume().serverRoot, 'retained'), 'utf8')).toBe('smaller')
     })
+    it('does not increase organization storage when members join, and retains purchased capacity when they leave', async () => {
+        const plan = await database
+            .getRepository(MembershipPlan)
+            .save({ tenantId, organizationId, includedStorageBytes: 100 })
+        const start = new Date(Date.now() - 60_000),
+            end = new Date(Date.now() + 60_000)
+        const { MembershipSourceEnum } = await import('@xpert-ai/contracts')
+        const auto = await database.getRepository(UserMembership).save({
+            ...owner,
+            userId: otherUser,
+            planId: plan.id,
+            status: MembershipStatusEnum.Active,
+            source: MembershipSourceEnum.Organization,
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        expect(await collector.limit(await account())).toBe(12)
+        await database.getRepository(UserMembership).delete(auto.id)
+        const buyer = await database.getRepository(UserMembership).save({
+            ...owner,
+            planId: plan.id,
+            status: MembershipStatusEnum.Active,
+            source: MembershipSourceEnum.External,
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        const period = await database.getRepository(MembershipPeriod).save({
+            ...owner,
+            membershipId: buyer.id,
+            status: MembershipPeriodStatusEnum.Active,
+            periodStart: start,
+            periodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        expect(await collector.limit(await account())).toBe(100)
+        await database.transaction(async (manager) => {
+            await manager.query("SELECT set_config('xpert.storage_member_removal','on',true)")
+            await manager
+                .getRepository(UserMembership)
+                .update(buyer.id, { status: MembershipStatusEnum.Expired, currentPeriodEnd: new Date() })
+            await manager
+                .getRepository(MembershipPeriod)
+                .update(period.id, { status: MembershipPeriodStatusEnum.Completed, periodEnd: new Date() })
+        })
+        expect(await collector.limit(await account())).toBe(100)
+        // Explicit refund still revokes the organization benefit after purchaser removal.
+        await database
+            .getRepository(MembershipPeriod)
+            .update(period.id, { status: MembershipPeriodStatusEnum.RefundPending })
+        expect(await collector.limit(await account())).toBe(12)
+    })
+    it('takes the maximum of independent purchases, and still honors pause, resume, expiry and refunds', async () => {
+        const plan = await database
+            .getRepository(MembershipPlan)
+            .save({ tenantId, organizationId, includedStorageBytes: 40 })
+        const start = new Date(Date.now() - 60_000),
+            end = new Date(Date.now() + 60_000)
+        const membership = await database.getRepository(UserMembership).save({
+            ...owner,
+            planId: plan.id,
+            status: MembershipStatusEnum.Active,
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        const period = await database.getRepository(MembershipPeriod).save({
+            ...owner,
+            membershipId: membership.id,
+            status: MembershipPeriodStatusEnum.Active,
+            periodStart: start,
+            periodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        await database.getRepository(UserMembership).save({
+            ...owner,
+            userId: otherUser,
+            planId: plan.id,
+            status: MembershipStatusEnum.Active,
+            currentPeriodStart: start,
+            currentPeriodEnd: end,
+            planSnapshot: createMembershipPlanSnapshot(plan)
+        })
+        expect(await collector.limit(await account())).toBe(40)
+        await database
+            .getRepository(MembershipPeriod)
+            .update(period.id, { planSnapshot: { ...createMembershipPlanSnapshot(plan), includedStorageBytes: 80 } })
+        expect(await collector.limit(await account())).toBe(80)
+        await database.getRepository(UserMembership).update(membership.id, { status: MembershipStatusEnum.Paused })
+        expect(await collector.limit(await account())).toBe(40)
+        await database.getRepository(UserMembership).update(membership.id, { status: MembershipStatusEnum.Active })
+        expect(await collector.limit(await account())).toBe(80)
+        await database.getRepository(MembershipPeriod).update(period.id, { periodEnd: new Date(Date.now() - 1) })
+        expect(await collector.limit(await account())).toBe(40)
+    })
+    it('separates persisted usage of two organizations even for the same uploader', async () => {
+        await database.query(
+            'INSERT INTO storage_file (id,"tenantId","organizationId","createdById",file,size) VALUES ($1,$2,$3,$4,$5,5),($6,$2,$7,$4,$8,9)',
+            [randomUUID(), tenantId, organizationId, userId, 'a', randomUUID(), otherOrg, 'b']
+        )
+        await insert('own-data')
+        await insert('foreign-data'.repeat(100), otherOrg)
+        await collector.refresh(await account())
+        const ownUsage = await usage()
+        expect(ownUsage.external).toBe(5)
+        const foreign = await database
+            .getRepository(AppPlatformDelivery)
+            .findOneByOrFail({ tenantId, organizationId: otherOrg })
+        await collector.refresh(foreign)
+        const foreignUsage = await collector.snapshot(foreign)
+        expect(foreignUsage.externalBytes).toBe(9)
+        expect(foreignUsage.databaseBytes).toBeGreaterThan(ownUsage.stored)
+        expect((await usage()).external).toBe(5)
+    })
+    it('checks historical and new migration postconditions', async () => {
+        for (const name of [
+            '20261029100000-account-storage',
+            '20261031120000-approximate-storage',
+            '20261120120000-organization-storage',
+            '20261120121000-organization-storage-grants'
+        ])
+            expect(
+                await database.query(await readFile(path.join(__dirname, `migrations/checks/${name}.sql`), 'utf8'))
+            ).toEqual([])
+    })
     it('detaches historical triggers and allows SQL writes above quota until reconciliation', async () => {
         await insert('a'.repeat(100))
         await insert('b'.repeat(100))
@@ -287,7 +462,7 @@ integration('account cumulative storage / PostgreSQL and real filesystem', () =>
     it('keeps ordinary SQL commits independent of the collector advisory lock', async () => {
         const runner = database.createQueryRunner()
         await runner.connect()
-        const key = `app-platform-storage-collector:${tenantId}:${userId}`
+        const key = `app-platform-storage-collector:${tenantId}:${organizationId}`
         await runner.query('SELECT pg_advisory_lock(hashtextextended($1,0))', [key])
         try {
             await database.transaction(async (manager) => {

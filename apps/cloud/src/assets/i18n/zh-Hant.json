@@ -48,7 +48,7 @@
     },
     "StorageUsage": {
       "Title": "儲存空間",
-      "Description": "目前應用程式帳號的儲存用量。",
+      "Description": "目前組織的全部成員與應用程式共用儲存空間，成員加入或退出不改變容量。",
       "Refresh": "重新整理用量",
       "Remaining": "剩餘空間",
       "Used": "已使用",

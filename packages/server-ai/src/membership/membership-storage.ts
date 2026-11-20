@@ -1,11 +1,9 @@
 // Capacity follows immutable membership period snapshots. Calendar bounds apply even before
 // the lifecycle scheduler runs; inactive/refunded benefits never remove stored files.
-import { MembershipPeriodStatusEnum, MembershipStatusEnum } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
-import { EntityManager, IsNull, LessThanOrEqual, MoreThan } from 'typeorm'
-import { MembershipPeriod } from './membership-period.entity'
-import { UserMembership } from './user-membership.entity'
+import { EntityManager } from 'typeorm'
+import { z } from 'zod/v3'
 
 export function normalizeIncludedStorageBytes(value: number | null | undefined): number | null {
     if (value == null) return null
@@ -14,39 +12,21 @@ export function normalizeIncludedStorageBytes(value: number | null | undefined):
     return value
 }
 
-export async function membershipStorageBytes(
+/** Organization grants survive member removal; purchase/refund updates and calendar bounds still apply. */
+export async function organizationMembershipStorageBytes(
     manager: EntityManager,
-    scope: { tenantId: string; organizationId?: string | null; userId: string },
+    scope: { tenantId: string; organizationId: string },
     now = new Date()
 ): Promise<number | null> {
-    const identity = {
-        tenantId: scope.tenantId,
-        userId: scope.userId,
-        organizationId: scope.organizationId ?? IsNull()
-    }
-    const membership = await manager.getRepository(UserMembership).findOne({
-        where: { ...identity, status: MembershipStatusEnum.Active },
-        relations: ['plan'],
-        order: { updatedAt: 'DESC' }
-    })
-    if (!membership) return null
-    const period = await manager.getRepository(MembershipPeriod).findOne({
-        where: {
-            ...identity,
-            membershipId: membership.id,
-            periodStart: LessThanOrEqual(now),
-            periodEnd: MoreThan(now)
-        },
-        order: { periodStart: 'DESC' }
-    })
-    if (period) {
-        if (![MembershipPeriodStatusEnum.Active, MembershipPeriodStatusEnum.Scheduled].includes(period.status))
-            return null
-        return normalizeIncludedStorageBytes(period.planSnapshot?.includedStorageBytes)
-    }
-    if (membership.currentPeriodStart > now || membership.currentPeriodEnd <= now) return null
-    // A legacy paid snapshot without this field retains base capacity, not today's edited catalog.
-    return normalizeIncludedStorageBytes(
-        membership.planSnapshot ? membership.planSnapshot.includedStorageBytes : membership.plan?.includedStorageBytes
+    if (!scope.tenantId || !scope.organizationId)
+        throw new BadRequestException(t('server-ai:Error.MembershipStorageInvalid'))
+    const rows = z.array(z.object({ bytes: z.coerce.number().nullable() })).parse(
+        await manager.query(
+            `SELECT max(bytes) AS bytes FROM app_platform_storage_grant
+         WHERE "tenantId"=$1 AND "organizationId"=$2 AND enabled AND NOT paused
+           AND "startsAt" <= $3 AND "endsAt" > $3`,
+            [scope.tenantId, scope.organizationId, now]
+        )
     )
+    return normalizeIncludedStorageBytes(rows[0]?.bytes)
 }

@@ -268,7 +268,7 @@
     },
     "StorageUsage": {
       "Title": "存储空间",
-      "Description": "当前应用账号的存储占用。",
+      "Description": "当前组织的全部成员与应用共用存储，成员加入或退出不改变容量。",
       "Refresh": "刷新用量",
       "Remaining": "剩余空间",
       "Used": "已使用",

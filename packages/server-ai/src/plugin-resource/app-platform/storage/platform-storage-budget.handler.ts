@@ -26,7 +26,7 @@ export class StorageQuotaAccountResolver {
     constructor(private readonly database: DataSource) {}
     async resolve(scope: StorageQuotaScope) {
         if (!scope.tenantId) return null
-        let organizationId = scope.organizationId
+        let organizationId = scope.organizationId ?? RequestContext.getOrganizationId()
         if ('kind' in scope && scope.kind !== 'user') {
             const rows = z
                 .array(z.object({ organizationId: z.string().uuid().nullable() }))
@@ -40,11 +40,7 @@ export class StorageQuotaAccountResolver {
             organizationId = rows[0].organizationId
         }
         const repository = this.database.getRepository(AppPlatformDelivery)
-        const account = organizationId
-            ? await repository.findOneBy({ tenantId: scope.tenantId, organizationId })
-            : scope.userId
-              ? await repository.findOneBy({ tenantId: scope.tenantId, userId: scope.userId })
-              : null
+        const account = organizationId ? await repository.findOneBy({ tenantId: scope.tenantId, organizationId }) : null
         if (
             !account &&
             RequestContext.currentUserId() &&
@@ -72,6 +68,8 @@ export class CheckStorageQuotaHandler implements ICommandHandler<CheckStorageQuo
                 throw platformFailure('application_temporary_storage_limit', 413)
             return null
         }
+        if (request.kind === 'write' && request.root && 'kind' in request.scope)
+            await this.usage.registerRoot(account, request.scope, request.root)
         if (request.kind === 'write' && request.growthBytes !== undefined) {
             if (!Number.isSafeInteger(request.growthBytes)) throw platformFailure('application_storage_limit', 413)
             if (request.growthBytes <= 0) return null
@@ -92,7 +90,7 @@ export class CheckStorageQuotaHandler implements ICommandHandler<CheckStorageQuo
         if (used >= limit) throw platformFailure('application_storage_limit', 413)
         if (request.kind !== 'sandbox') return null
         if (usesFlattenedSandboxVolumeLayout()) throw platformFailure('application_storage_scope_invalid', 503)
-        const root = await this.usage.validateSandboxRoot(account, request.scope, request.root)
+        const root = await this.usage.registerRoot(account, request.scope, request.root)
         // The runtime receives a hard per-execution ceiling; concurrent runtimes may share estimated free capacity.
         return {
             maxWorkspaceBytes: (await measureStorageTrees([root])) + Math.max(0, limit - used),

@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AppPlatformStorageUsage } from '@xpert-ai/contracts'
-import { of, Subject, throwError } from 'rxjs'
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
+import { Store } from '../../../@core/services/store.service'
 import { AppPlatformService } from '../../../@core/services/app-platform.service'
 import zhHans from '../../../../assets/i18n/zh-Hans.json'
 import { AccountStorageUsageComponent } from './storage-usage.component'
@@ -19,17 +20,24 @@ const measured: AppPlatformStorageUsage = {
 }
 
 describe('account storage display', () => {
+  const selectedOrganization$ = new BehaviorSubject({ tenantId: 'tenant', id: 'org' })
   const platform = { getStorageUsage: jest.fn() }
   beforeEach(() => {
+    selectedOrganization$.next({ tenantId: 'tenant', id: 'org' })
     platform.getStorageUsage.mockReset().mockReturnValue(of(measured))
     TestBed.configureTestingModule({
       imports: [AccountStorageUsageComponent, TranslateModule.forRoot()],
-      providers: [{ provide: AppPlatformService, useValue: platform }]
+      providers: [
+        { provide: AppPlatformService, useValue: platform },
+        { provide: Store, useValue: { selectedOrganization$ } }
+      ]
     })
     const translate = TestBed.inject(TranslateService)
     translate.setTranslation('zh-Hans', zhHans)
     translate.use('zh-Hans')
   })
+
+  afterEach(() => TestBed.resetTestingModule())
 
   async function render() {
     const fixture = TestBed.createComponent(AccountStorageUsageComponent)
@@ -89,6 +97,20 @@ describe('account storage display', () => {
     platform.getStorageUsage.mockReturnValue(of(null))
     const { host } = await render()
     expect(host.querySelector('z-card')).toBeNull()
+  })
+
+  it('clears old usage on organization switch and ignores its late response', async () => {
+    const pending = new Subject<AppPlatformStorageUsage>()
+    platform.getStorageUsage.mockReturnValueOnce(pending)
+    const fixture = TestBed.createComponent(AccountStorageUsageComponent)
+    fixture.detectChanges()
+    platform.getStorageUsage.mockReturnValue(of({ ...measured, limitBytes: 10 * 1024 ** 3 }))
+    selectedOrganization$.next({ tenantId: 'tenant', id: 'other-org' })
+    await fixture.whenStable()
+    pending.next(measured)
+    pending.complete()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.usage()?.limitBytes).toBe(10 * 1024 ** 3)
   })
 
   it('does not apply a late response after leaving the account page', async () => {

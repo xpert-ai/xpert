@@ -1,3 +1,4 @@
+import * as membership from '../membership/membership-storage'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
 import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
@@ -23,6 +24,8 @@ function fixture() {
 }
 describe('managed account run admission', () => {
     beforeEach(() => {
+        jest.spyOn(membership, 'organizationMembershipStorageBytes').mockResolvedValue(null)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
     })
@@ -46,6 +49,17 @@ describe('managed account run admission', () => {
         await expect(assertAppPlatformRunCapacity(f.manager as never)).rejects.toMatchObject({ status: 503 })
         f.accounts.find.mockResolvedValue([])
         await expect(assertAppPlatformRunCapacity(f.manager as never)).resolves.toBeUndefined()
+    })
+    it('checks organization storage for a member without an individual App delivery', async () => {
+        const f = fixture()
+        f.accounts.find.mockResolvedValueOnce([])
+        f.snapshot.externalBytes = 80
+        await expect(assertAppPlatformRunCapacity(f.manager as never)).rejects.toMatchObject({ status: 413 })
+    })
+    it('rejects a managed run with no organization scope', async () => {
+        const f = fixture()
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        await expect(assertAppPlatformRunCapacity(f.manager as never)).rejects.toMatchObject({ status: 403 })
     })
     it('preserves the independent simultaneous-run cap below the storage limit', async () => {
         const f = fixture()

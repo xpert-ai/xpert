@@ -12,7 +12,7 @@ export type StorageBudgetResource = StorageBudgetOwner &
 export type StorageQuotaScope = StorageBudgetOwner | StorageBudgetResource
 export type SandboxStorageAllowance = { maxWorkspaceBytes: number; maxTemporaryBytes: number }
 export type StorageQuotaRequest =
-	| { kind: 'write' | 'run'; scope: StorageQuotaScope; growthBytes?: number }
+	| { kind: 'write' | 'run'; scope: StorageQuotaScope; growthBytes?: number; root?: string }
 	| { kind: 'sandbox'; scope: StorageBudgetResource; root: string }
 	| { kind: 'temporary'; scope: StorageBudgetOwner; bytes: number }
 

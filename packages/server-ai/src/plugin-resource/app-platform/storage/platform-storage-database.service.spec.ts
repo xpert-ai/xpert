@@ -98,6 +98,12 @@ describe('account storage snapshot scheduler', () => {
         ])
         expect(f.usage.refresh).toHaveBeenCalledTimes(101)
     })
+    it('collects a shared organization once across delivery pages', async () => {
+        const f = fixture(101)
+        f.accounts.forEach((account) => (account.organizationId = 'shared'))
+        await f.service.reconcile()
+        expect(f.usage.refresh).toHaveBeenCalledTimes(1)
+    })
     it('does not rescan fresh accounts', async () => {
         const f = fixture(2)
         f.usage.needsRefresh.mockReturnValue(false)

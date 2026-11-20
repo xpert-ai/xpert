@@ -67,12 +67,16 @@ export class PlatformStorageDatabaseService implements OnApplicationBootstrap, O
     /** Pagination and per-account failure isolation keep one large or broken account from blocking the rest. */
     async reconcile() {
         let skip = 0
+        const seen = new Set<string>()
         for (;;) {
             const accounts = await this.database
                 .getRepository(AppPlatformDelivery)
                 .find({ order: { id: 'ASC' }, skip, take: 100 })
             for (const account of accounts) {
                 if (this.stopping) return
+                const identity = `${account.tenantId}:${account.organizationId}`
+                if (seen.has(identity)) continue
+                seen.add(identity)
                 try {
                     if (await this.usage.needsRefresh(account, await this.usage.snapshot(account)))
                         await this.usage.refresh(account)

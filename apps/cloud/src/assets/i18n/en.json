@@ -63,7 +63,7 @@
     },
     "StorageUsage": {
       "Title": "Storage",
-      "Description": "Storage used across your application account.",
+      "Description": "Storage shared by all members and Apps in the current organization. Joining or leaving does not change capacity.",
       "Refresh": "Refresh usage",
       "Remaining": "Available",
       "Used": "Used",
