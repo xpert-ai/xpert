@@ -37,7 +37,7 @@ export class ResourceCardProviderRegistry
     for (const { instance } of this.discoveryService.getProviders()) if (instance) this.upsert(instance)
   }
 
-  onModuleDestroy() {
+  override onModuleDestroy() {
     this.subscription?.unsubscribe()
   }
 
