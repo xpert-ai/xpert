@@ -1,3 +1,6 @@
+import { ProjectMoveAdmissionHandler } from './services/project-move-admission'
+import { ProjectMoveActions } from './conversation-project-widget-actions'
+import { ConversationProjectMoveService } from './services/conversation-project-move'
 import { ProjectReviewModule } from './review/project-review.module'
 import { XpertTaskModule } from '../xpert-task/xpert-task.module'
 import { ProjectConfigurationEditorsAdapter } from './configuration/runtime/project-configuration-editors.adapter'
@@ -115,6 +118,7 @@ import { ProjectPipelineWorkspaceService } from './pipeline/queries/pipeline-wor
 import { ProjectListViewProvider } from './views/project-list.provider'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
+import { ProjectSelectionService } from './services/project-selection-request'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
 import { ProjectPluginDeploymentService } from './pipeline/plugin-deployment/plugin-deployment.service'
@@ -283,12 +287,16 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectRuntimeObservationHandler,
         ProjectTaskCardProvider,
         ProjectTasksMiddleware,
+        ProjectSelectionService,
         ProjectTasksCapabilityProvider,
         ProjectTaskRuntimeContextService,
         ProjectTaskDispatchService,
         ProjectTaskRuntimeReadService,
         ...ProjectTaskRuntimeHandlers,
         ProjectResourceCardService,
+        ConversationProjectMoveService,
+        ProjectMoveAdmissionHandler,
+        ProjectMoveActions,
         ConversationProjectService,
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
@@ -327,6 +335,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ...CommandHandlers
     ],
     exports: [
+        ConversationProjectMoveService,
         XpertProjectTypeService,
         XpertProjectWorkspaceFilesService,
         XpertProjectFeatureGuard,

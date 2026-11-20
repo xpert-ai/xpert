@@ -846,7 +846,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             if (request.action !== 'retry') {
-                if (persistedPendingFollowUpGroup?.matched?.id) {
+                if (options.continuation?.sourceMessageId) {
+                    userMessage = conversation.messages.find(
+                        (m) => m.id === options.continuation?.sourceMessageId && m.role === 'human'
+                    )
+                    if (!options.once || !userMessage)
+                        throw new BadRequestException('Invalid conversation continuation')
+                } else if (persistedPendingFollowUpGroup?.matched?.id) {
                     // Pending follow-ups were already merged into graph state and
                     // marked consumed before the execution was created.
                 } else {
@@ -941,13 +947,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             if (userMessage) runtimeInput = isRuntimeChatMessage(userMessage)
-            if (request.action === 'send' && userMessage) {
+            if (request.action === 'send' && userMessage && !options.continuation?.sourceMessageId) {
                 inputMessageId = userMessage.id
                 submittedUserMessage = userMessage
             }
             aiMessage = await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
-                    parent: userMessage,
+                    parent: options.continuation?.sourceMessageId ? conversation.messages.at(-1) : userMessage,
                     role: 'ai',
                     content: ``,
                     executionId,

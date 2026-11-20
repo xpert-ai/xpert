@@ -1,9 +1,11 @@
+import { ConversationProjectMoveService } from './services/conversation-project-move'
 import { runtimeProject } from './dto/runtime-project'
 import { z } from 'zod/v3'
 import { XpertProjectPlanningController } from './project-planning.controller'
 import { XpertProjectTypeService } from './services/project-type.service'
 import {
     AIPermissionsEnum,
+    type ConversationProjectMoveConfirmation,
     IKnowledgebase,
     IPagination,
     IXpertProject,
@@ -105,9 +107,25 @@ export class XpertProjectController extends XpertProjectPlanningController {
         private readonly invitationService: XpertProjectInvitationService,
         private readonly projectWorkspaceFilesService: XpertProjectWorkspaceFilesService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly conversationMoves: ConversationProjectMoveService
     ) {
         super(service, planService, activityService, automationService)
+    }
+
+    @Get('conversation-move/:threadId')
+    pendingConversationMove(@Param('threadId') threadId: string) {
+        return this.conversationMoves.pending(threadId)
+    }
+
+    @Post('conversation-move')
+    confirmConversationMove(@Body() input: unknown) {
+        return this.conversationMoves.confirm(input)
+    }
+
+    @Delete('conversation-move/:threadId/:requestId')
+    dismissConversationMove(@Param('threadId') threadId: string, @Param('requestId') requestId: string) {
+        return this.conversationMoves.dismiss(threadId, requestId)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
@@ -153,7 +171,19 @@ export class XpertProjectController extends XpertProjectPlanningController {
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
     @HttpCode(HttpStatus.CREATED)
     @Post()
-    async create(@Body() entity: IXpertProjectCreateInput): Promise<XpertProject> {
+    async create(
+        @Body() entity: IXpertProjectCreateInput & Partial<Omit<ConversationProjectMoveConfirmation, 'target'>>
+    ): Promise<XpertProject> {
+        if ('moveFromConversationId' in entity) {
+            const { projectId } = await this.conversationMoves.confirm({
+                requestId: entity.requestId,
+                threadId: entity.threadId,
+                shareHistory: entity.shareHistory,
+                moveFromConversationId: entity.moveFromConversationId,
+                target: { mode: 'create', name: entity.name }
+            })
+            return this.service.findOne(projectId, { relations: ['owner', 'members', 'xperts', 'copilotModel'] })
+        }
         const { xpertIds, toolsetIds, knowledgebaseIds, memberIds, ...projectInput } = entity
         void toolsetIds
         void knowledgebaseIds
@@ -246,9 +276,15 @@ export class XpertProjectController extends XpertProjectPlanningController {
             skip: Math.max(Number(skip) || 0, 0),
             take: Math.min(Math.max(Number(take) || 25, 1), 100)
         })
-        return { ...page, items: page.items.map((project) => ({
-            ...runtimeProject(project), myRole: project.myRole, canEdit: project.canEdit, canManage: project.canManage
-        })) }
+        return {
+            ...page,
+            items: page.items.map((project) => ({
+                ...runtimeProject(project),
+                myRole: project.myRole,
+                canEdit: project.canEdit,
+                canManage: project.canManage
+            }))
+        }
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)

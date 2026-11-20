@@ -86,11 +86,16 @@ describe('managed application run admission', () => {
                 projectId: 'project',
                 env: { model: 'other', api_key: 'override' },
                 supportsServerWidgetActions: true,
+                supportsProjectSelection: true,
                 desktopShellGrantId: 'other',
                 view: { selectedRecord: 'record' }
             }
         })
-        expect(result.context).toEqual({ projectId: 'project', supportsServerWidgetActions: true })
+        expect(result.context).toEqual({
+            projectId: 'project',
+            supportsServerWidgetActions: true,
+            supportsProjectSelection: true
+        })
         expect(result.input).toEqual({
             id: 'message',
             input: { input: 'Hello' },

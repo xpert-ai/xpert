@@ -13,7 +13,11 @@ const projectIdSchema = z
     .nullish()
     .transform((value) => value ?? undefined)
 const contextSchema = z
-    .object({ projectId: projectIdSchema, supportsServerWidgetActions: z.boolean().optional() })
+    .object({
+        projectId: projectIdSchema,
+        supportsServerWidgetActions: z.boolean().optional(),
+        supportsProjectSelection: z.boolean().optional()
+    })
     .strip()
 // File and reference handles retain their existing resource-authorization boundary.
 const humanSchema = z

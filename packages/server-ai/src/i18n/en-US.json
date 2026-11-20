@@ -1,4 +1,22 @@
 {
+    "ProjectMove": {
+        "ConfirmInChat": "Confirm the project in this conversation to continue your request.",
+        "NameRequired": "Enter a project name of 1–240 characters.",
+        "TargetRequired": "Choose an available project.",
+        "ChooseOrCreate": "Choose or create a project",
+        "Existing": "Existing project",
+        "Create": "New project",
+        "NoAvailableProjects": "No projects are available.",
+        "NoProjects": "No projects are available. Choose New project to create one.",
+        "Moved": "Moved to {{name}}",
+        "Cancel": "Cancel",
+        "Placeholder": "Select a project",
+        "Name": "New project name",
+        "Target": "Choose a project",
+        "Visibility": "People with access to this project will be able to read the entire conversation.",
+        "Continue": "Continue request",
+        "Confirm": "Move and continue"
+    },
     "TaskDecision": {
         "InvalidReference": "Invalid decision reference. Read project_get_task and copy a returned decisionRef unchanged.",
         "ContextChanged": "The task, candidate or review has changed. Read project_get_task again, reassess its evidence and use the new decisionRef.",

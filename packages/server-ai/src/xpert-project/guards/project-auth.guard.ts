@@ -22,17 +22,20 @@ export class XpertProjectAuthGuard extends ApiKeyOrClientSecretAuthGuard {
         if (!authenticated) return false
 
         const principal = context.switchToHttp().getRequest<{ user?: IApiPrincipal }>().user
-        if (
-            principal?.principalType === 'client_secret' &&
-            principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT
-        ) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ProjectInteractiveSessionRequired', {
-                    defaultValue: 'An interactive user ChatKit session is required to access Projects'
-                })
-            )
-        }
-
+        assertProjectInteractivePrincipal(principal)
         return true
+    }
+}
+
+export function assertProjectInteractivePrincipal(principal: IApiPrincipal | null | undefined) {
+    if (
+        principal?.principalType === 'client_secret' &&
+        principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT
+    ) {
+        throw new ForbiddenException(
+            t('server-ai:Error.ProjectInteractiveSessionRequired', {
+                defaultValue: 'An interactive user ChatKit session is required to access Projects'
+            })
+        )
     }
 }

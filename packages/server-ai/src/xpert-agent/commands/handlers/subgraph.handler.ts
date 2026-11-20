@@ -1340,7 +1340,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             this.#logger.verbose(`SystemMessage of ${agentLabel(agent)}:`, systemMessage.content)
 
             const channelState = getChannelState(state, agentChannel)
-            const messageHistory = channelState?.messages ?? []
+            const messageHistory =
+                (historyVariable ? (get(state, historyVariable) as BaseMessage[]) : channelState?.messages) ?? []
             const retryInputCheckpointId = config?.configurable?.xpertRetryInputCheckpointId
             const input = await prepareAgentInput(
                 state,
@@ -1350,12 +1351,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 this.commandBus,
                 this.queryBus,
                 { xpert: promptWorkflowXpert, resourceSkillContext },
+                enableMessageHistory ? messageHistory : [],
                 !leaderKey && typeof retryInputCheckpointId === 'string' ? retryInputCheckpointId : undefined
             )
 
             return {
                 systemMessage,
-                messageHistory: historyVariable ? (get(state, historyVariable) as BaseMessage[]) : messageHistory,
+                messageHistory,
                 ...input
             }
         }
