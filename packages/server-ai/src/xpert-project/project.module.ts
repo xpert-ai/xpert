@@ -118,6 +118,8 @@ import { ProjectPipelineWorkspaceService } from './pipeline/queries/pipeline-wor
 import { ProjectListViewProvider } from './views/project-list.provider'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
+import { ProjectMiddleware } from './plugins/project/project.middleware'
+import { ProjectCapabilityProvider } from './plugins/project/project.capability'
 import { ProjectSelectionService } from './services/project-selection-request'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
@@ -287,7 +289,9 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectRuntimeObservationHandler,
         ProjectTaskCardProvider,
         ProjectTasksMiddleware,
+        ProjectMiddleware,
         ProjectSelectionService,
+        ProjectCapabilityProvider,
         ProjectTasksCapabilityProvider,
         ProjectTaskRuntimeContextService,
         ProjectTaskDispatchService,

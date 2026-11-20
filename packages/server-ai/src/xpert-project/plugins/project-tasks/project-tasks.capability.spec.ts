@@ -1,7 +1,12 @@
 import { DiscoveryModule } from '@nestjs/core'
 import { Test } from '@nestjs/testing'
 import { IWFNMiddleware, LanguagesEnum, TXpertTeamDraft, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { AssistantCapabilityProviderRegistry, StrategyBus } from '@xpert-ai/plugin-sdk'
+import {
+    AssistantCapabilityProviderRegistry,
+    StrategyBus,
+    applyAssistantMiddleware,
+    hasAssistantMiddleware
+} from '@xpert-ai/plugin-sdk'
 import { blankAssistantTemplate } from '../../../xpert-template/capabilities/blank-assistant-template'
 import {
     recordCapabilityState,
@@ -10,6 +15,7 @@ import {
 } from '../../../xpert-template/capabilities/capability-state'
 import { parseCapabilityTemplateDraft } from '../../../xpert-template/capabilities/template-draft'
 import { PROJECT_TASKS_MIDDLEWARE } from './constants'
+import { PROJECT_MIDDLEWARE } from '../project/project.middleware'
 import { ProjectTasksCapabilityProvider } from './project-tasks.capability'
 
 function context() {
@@ -19,7 +25,7 @@ function context() {
     return { template, draft, language: LanguagesEnum.English, loadTemplate: jest.fn() }
 }
 
-describe('Project management Assistant capability', () => {
+describe('Project tasks Assistant capability', () => {
     const provider = new ProjectTasksCapabilityProvider()
 
     it('is discovered by the shared capability registry', async () => {
@@ -40,21 +46,24 @@ describe('Project management Assistant capability', () => {
         const once = structuredClone(input.draft)
         await provider.apply(input)
         expect(input.draft).toEqual(once)
-        expect(input.draft.nodes).toHaveLength(2)
+        expect(input.draft.nodes).toHaveLength(3)
         expect(input.draft.nodes[1].entity).toMatchObject({
             type: WorkflowNodeTypeEnum.MIDDLEWARE,
             provider: PROJECT_TASKS_MIDDLEWARE,
             required: true,
             options: {}
         })
-        expect(input.draft.connections).toEqual([
-            expect.objectContaining({
-                from: 'Agent_Assistant',
-                to: input.draft.nodes[1].key,
-                type: 'workflow',
-                required: true
-            })
-        ])
+        expect(input.draft.connections).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    from: 'Agent_Assistant',
+                    to: input.draft.nodes[1].key,
+                    type: 'workflow',
+                    required: true
+                })
+            ])
+        )
+        expect(hasAssistantMiddleware(input.draft, PROJECT_MIDDLEWARE)).toBe(true)
         expect(provider.isEnabled(input.draft)).toBe(true)
         expect(input.draft.nodes[0].entity).toMatchObject({
             prompt: expect.stringContaining('Runtime success is not task acceptance'),
@@ -71,7 +80,7 @@ describe('Project management Assistant capability', () => {
         expect(provider.isEnabled(input.draft)).toBe(false)
         await provider.apply(input)
         expect(new Set(input.draft.nodes.map(({ key }) => key)).size).toBe(input.draft.nodes.length)
-        expect(input.draft.connections).toHaveLength(2)
+        expect(input.draft.connections).toHaveLength(3)
         expect(input.draft.connections[0].from).toBe('child')
         expect(provider.isEnabled(input.draft)).toBe(true)
     })
@@ -115,6 +124,31 @@ describe('Project management Assistant capability', () => {
         expect(restored.nodes[1]).toEqual(unrelated)
         expect(restored.connections).toEqual([])
         expect(restored.team.options?.assistantCapabilities).toBeUndefined()
+    })
+
+    it('reuses the project selector contributed by another capability and preserves it when tasks are removed', async () => {
+        const input = context()
+        applyAssistantMiddleware(input.draft, {
+            provider: PROJECT_MIDDLEWARE,
+            key: 'Dashboard_Project',
+            title: 'Projects',
+            instructions: '',
+            preserveToolConcurrency: true
+        })
+        const before = structuredClone(input.draft)
+        await provider.apply(input)
+        expect(
+            input.draft.nodes.filter(
+                (node) =>
+                    node.type === 'workflow' &&
+                    node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE &&
+                    (node.entity as IWFNMiddleware).provider === PROJECT_MIDDLEWARE
+            )
+        ).toHaveLength(1)
+        recordCapabilityState(before, input.draft, [provider.key])
+        const restored = removeCapabilityState(input.draft)
+        expect(hasAssistantMiddleware(restored, PROJECT_MIDDLEWARE)).toBe(true)
+        expect(provider.isEnabled(restored)).toBe(false)
     })
 
     it('rejects a draft without its declared primary Agent', async () => {

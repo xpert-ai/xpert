@@ -12,10 +12,38 @@ jest.mock('@xpert-ai/contracts', () => {
 })
 
 import { IWFNMiddleware, IXpertAgent, TXpertGraph, TXpertTeamNode, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
-import { getAgentMiddlewares, getRuntimeEnabledMiddlewareNodes } from './middleware'
+import { createAgentMiddlewareEntries, getAgentMiddlewares, getRuntimeEnabledMiddlewareNodes } from './middleware'
 import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
 
 describe('getAgentMiddlewares', () => {
+    it('loads every enabled middleware and its tools with or without a project, including older workflow definitions', async () => {
+        const nodes = ['Dashboard', 'DashboardSkills', 'Ask'].map((provider) => ({
+            key: provider,
+            type: 'workflow',
+            position: { x: 0, y: 0 },
+            entity: {
+                id: provider,
+                key: provider,
+                type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                provider,
+                requiresProject: provider !== 'Ask',
+                tools: { [provider]: { enabled: true, requiresProject: true } }
+            }
+        })) as TXpertTeamNode[]
+        const registry = { get: (name: string) => ({ createMiddleware: () => ({ name, tools: [{ name }] }) }) }
+        const build = (projectId?: string) =>
+            createAgentMiddlewareEntries(nodes, registry as never, { projectId } as never)
+        for (const projectId of [undefined, 'project']) {
+            const entries = await build(projectId)
+            expect(entries.map(({ middleware }) => middleware.name)).toEqual(['Dashboard', 'DashboardSkills', 'Ask'])
+            expect(entries.flatMap(({ middleware }) => middleware.tools.map((tool) => tool.name))).toEqual([
+                'Dashboard',
+                'DashboardSkills',
+                'Ask'
+            ])
+        }
+    })
+
     it('filters middleware tools by xpert config and user preference for the matching node', async () => {
         const middlewareIcon = {
             type: 'svg',
