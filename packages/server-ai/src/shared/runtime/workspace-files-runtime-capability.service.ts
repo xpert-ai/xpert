@@ -51,7 +51,7 @@ import {
     WorkspaceValidateUnderstandingReferencesInput,
     WorkspaceValidatedUnderstandingReference
 } from '@xpert-ai/plugin-sdk'
-import { getFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
+import { requireFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { CreateWorkspaceFileAssetCommand } from '../../file-understanding/commands/create-workspace-file-asset.command'
 import { EnqueueFileParseCommand } from '../../file-understanding/commands/enqueue-file-parse.command'
@@ -240,9 +240,9 @@ export class WorkspaceFilesRuntimeCapabilityService implements WorkspaceFilesApi
                 ]
             })
         )
-        const destination = getFileAssetDestination(asset, 'volume')
-        if (!destination || destination.status !== 'success' || !destination.path) {
-            throw new InternalServerErrorException(destination?.error || 'Failed to upload workspace file')
+        const destination = requireFileAssetDestination(asset, 'volume')
+        if (!destination.path) {
+            throw new InternalServerErrorException('Failed to upload workspace file')
         }
 
         const volume = this.volumeClient.resolve(volumeScope)

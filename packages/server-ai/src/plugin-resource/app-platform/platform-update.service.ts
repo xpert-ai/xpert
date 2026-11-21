@@ -10,7 +10,7 @@ import { AppPlatformDelivery } from './app-platform-delivery.entity'
 import { AppPlatformService } from './app-platform.service'
 import { ApplicationInitializationLocks } from '../application/application-initialization-locks'
 import { reconcilePlatformApps } from './platform-delivery-state'
-import { assertPlatformResourceUpdate } from './platform-resource-update'
+import { assertPlatformResourceUpdate, platformConfigurationForUpgrade } from './platform-resource-update'
 import { platformFailure } from './platform-error'
 import { randomUUID } from 'node:crypto'
 
@@ -61,7 +61,8 @@ export class PlatformUpdateService {
             const row = await repository.findOneBy({ id: deliveryId, tenantId, platformKey: config.definition.key })
             if (!row || row.configurationDigest !== expectedDigest)
                 throw platformFailure('application_update_conflict', 409)
-            if (row.configurationDigest === config.digest) return this.platform.status(row)
+            const adoptedConfig = platformConfigurationForUpgrade(row.configuration, config)
+            if (row.configurationDigest === adoptedConfig.digest) return this.platform.status(row)
             // Finish the durable release before another definition can replace its snapshot.
             if (row.apps.some((app) => app.updateOperationId)) throw platformFailure('application_update_conflict', 409)
             if (config.definition.version <= row.definitionVersion)
@@ -85,8 +86,8 @@ export class PlatformUpdateService {
                 state.updateOperationId = randomUUID()
                 delete state.errorCode
             }
-            row.configuration = config
-            row.configurationDigest = config.digest
+            row.configuration = adoptedConfig
+            row.configurationDigest = adoptedConfig.digest
             row.definitionVersion = config.definition.version
             row.retryAfter = null
             await this.database.transaction(async (manager) => {

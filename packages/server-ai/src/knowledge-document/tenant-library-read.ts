@@ -2,11 +2,12 @@ import { KnowledgebasePermission } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { Brackets, type FindManyOptions, type Repository } from 'typeorm'
 import type { KnowledgeDocument } from './document.entity'
+import type { KnowledgeDocumentChunk } from './chunk/chunk.entity'
 
 /** Inherit public tenant documents on reads without changing the caller's scope or write ownership. */
-export function tenantLibraryReadQuery(
-    repository: Repository<KnowledgeDocument>,
-    options: FindManyOptions<KnowledgeDocument>
+export function tenantLibraryReadQuery<T extends KnowledgeDocument | KnowledgeDocumentChunk>(
+    repository: Repository<T>,
+    options: FindManyOptions<T>
 ) {
     const tenantId = RequestContext.currentTenantId()
     const organizationId = RequestContext.getOrganizationId()

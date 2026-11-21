@@ -659,6 +659,7 @@ export function createScopeInitializationHarness(
                 ...manager,
                 connection: { options: { type: 'postgres' } },
                 query: jest.fn(async (_query: string, parameters: string[]) => {
+                    if (_query.includes('set_config')) return []
                     const lockKey = parameters.join(':')
                     const previousLock = advisoryLockTails.get(lockKey) ?? Promise.resolve()
                     let releaseCurrentLock = () => undefined

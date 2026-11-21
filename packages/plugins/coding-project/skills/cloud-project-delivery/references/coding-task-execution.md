@@ -100,11 +100,29 @@ Use the current Project's selected checkout, commit and environment receipt.
 Preserve local changes. On continuation reuse its data and caches; on a new
 Project create its own mutable instance. Read the selected checkout's own
 instructions and inspect its startup command capabilities. A historical untracked
-script does not define the current tool contract. Coding CLI owns services it
-starts; their lifetime may end with the task. Record reproducible startup details
-for the independent reviewer without asking the host to relay service commands.
+script does not define the current tool contract. Coding CLI operates services;
+the main Assistant decides retention and final shutdown. When the Computer
+advertises `computer-service`, query it first, check readiness and reuse the same
+Project services across implementation/review/rework. Use its local start command
+with a foreground project launcher for services that must outlive this execution.
+Do not stop them merely because this task finished. Record names, endpoints,
+generation, PID/startTime, startCount and readiness for the reviewer. Stop on the
+coordinator's explicit final-cleanup instruction, or restart an affected service
+as required by assigned work. Without this capability, report session-lifetime
+limits and reproducible startup details; do not ask the host to relay commands.
 
 ## Keep evidence readable
+
+For a task scoped to testing or investigation, a reproducible negative finding is
+a valid result. Complete the assigned checks, disclose blocked coverage, and hand
+off the findings without repairing product behavior outside the authorized scope.
+Completing this testing task does not mean the application passed acceptance.
+
+Identify the exact test-script version used by each run, together with its command
+exit status and evidence paths. Preserve that script or its content digest. When
+changing the script after a run, rerun the affected checks or clearly distinguish
+the untested version. Report-format and exit-status edits still change the runner.
+Do not label an edited script as the one that generated an earlier receipt.
 
 Return a short result with the candidate identity, outcome, checks performed,
 evidence paths and remaining issues. Keep raw request/response dumps and build

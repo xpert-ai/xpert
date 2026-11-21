@@ -42,8 +42,8 @@ export class AppPlatformService {
     }
 
     async storageForCurrentUser(): Promise<AppPlatformStorageUsage | null> {
-        const { tenantId, userId, organizationId } = await this.currentIdentity()
-        const deliveries = await this.deliveries.find({ where: { tenantId, userId } })
+        const { tenantId, organizationId } = await this.currentIdentity(true)
+        const deliveries = await this.deliveries.find({ where: { tenantId, organizationId } })
         if (!deliveries.length) return null
         if (deliveries.some((delivery) => delivery.organizationId !== organizationId))
             throw platformFailure('application_organization_denied', 403)
@@ -64,7 +64,7 @@ export class AppPlatformService {
         }
     }
 
-    private async currentIdentity() {
+    private async currentIdentity(selectOrganization = false) {
         const tenantId = RequestContext.currentTenantId(),
             userId = RequestContext.currentUserId()
         if (!tenantId || !userId || RequestContext.currentApiPrincipal())
@@ -75,18 +75,19 @@ export class AppPlatformService {
         })
         if (!user || user.isActive === false || !RequestContext.hasPermission(AIPermissionsEnum.APPLICATION_USE))
             throw platformFailure('application_user_required', 403)
+        const requested = RequestContext.getOrganizationId()
         const memberships = await this.database.getRepository(UserOrganization).find({
             where: {
                 userId,
                 tenantId,
                 isActive: true,
-                organization: { isActive: true }
+                organization: { isActive: true },
+                ...(selectOrganization && requested ? { organizationId: requested } : {})
             },
             take: 2
         })
         if (memberships.length !== 1) throw platformFailure('application_organization_required', 403)
         const organizationId = memberships[0].organizationId
-        const requested = RequestContext.getOrganizationId()
         if (requested && requested !== organizationId) throw platformFailure('application_organization_denied', 403)
         return { tenantId, organizationId, userId }
     }

@@ -63,7 +63,8 @@ export function projectTaskContextIds(messages: BaseMessage[], projectId: string
  * Only adjacent, matching single-call/success pairs in this project with >= 1,500 serialized argument characters qualify.
  * Keep the host receipt, request hash and reread pointers. Archived delegation prompts can be read after fetching
  * the current invocation revision with project_get_task; creation receipts point to the current task details.
- * Pending, failed, parallel, signed or narrative exchanges stay intact. This only projects model input:
+ * Pending, failed, parallel or signed exchanges stay intact; plain coordinator text is retained in the receipt.
+ * This only projects model input:
  * it neither rewrites checkpoints nor invokes tools, retries work or decides acceptance.
  */
 export function projectTaskCallReceipts(messages: BaseMessage[], projectId: string): BaseMessage[] {
@@ -92,7 +93,7 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
             reply = messages[index + 1]
         if (
             !isAIMessage(call) ||
-            call.content !== '' ||
+            typeof call.content !== 'string' ||
             call.tool_calls?.length !== 1 ||
             !reply ||
             !isToolMessage(reply) ||
@@ -163,6 +164,7 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
             new AIMessage({
                 id: call.id,
                 content:
+                    (call.content ? call.content + '\n\n' : '') +
                     '[Historical task operation receipt; already executed, do not replay. ' +
                     'This records delegation/creation, not successful execution or acceptance. ' +
                     'Read current task state and independent evidence before deciding.]\n' +

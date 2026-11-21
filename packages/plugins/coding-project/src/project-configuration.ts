@@ -6,6 +6,16 @@ export const codingProjectConfigurationSchema: JsonSchemaObjectType = {
   ...taskSettings,
   properties: {
     ...taskSettings.properties,
+    serviceLifecycle: {
+      type: 'string',
+      enum: ['coordinator', 'task'],
+      default: 'coordinator',
+      title: label('Development service lifecycle', '开发服务生命周期'),
+      description: label(
+        'Coordinator: retain services across implementation, review, rework and pending human acceptance; the main Assistant delegates final shutdown. Task: stop task-owned services at task end. Coding CLI operates services locally in either mode.',
+        'coordinator：开发、评审、返工及等待人工验收期间保留服务，由主 Assistant 安排最终停服。task：任务结束时停止该任务专属服务。两种模式均由 Coding CLI 本地操作服务。'
+      )
+    },
     deliveryMode: {
       type: 'string',
       enum: ['local', 'release'],

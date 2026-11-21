@@ -164,6 +164,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                 }),
                 assistant: {
                     ...(await this.profileIdentity.resolve(runtimeXpert)),
+                    organizationId: runtimeXpert.organizationId ?? null,
                     principalUserId: runtimeXpert.userId
                 },
                 permissions,

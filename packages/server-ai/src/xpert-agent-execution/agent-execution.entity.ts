@@ -91,7 +91,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
     @ApiProperty({ type: () => Number })
     @IsNumber()
     @IsOptional()
-    @Column({ type: 'numeric', nullable: true })
+    @Column({ type: 'numeric', nullable: true, transformer: numericNumberTransformer })
     elapsedTime?: number
 
     @ApiPropertyOptional({ type: () => Date })

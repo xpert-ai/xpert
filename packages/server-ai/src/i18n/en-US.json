@@ -1066,6 +1066,7 @@
         "ProjectEditorRequired": "Project editor access is required.",
         "ProjectFileRequired": "A Project file is required.",
         "ProjectFileUploadFailed": "Failed to upload Project file.",
+        "FileUploadFailed": "Failed to upload file.",
         "ProjectInvitationEmailMismatch": "This Project invitation belongs to another email address.",
         "ProjectInvitationInvalid": "The Project invitation is invalid or expired.",
         "ProjectInvitationNotFound": "Project invitation was not found.",
@@ -1499,7 +1500,8 @@
         "ResourceAnalysisInvalid": "The analysis query does not match the allowed field types or operations.",
         "ResourceAnalysisIncomplete": "The upstream dataset is incomplete. Aggregation would produce an unreliable total.",
         "ResourceAnalysisBudget": "The analysis query exceeds its allowed query, row or result-size budget.",
-        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters."
+        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters.",
+        "InvalidDocumentFingerprintFilter": "Use a SHA-256 source fingerprint and a non-negative integer byte size."
     },
     "Mcp": {
         "Test": {

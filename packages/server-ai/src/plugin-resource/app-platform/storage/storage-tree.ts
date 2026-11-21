@@ -20,10 +20,11 @@ export async function canonicalStoragePath(file: string): Promise<string> {
 }
 
 /** Count durable regular-file bytes once; never traverse a link into another resource. */
-export async function measureStorageTrees(roots: readonly string[]): Promise<number> {
+export async function measureStorageTrees(roots: readonly string[], excluded: readonly string[] = []): Promise<number> {
     const seen = new Set<string>()
     let bytes = 0
-    async function visit(file: string) {
+    async function visit(file: string, logicalPath: string, root: string) {
+        if (excluded.some((other) => storageContains(root, other) && storageContains(other, logicalPath))) return
         const stat = await lstat(file).catch((error: NodeJS.ErrnoException) => {
             if (error.code !== 'ENOENT') throw error
             return null
@@ -42,13 +43,14 @@ export async function measureStorageTrees(roots: readonly string[]): Promise<num
                 if (opened.dev !== stat.dev || opened.ino !== stat.ino) throw new Error('Storage directory changed')
                 // Linux descriptor paths retain the validated parent across rename races.
                 const anchored = process.platform === 'linux' ? `/proc/self/fd/${directory.fd}` : file
-                for (const entry of await readdir(anchored)) await visit(path.join(anchored, entry))
+                for (const entry of await readdir(anchored))
+                    await visit(path.join(anchored, entry), path.join(logicalPath, entry), root)
             } finally {
                 await directory.close()
             }
         }
     }
-    for (const root of roots) await visit(root)
+    for (const root of roots) await visit(root, root, root)
     return bytes
 }
 

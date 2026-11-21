@@ -9,7 +9,8 @@ import {
   ZardIconComponent,
   ZardProgressBarComponent
 } from '@xpert-ai/headless-ui'
-import { firstValueFrom } from 'rxjs'
+import { catchError, distinctUntilChanged, firstValueFrom, map, of } from 'rxjs'
+import { Store } from '../../../@core/services/store.service'
 import { AppPlatformService } from '../../../@core/services/app-platform.service'
 
 @Component({
@@ -26,6 +27,8 @@ import { AppPlatformService } from '../../../@core/services/app-platform.service
   templateUrl: './storage-usage.component.html'
 })
 export class AccountStorageUsageComponent implements OnInit {
+  private readonly store = inject(Store)
+  private loadVersion = 0
   private readonly platform = inject(AppPlatformService)
   private readonly destroyRef = inject(DestroyRef)
   readonly usage = signal<AppPlatformStorageUsage | null>(null)
@@ -44,20 +47,41 @@ export class AccountStorageUsageComponent implements OnInit {
   readonly progress = computed(() => Math.min(100, this.percentage()))
 
   ngOnInit() {
-    void this.load()
+    this.store.selectedOrganization$
+      .pipe(
+        map((organization) => `${organization?.tenantId ?? ''}:${organization?.id ?? ''}`),
+        distinctUntilChanged(),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        ++this.loadVersion
+        this.usage.set(null)
+        this.loading.set(false)
+        void this.load()
+      })
   }
 
   async load() {
     if (this.loading()) return
+    const version = ++this.loadVersion
     this.loading.set(true)
     this.failed.set(false)
     try {
-      const usage = await firstValueFrom(this.platform.getStorageUsage().pipe(takeUntilDestroyed(this.destroyRef)))
-      if (!this.destroyRef.destroyed) this.usage.set(usage)
+      const result = await firstValueFrom(
+        this.platform.getStorageUsage().pipe(
+          map((usage) => ({ ok: true, usage }) as const),
+          catchError(() => of({ ok: false } as const)),
+          takeUntilDestroyed(this.destroyRef)
+        )
+      )
+      if (!this.destroyRef.destroyed && version === this.loadVersion) {
+        if (result.ok) this.usage.set(result.usage)
+        else this.failed.set(true)
+      }
     } catch {
-      if (!this.destroyRef.destroyed) this.failed.set(true)
+      if (!this.destroyRef.destroyed && version === this.loadVersion) this.failed.set(true)
     } finally {
-      if (!this.destroyRef.destroyed) this.loading.set(false)
+      if (!this.destroyRef.destroyed && version === this.loadVersion) this.loading.set(false)
     }
   }
 

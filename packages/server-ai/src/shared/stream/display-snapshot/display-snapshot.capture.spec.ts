@@ -18,7 +18,8 @@ describe('display snapshot projection', () => {
         const capture = new DisplaySnapshotCapture()
         capture.capture(start())
         const component = { type: 'component', id: 'tool', data: { category: 'Tool', status: 'running' } }
-        const first = capture.capture({ type: 'message', data: component })
+        capture.capture({ type: 'message', data: component })
+        const first = capture.capture({ type: 'complete' })
         component.data.status = 'success'
         expect(first?.messages[0].content).toEqual([
             { type: 'component', id: 'tool', data: { category: 'Tool', status: 'running' } }
@@ -45,11 +46,12 @@ describe('display snapshot projection', () => {
         const capture = new DisplaySnapshotCapture()
         const event = start()
         capture.capture({ ...event, data: { ...event.data, outputCheckpoint: { secret: true } } })
-        const snapshot = capture.capture({
+        capture.capture({
             type: 'event',
             event: 'on_agent_start',
             data: { id: 'agent', status: 'running', metadata: { password: 'secret' }, inputs: { secret: true } }
         })
+        const snapshot = capture.capture({ type: 'complete' })
         expect(snapshot?.messages[0].agentRuns).toEqual([{ id: 'agent', status: 'running' }])
         expect(JSON.stringify(snapshot)).not.toContain('secret')
     })
@@ -66,13 +68,48 @@ describe('display snapshot projection', () => {
         })
         capture.capture({ type: 'message', data: { type: 'reasoning', id: 'reason', text: 'one' } })
         capture.capture({ type: 'message', data: { type: 'reasoning', id: 'reason', text: ' two' } })
-        const snapshot = capture.capture({
+        capture.capture({
             type: 'message',
             data: { type: 'component', id: 'tool', data: { status: 'success' } }
         })
+        const snapshot = capture.capture({ type: 'complete' })
         expect(snapshot?.messages[0].content).toEqual([
             { type: 'component', id: 'tool', data: { category: 'Tool', status: 'success', tool: 'sandbox_shell' } }
         ])
         expect(snapshot?.messages[0].reasoning?.[0].text).toBe('one two')
+    })
+    it('coalesces component bursts and reuses quiet snapshots without losing the final update', () => {
+        jest.spyOn(Date, 'now').mockReturnValue(10000)
+        const stringify = jest.spyOn(JSON, 'stringify')
+        try {
+            const capture = new DisplaySnapshotCapture()
+            capture.capture(start('ai', 'x'.repeat(1_700_000)))
+            for (let i = 0; i < 1000; i++) {
+                expect(
+                    capture.capture({
+                        type: 'message',
+                        data: { type: 'component', id: 'tool', data: { status: String(i) } }
+                    })
+                ).toBeNull()
+            }
+            const final = capture.capture({ type: 'complete' })
+            for (let i = 0; i < 100; i++) expect(capture.capture({ type: 'complete' })).toBe(final)
+            expect(JSON.stringify(final)).toContain('999')
+            expect(stringify.mock.calls.filter(([value]) => value?.activeMessageId === 'ai')).toHaveLength(3)
+            expect(capture.capture({ type: 'heartbeat' })).toBeNull()
+        } finally {
+            jest.restoreAllMocks()
+        }
+    })
+    it('does not repeatedly serialize an unchanged oversized projection', () => {
+        const capture = new DisplaySnapshotCapture()
+        capture.capture(start('ai', 'x'.repeat(2 * 1024 * 1024)))
+        const stringify = jest.spyOn(JSON, 'stringify')
+        try {
+            for (let i = 0; i < 10; i++) expect(capture.capture({ type: 'complete' })).toBeNull()
+            expect(stringify.mock.calls.filter(([value]) => value?.activeMessageId === 'ai')).toHaveLength(0)
+        } finally {
+            jest.restoreAllMocks()
+        }
     })
 })

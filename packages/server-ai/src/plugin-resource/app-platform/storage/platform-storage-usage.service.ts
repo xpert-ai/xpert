@@ -10,7 +10,7 @@ import { AppPlatformDelivery } from '../app-platform-delivery.entity'
 import { AppPlatformStorageRoot } from './platform-storage-object.entity'
 import { canonicalStoragePath, measureStorageTrees, storageContains } from './storage-tree'
 import { platformFailure } from '../platform-error'
-import { accountStorageLimit } from './platform-storage-limit'
+import { organizationStorageLimit, organizationStorageScope } from './platform-storage-limit'
 const identities = z.array(z.object({ id: z.string().uuid() }))
 const storedObjects = z.array(
     z.object({ key: z.string(), provider: z.string(), bytes: z.coerce.number().nonnegative().safe() })
@@ -38,18 +38,17 @@ export class PlatformStorageUsageService {
     constructor(private readonly database: DataSource) {}
 
     async limit(delivery: AppPlatformDelivery): Promise<number> {
-        const accounts = await this.database.getRepository(AppPlatformDelivery).find({
-            where: { tenantId: delivery.tenantId, userId: delivery.userId }
-        })
-        return accountStorageLimit(this.database.manager, accounts)
+        const limit = await organizationStorageLimit(this.database.manager, organizationStorageScope(delivery))
+        if (limit === null) throw platformFailure('application_storage_scope_invalid', 403)
+        return limit
     }
 
     async snapshot(delivery: AppPlatformDelivery): Promise<StorageUsageSnapshot | null> {
         return (
             snapshots.parse(
                 await this.database.query(
-                    'SELECT "externalBytes","databaseBytes","measuredAt","refreshRequested" FROM app_platform_storage_usage WHERE "tenantId"=$1 AND "userId"=$2',
-                    [delivery.tenantId, delivery.userId]
+                    'SELECT "externalBytes","databaseBytes","measuredAt","refreshRequested" FROM app_platform_storage_usage WHERE "tenantId"=$1 AND "organizationId"=$2',
+                    [delivery.tenantId, delivery.organizationId]
                 )
             )[0] ?? null
         )
@@ -67,15 +66,16 @@ export class PlatformStorageUsageService {
 
     async requestRefresh(delivery: AppPlatformDelivery) {
         await this.database.query(
-            `INSERT INTO app_platform_storage_usage ("tenantId","userId","refreshRequested") VALUES ($1,$2,true)
-            ON CONFLICT ("tenantId","userId") DO UPDATE SET "refreshRequested"=true`,
-            [delivery.tenantId, delivery.userId]
+            `INSERT INTO app_platform_storage_usage ("tenantId","organizationId","refreshRequested") VALUES ($1,$2,true)
+            ON CONFLICT ("tenantId","organizationId") DO UPDATE SET "refreshRequested"=true`,
+            [delivery.tenantId, delivery.organizationId]
         )
     }
 
     async refresh(delivery: AppPlatformDelivery) {
+        organizationStorageScope(delivery)
         const runner = this.database.createQueryRunner()
-        const key = `app-platform-storage-collector:${delivery.tenantId}:${delivery.userId}`
+        const key = `app-platform-storage-collector:${delivery.tenantId}:${delivery.organizationId}`
         let locked = false
         try {
             await runner.connect()
@@ -84,20 +84,21 @@ export class PlatformStorageUsageService {
                 .parse(await runner.query('SELECT pg_try_advisory_lock(hashtextextended($1,0)) AS locked', [key]))
             locked = result[0]?.locked === true
             if (!locked) return
-            const roots = await this.roots(runner.manager, delivery)
+            const { roots, excluded } = await this.roots(runner.manager, delivery)
             const objects = await this.objects(runner.manager, delivery)
             const external =
-                (await measureStorageTrees(roots)) + [...objects.values()].reduce((sum, bytes) => sum + bytes, 0)
+                (await measureStorageTrees(roots, excluded)) +
+                [...objects.values()].reduce((sum, bytes) => sum + bytes, 0)
             if (!Number.isSafeInteger(external)) throw platformFailure('application_storage_scope_invalid', 503)
             await runner.startTransaction()
-            await runner.query('SELECT xpert_app_storage_reconcile_account($1,$2)', [
+            await runner.query('SELECT xpert_app_storage_reconcile_organization($1,$2)', [
                 delivery.tenantId,
-                delivery.userId
+                delivery.organizationId
             ])
             await runner.query(
                 `UPDATE app_platform_storage_usage SET "externalBytes"=$3,"measuredAt"=clock_timestamp(),"refreshRequested"=false
-                WHERE "tenantId"=$1 AND "userId"=$2`,
-                [delivery.tenantId, delivery.userId, external]
+                WHERE "tenantId"=$1 AND "organizationId"=$2`,
+                [delivery.tenantId, delivery.organizationId, external]
             )
             await runner.commitTransaction()
         } catch (error) {
@@ -117,17 +118,25 @@ export class PlatformStorageUsageService {
         const volumes = createRuntimeVolumeClient()
         const scopes: VolumeScope[] = []
         if (resource.kind === 'user')
-            scopes.push({ tenantId: delivery.tenantId, userId: delivery.userId, catalog: 'users' })
+            scopes.push({ tenantId: delivery.tenantId, userId: resource.userId, catalog: 'users' })
         else {
             const scope = this.volumeScope(delivery.tenantId, resource.kind, resource.id)
             if (scope) scopes.push(scope)
-            if (resource.kind === 'assistant')
+            if (resource.kind === 'assistant' && resource.userId) {
                 scopes.push({
                     tenantId: delivery.tenantId,
-                    userId: delivery.userId,
+                    userId: resource.userId,
+                    xpertId: resource.id,
+                    catalog: 'xperts',
+                    isolateByUser: true
+                })
+                scopes.push({
+                    tenantId: delivery.tenantId,
+                    userId: resource.userId,
                     xpertId: resource.id,
                     catalog: 'user-xperts'
                 })
+            }
         }
         const tenantRoot = path.resolve(volumes.resolveRoot(delivery.tenantId).serverRoot)
         const canonicalTenant = await canonicalStoragePath(tenantRoot)
@@ -142,9 +151,34 @@ export class PlatformStorageUsageService {
         throw platformFailure('application_storage_scope_invalid', 403)
     }
 
+    /** Keep attribution after a member leaves or the resource metadata is removed. */
+    async registerRoot(delivery: AppPlatformDelivery, resource: StorageBudgetResource, requested: string) {
+        const root = await this.validateSandboxRoot(delivery, resource, requested)
+        await this.rememberRoot(this.database.manager, delivery, root, resource.userId ?? delivery.userId)
+        return root
+    }
+
+    private async rememberRoot(manager: EntityManager, delivery: AppPlatformDelivery, root: string, userId: string) {
+        const { tenantId, organizationId } = organizationStorageScope(delivery)
+        const tenantRoot = path.resolve(createRuntimeVolumeClient().resolveRoot(tenantId).serverRoot)
+        const pathSuffix = path.relative(tenantRoot, root)
+        if (!pathSuffix || !storageContains(tenantRoot, root))
+            throw platformFailure('application_storage_scope_invalid', 403)
+        const records = manager.getRepository(AppPlatformStorageRoot)
+        // Unique tenant/path ownership makes concurrent writes from different members idempotent.
+        await records
+            .createQueryBuilder()
+            .insert()
+            .values({ tenantId, organizationId, userId, pathSuffix })
+            .orIgnore()
+            .execute()
+        const existing = await records.findOneBy({ tenantId, pathSuffix })
+        if (existing?.organizationId !== organizationId) throw platformFailure('application_storage_scope_invalid', 403)
+    }
+
     private async roots(manager: EntityManager, delivery: AppPlatformDelivery) {
         const volumes = createRuntimeVolumeClient()
-        const scopes: VolumeScope[] = [{ tenantId: delivery.tenantId, userId: delivery.userId, catalog: 'users' }]
+        const scopes: VolumeScope[] = []
         for (const [kind, table] of Object.entries(resourceTables)) {
             const rows = identities.parse(
                 await manager.query(`SELECT id FROM ${table} WHERE "tenantId"=$1 AND "organizationId"=$2`, [
@@ -155,13 +189,6 @@ export class PlatformStorageUsageService {
             for (const { id } of rows) {
                 const scope = this.volumeScope(delivery.tenantId, kind, id)
                 if (scope) scopes.push(scope)
-                if (kind === 'assistant')
-                    scopes.push({
-                        tenantId: delivery.tenantId,
-                        userId: delivery.userId,
-                        xpertId: id,
-                        catalog: 'user-xperts'
-                    })
             }
         }
         const tenantRoot = path.resolve(volumes.resolveRoot(delivery.tenantId).serverRoot)
@@ -170,32 +197,22 @@ export class PlatformStorageUsageService {
         for (const root of roots) {
             if (root === tenantRoot || !storageContains(tenantRoot, root))
                 throw platformFailure('application_storage_scope_invalid', 403)
-            const pathSuffix = path.relative(tenantRoot, root)
-            const existing = await records.findOneBy({ tenantId: delivery.tenantId, pathSuffix })
-            if (existing && existing.userId !== delivery.userId)
-                throw platformFailure('application_storage_scope_invalid', 403)
-            if (!existing)
-                await records.save(
-                    records.create({
-                        tenantId: delivery.tenantId,
-                        organizationId: delivery.organizationId,
-                        userId: delivery.userId,
-                        pathSuffix
-                    })
-                )
+            await this.rememberRoot(manager, delivery, root, delivery.userId)
         }
-        for (const retained of await records.findBy({ tenantId: delivery.tenantId, userId: delivery.userId })) {
+        const excluded: string[] = []
+        for (const retained of await records.findBy({ tenantId: delivery.tenantId })) {
             const root = path.resolve(tenantRoot, retained.pathSuffix)
             if (root === tenantRoot || !storageContains(tenantRoot, root))
                 throw platformFailure('application_storage_scope_invalid', 403)
-            roots.push(root)
+            if (retained.organizationId === delivery.organizationId) roots.push(root)
+            else excluded.push(root)
         }
         const canonicalTenant = await canonicalStoragePath(tenantRoot)
         for (const root of roots) {
             if ((await canonicalStoragePath(root)) !== path.join(canonicalTenant, path.relative(tenantRoot, root)))
                 throw platformFailure('application_storage_scope_invalid', 403)
         }
-        return [...new Set(roots)]
+        return { roots: [...new Set(roots)], excluded }
     }
 
     private volumeScope(tenantId: string, kind: string, id: string): VolumeScope | null {
@@ -219,14 +236,14 @@ export class PlatformStorageUsageService {
                 `
             SELECT file AS key, coalesce("storageProvider",'LOCAL') AS provider, coalesce(size,0) AS bytes
               FROM storage_file WHERE "tenantId"=$1 AND "deletedAt" IS NULL
-               AND ("organizationId"=$2 OR "createdById"=$3)
+               AND "organizationId"=$2
             UNION ALL
             SELECT artifact.metadata->>'storageKey' AS key, coalesce(source."storageProvider",'LOCAL') AS provider,
                    coalesce(artifact.metadata->>'size','0')::numeric AS bytes
               FROM file_artifact artifact JOIN file_asset asset ON asset.id=artifact."fileAssetId"
               LEFT JOIN storage_file source ON source.id=asset."storageFileId"
              WHERE asset."tenantId"=$1 AND asset."organizationId"=$2 AND artifact.metadata->>'storageKey' IS NOT NULL`,
-                [delivery.tenantId, delivery.organizationId, delivery.userId]
+                [delivery.tenantId, delivery.organizationId]
             )
         )
         const result = new Map<string, number>()

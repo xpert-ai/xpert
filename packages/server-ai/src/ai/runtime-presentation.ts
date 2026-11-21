@@ -16,6 +16,7 @@ import { t } from 'i18next'
 import { z } from 'zod/v3'
 import type { SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { publicAppPlatformRuntimeError } from '../plugin-resource/app-platform/platform-error'
+import { executionDuration } from '../shared/stream/execution-duration'
 
 const optionalText = z.string().optional()
 const date = z.union([z.string(), z.date()]).optional()
@@ -28,6 +29,27 @@ const identity = z.object({
     created_date: date
 })
 const textPart = identity.extend({ type: z.literal('text'), text: z.string() })
+// App references are business UI. Inputs, results and HTML are loaded through
+// the scoped MCP App endpoint, never through the diagnostic tool envelope.
+const appPart = identity.extend({
+    type: z.literal('component'),
+    id: z.string(),
+    data: z.object({
+        type: z.literal('McpApp'),
+        appInstanceId: z.string().min(1),
+        appInstanceToken: optionalText,
+        resourceUri: z.string().startsWith('ui://'),
+        toolName: z.string().min(1),
+        toolCallId: optionalText,
+        toolsetId: optionalText,
+        serverName: optionalText,
+        executionId: optionalText,
+        title: z.union([z.string(), z.record(z.string())]).optional(),
+        status: z.enum(['running', 'success', 'fail']).optional(),
+        created_date: date,
+        end_date: date
+    })
+})
 const lifecycle = z.object({
     id: optionalText,
     conversationId: optionalText,
@@ -39,7 +61,7 @@ const lifecycle = z.object({
     role: optionalText,
     status: optionalText,
     error: z.unknown().optional(),
-    elapsedTime: z.number().optional(),
+    elapsedTime: z.preprocess(executionDuration, z.number().optional()),
     createdAt: date,
     updatedAt: date
 })
@@ -62,6 +84,8 @@ export function runtimePresentationError(error?: unknown) {
 }
 
 export function runtimeContentPart(value: unknown): TMessageContentComplex | null {
+    const app = appPart.safeParse(value)
+    if (app.success) return { ...app.data, data: { ...app.data.data, category: 'Dashboard' } }
     const part = value as TMessageContentComponent<{ toolPresentation?: string }> | undefined
     if (
         part?.type === 'component' &&

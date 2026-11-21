@@ -65,6 +65,11 @@ through the real UI, including meaningful negative cases and persistence checks.
 Use the authorized test account and data; keep credentials out of screenshots,
 reports and committed artifacts. Independent review uses its own browser session.
 
+A testing-only task can finish with reproducible failures. Separate completion of
+the assigned investigation from acceptance of the application. Record missing
+controls or unobservable requirements without expanding a frozen candidate's
+scope. The coordinator decides whether product changes belong in a later task.
+
 Choose inputs that distinguish the behavior under test: a positive match alone
 does not prove that each condition works when another condition already excludes
 every other record. Add a contrasting case for each important rule. After reload
@@ -78,10 +83,46 @@ produce a failed check; an unexercised check is blocked or skipped with a reason
 Do not swallow exceptions and report the whole suite as passed because its
 process exited successfully. Preserve partial results when later checks fail.
 
+For repeated checks, use the optional [run recorder](scripts/record_check.py) to
+bind a command result to the exact test scripts and fixtures it used:
+
+```sh
+python3 <this-skill>/scripts/record_check.py record --input tests/ui_check.py \
+  --output evidence/run-001.json -- python3 tests/ui_check.py
+python3 <this-skill>/scripts/record_check.py verify evidence/run-001.json
+```
+
+Replace `<this-skill>` with the installed skill directory. Run from the project
+root, or supply `--root`; repeat `--input` for relevant test helpers/fixtures.
+The command writes its own sanitized evidence. The recorder stores its exit status,
+hashes inputs before/after, and refuses to overwrite a previous receipt.
+It does not inspect business assertions or certify acceptance. It does not record
+command arguments, environment, output or browser storage. Do not list credential
+files as inputs. A reviewer can verify a copied candidate with `verify --root`.
+`verify` checks completed-run integrity, including for a command that failed: its
+zero exit status means the recorded inputs match, not that the tests passed.
+Read `commandSucceeded` and `processExitCode` in the verification output separately.
+`record` returns the command's exit status unless the command succeeds while its
+inputs change, in which case it returns 3; `processExitCode` retains the original.
+It checks declared inputs at the run boundaries, not every dependency or
+intermediate edit.
+
+Freeze the final test script before its recorded run. If it changes afterward,
+rerun the affected checks or keep the executed version with its original evidence
+and explicitly label the newer version untested. An earlier run does not validate
+later report-format or exit-status changes.
+
 When a check fails, inspect `list_console_messages` and `list_network_requests`,
 then retrieve the relevant item. Distinguish browser startup, service readiness,
 login/scope and application defects. Fix the identified cause before repeating a
 check. Preserve the original failure and the affected rerun results.
+
+When loading is slow, measure milestones separately: navigation, authentication,
+frame attachment, required control readiness and completion of the business action.
+Associate failed requests with their time and the relevant step. URL query strings,
+headers and response bodies may carry secrets; keep diagnostics minimal and
+sanitized. A timeout is an observation, not proof of data loss, CPU starvation or
+an application defect. Check the current page before changing the wait or retrying.
 
 For repeatable coverage, retain project-owned Playwright tests and their commands.
 The image includes the Python Playwright library; a Node Playwright dependency is

@@ -4,6 +4,7 @@ import { CommandBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { UploadFileCommand } from './upload-file.command'
+import { requireFileAssetDestination } from './upload-file-result'
 
 @ApiTags('FileUpload')
 @Controller()
@@ -46,7 +47,7 @@ export class FileUploadController {
 			)
 		}
 
-		return this.commandBus.execute(
+		const asset = await this.commandBus.execute(
 			new UploadFileCommand({
 				source: {
 					kind: 'multipart',
@@ -56,6 +57,8 @@ export class FileUploadController {
 				metadata: metadataValue ? this.parseJson<Record<string, any>>(metadataValue, 'metadata') : undefined
 			})
 		)
+		requireFileAssetDestination(asset, 'storage')
+		return asset
 	}
 
 	private parseJson<T>(value: string, field: string): T {

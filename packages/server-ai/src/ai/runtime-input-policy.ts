@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
+import { runtimeCommandSourceSchema } from './runtime-command-source.schema'
 
 // Managed execution accepts Project scope;
 // environment and model configuration always come from the published installation.
@@ -25,6 +26,7 @@ const humanSchema = z
         references: z.array(z.unknown()).optional(),
         referenceComposition: z.enum(['compose', 'preserve']).optional(),
         planMode: z.boolean().optional(),
+        commandSource: runtimeCommandSourceSchema.optional(),
         // ChatKit includes its initial capability selection even with resource controls hidden.
         // Managed execution uses the published capability policy, never this client selection.
         runtimeCapabilities: z.unknown().optional()

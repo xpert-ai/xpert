@@ -3,6 +3,7 @@
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
+import { z } from 'zod/v3'
 import {
   ProjectAccessRuntimeCapability,
   ProjectPipelinesRuntimeCapability,
@@ -77,6 +78,13 @@ export class CodingDeliveryStore {
       .require(ProjectConfigurationRuntimeCapability)
       .getRuntimeConfiguration({ ...c, assistantId })
     return deliveryModeSchema.parse(view.effectiveValues.deliveryMode ?? 'local')
+  }
+  async serviceLifecycle(c: ProjectPipelineContext, assistantId?: string) {
+    await this.access(c)
+    const view = await this.capabilities
+      .require(ProjectConfigurationRuntimeCapability)
+      .getRuntimeConfiguration({ ...c, assistantId })
+    return z.enum(['coordinator', 'task']).parse(view.effectiveValues.serviceLifecycle ?? 'coordinator')
   }
   async allowed(c: ProjectPipelineContext) {
     await this.access(c)

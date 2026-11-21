@@ -25,8 +25,18 @@ function fixture(directory: string) {
         }
     }
     jest.spyOn(volumes, 'createRuntimeVolumeClient').mockImplementation(() => new TestVolumes())
-    const records: Array<{ tenantId: string; userId: string; pathSuffix: string }> = []
+    const records: Array<{ tenantId: string; userId: string; organizationId: string; pathSuffix: string }> = []
+    const builder = {
+        insert: () => builder,
+        values: (record: (typeof records)[number]) => {
+            if (!records.some((existing) => existing.pathSuffix === record.pathSuffix)) records.push(record)
+            return builder
+        },
+        orIgnore: () => builder,
+        execute: jest.fn()
+    }
     const repository = {
+        createQueryBuilder: () => builder,
         findOneBy: jest.fn(async ({ pathSuffix }: { pathSuffix: string }) =>
             records.find((record) => record.pathSuffix === pathSuffix)
         ),
@@ -59,9 +69,10 @@ function fixture(directory: string) {
             )
         }
     }
-    const database = { createQueryRunner: () => runner, query: jest.fn() }
+    const database = { manager: runner.manager, createQueryRunner: () => runner, query: jest.fn() }
     const service = new PlatformStorageUsageService(database as never)
     const root = new TestVolumes().resolve({ ...owner, catalog: 'users' }).serverRoot
+    records.push({ ...owner, pathSuffix: path.relative(path.join(directory, owner.tenantId), root) })
     return { owner, delivery, runner, database, records, objects, projects, service, root, volumes: new TestVolumes() }
 }
 describe('account storage measurement', () => {
@@ -79,8 +90,8 @@ describe('account storage measurement', () => {
         await writeFile(path.join(f.root, 'source'), '中文')
         await f.service.refresh(f.delivery)
         const update = f.runner.query.mock.calls.find(([sql]) => sql.includes('"externalBytes"=$3'))
-        expect(update?.[1]).toEqual([f.owner.tenantId, f.owner.userId, 11])
-        expect(f.runner.query.mock.calls.some(([sql]) => sql.includes('reconcile_account'))).toBe(true)
+        expect(update?.[1]).toEqual([f.owner.tenantId, f.owner.organizationId, 11])
+        expect(f.runner.query.mock.calls.some(([sql]) => sql.includes('reconcile_organization'))).toBe(true)
         expect(f.runner.query.mock.calls.at(-1)?.[0]).toContain('pg_advisory_unlock')
         expect(f.runner.release).toHaveBeenCalledTimes(1)
     })
@@ -125,6 +136,43 @@ describe('account storage measurement', () => {
         await rm(f.root, { recursive: true })
         await symlink(directory, f.root)
         await expect(f.service.validateSandboxRoot(f.delivery, resource, f.root)).rejects.toMatchObject({ status: 403 })
+    })
+    it("counts another member's retained files in the organization even after their membership ends", async () => {
+        const f = fixture(directory)
+        const member = { ...f.owner, userId: randomUUID(), kind: 'user' as const }
+        const root = f.volumes.resolve({ ...member, catalog: 'users' }).serverRoot
+        await f.service.registerRoot(f.delivery, member, root)
+        await mkdir(root, { recursive: true })
+        await writeFile(path.join(root, 'retained'), '1234')
+        await f.service.refresh(f.delivery)
+        expect(f.runner.query.mock.calls.find(([sql]) => sql.includes('"externalBytes"=$3'))?.[1]).toEqual([
+            f.owner.tenantId,
+            f.owner.organizationId,
+            9
+        ])
+    })
+    it("excludes another organization's private assistant root inside a retained legacy user root", async () => {
+        const f = fixture(directory)
+        const child = path.join(f.root, 'xpert', randomUUID())
+        await mkdir(child, { recursive: true })
+        await writeFile(path.join(f.root, 'own'), '123')
+        await writeFile(path.join(child, 'foreign'), '123456789')
+        f.records.push({
+            ...f.owner,
+            organizationId: randomUUID(),
+            pathSuffix: path.relative(path.join(directory, f.owner.tenantId), child)
+        })
+        await f.service.refresh(f.delivery)
+        expect(f.runner.query.mock.calls.find(([sql]) => sql.includes('"externalBytes"=$3'))?.[1]?.[2]).toBe(8)
+        const objectsQuery = f.runner.manager.query.mock.calls.find(([sql]) => sql.includes('SELECT file AS key'))
+        expect(objectsQuery?.[0]).not.toContain('createdById')
+    })
+    it('rejects assigning an existing root to another organization', async () => {
+        const f = fixture(directory)
+        const foreign = Object.assign(new AppPlatformDelivery(), f.delivery, { organizationId: randomUUID() })
+        await expect(f.service.registerRoot(foreign, { ...f.owner, kind: 'user' }, f.root)).rejects.toMatchObject({
+            status: 403
+        })
     })
     it('refreshes ordinary accounts every five minutes and near-limit or dirty accounts sooner', async () => {
         const f = fixture(directory)

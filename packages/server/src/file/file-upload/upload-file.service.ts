@@ -10,6 +10,7 @@ import { RequestContext } from '../../core'
 import { StorageFileService } from '../../storage-file/storage-file.service'
 import { TResolvedUploadSource, TUploadFileInput, TUploadFileSource } from './types'
 import { normalizeFileMimeType } from './file-content-type'
+import { fileUploadFailure } from './upload-file-result'
 
 @Injectable()
 export class UploadFileService {
@@ -36,8 +37,9 @@ export class UploadFileService {
 					return {
 						kind: target.kind,
 						status: 'failed',
-						error: getErrorMessage(error)
-					} as IFileAssetDestination
+						error: getErrorMessage(error),
+						failure: fileUploadFailure(error)
+					} satisfies IFileAssetDestination
 				}
 			})
 		)

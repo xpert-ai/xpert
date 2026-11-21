@@ -33,4 +33,6 @@ export interface XpertViewAssistantIdentity {
   currentId: string
   versionIds: string[]
   principalUserId?: string | null
+  /** Persisted Assistant ownership, independent of the viewer's selected organization. */
+  organizationId?: string | null
 }

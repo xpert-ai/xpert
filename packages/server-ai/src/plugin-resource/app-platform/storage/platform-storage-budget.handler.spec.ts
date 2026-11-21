@@ -25,7 +25,7 @@ function fixture() {
         snapshot: jest.fn().mockResolvedValue(snapshot),
         refresh: jest.fn(),
         requestRefresh: jest.fn(),
-        validateSandboxRoot: jest.fn()
+        registerRoot: jest.fn()
     }
     return {
         account,
@@ -125,7 +125,7 @@ describe('snapshot storage admission', () => {
         const f = fixture()
         jest.spyOn(layout, 'usesFlattenedSandboxVolumeLayout').mockReturnValue(false)
         jest.spyOn(trees, 'measureStorageTrees').mockResolvedValue(8)
-        f.usage.validateSandboxRoot.mockResolvedValue('/authorized-root')
+        f.usage.registerRoot.mockResolvedValue('/authorized-root')
         try {
             await expect(
                 f.handler.execute(
@@ -136,7 +136,7 @@ describe('snapshot storage admission', () => {
                     })
                 )
             ).resolves.toEqual({ maxWorkspaceBytes: 18, maxTemporaryBytes: 16 })
-            f.usage.validateSandboxRoot.mockRejectedValueOnce(new Error('foreign root'))
+            f.usage.registerRoot.mockRejectedValueOnce(new Error('foreign root'))
             await expect(
                 f.handler.execute(
                     new CheckStorageQuotaCommand({

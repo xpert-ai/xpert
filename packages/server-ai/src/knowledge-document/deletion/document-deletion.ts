@@ -43,8 +43,8 @@ export class DocumentDeletion {
             throw new ConflictException('Knowledge document has been modified. Refresh and try again.')
         }
         await this.knowledgebaseService.assertNotRebuilding(document.knowledgebaseId)
-        await this.deleteDocumentArtifacts(document)
-        return deleteDocumentAndRecount(
+        const vectorStore = await this.deleteDocumentArtifacts(document)
+        const result = await deleteDocumentAndRecount(
             this.dataSource,
             document,
             {
@@ -54,6 +54,9 @@ export class DocumentDeletion {
             },
             expectedVersion
         )
+        // Close the race with a worker that indexed after the first cleanup but before deletion.
+        if (result.affected) await vectorStore.deleteKnowledgeDocument(document)
+        return result
     }
 
     private async deleteDocumentArtifacts(document: KnowledgeDocument) {
@@ -65,7 +68,15 @@ export class DocumentDeletion {
                 reason: 'hard_deleted'
             })
         )
-        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(document.knowledgebase, false)
+        // The selected relation only contains ownership fields, not the active embedding collection.
+        const vectorStore = await this.knowledgebaseService.getActiveVectorStore(
+            document.knowledgebaseId,
+            false,
+            undefined,
+            {
+                rerankEnabled: false
+            }
+        )
         await vectorStore.deleteKnowledgeDocument(document)
         try {
             await this.commandBus.execute(
@@ -77,5 +88,6 @@ export class DocumentDeletion {
         } catch (error) {
             this.#logger.warn(`Failed to clear GraphRAG data for document '${document.id}': ${getErrorMessage(error)}`)
         }
+        return vectorStore
     }
 }

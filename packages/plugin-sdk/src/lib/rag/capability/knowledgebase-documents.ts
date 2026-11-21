@@ -70,6 +70,10 @@ export type KnowledgebaseDocumentRecord = {
 
 export type KnowledgebaseListDocumentsInput = {
   knowledgebaseId: string
+  /** Exact source fingerprint; null selects legacy documents without a fingerprint. */
+  sourceHash?: string | null
+  /** Exact original byte size, optionally narrowing a legacy fingerprint lookup. */
+  size?: number
   page?: number
   pageSize?: number
   search?: string
@@ -90,6 +94,8 @@ export type KnowledgebaseListDocumentsResult = {
   total: number
   page: number
   pageSize: number
+  /** Echo validated exact filters so clients never mistake an older host's unfiltered result for a match. */
+  appliedFilters?: { sourceHash?: string | null; size?: number }
 }
 
 export type KnowledgebaseCreateFolderInput = {

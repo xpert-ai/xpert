@@ -23,6 +23,7 @@ import { SandboxManagedServiceError } from './sandbox-managed-service.error'
 import { SandboxController } from './sandbox.controller'
 
 jest.mock('@xpert-ai/server-core', () => ({
+    Permissions: jest.requireActual('../../../server/src/shared/decorators/permissions').Permissions,
     GetDefaultTenantQuery: class GetDefaultTenantQuery {},
     Public: () => (_target: object, _key: string | symbol, descriptor: PropertyDescriptor) => {
         Reflect.defineMetadata('isPublic', true, descriptor.value)
@@ -37,7 +38,8 @@ jest.mock('@xpert-ai/server-core', () => ({
         }
     },
     UploadFileCommand: class UploadFileCommand {},
-    getFileAssetDestination: jest.fn()
+    requireFileAssetDestination: jest.requireActual('../../../server/src/file/file-upload/upload-file-result')
+        .requireFileAssetDestination
 }))
 
 jest.mock('../chat-conversation', () => ({

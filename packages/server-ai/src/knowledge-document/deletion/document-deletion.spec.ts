@@ -30,7 +30,16 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                     ]
                 })
             })
-            const deleteRow = jest.fn().mockResolvedValue({ affected: 1 })
+            let hasVectors = true
+            const deleteKnowledgeDocument = jest.fn(async () => {
+                hasVectors = false
+            })
+            const getActiveVectorStore = jest.fn().mockResolvedValue({ deleteKnowledgeDocument })
+            // A worker can finish embedding between initial cleanup and row deletion.
+            const deleteRow = jest.fn(async () => {
+                hasVectors = true
+                return { affected: 1 }
+            })
             const service = createService([], {
                 repo: { findOne: jest.fn().mockResolvedValue(document), delete: deleteRow },
                 dataSource: {
@@ -47,7 +56,7 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                 },
                 knowledgebaseService: {
                     assertNotRebuilding: jest.fn(),
-                    getActiveVectorStore: jest.fn().mockResolvedValue({ deleteKnowledgeDocument: jest.fn() }),
+                    getActiveVectorStore,
                     updateKnowledgebase
                 },
                 commandBus: { execute: jest.fn() }
@@ -57,6 +66,9 @@ describe('KnowledgeDocumentService optimistic locks', () => {
                 versioned ? service.deleteWithVersion('doc-1', 3) : service.delete('doc-1')
             ).resolves.toMatchObject({ affected: 1 })
             expect(deleteRow).toHaveBeenCalledTimes(1)
+            expect(getActiveVectorStore).toHaveBeenCalledWith('kb-1', false, undefined, { rerankEnabled: false })
+            expect(deleteKnowledgeDocument).toHaveBeenCalledTimes(2)
+            expect(hasVectors).toBe(false)
             expect(updateCounter).toHaveBeenCalledWith(
                 { id: 'kb-1', tenantId: 'tenant-1', organizationId: 'org-1' },
                 { documentNum: 1 }

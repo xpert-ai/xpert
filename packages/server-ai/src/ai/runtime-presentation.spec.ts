@@ -63,6 +63,30 @@ describe('application user presentation boundary', () => {
         })
         expect(await lastValueFrom(runtimeStream(of(event), true, async () => []).pipe(toArray()))).toEqual([])
     })
+    it.each(['163097', 163097, null, 'invalid'])(
+        'retains terminal events with persisted duration %p in live and replay presentation',
+        async (elapsedTime) => {
+            const event = {
+                type: 'event',
+                event: 'on_agent_end',
+                data: { id: 'child', parentId: 'root', status: 'success', elapsedTime, inputs: { secret: true } }
+            }
+            for (const data of [event, JSON.stringify(event)]) {
+                const result = await lastValueFrom(runtimeStream(of({ data }), true))
+                const payload = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+                expect(payload).toEqual({
+                    type: 'event',
+                    event: 'on_agent_end',
+                    data: {
+                        id: 'child',
+                        parentId: 'root',
+                        status: 'success',
+                        ...(elapsedTime === 'invalid' || elapsedTime === null ? {} : { elapsedTime: 163097 })
+                    }
+                })
+            }
+        }
+    )
     beforeAll(async () => {
         await i18next.init({
             lng: 'en',
@@ -147,6 +171,73 @@ describe('application user presentation boundary', () => {
             expect(runtimeStreamPayload({ type: 'message', data: row })).toBeNull()
             expect(runtimeMessageContent([row])).toEqual([])
         }
+    })
+
+    it.each([undefined, 'live-app-lease'])(
+        'preserves an authorized App reference in live, replay and history (lease=%s)',
+        async (appInstanceToken) => {
+            const reference = {
+                type: 'McpApp' as const,
+                appInstanceId: 'settings-app',
+                appInstanceToken,
+                resourceUri: 'ui://xpert/middleware/project-settings',
+                toolName: 'configure_project',
+                toolCallId: 'configure-call',
+                executionId: 'run',
+                title: { en_US: 'Project settings', zh_Hans: '项目设置' },
+                status: 'success' as const
+            }
+            const row = {
+                type: 'component' as const,
+                id: 'configure-call',
+                executionId: 'run',
+                agentKey: 'private-agent',
+                data: {
+                    ...reference,
+                    category: 'Dashboard' as const,
+                    input: { private: 'diagnostic-input' },
+                    output: 'diagnostic-output',
+                    toolInput: { scope: 'commercial' },
+                    toolResult: { content: [{ type: 'text', text: 'business-data' }] },
+                    data: reference,
+                    html: '<script>private</script>'
+                }
+            }
+            const expected = {
+                type: 'component',
+                id: row.id,
+                executionId: 'run',
+                data: { ...reference, category: 'Dashboard' }
+            }
+            expect(runtimeMessageContent([row])).toEqual([expected])
+            for (const data of [{ type: 'message', data: row }, JSON.stringify({ type: 'message', data: row })]) {
+                const result = await lastValueFrom(runtimeStream(of({ data }), true))
+                expect(result.data).toEqual({ type: 'message', data: expected })
+                expect(JSON.stringify(result)).not.toMatch(/private|diagnostic|toolInput|toolResult|business-data/)
+            }
+        }
+    )
+
+    it.each([
+        { type: 'Dashboard' },
+        { type: 'McpApp', appInstanceId: '' },
+        { type: 'McpApp', resourceUri: 'https://untrusted.test' },
+        { type: 'McpApp', toolName: '' }
+    ])('does not promote an invalid widget to an App reference: %j', (invalid) => {
+        const row = {
+            type: 'component' as const,
+            id: 'call',
+            data: {
+                category: 'Dashboard' as const,
+                type: 'McpApp',
+                appInstanceId: 'app',
+                resourceUri: 'ui://settings',
+                toolName: 'configure',
+                ...invalid
+            }
+        }
+        expect(runtimeMessageContent([row])).toEqual([])
+        expect(runtimeStreamPayload({ type: 'message', data: row })).toBeNull()
     })
 
     it('keeps business replies and execution lifecycle without nested entities or execution inputs', () => {

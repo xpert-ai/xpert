@@ -429,147 +429,158 @@ describe('KnowledgeDocLoadHandler', () => {
         ).toBe('vlm-default')
     })
 
-    it('falls back to text chunks and records a warning when image understanding cannot resolve a vision model', async () => {
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
-        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
-        const transformedChunk = new Document({
-            pageContent: 'Page text\n\n![Page 1](https://files.local/page-1.png)',
-            metadata: {
-                chunkId: 'page-1',
-                chunkIndex: 0
-            }
-        }) as any
-        const splitChunk = new Document({
-            pageContent: 'Page text',
-            metadata: {
-                chunkId: 'split-1',
-                chunkIndex: 0
-            }
-        }) as any
-        const transformer = {
-            meta: {
-                label: { en_US: 'Fixture parser', zh_Hans: '测试解析器' },
-                supportedFileTypes: ['pdf', 'docx', 'png']
-            },
-            permissions: [],
-            transformDocuments: jest.fn(async () => [
-                {
-                    id: 'doc-1',
-                    chunks: [transformedChunk],
-                    metadata: {
-                        assets: [
-                            {
-                                type: 'image',
-                                url: 'https://files.local/page-1.png',
-                                filePath: 'images/page-1.png',
-                                sourceType: 'pdf_page',
-                                page: 1,
-                                order: 0
-                            }
-                        ]
+    it.each([KBDocumentCategoryEnum.Text, KBDocumentCategoryEnum.Image])(
+        'handles %s vision failures',
+        async (category) => {
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+            const transformedChunk = new Document({
+                pageContent: 'Page text\n\n![Page 1](https://files.local/page-1.png)',
+                metadata: {
+                    chunkId: 'page-1',
+                    chunkIndex: 0
+                }
+            }) as any
+            const splitChunk = new Document({
+                pageContent: 'Page text',
+                metadata: {
+                    chunkId: 'split-1',
+                    chunkIndex: 0
+                }
+            }) as any
+            const transformer = {
+                meta: {
+                    label: { en_US: 'Fixture parser', zh_Hans: '测试解析器' },
+                    supportedFileTypes: ['pdf', 'docx', 'png']
+                },
+                permissions: [],
+                transformDocuments: jest.fn(async () => [
+                    {
+                        id: 'doc-1',
+                        chunks: [transformedChunk],
+                        metadata: {
+                            assets: [
+                                {
+                                    type: 'image',
+                                    url: 'https://files.local/page-1.png',
+                                    filePath: 'images/page-1.png',
+                                    sourceType: 'pdf_page',
+                                    page: 1,
+                                    order: 0
+                                }
+                            ]
+                        }
                     }
-                }
-            ])
-        }
-        const commandBus = {
-            execute: jest.fn(async () => ({ fileSystem: {} }))
-        }
-        const knowledgebaseService = {
-            getVisionModel: jest.fn(async () => {
-                throw new Error('Copilot model is not available for the current membership plan.')
-            })
-        }
-        const kbDocumentService = {
-            update: jest.fn()
-        }
-        const handler = new KnowledgeDocLoadHandler(knowledgebaseService as any, commandBus as any, {} as any)
-        ;(handler as any).knowledgeWorkAreaResolver = {
-            resolve: jest.fn(async () => ({
-                volume: {},
-                tmpPath: {
-                    serverPath: '/tmp'
-                }
-            }))
-        }
-        ;(handler as any).transformerRegistry = {
-            get: jest.fn(() => transformer)
-        }
-        ;(handler as any).imageUnderstandingRegistry = {
-            get: jest.fn(() => ({ permissions: [], understandImages: jest.fn() }))
-        }
-        ;(handler as any).cacheManager = {
-            get: jest.fn(async () => undefined),
-            set: jest.fn()
-        }
-        ;(handler as any).kbDocumentService = kbDocumentService
-        ;(handler as any).transformSnapshotService = {
-            save: jest.fn(async () => ({
-                schemaVersion: 1,
-                filePath: '.knowledge/documents/doc-1/transforms/fingerprint/documents.ndjson',
-                manifestPath: '.knowledge/documents/doc-1/transforms/fingerprint/manifest.json',
-                sha256: 'snapshot-hash',
-                size: 100,
-                itemCount: 1,
-                chunkCount: 1,
-                transformFingerprint: 'fingerprint',
-                transformer: { provider: 'pdf-visual', config: {} },
-                createdAt: '2026-08-08T00:00:00.000Z'
-            }))
-        }
-        ;(handler as any).analysisSnapshotService = { save: jest.fn(async () => undefined) }
-        jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks: [splitChunk] })
-
-        const result = await handler.execute(
-            new KnowledgeDocLoadCommand({
-                doc: {
-                    id: 'doc-1',
-                    name: 'manual.pdf',
-                    type: 'pdf',
-                    category: KBDocumentCategoryEnum.Text,
-                    knowledgebaseId: 'kb-1',
-                    filePath: 'manual.pdf',
-                    parserConfig: {
-                        transformer: { fileScope: { tenantId: 'forged-tenant', scopeId: 'forged-kb' } }
-                    },
-                    status: KBDocumentStatusEnum.RUNNING
-                } as any,
-                stage: 'prod'
-            })
-        )
-
-        expect(result.chunks).toEqual([splitChunk])
-        expect(transformer.transformDocuments).toHaveBeenCalledWith(
-            expect.any(Array),
-            expect.objectContaining({
-                fileScope: {
-                    tenantId: 'tenant-1',
-                    organizationId: 'org-1',
-                    userId: 'user-1',
-                    catalog: 'knowledges',
-                    knowledgeId: 'kb-1',
-                    scopeId: 'kb-1'
-                }
-            })
-        )
-        expect(knowledgebaseService.getVisionModel).toHaveBeenCalledWith('kb-1', undefined)
-        expect(kbDocumentService.update).toHaveBeenCalledWith(
-            'doc-1',
-            expect.objectContaining({
-                metadata: expect.objectContaining({
-                    parser: 'pdf-visual',
-                    parserLabel: { en_US: 'Fixture parser', zh_Hans: '测试解析器' },
-                    imageUnderstandingWarnings: [
-                        expect.objectContaining({
-                            type: 'image_understanding_skipped',
-                            assetCount: 1,
-                            message: 'Copilot model is not available for the current membership plan.'
-                        })
-                    ]
+                ])
+            }
+            const commandBus = {
+                execute: jest.fn(async () => ({ fileSystem: {} }))
+            }
+            const knowledgebaseService = {
+                getVisionModel: jest.fn(async () => {
+                    throw new Error('Copilot model is not available for the current membership plan.')
                 })
-            })
-        )
-    })
+            }
+            const kbDocumentService = {
+                update: jest.fn()
+            }
+            const handler = new KnowledgeDocLoadHandler(knowledgebaseService as any, commandBus as any, {} as any)
+            ;(handler as any).knowledgeWorkAreaResolver = {
+                resolve: jest.fn(async () => ({
+                    volume: {},
+                    tmpPath: {
+                        serverPath: '/tmp'
+                    }
+                }))
+            }
+            ;(handler as any).transformerRegistry = {
+                get: jest.fn(() => transformer)
+            }
+            ;(handler as any).imageUnderstandingRegistry = {
+                get: jest.fn(() => ({ permissions: [], understandImages: jest.fn() }))
+            }
+            ;(handler as any).cacheManager = {
+                get: jest.fn(async () => undefined),
+                set: jest.fn()
+            }
+            ;(handler as any).kbDocumentService = kbDocumentService
+            ;(handler as any).transformSnapshotService = {
+                save: jest.fn(async () => ({
+                    schemaVersion: 1,
+                    filePath: '.knowledge/documents/doc-1/transforms/fingerprint/documents.ndjson',
+                    manifestPath: '.knowledge/documents/doc-1/transforms/fingerprint/manifest.json',
+                    sha256: 'snapshot-hash',
+                    size: 100,
+                    itemCount: 1,
+                    chunkCount: 1,
+                    transformFingerprint: 'fingerprint',
+                    transformer: { provider: 'pdf-visual', config: {} },
+                    createdAt: '2026-08-08T00:00:00.000Z'
+                }))
+            }
+            ;(handler as any).analysisSnapshotService = { save: jest.fn(async () => undefined) }
+            jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks: [splitChunk] })
+
+            const pending = handler.execute(
+                new KnowledgeDocLoadCommand({
+                    doc: {
+                        id: 'doc-1',
+                        name: 'manual.pdf',
+                        type: 'pdf',
+                        category,
+                        knowledgebaseId: 'kb-1',
+                        filePath: 'manual.pdf',
+                        parserConfig: {
+                            transformer: { fileScope: { tenantId: 'forged-tenant', scopeId: 'forged-kb' } }
+                        },
+                        status: KBDocumentStatusEnum.RUNNING
+                    } as any,
+                    stage: 'prod'
+                })
+            )
+
+            if (category === KBDocumentCategoryEnum.Image) {
+                await expect(pending).rejects.toThrow('Copilot model is not available for the current membership plan.')
+                expect(kbDocumentService.update).not.toHaveBeenCalledWith('doc-1', {
+                    status: KBDocumentStatusEnum.UNDERSTOOD
+                })
+                return
+            }
+            const result = await pending
+            expect(result.chunks).toEqual([splitChunk])
+            expect(transformer.transformDocuments).toHaveBeenCalledWith(
+                expect.any(Array),
+                expect.objectContaining({
+                    fileScope: {
+                        tenantId: 'tenant-1',
+                        organizationId: 'org-1',
+                        userId: 'user-1',
+                        catalog: 'knowledges',
+                        knowledgeId: 'kb-1',
+                        scopeId: 'kb-1'
+                    }
+                })
+            )
+            expect(knowledgebaseService.getVisionModel).toHaveBeenCalledWith('kb-1', undefined)
+            expect(kbDocumentService.update).toHaveBeenCalledWith(
+                'doc-1',
+                expect.objectContaining({
+                    metadata: expect.objectContaining({
+                        parser: 'pdf-visual',
+                        parserLabel: { en_US: 'Fixture parser', zh_Hans: '测试解析器' },
+                        imageUnderstandingWarnings: [
+                            expect.objectContaining({
+                                type: 'image_understanding_skipped',
+                                assetCount: 1,
+                                message: 'Copilot model is not available for the current membership plan.'
+                            })
+                        ]
+                    })
+                })
+            )
+        }
+    )
 
     it('runs a deterministic image-understanding branch without resolving a vision model', async () => {
         const transformedChunk = new Document({

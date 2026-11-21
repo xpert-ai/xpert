@@ -207,7 +207,7 @@ export interface AppPlatformStatus {
   }>
 }
 
-/** Account-wide storage, using the same snapshot and limits as quota enforcement. */
+/** Storage owned by the current tenant + organization, shared by all members and Apps. */
 export interface AppPlatformStorageUsage {
   limitBytes: number
   snapshot: {

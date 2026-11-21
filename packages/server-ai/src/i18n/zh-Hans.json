@@ -1066,6 +1066,7 @@
         "ProjectEditorRequired": "需要项目编辑者权限。",
         "ProjectFileRequired": "必须提供项目文件。",
         "ProjectFileUploadFailed": "项目文件上传失败。",
+        "FileUploadFailed": "文件上传失败。",
         "ProjectInvitationEmailMismatch": "此项目邀请属于其他邮箱地址。",
         "ProjectInvitationInvalid": "项目邀请无效或已过期。",
         "ProjectInvitationNotFound": "未找到项目邀请。",
@@ -1499,7 +1500,8 @@
         "ResourceAnalysisInvalid": "分析查询不符合允许的字段类型或操作。",
         "ResourceAnalysisIncomplete": "上游数据集不完整，无法据此计算可信的总体汇总。",
         "ResourceAnalysisBudget": "分析查询超出允许的查询次数、行数或结果大小。",
-        "ResourceAnalysisSourceDenied": "发起成员暂不能查询源数据，请检查当前数据源权限及声明的查询参数。"
+        "ResourceAnalysisSourceDenied": "发起成员暂不能查询源数据，请检查当前数据源权限及声明的查询参数。",
+        "InvalidDocumentFingerprintFilter": "请使用 SHA-256 原文件指纹和非负整数字节大小。"
     },
     "Mcp": {
         "Test": {

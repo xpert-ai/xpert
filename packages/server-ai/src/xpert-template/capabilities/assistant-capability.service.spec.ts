@@ -4,6 +4,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentTenantId: jest.fn(() => 'tenant'),
         getOrganizationId: jest.fn(() => 'organization'),
+        isTenantScope: jest.fn(() => false),
+        hasRole: jest.fn(() => false),
         getLanguageCode: jest.fn(() => 'en-US')
     }
 }))
@@ -59,6 +61,9 @@ describe('Assistant capabilities (OSS)', () => {
     beforeEach(() => {
         providers.splice(0)
         jest.clearAllMocks()
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant')
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(false)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(false)
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue('organization')
         jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.English)
         query.execute.mockResolvedValue([
@@ -92,6 +97,29 @@ describe('Assistant capabilities (OSS)', () => {
         expect(await service.compose(template, language, [], jest.fn())).toBe(template)
         expect(query.execute).toHaveBeenCalled()
         await expect(service.setup(template, language, ['missing'])).rejects.toThrow()
+    })
+    it('lets a tenant administrator prepare a tenant Assistant with authorized models', async () => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(undefined)
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(true)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(true)
+        expect(await service.setup(template, language)).toMatchObject({ canInstall: true, requiresModel: true })
+        const draft = parseCapabilityTemplateDraft(template.export_data)
+        await service.prepareInstallation(template, draft, language, [], model, [])
+        expect(draft.team.copilotModel).toEqual(model)
+        query.execute.mockResolvedValue([])
+        await expect(service.prepareInstallation(template, draft, language, [], model, [])).rejects.toThrow()
+    })
+    it.each([
+        { tenantScope: true, administrator: false, tenantId: 'tenant' },
+        { tenantScope: false, administrator: true, tenantId: 'tenant' },
+        { tenantScope: true, administrator: true, tenantId: undefined }
+    ])('rejects an unqualified tenant authoring scope %j', async ({ tenantScope, administrator, tenantId }) => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(undefined)
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue(tenantId)
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(tenantScope)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(administrator)
+        await expect(service.setup(template, language)).rejects.toThrow()
+        expect(query.execute).not.toHaveBeenCalled()
     })
     it('creates a blank Assistant with all capabilities off and lists only explicitly compatible providers', async () => {
         providers.push(createProvider('template-only'), {

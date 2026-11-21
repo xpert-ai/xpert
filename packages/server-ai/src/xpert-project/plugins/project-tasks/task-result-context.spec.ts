@@ -95,3 +95,117 @@ it('retains step descriptions, status and negative notes without repeating datab
     })
     expect(JSON.stringify(projected)).not.toContain('createdById')
 })
+
+it('bounds superseded attempts while keeping current evidence, failure states and exact reread references', () => {
+    const source = {
+        ...task,
+        executions: Array.from({ length: 5 }, (_, attempt) => ({
+            ...task.executions[0],
+            attempt,
+            purpose: { type: 'implementation' },
+            status: attempt === 4 ? 'succeeded' : 'failed',
+            error: attempt === 4 ? null : 'Required check failed'
+        }))
+    }
+    const result = projectTaskModelView(source)
+    expect(JSON.stringify(result).length).toBeLessThan(15000)
+    expect(result).toMatchObject({
+        decisionOptions: task.decisionOptions,
+        executions: [0, 1, 2, 3, 4].map((attempt) => ({
+            attempt,
+            result: {
+                text: expect.stringContaining('blocking finding at end'),
+                excerpt: { totalCharacters: text.length, read: { executionId, expectedRevision: 5 } }
+            }
+        }))
+    })
+    expect(JSON.stringify(result)).toContain('Required check failed')
+    expect(projectTaskModelView(result)).toEqual(result)
+    expect(source.executions.every((item) => item.result.text === text)).toBe(true)
+})
+
+it('includes independent review Markdown once without dropping its decision or evidence references', () => {
+    const source = {
+        ...task,
+        executions: [{ ...task.executions[0], reviewReport: { format: 'markdown', markdown: text } }]
+    }
+    const result = projectTaskModelView(source)
+    expect(JSON.stringify(result).match(/blocking finding at end/g)).toHaveLength(1)
+    expect(result).toMatchObject({
+        executions: [
+            {
+                result: {
+                    textSource: 'reviewReport.markdown',
+                    excerpt: { read: { executionId, expectedRevision: 5 } }
+                },
+                reviewReport: { markdown: expect.stringContaining('blocking finding at end') }
+            }
+        ]
+    })
+    expect(projectTaskModelView(result)).toEqual(result)
+})
+
+it('retains the latest implementation and review independently and does not guess legacy ordering', () => {
+    const evidence = 'Required follow-up remains open. '.repeat(100)
+    const execution = (attempt: number | undefined, type: 'implementation' | 'review' | undefined) => ({
+        ...task.executions[0],
+        attempt,
+        purpose: type ? { type } : undefined,
+        result: { text: evidence }
+    })
+    const source = {
+        ...task,
+        executions: [
+            execution(3, 'implementation'),
+            execution(2, 'review'),
+            execution(1, 'implementation'),
+            execution(undefined, 'implementation'),
+            execution(0, undefined)
+        ]
+    }
+    const projected = projectTaskModelView(source)
+    expect(projected).toMatchObject({
+        executions: [
+            { result: { text: evidence } },
+            { result: { text: evidence } },
+            {
+                result: {
+                    text: expect.stringContaining('middle omitted'),
+                    excerpt: { totalCharacters: evidence.length }
+                }
+            },
+            { result: { text: evidence } },
+            { result: { text: evidence } }
+        ]
+    })
+    expect(projectTaskModelView(projected)).toEqual(projected)
+})
+
+it('deduplicates only identical successful report pages, keeping changed revisions and failed reads', () => {
+    const page = {
+        taskId: id,
+        executionId,
+        invocationRevision: 5,
+        source: 'report',
+        offset: 0,
+        nextOffset: null,
+        totalCharacters: 3000,
+        sha256: 'report-hash',
+        sourceTruncated: false,
+        text: 'Negative finding '.repeat(150)
+    }
+    const message = (revision = 5, status: 'success' | 'error' = 'success') =>
+        new ToolMessage({
+            tool_call_id: `read-${revision}-${status}`,
+            name: 'project_read_task_result',
+            status,
+            content: JSON.stringify({ ...page, invocationRevision: revision })
+        })
+    const history = [message(), message(6), message(5, 'error'), new HumanMessage(JSON.stringify(page)), message()]
+    const result = projectTaskModelMessages(history)
+    expect(String(result[0].content)).toContain('Identical evidence page')
+    expect(result.slice(1)).toEqual(history.slice(1))
+    expect(result[0]).toMatchObject({ tool_call_id: 'read-5-success' })
+    expect(String(history[0].content)).toContain('Negative finding')
+    expect(projectTaskModelMessages(result)).toEqual(result)
+})

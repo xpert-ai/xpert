@@ -25,6 +25,7 @@ import { StorageFile } from './storage-file.entity'
 import { UUIDValidationPipe } from '../shared/pipes'
 import { UploadFileCommand } from '../file/file-upload/upload-file.command'
 import { getStorageFileFromAsset } from '../file/file-upload/types'
+import { requireFileAssetDestination } from '../file/file-upload/upload-file-result'
 
 @ApiTags('StorageFile')
 @Controller()
@@ -62,6 +63,7 @@ export class StorageFileController {
 				]
 			})
 		)
+		requireFileAssetDestination(asset, 'storage')
 		const storageFile = getStorageFileFromAsset(asset)
 		if (!storageFile) {
 			throw new BadRequestException('Failed to upload storage file')

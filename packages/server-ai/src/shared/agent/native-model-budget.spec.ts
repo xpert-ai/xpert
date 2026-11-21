@@ -28,11 +28,11 @@ describe('native model admission at the real LangChain callback boundary', () =>
         currency: 'USD',
         latency: 1
     }
-    function setup() {
+    function setup(budgetActor: Parameters<typeof createNativeModelBudgetGate>[1] = actor) {
         const commands = new CommandBus(null),
             execute = jest.spyOn(commands, 'execute').mockResolvedValue(true)
         let executionId: string = randomUUID()
-        const gate = createNativeModelBudgetGate(commands, actor, () => executionId)
+        const gate = createNativeModelBudgetGate(commands, budgetActor, () => executionId)
         const model = new FakeStreamingChatModel({ sleep: 0, responses: [new AIMessage('ok')] })
         jest.spyOn(model, 'invocationParams').mockReturnValue({ max_tokens: 1024 })
         const provider = jest.spyOn(model, '_generate')
@@ -50,6 +50,22 @@ describe('native model admission at the real LangChain callback boundary', () =>
             }
         }
     }
+    it.each([null, undefined, actor.organizationId])(
+        'admits and settles the organization scope %s',
+        async (organizationId) => {
+            const inputActor = Object.freeze({ ...actor, organizationId })
+            const f = setup(inputActor)
+            await expect(f.model.invoke('hello')).resolves.toBeDefined()
+            const command = f.execute.mock.calls[0][0]
+            if (!(command instanceof AdmitPipelineModelCallCommand)) throw Error('admission missing')
+            expect(command.input.actor).toEqual({ ...actor, organizationId: organizationId ?? undefined })
+            expect(inputActor.organizationId).toBe(organizationId)
+            await f.gate.record(command.input.requestId, usage)
+            expect(f.execute.mock.calls[1][0]).toEqual(
+                new SettlePipelineModelCallCommand({ ...command.input, actualTokens: 15 })
+            )
+        }
+    )
     it.each(['invoke', 'stream'] as const)('denies %s before any provider work', async (mode) => {
         const f = setup()
         f.execute.mockRejectedValue(new Error('budget denied'))

@@ -11,6 +11,20 @@ Pin the final submitted candidate after the developer's deployment/self-repair
 loop. Reviewer feedback starts a new implementation/review round; it does not
 authorize the reviewer to silently patch the candidate.
 
+Judge a testing-only task by the completeness and reproducibility of its findings,
+including negative results; accepting that task does not accept the tested product.
+Keep product defects distinct from missing test evidence and unobservable fields.
+Do not invent a product display requirement merely because one evidence route is
+unavailable. Check the assigned requirements and disclose the remaining limitation.
+
+Review the exact scripts that generated the submitted evidence. If their bytes
+changed afterward, request an affected rerun or the original executed version.
+Design a discriminating check of your own where the submitted case could pass
+despite a broken feature; reproducing the same weak test alone is insufficient.
+After scoped evidence rework, independently review the new evidence before the
+coordinator makes the final decision. Reuse unaffected candidate work and clearly
+identify which checks were rerun.
+
 ## Assign and launch
 
 New delivery stages use a summary task with an implementation child and independent

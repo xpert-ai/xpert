@@ -1,22 +1,29 @@
 import { EntityManager } from 'typeorm'
-import { membershipStorageBytes } from '../../../membership/membership-storage'
+import { organizationMembershipStorageBytes } from '../../../membership/membership-storage'
 import { AppPlatformDelivery } from '../app-platform-delivery.entity'
+import { platformFailure } from '../platform-error'
 
-/** Storage is account-wide. Active membership capacities replace the base allowance and never stack. */
-export async function accountStorageLimit(manager: EntityManager, deliveries: AppPlatformDelivery[]) {
-    if (!deliveries.length) throw new Error('Storage account delivery is required')
-    const base = Math.min(
+export type OrganizationStorageScope = { tenantId: string; organizationId: string }
+
+export function organizationStorageScope(scope: {
+    tenantId?: string
+    organizationId?: string | null
+}): OrganizationStorageScope {
+    if (!scope.tenantId || !scope.organizationId) throw platformFailure('application_storage_scope_invalid', 403)
+    return { tenantId: scope.tenantId, organizationId: scope.organizationId }
+}
+
+/** All Apps and members share one organization allowance; member counts never grant or revoke capacity. */
+export async function organizationStorageLimit(manager: EntityManager, scope: OrganizationStorageScope) {
+    const identity = organizationStorageScope(scope)
+    const deliveries = await manager.getRepository(AppPlatformDelivery).find({ where: identity })
+    if (!deliveries.length) return null
+    const base = Math.max(
         ...deliveries.map(
             (delivery) =>
                 delivery.configuration.environment.plans[delivery.configuration.definition.entitlements.defaultPlanRef]
                     .maxStorageBytes
         )
     )
-    const capacities = await Promise.all(
-        deliveries.map(async ({ tenantId, organizationId, userId }) => {
-            if (!tenantId || !userId) throw new Error('Storage account owner is required')
-            return (await membershipStorageBytes(manager, { tenantId, organizationId, userId })) ?? 0
-        })
-    )
-    return Math.max(base, ...capacities)
+    return Math.max(base, (await organizationMembershipStorageBytes(manager, identity)) ?? 0)
 }

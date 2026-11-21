@@ -609,6 +609,10 @@ export class MembershipAdminService {
                 return null
             }
 
+            // Storage belongs to the organization. The transaction-local marker prevents
+            // personal membership cleanup from revoking its already granted storage periods.
+            if (manager.connection.options.type === 'postgres')
+                await manager.query("SELECT set_config('xpert.storage_member_removal', 'on', true)")
             membership.status = MembershipStatusEnum.Expired
             membership.currentPeriodEnd = new Date()
             const saved = (await manager.getRepository(UserMembership).save(membership)) as MembershipWithPlan
@@ -618,6 +622,8 @@ export class MembershipAdminService {
                 preserveExternallyManaged: true
             })
             await this.records.createMembershipStatusLedger(manager, saved, 'Organization membership removed')
+            if (manager.connection.options.type === 'postgres')
+                await manager.query("SELECT set_config('xpert.storage_member_removal', 'off', true)")
             return saved
         })
     }

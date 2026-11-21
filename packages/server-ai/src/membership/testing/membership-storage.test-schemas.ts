@@ -37,6 +37,7 @@ export const membershipStorageTestSchemas = [
             userId: uuid,
             planId: uuid,
             status: { type: 'varchar' },
+            source: { type: 'varchar', default: 'external' },
             updatedAt: { type: 'timestamptz', default: () => 'now()' },
             currentPeriodStart: periodBounds.periodStart,
             currentPeriodEnd: periodBounds.periodEnd,
@@ -54,6 +55,7 @@ export const membershipStorageTestSchemas = [
             userId: uuid,
             membershipId: uuid,
             status: { type: 'varchar' },
+            source: { type: 'varchar', default: 'external' },
             planSnapshot: { type: 'jsonb' }
         }
     })

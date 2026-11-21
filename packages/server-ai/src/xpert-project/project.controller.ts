@@ -25,7 +25,7 @@ import {
     ZodValidationPipe,
     TransformInterceptor,
     UploadFileCommand,
-    getFileAssetDestination
+    requireFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
     BadRequestException,
@@ -927,13 +927,7 @@ export class XpertProjectController extends XpertProjectPlanningController {
                 ]
             })
         )
-        const destination = getFileAssetDestination(asset, 'volume')
-        if (!destination || destination.status !== 'success') {
-            throw new BadRequestException(
-                destination?.error ||
-                    t('server-ai:Error.ProjectFileUploadFailed', { defaultValue: 'Failed to upload Project file' })
-            )
-        }
+        const destination = requireFileAssetDestination(asset, 'volume')
         const metadata = await this.assetService.createAsset(id, {
             name: file.originalname,
             path: file.originalname,

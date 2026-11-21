@@ -4,7 +4,8 @@ import {
     ChatMessageTypeEnum
 } from '@xpert-ai/contracts'
 import type { IChatMessage, IXpertAgentExecution } from '@xpert-ai/contracts'
-import { Exclude, Expose, instanceToPlain } from 'class-transformer'
+import { Exclude, Expose, Transform, instanceToPlain } from 'class-transformer'
+import { executionDuration } from './execution-duration'
 
 import { publicExecution } from '../../xpert-agent-execution/public-execution'
 
@@ -55,6 +56,7 @@ export class AgentEndStreamDTO {
     error?: IXpertAgentExecution['error']
 
     @Expose()
+    @Transform(({ value }) => executionDuration(value))
     elapsedTime?: IXpertAgentExecution['elapsedTime']
 
     @Expose()

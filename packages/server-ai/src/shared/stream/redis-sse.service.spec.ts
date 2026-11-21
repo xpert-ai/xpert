@@ -1,8 +1,72 @@
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum } from '@xpert-ai/contracts'
-import { lastValueFrom, of, throwError, toArray } from 'rxjs'
+import { DataSource } from 'typeorm'
+import { RunDisplaySnapshotStore } from './display-snapshot/display-snapshot.store'
+import { DisplaySnapshotCapture } from './display-snapshot/display-snapshot.capture'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, filterMessageText } from '@xpert-ai/contracts'
+import { lastValueFrom, of, Subject, throwError, toArray } from 'rxjs'
 import { RedisSseStreamService } from './redis-sse.service'
 
 describe('RedisSseStreamService', () => {
+    it('does not accumulate frozen timer snapshots behind a slow database write', async () => {
+        jest.useFakeTimers()
+        const source = new Subject<MessageEvent>()
+        let release!: () => void
+        const blocked = new Promise<void>((resolve) => {
+            release = resolve
+        })
+        const store = new RunDisplaySnapshotStore(new DataSource({ type: 'postgres' }))
+        jest.spyOn(store, 'begin').mockResolvedValue({
+            tenantId: 'tenant',
+            threadId: 'thread',
+            runId: 'run',
+            segmentId: 'segment',
+            owner: 'owner',
+            startedAt: 'now'
+        })
+        const save = jest.spyOn(store, 'save').mockImplementation(async () => {
+            await blocked
+            return null
+        })
+        const capture = jest.spyOn(DisplaySnapshotCapture.prototype, 'capture')
+        const service = new RedisSseStreamService(createRedisMock() as never, store)
+        jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
+        const done = lastValueFrom(
+            service
+                .wrapChatStream(source, {
+                    target: {
+                        transport: 'redis-stream',
+                        threadId: 'thread',
+                        runId: 'run',
+                        snapshotOwner: 'owner',
+                        snapshotScope: { tenantId: 'tenant' }
+                    }
+                })
+                .pipe(toArray())
+        )
+        try {
+            source.next({
+                data: {
+                    type: 'event',
+                    event: 'on_message_start',
+                    data: { id: 'ai', role: 'ai', executionId: 'run', content: 'saved prefix' }
+                }
+            } as MessageEvent)
+            await jest.advanceTimersByTimeAsync(0)
+            expect(save).toHaveBeenCalledTimes(1)
+            await jest.advanceTimersByTimeAsync(5000)
+            expect(capture).toHaveBeenCalledTimes(2)
+            source.next({ data: { type: 'message', data: ' tail' } } as MessageEvent)
+            source.complete()
+            release()
+            await done
+            expect(filterMessageText(save.mock.calls.at(-1)?.[3].messages[0].content)).toBe('saved prefix tail')
+        } finally {
+            release()
+            source.complete()
+            jest.restoreAllMocks()
+            jest.useRealTimers()
+        }
+    })
+
     it('removes provider costs when reconnecting to a stream recorded before the public DTO changed', async () => {
         const redis = createRedisMock()
         const entries = [
