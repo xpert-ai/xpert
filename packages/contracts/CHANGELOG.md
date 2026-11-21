@@ -1,5 +1,7 @@
 # @xpert-ai/contracts
 
+## 3.38.0
+
 ## 3.37.2
 
 ### Patch Changes

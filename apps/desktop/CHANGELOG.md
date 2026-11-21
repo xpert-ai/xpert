@@ -1,5 +1,12 @@
 # @xpert-ai/desktop
 
+## 0.5.4
+
+### Patch Changes
+
+- 9b5c471: Upgrade the ChatKit dependency family to UI 0.27.0 and types 0.24.0, with Angular 0.18.6, web component 0.19.6 and web shared 0.18.6. Align development, API, Web and Desktop locks so Widgets use the released shared primitives and inherit ChatKit theme and density consistently.
+  - @xpert-ai/desktop-protocol@0.5.6
+
 ## 0.5.3
 
 ### Patch Changes
