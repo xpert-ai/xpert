@@ -13,6 +13,7 @@ import { t } from 'i18next'
 import { z } from 'zod/v3'
 import type { SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { publicAppPlatformRuntimeError } from '../plugin-resource/app-platform/platform-error'
+import { executionDuration } from '../shared/stream/execution-duration'
 
 const optionalText = z.string().optional()
 const date = z.union([z.string(), z.date()]).optional()
@@ -57,7 +58,7 @@ const lifecycle = z.object({
     role: optionalText,
     status: optionalText,
     error: z.unknown().optional(),
-    elapsedTime: z.number().optional(),
+    elapsedTime: z.preprocess(executionDuration, z.number().optional()),
     createdAt: date,
     updatedAt: date
 })

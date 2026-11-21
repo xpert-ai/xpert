@@ -10,6 +10,7 @@ import {
     TRunDisplayMessage
 } from '@xpert-ai/contracts'
 import z from 'zod'
+import { executionDuration } from '../execution-duration'
 import {
     appendMessageSteps,
     sanitizeMessageContentForPersistence
@@ -24,7 +25,7 @@ const agentSchema = z.object({
     title: z.string().optional(),
     status: z.string().optional(),
     error: z.string().optional(),
-    elapsedTime: z.number().optional(),
+    elapsedTime: z.preprocess(executionDuration, z.number().optional()),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional()
 })

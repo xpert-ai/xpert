@@ -4,6 +4,30 @@ import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 import i18next, { t } from 'i18next'
 
 describe('application user presentation boundary', () => {
+    it.each(['163097', 163097, null, 'invalid'])(
+        'retains terminal events with persisted duration %p in live and replay presentation',
+        async (elapsedTime) => {
+            const event = {
+                type: 'event',
+                event: 'on_agent_end',
+                data: { id: 'child', parentId: 'root', status: 'success', elapsedTime, inputs: { secret: true } }
+            }
+            for (const data of [event, JSON.stringify(event)]) {
+                const result = await lastValueFrom(runtimeStream(of({ data }), true))
+                const payload = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+                expect(payload).toEqual({
+                    type: 'event',
+                    event: 'on_agent_end',
+                    data: {
+                        id: 'child',
+                        parentId: 'root',
+                        status: 'success',
+                        ...(elapsedTime === 'invalid' || elapsedTime === null ? {} : { elapsedTime: 163097 })
+                    }
+                })
+            }
+        }
+    )
     beforeAll(async () => {
         await i18next.init({
             lng: 'en',
