@@ -100,9 +100,7 @@ describe('Coding delivery business boundaries', () => {
     expect(await f.db.getRepository(CodingDelivery).count()).toBe(1)
   })
   it('does not complete merely because the Assistant runtime succeeded', async () => {
-    await expect(f.operations.collect(f.context, 'development')).rejects.toMatchObject({
-      response: { code: 'CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED' }
-    })
+    await expect(f.operations.collect(f.context, 'development')).resolves.toBeNull()
   })
   it('does not create delivery state without an authorized destination', async () => {
     f.revoke()
@@ -143,7 +141,7 @@ describe('Coding delivery business boundaries', () => {
     expect(await submit()).toEqual(ref)
     const evidence = await f.evidence.read(f.context, ref)
     expect(evidence.artifacts).toHaveLength(4)
-    expect((await f.operations.collect(f.context, 'development')).result).toEqual(ref)
+    expect((await f.operations.collect(f.context, 'development'))?.result).toEqual(ref)
     // Reconstruct services from the same persisted database: no middleware closure owns state.
     expect((await f.store.operation(f.context, ref.objectKey)).evidence?.manifest).toEqual(f.manifest)
   })
@@ -398,7 +396,7 @@ describe('Coding delivery business boundaries', () => {
       finalTask.taskId,
       correctBranch.artifactId
     )
-    expect((await f.operations.collect(gitContext, 'git')).result).toEqual(delivered)
+    expect((await f.operations.collect(gitContext, 'git'))?.result).toEqual(delivered)
     expect((await f.evidence.read(gitContext, delivered)).manifest).toMatchObject({ commit: f.manifest.commit })
   })
 })

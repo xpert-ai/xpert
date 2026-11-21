@@ -1,6 +1,10 @@
 import { t } from 'i18next'
 
 const messages: Record<string, string> = {
+  CODING_COORDINATION_ACTION_MISSING:
+    'The stage ended without a submitted result, a delegated execution, or a recorded blocker. Inspect the project tasks and retry this stage.',
+  CODING_DELEGATION_STATE_UNKNOWN:
+    'The runtime could not confirm the delegated execution. Inspect its existing receipt before retrying.',
   CODING_DESTINATION_SELECTION_REQUIRED:
     'Select an authorized target and repository from the listed choices before starting release.',
   CODING_LOCAL_SCOPE_HAS_EXTERNAL_DESTINATION:
