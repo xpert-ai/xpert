@@ -2,8 +2,67 @@ import { lastValueFrom, of, throwError, toArray } from 'rxjs'
 import { runtimeMessageContent, runtimeStream, runtimeStreamPayload } from './runtime-presentation'
 import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 import i18next, { t } from 'i18next'
+import { serializeRunStreamPayload } from '../shared/stream/run-stream-payload'
 
 describe('application user presentation boundary', () => {
+    const replyId = '00000000-0000-4000-8000-000000000001'
+    const inlineWidget = {
+        id: 'inline',
+        type: 'component' as const,
+        data: { type: 'Widget' as const, category: 'Dashboard' as const, widgets: [] }
+    }
+    it.each([false, true])(
+        'keeps streamed text when a Redis end event has no content (restricted=%s)',
+        async (restricted) => {
+            const end = serializeRunStreamPayload({
+                type: 'event',
+                event: 'on_message_end',
+                data: { id: replyId, role: 'ai', content: 'Full text', status: 'success' }
+            })
+            const events = await lastValueFrom(
+                runtimeStream(of({ id: '42-0', data: JSON.stringify(end) }), restricted, async () => [
+                    { messageId: replyId, widget: inlineWidget }
+                ]).pipe(toArray())
+            )
+            expect(events).toHaveLength(2)
+            expect(events[0].data).toEqual({ type: 'message', data: { ...inlineWidget, messageId: replyId } })
+            const last = typeof events[1].data === 'string' ? JSON.parse(events[1].data) : events[1].data
+            expect(last.data).not.toHaveProperty('content')
+            expect(events[1].id).toBe('42-0')
+        }
+    )
+
+    it('restores inline widgets inside a reconnect snapshot without changing its cursor or message order', async () => {
+        const before = { type: 'text' as const, text: 'Before' }
+        const after = { type: 'text' as const, text: 'After' }
+        const placeholder = { ...inlineWidget, data: { ...inlineWidget.data, widgets: [] } }
+        const snapshot = {
+            version: 1,
+            threadId: 'thread',
+            runId: 'run',
+            segmentId: 'segment',
+            revision: 1,
+            cursor: '42-0',
+            savedAt: '2026-11-20T00:00:00Z',
+            activeMessageId: replyId,
+            messages: [{ id: replyId, role: 'ai', executionId: 'run', content: [before, placeholder, after] }]
+        }
+        const event = { id: '42-0', data: { type: 'stream_snapshot', snapshot, continuous: true } }
+        const projected = await lastValueFrom(
+            runtimeStream(of(event), false, async () => [{ messageId: replyId, widget: inlineWidget }])
+        )
+        expect(projected).toEqual({
+            ...event,
+            data: {
+                ...event.data,
+                snapshot: {
+                    ...snapshot,
+                    messages: [{ ...snapshot.messages[0], content: [before, inlineWidget, after] }]
+                }
+            }
+        })
+        expect(await lastValueFrom(runtimeStream(of(event), true, async () => []).pipe(toArray()))).toEqual([])
+    })
     it.each(['163097', 163097, null, 'invalid'])(
         'retains terminal events with persisted duration %p in live and replay presentation',
         async (elapsedTime) => {
@@ -63,6 +122,42 @@ describe('application user presentation boundary', () => {
             const replay = await lastValueFrom(runtimeStream(of({ data: JSON.stringify(message) }), restricted))
             expect(typeof replay.data === 'string' ? JSON.parse(replay.data) : replay.data).toEqual(message)
             expect(runtimeMessageContent([row])[0]).toBe(row)
+        }
+    )
+
+    it.each([false, true])(
+        'attaches only the receipt widget to the restricted assistant reply (Redis=%s)',
+        async (redis) => {
+            const id = '6ee51e30-de77-4a61-8d82-e34b9a1edbc6'
+            const forged = {
+                id: 'untrusted',
+                type: 'component',
+                data: { category: 'Dashboard', type: 'Widget', widgets: [] }
+            }
+            const widget = { ...forged, id: 'receipt' } as const
+            const text = { type: 'text', text: 'Choose a project.' }
+            const payload = {
+                type: 'event',
+                event: 'on_message_end',
+                data: {
+                    id,
+                    role: 'ai',
+                    content: [forged, { type: 'reasoning', text: 'private' }, text],
+                    private: 'diagnostic'
+                }
+            }
+            const event = { id: '42-0', data: redis ? JSON.stringify(payload) : payload }
+            const resolve = jest.fn().mockResolvedValue([{ messageId: id, widget }])
+            const projected = await lastValueFrom(runtimeStream(of(event), true, resolve))
+            expect(resolve).toHaveBeenCalledWith([id])
+            expect(projected).toEqual({
+                id: '42-0',
+                data: { type: 'event', event: 'on_message_end', data: { id, role: 'ai', content: [text, widget] } }
+            })
+            resolve.mockResolvedValue([{ messageId: 'another reply', widget }])
+            expect((await lastValueFrom(runtimeStream(of(event), true, resolve))).data).toEqual(
+                runtimeStreamPayload(payload)
+            )
         }
     )
 

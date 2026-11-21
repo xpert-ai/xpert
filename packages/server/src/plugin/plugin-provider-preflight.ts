@@ -9,6 +9,8 @@ import { t } from 'i18next'
 import {
 	AGENT_MIDDLEWARE_STRATEGY,
 	TOOLSET_STRATEGY,
+	readPluginProviderRegistrations,
+	type PluginProviderRegistration,
 	XPERT_TOOL_PROVIDER_METADATA,
 	assertXpertToolProviderClaims,
 	describeXpertToolProvider,
@@ -16,16 +18,11 @@ import {
 	type XpertToolProviderClaim
 } from '@xpert-ai/plugin-sdk'
 
-interface StrategyClaim {
-	kind: 'toolset' | 'middleware'
-	key: string
-}
-
 export interface PluginProviderClaims {
 	pluginName: string
 	scopeKey: string
 	tools: XpertToolProviderClaim[]
-	strategies: StrategyClaim[]
+	strategies: PluginProviderRegistration[]
 }
 
 export const PLUGIN_PROVIDER_PREFLIGHT_ERROR_CODE = 'plugin-provider-registration-failed'
@@ -107,6 +104,7 @@ export function preflightPluginProviders(
 		for (const declaration of declaredPluginProviders(module)) {
 			const target = resolveStrategyMetadataTarget(declaration)
 			if (!target) continue
+			candidate.strategies.push(...readPluginProviderRegistrations(target, pluginName))
 			const toolset = metadataKey(target, TOOLSET_STRATEGY)
 			const middleware = metadataKey(target, AGENT_MIDDLEWARE_STRATEGY)
 			if (toolset) candidate.strategies.push({ kind: 'toolset', key: toolset })
@@ -128,7 +126,7 @@ export function preflightPluginProviders(
 		}
 		const seen = new Set<string>()
 		for (const claim of candidate.strategies) {
-			const key = `${claim.kind}:${claim.key}`
+			const key = JSON.stringify([claim.kind, claim.key])
 			if (seen.has(key))
 				throw new Error(
 					t('server-ai:Error.PluginProviderClaimDuplicate', {

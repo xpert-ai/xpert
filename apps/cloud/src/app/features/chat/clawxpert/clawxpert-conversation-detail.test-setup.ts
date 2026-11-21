@@ -229,12 +229,14 @@ export const resourceDialogModule = jest.requireMock(
 ) as { openChatkitTaskResourceDialog: jest.Mock }
 
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Input } = jest.requireActual('@angular/core')
+  const { Component, Directive, Input } = jest.requireActual('@angular/core')
+  @Directive({ standalone: true, selector: 'button[z-button]' })
+  class ZardButtonComponent {}
   @Component({ standalone: true, selector: 'z-icon', template: '' })
   class ZardIconComponent {
     @Input() zType?: string
   }
-  return { ZardIconComponent }
+  return { ZardIconComponent, ZardButtonComponent }
 })
 
 export function configureConversationDetailTests(providers: Provider[] = []) {

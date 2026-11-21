@@ -131,7 +131,9 @@ describe('managed application run admission', () => {
                 view: { selectedRecord: 'record' }
             }
         })
-        expect(result.context).toEqual({ projectId: 'project' })
+        expect(result.context).toEqual({
+            projectId: 'project'
+        })
         expect(result.input).toEqual({
             id: 'message',
             input: { input: 'Hello' },

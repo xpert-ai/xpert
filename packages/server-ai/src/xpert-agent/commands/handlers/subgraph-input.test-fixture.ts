@@ -69,6 +69,7 @@ export function createInputGraphFixture(
         observeMiddleware?: (context: IAgentMiddlewareContext) => void
         localFollower?: { workspaceId: string }
         middlewareConnected?: boolean
+        additionalMiddlewareStrategies?: IAgentMiddlewareStrategy[]
     } = {}
 ) {
     jest.spyOn(Logger.prototype, 'verbose').mockImplementation(() => undefined)
@@ -130,6 +131,11 @@ export function createInputGraphFixture(
     const definition = {
         nodes: [
             ...agents.map((entity) => ({ type: 'agent', key: entity.key, entity })),
+            ...(options.additionalMiddlewareStrategies ?? []).map((strategy) => ({
+                type: 'workflow',
+                key: strategy.meta.name,
+                entity: { type: WorkflowNodeTypeEnum.MIDDLEWARE, provider: strategy.meta.name }
+            })),
             ...(options.middlewareConnected === false
                 ? []
                 : [
@@ -144,6 +150,11 @@ export function createInputGraphFixture(
                   ])
         ],
         connections: [
+            ...(options.additionalMiddlewareStrategies ?? []).map((strategy) => ({
+                type: 'workflow',
+                from: agentKey,
+                to: strategy.meta.name
+            })),
             ...followers.map(({ key }) => ({ type: 'agent', from: agentKey, to: key })),
             ...(options.middlewareConnected === false
                 ? []
@@ -218,6 +229,10 @@ export function createInputGraphFixture(
     Object.defineProperty(handler, 'agentMiddlewareRegistry', {
         value: {
             get: (name: string) => {
+                const additional = options.additionalMiddlewareStrategies?.find(
+                    (strategy) => strategy.meta.name === name
+                )
+                if (additional) return additional
                 if (options.middlewareStrategy) {
                     if (options.middlewareStrategy.meta.name === name) return options.middlewareStrategy
                     throw new Error(`Unexpected middleware provider: ${name}`)

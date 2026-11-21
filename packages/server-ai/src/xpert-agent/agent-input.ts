@@ -1,7 +1,7 @@
 // Invariants: only an agent entry stages input; tool/model loops never stage it.
 // A consumed receipt and its messages commit together, so checkpoint resume cannot replay
 // an already consumed input. Message text and LangGraph trigger names are not identity.
-import { HumanMessage, ToolMessage } from '@langchain/core/messages'
+import { HumanMessage, isHumanMessage, ToolMessage } from '@langchain/core/messages'
 import { HumanMessagePromptTemplate } from '@langchain/core/prompts'
 import { RunnableLambda } from '@langchain/core/runnables'
 import type { IEnvironment, IXpertAgent, TMessageChannel } from '@xpert-ai/contracts'
@@ -40,6 +40,7 @@ export async function prepareAgentInput(
     commandBus: CommandBus,
     queryBus: QueryBus,
     options: MessageOptions,
+    visibleHistory: TMessageChannel['messages'],
     retryInputCheckpointId?: string
 ) {
     // Pre-receipt input checkpoints may already schedule the old pre-turn/model
@@ -51,7 +52,15 @@ export async function prepareAgentInput(
     const interruptedTools: ToolMessage[] = []
     if (receipt?.status !== 'pending') return { humanMessages, interruptedTools, inputReceipt: receipt }
 
-    const templates = agent.promptTemplates?.filter((template) => !!template.text?.trim())
+    const identity = state.inputIdentity?.id === receipt.id ? state.inputIdentity : undefined
+    const continuation = identity?.continuation
+    const hasSource =
+        continuation &&
+        visibleHistory?.some(
+            (message) =>
+                isHumanMessage(message) && message.id?.startsWith(`input:${continuation.sourceMessageId}:${agent.key}:`)
+        )
+    const templates = hasSource ? [] : agent.promptTemplates?.filter((template) => !!template.text?.trim())
     for (const template of templates ?? []) {
         humanMessages.push(
             await HumanMessagePromptTemplate.fromTemplate(template.text, { templateFormat: 'mustache' }).format(
@@ -61,7 +70,8 @@ export async function prepareAgentInput(
     }
     if (
         (!humanMessages.length || (options?.resourceSkillContext && state.human?.resourceSkills !== undefined)) &&
-        state.human
+        state.human &&
+        !hasSource
     ) {
         humanMessages.push(
             await createHumanMessage(
@@ -73,6 +83,7 @@ export async function prepareAgentInput(
             )
         )
     }
+    if (continuation) humanMessages.push(new HumanMessage(continuation.confirmation))
     humanMessages.forEach((message, index) => {
         // Set the ID through the constructor so LangChain serialization retains it.
         humanMessages[index] = new HumanMessage({ ...message, id: `input:${receipt.id}:${agent.key}:${index}` })

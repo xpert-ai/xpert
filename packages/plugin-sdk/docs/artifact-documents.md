@@ -80,7 +80,7 @@ renderUnavailable(round.failures)
 
 ## 隔离边界
 
-HTML 在 `sandbox="allow-scripts"` 内执行，无同源权限、表单、弹窗和下载授权。内容前缀首先安装 CSP，允许内联 JS/CSS 和 data/blob 图片。默认拒绝外部资源；可信宿主可显式开启上述 HTTPS 资源白名单。数据网络请求、子 iframe、worker、eval、对象和表单始终拒绝。宿主页额外的 frame-src 策略拒绝文档自身导航。
+HTML 默认在 `sandbox="allow-scripts"` 内执行。可信宿主可以在挂载时指定 `allowDownloads: true`，允许该文档发起文件下载；同源、表单和弹窗仍受沙箱限制。内容前缀首先安装 CSP，允许内联 JS/CSS 和 data/blob 图片。默认拒绝外部资源；可信宿主可显式开启上述 HTTPS 资源白名单。数据网络请求、子 iframe、worker、eval、对象和表单始终拒绝。宿主页额外的 frame-src 策略拒绝文档自身导航。
 
 HTML 格式验证不是 sanitizer，也不证明业务正确性。Agent 代码仍可画出错误图形或阻塞自己的文档；业务口径、数值与实际页面都需要验收。该能力不提供后端写操作、任意网络代理或自动推送。
 

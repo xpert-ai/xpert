@@ -256,6 +256,59 @@ describe('XpertChatHandler', () => {
         return lastValueFrom(stream.pipe(toArray()))
     }
 
+    it('continues the original project request on the same branch without writing another human message', async () => {
+        const human = { id: 'question', role: 'human', content: 'Make the dashboard' }
+        const previous = { id: 'choice', role: 'ai', parentId: human.id, content: 'Confirm the project' }
+        const conversation = {
+            id: 'conversation-1',
+            createdById: 'user-1',
+            xpertId: xpert.id,
+            projectId: 'project-1',
+            threadId: 'main-thread',
+            messages: [human, previous],
+            options: {}
+        }
+        queryBus.execute.mockResolvedValue(conversation)
+        mockSuccessfulSendCommands()
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    conversationId: conversation.id,
+                    projectId: conversation.projectId,
+                    message: { input: { input: human.content } }
+                },
+                {
+                    xpertId: xpert.id,
+                    threadId: 'side-thread',
+                    isDerivedThread: true,
+                    projectId: conversation.projectId,
+                    once: true,
+                    execution: { id: 'continuation' },
+                    continuation: {
+                        sourceMessageId: human.id,
+                        confirmation: { name: 'selection', content: 'Confirmed' }
+                    }
+                }
+            )
+        )
+        await lastValueFrom(stream.pipe(toArray()))
+        const writes = commandBus.execute.mock.calls.map(([command]) => command)
+        expect(
+            writes.filter((command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human')
+        ).toHaveLength(0)
+        expect(writes).toContainEqual(
+            expect.objectContaining({ entity: expect.objectContaining({ role: 'ai', parent: previous }) })
+        )
+        const agent = writes.find((command) => command instanceof XpertAgentChatCommand)
+        expect(agent.options).toMatchObject({
+            projectId: conversation.projectId,
+            thread_id: 'side-thread',
+            inputMessageId: undefined
+        })
+        expect(agent.state.human.input).toBe(human.content)
+    })
+
     it('admits a direct root run before starting a graph that persists recovery checkpoints', async () => {
         mockSuccessfulSendCommands()
         const runControl = { start: jest.fn(), finish: jest.fn().mockResolvedValue('idle') }

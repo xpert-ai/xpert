@@ -1,4 +1,28 @@
 {
+    "Widgets": {
+        "DuplicateTool": "小部件工具名称不能重复。",
+        "Rendered": "交互卡片已生成。",
+        "Invalid": "A2UI 界面无效：{{reason}}。请修正参数后重新调用工具。",
+        "InvalidComposer": "Composer 组件或组件引用无效。"
+    },
+    "ProjectMove": {
+        "ConfirmInChat": "请在当前对话中确认目标项目，确认后将继续处理刚才的请求。",
+        "NameRequired": "请输入 1 至 240 个字符的项目名称。",
+        "TargetRequired": "请选择一个可用项目。",
+        "ChooseOrCreate": "选择或创建项目",
+        "Existing": "已有项目",
+        "Create": "新建项目",
+        "NoAvailableProjects": "暂无可选项目。",
+        "NoProjects": "暂无可选项目，可切换到「新建项目」。",
+        "Moved": "已移入「{{name}}」",
+        "Cancel": "取消",
+        "Placeholder": "请选择项目",
+        "Name": "新项目名称",
+        "Target": "选择项目",
+        "Visibility": "有权查看此项目的成员将能阅读本次对话的全部历史消息。",
+        "Continue": "继续原请求",
+        "Confirm": "移入并继续"
+    },
     "TaskDecision": {
         "InvalidReference": "决定引用无效。请调用 project_get_task，原样使用返回的 decisionRef。",
         "ContextChanged": "任务、候选或评审已变化。请重新调用 project_get_task，查看新证据后使用新的 decisionRef，不要猜测版本或重启编码。",

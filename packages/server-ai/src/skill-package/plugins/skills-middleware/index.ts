@@ -792,13 +792,15 @@ export class SkillsMiddleware
                 }
 
                 const systemMessage = request.systemMessage
-                const current =
-                    typeof systemMessage === 'string' ? systemMessage : ((systemMessage?.content as string) ?? '')
-                const content = [current, extraPrompt].filter(Boolean).join('\n\n')
+                const current = typeof systemMessage === 'string' ? systemMessage : (systemMessage?.content ?? '')
+                const content =
+                    typeof current === 'string'
+                        ? [current, extraPrompt].filter(Boolean).join('\n\n')
+                        : [...current, { type: 'text' as const, text: extraPrompt }]
 
                 return handler({
                     ...request,
-                    systemMessage: new SystemMessage(content)
+                    systemMessage: new SystemMessage({ content })
                 })
             }
         }
