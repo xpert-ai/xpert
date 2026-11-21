@@ -13,7 +13,7 @@ import {
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { ResolveExecutionIdentityCommand, runWithExecutionIdentity } from '@xpert-ai/server-core'
 import { JOB_REF, Process, Processor } from '@nestjs/bull'
-import { Inject, Logger } from '@nestjs/common'
+import { Inject, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ChunkMetadata, countTextTokens } from '@xpert-ai/plugin-sdk'
 import { Job } from 'bull'
@@ -136,7 +136,14 @@ export class KnowledgeDocumentConsumer {
         }
 
         for await (const doc of job.data.docs) {
-            const document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
+            let document: IKnowledgeDocument<KnowledgeDocumentMetadata>
+            try {
+                document = await this.documentService.findOne(doc.id, { relations: ['chunks'] })
+            } catch (error) {
+                // A queued item may be deleted without cancelling the rest of its batch.
+                if (error instanceof NotFoundException) continue
+                throw error
+            }
             const nativeTable = isNativeKnowledgeTableDocument(document)
             if (nativeTable && String(document.jobId ?? '') !== String(job.id)) continue
             let processBeginAt: Date | null = null
@@ -197,6 +204,7 @@ export class KnowledgeDocumentConsumer {
                     })
                 )
 
+                if (!(await this.documentExists(document.id))) continue
                 let chunks = data?.chunks // .map(transformDocument2Chunk)
                 let totalTokenUsed = 0
                 let embeddingTokenUsed = 0
@@ -336,6 +344,11 @@ export class KnowledgeDocumentConsumer {
 
                 this.logger.debug(`[Job: entity '${job.id}'] End!`)
             } catch (err) {
+                if (!(await this.documentExists(document.id))) {
+                    // Embedding may have returned after deletion removed the earlier vectors.
+                    await vectorStore.deleteKnowledgeDocument(document)
+                    continue
+                }
                 if (err instanceof TableMetadataStaleError) {
                     this.logger.debug(`[Job: entity '${job.id}'] Superseded table generation for '${document.id}'`)
                     continue
@@ -353,6 +366,16 @@ export class KnowledgeDocumentConsumer {
         }
 
         return {}
+    }
+
+    private async documentExists(id: string) {
+        try {
+            await this.documentService.findOne(id, { select: { id: true } })
+            return true
+        } catch (error) {
+            if (error instanceof NotFoundException) return false
+            throw error
+        }
     }
 
     private async updateSourceTokenCounts(document: IKnowledgeDocument) {
