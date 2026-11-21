@@ -433,8 +433,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
                         }
                     } catch (error) {
-                        // Supplied semantic text is authoritative input: failure must not index a placeholder.
-                        if (!requiresVisionModel) throw error
+                        // Standalone images and supplied semantics cannot fall back to placeholder text.
+                        if (doc.category === KBDocumentCategoryEnum.Image || !requiresVisionModel) throw error
                         chunks.push(...splitted.chunks)
                         await this.recordImageUnderstandingWarnings(doc, stage, [
                             {
