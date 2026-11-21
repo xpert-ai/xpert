@@ -76,6 +76,22 @@ GitHub 发布正式版后，`Build Bosi Desktop apps` 会调用 `Mirror Bosi rel
 
 ## 首次上线与验收
 
+### 隔离的全量上传实测
+
+手动运行时启用 `benchmark`，用已经发布并同步的版本验证真实上传吞吐：
+
+```bash
+gh workflow run desktop-oss.yml --repo xpert-ai/xpert --ref main -f tag=desktop-v0.5.3 -f benchmark=true
+```
+
+实测复用正式上传实现、3 路文件并行、2 MiB 分片、每个文件独立的 3600 秒凭据和 50 分钟预算。所有文件写入 `bosi/_benchmarks/<GitHub run ID>/desktop-vX.Y.Z/`，路径不能由输入指定。prepare 确认目标文件均不存在，并保存正式版本文件的 ETag、修改时间、大小、SHA-256 元数据、CRC64，以及 `bosi/latest.json` 的内容哈希和元数据。最终校验临时文件后，再比较正式文件及索引的前后快照；实测模式禁止发布索引。
+
+各文件日志中的 JSON 包含 `uploaded`、字节数和 `elapsed_seconds`，可结合 GitHub job/凭据步骤的时间核对是否确实全量上传及每个会话的余量。快照和结果保存在当前 run 的 artifact 中，保留 30 天。新的全量测量应新建 workflow run；失败任务可以原地重跑，但需要结合所有 attempts 的记录区分首次上传和复用。
+
+成功验证后只清理本次临时目录中清单列出的文件，再次检查正式文件和索引。若发布角色没有 `oss:DeleteObject` 权限，会明确记录 `cleanup: permission-denied` 并保留临时目录，供有权限的管理员清理；不会自动扩大角色权限。该目录也可由 Bucket 生命周期规则清理。
+
+### 正式发布验收
+
 1. 发布工作流合入 `xpert-ai/xpert:main` 后，进入 **Actions → Mirror Bosi release to OSS → Run workflow**，选择 `main`，填写已经公开的正式 tag，例如 `desktop-v0.4.1`。也可使用以下命令。
 
    ```bash

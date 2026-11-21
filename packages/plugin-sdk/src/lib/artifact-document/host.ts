@@ -35,6 +35,8 @@ export interface ArtifactDocumentHostOptions<T> {
   dependencies?: ArtifactDocumentDependencyAsset[]
   /** Trusted resource policy; unrestricted mode permits networking. Omit to block external resources. */
   networkPolicy?: ArtifactDocumentNetworkPolicy
+  /** Allow this document to initiate file downloads. Only a trusted host may opt in. */
+  allowDownloads?: boolean
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext
   /** Resolve against saved Bindings on the server with the current user's access; never execute a query definition from HTML. */
@@ -87,7 +89,7 @@ export function mountArtifactDocument<T>(
     disposed = false,
     requests = 0,
     started = Date.now()
-  frame.setAttribute('sandbox', 'allow-scripts')
+  frame.setAttribute('sandbox', options.allowDownloads === true ? 'allow-scripts allow-downloads' : 'allow-scripts')
   frame.referrerPolicy = 'no-referrer'
 
   // Host UI observers cannot leave query accounting stuck or alter protocol completion.

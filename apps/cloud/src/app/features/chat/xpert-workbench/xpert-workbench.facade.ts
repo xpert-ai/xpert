@@ -445,10 +445,12 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     try {
       const xperts = await firstValueFrom(
         this.activeScope().level === 'tenant'
-          ? this.#xpertService.getMyAll({
-              where: { type: XpertTypeEnum.Agent, latest: true },
-              order: { createdAt: OrderTypeEnum.DESC }
-            })
+          ? this.#xpertService
+              .getMyAll({
+                where: { type: XpertTypeEnum.Agent, latest: true },
+                order: { createdAt: OrderTypeEnum.DESC }
+              })
+              .pipe(map(({ items }) => items))
           : this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
       )
       const normalizedXperts = normalizeXperts(xperts)

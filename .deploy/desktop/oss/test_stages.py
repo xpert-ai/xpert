@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import oss2
 
 from mirror import INDEX_KEY, next_index
+from destination import RELEASE
 from stages import fetch_files, finalize, prepare, read_plan, selection, upload_one
 from test_mirror import fixture
 
@@ -84,7 +85,7 @@ class StageTests(unittest.TestCase):
         with patch("stages.sync_asset") as sync, patch("stages.publish_index") as publish:
             upload_one(bucket, "mirror.example.com", self.release, self.assets, self.directory, self.large[0])
             sync.assert_called_once_with(bucket, "mirror.example.com", self.directory, self.tag,
-                                         self.large[0], self.assets[self.large[0]])
+                                         self.large[0], self.assets[self.large[0]], RELEASE)
             publish.assert_not_called()
             for name in (None, "SHA256SUMS.txt", "unknown"):
                 with self.assertRaises(ValueError):

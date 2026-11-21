@@ -14,6 +14,8 @@ import time
 import oss2
 import requests
 
+from destination import RELEASE
+
 
 TAG = re.compile(r"desktop-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 DOMAIN = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z](?:[a-z0-9-]*[a-z0-9])?")
@@ -156,8 +158,8 @@ def upload_asset(bucket, key, source, asset):
         raise
 
 
-def verify_remote_asset(bucket, domain, tag, name, asset, head=None):
-    key = f"bosi/{tag}/{name}"
+def verify_remote_asset(bucket, domain, tag, name, asset, head=None, destination=RELEASE):
+    key = f"{destination.prefix}/{tag}/{name}"
     head = head if head is not None else bucket.head_object(key)
     if (head.headers.get("x-oss-meta-sha256") != asset.sha256 or
             head.server_crc != asset.crc64 or head.content_length != asset.size):
@@ -168,19 +170,26 @@ def verify_remote_asset(bucket, domain, tag, name, asset, head=None):
     print(f"Verified public asset: {name}", flush=True)
 
 
-def sync_asset(bucket, domain, directory, tag, name, asset):
-    key = f"bosi/{tag}/{name}"
+def sync_asset(bucket, domain, directory, tag, name, asset, destination=RELEASE):
+    started = time.monotonic()
+    uploaded = False
+    key = f"{destination.prefix}/{tag}/{name}"
     try:
         head = bucket.head_object(key)
     except oss2.exceptions.ServerError as error:
         if error.status != 404:
             raise
         upload_asset(bucket, key, directory / name, asset)
+        uploaded = True
         head = bucket.head_object(key)
-    verify_remote_asset(bucket, domain, tag, name, asset, head)
+    verify_remote_asset(bucket, domain, tag, name, asset, head, destination)
+    print(json.dumps({"asset": name, "key": key, "bytes": asset.size, "uploaded": uploaded,
+                      "elapsed_seconds": round(time.monotonic() - started, 3)}), flush=True)
 
 
-def publish_index(bucket, domain, release, assets):
+def publish_index(bucket, domain, release, assets, destination=RELEASE):
+    if destination.mode != "release":
+        raise ValueError("Benchmark runs must never publish the release index")
     # Recheck every object after all upload jobs finish, before changing discovery.
     for name, asset in assets.items():
         verify_remote_asset(bucket, domain, release["tag_name"], name, asset)
