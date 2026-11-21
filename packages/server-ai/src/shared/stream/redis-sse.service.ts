@@ -148,6 +148,7 @@ export class RedisSseStreamService {
             let lastWrittenId: string | null = null
             let savedRevision = 0
             let retryClaimAt = 0
+            let flushPending = false
             const capture = new DisplaySnapshotCapture()
             const protectedTail = Boolean(target.snapshotOwner && target.snapshotScope)
             const claimWriter = async () => {
@@ -214,7 +215,7 @@ export class RedisSseStreamService {
             // Capture now, then queue the write after exactly the events represented by this projection.
             const flushTimer = protectedTail
                 ? setInterval(() => {
-                      if (revision <= savedRevision) return
+                      if (flushPending || revision <= savedRevision) return
                       let display: ReturnType<DisplaySnapshotCapture['capture']>
                       try {
                           display = capture.capture({ type: 'complete' })
@@ -222,7 +223,12 @@ export class RedisSseStreamService {
                           return
                       }
                       const version = revision
-                      writes = writes.then(() => saveDisplay(display, version, lastWrittenId))
+                      flushPending = true
+                      writes = writes
+                          .then(() => saveDisplay(display, version, lastWrittenId))
+                          .finally(() => {
+                              flushPending = false
+                          })
                   }, 1000)
                 : null
             flushTimer?.unref()
