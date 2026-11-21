@@ -1,4 +1,5 @@
-import { isViewVisible } from './view-visibility'
+import { ExecutionResult } from './execution-result'
+import { isViewVisible, useViewVisible } from './view-visibility'
 import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
 import { executionProviderLabel } from './execution-provider'
 import { useEffect, useState } from 'react'
@@ -31,6 +32,9 @@ const detailSchema = z.object({
     requirements: z.array(z.string()).nullish(),
     specificationSnapshot: z.object({ digest: z.string() }).nullish(),
     decisions: z.array(projectTaskDecisionSchema).default([]),
+    decisionOptions: z
+        .array(z.object({ implementationExecutionId: z.string().optional(), decisionRef: z.string().optional() }))
+        .default([]),
     executions: z.array(
         z.object({
             id: z.string(),
@@ -207,6 +211,7 @@ const en: typeof zh = {
 
 export function RuntimeDetail({
     taskId,
+    executionId,
     locale,
     section = 'history',
     canEdit,
@@ -214,12 +219,14 @@ export function RuntimeDetail({
     openConversation
 }: {
     taskId: string
+    executionId: string
     locale: string
     section?: 'history' | 'outputs'
     canEdit: boolean
     openAttempt: (id: string) => void
     openConversation: (id: string) => void
 }) {
+    const visible = useViewVisible()
     const t = locale.startsWith('zh') ? zh : en
     const receiptLabels: { [state: string]: string } = {
         pending: t.pending,
@@ -237,21 +244,26 @@ export function RuntimeDetail({
     const [rationale, setRationale] = useState(''),
         [checks, setChecks] = useState('')
     useEffect(() => {
-        let active = true,
-            loading = false
         setDetail(null)
         setError('')
         setRationale('')
         setChecks('')
         setSaved(false)
+    }, [taskId, executionId])
+    useEffect(() => {
+        if (!visible) return
+        let version: string | undefined
+        let active = true,
+            loading = false
         const load = async () => {
             if (loading || !isViewVisible()) return
             loading = true
             try {
-                const data = z
-                    .object({ success: z.literal(true), data: detailSchema })
-                    .parse(await request('executeAction', { actionKey: 'task-detail', input: { taskId } }))
-                if (active) setDetail(data.data)
+                const response = await readDetail(version)
+                if (!active || z.object({ notModified: z.literal(true) }).safeParse(response).success) return
+                const data = z.object({ item: detailSchema, version: z.string() }).parse(response)
+                version = data.version
+                setDetail(data.item)
             } catch (error) {
                 if (active) setError(error instanceof Error ? error.message : t.error)
             } finally {
@@ -264,17 +276,27 @@ export function RuntimeDetail({
             active = false
             window.clearInterval(timer)
         }
-    }, [taskId, t.error])
+    }, [taskId, executionId, section, visible, t.error])
+    const readDetail = (knownVersion?: string) =>
+        request('requestData', {
+            query: {
+                parameters: {
+                    contractVersion: 2,
+                    resource: section === 'outputs' ? 'execution-artifacts' : 'execution-detail',
+                    taskId,
+                    executionId,
+                    knownVersion
+                }
+            }
+        })
     const act = async (actionKey: string, input: object) => {
         setBusy(true)
         setError('')
         try {
             z.object({ success: z.literal(true) }).parse(await request('executeAction', { actionKey, input }))
             setSaved(actionKey === 'decide-task')
-            const result = z
-                .object({ data: detailSchema })
-                .parse(await request('executeAction', { actionKey: 'task-detail', input: { taskId } }))
-            setDetail(result.data)
+            const result = z.object({ item: detailSchema }).parse(await readDetail())
+            setDetail(result.item)
         } catch (error) {
             setError(error instanceof Error ? error.message : t.error)
         } finally {
@@ -282,19 +304,14 @@ export function RuntimeDetail({
         }
     }
     const implementation = detail?.executions.find((item) => item.purpose?.type === 'implementation')
-    const review = detail?.executions.find(
-        (item) => item.purpose?.type === 'review' && item.purpose.implementationExecutionId === implementation?.id
+    const decision = detail?.decisionOptions.find(
+        (item) => item.implementationExecutionId === implementation?.id && item.decisionRef
     )
     const decide = (outcome: 'accept' | 'rework') => {
-        if (!detail || !implementation?.evidence || !detail.specificationSnapshot) return
-        void act('decide-task', {
+        if (!decision?.decisionRef) return
+        void act('decide-task-reference', {
             requestId: crypto.randomUUID(),
-            taskId,
-            expectedRevision: detail.revision,
-            implementationExecutionId: implementation.id,
-            specificationDigest: detail.specificationSnapshot.digest,
-            evidence: implementation.evidence,
-            ...(review?.reviewReport ? { reviewExecutionId: review.id } : {}),
+            decisionRef: decision.decisionRef,
             outcome,
             rationale,
             checks: checks
@@ -436,14 +453,17 @@ export function RuntimeDetail({
                         {attempt.purpose?.type === 'review' &&
                             attempt.invocationStatus === 'succeeded' &&
                             !attempt.reviewReport && <p className="text-sm">{t.unknown}</p>}
-                        {attempt.result?.text && (
+                        {attempt.result?.hasText && attempt.invocationRevision !== undefined && (
                             <Accordion type="single" collapsible>
                                 <AccordionItem value="evidence">
                                     <AccordionTrigger>{t.evidence}</AccordionTrigger>
                                     <AccordionContent>
-                                        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">
-                                            {attempt.result.text}
-                                        </pre>
+                                        <ExecutionResult
+                                            taskId={taskId}
+                                            executionId={attempt.id}
+                                            revision={attempt.invocationRevision}
+                                            locale={locale}
+                                        />
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
@@ -468,7 +488,7 @@ export function RuntimeDetail({
                     </section>
                 ))}
             {canEdit &&
-                implementation?.evidence &&
+                decision?.decisionRef &&
                 detail &&
                 ['review', 'blocked', 'in_progress'].includes(detail.status) && (
                     <div className="space-y-2 border-t pt-3">
@@ -491,8 +511,7 @@ export function RuntimeDetail({
                                     busy ||
                                     !rationale.trim() ||
                                     !checks.trim() ||
-                                    implementation.invocationStatus !== 'succeeded' ||
-                                    (!!review && (review.invocationStatus !== 'succeeded' || !review.reviewReport))
+                                    implementation?.invocationStatus !== 'succeeded'
                                 }
                                 onClick={() => decide('accept')}
                             >

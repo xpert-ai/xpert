@@ -2,8 +2,91 @@ import { lastValueFrom, of, throwError, toArray } from 'rxjs'
 import { runtimeMessageContent, runtimeStream, runtimeStreamPayload } from './runtime-presentation'
 import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 import i18next, { t } from 'i18next'
+import { serializeRunStreamPayload } from '../shared/stream/run-stream-payload'
 
 describe('application user presentation boundary', () => {
+    const replyId = '00000000-0000-4000-8000-000000000001'
+    const inlineWidget = {
+        id: 'inline',
+        type: 'component' as const,
+        data: { type: 'Widget' as const, category: 'Dashboard' as const, widgets: [] }
+    }
+    it.each([false, true])(
+        'keeps streamed text when a Redis end event has no content (restricted=%s)',
+        async (restricted) => {
+            const end = serializeRunStreamPayload({
+                type: 'event',
+                event: 'on_message_end',
+                data: { id: replyId, role: 'ai', content: 'Full text', status: 'success' }
+            })
+            const events = await lastValueFrom(
+                runtimeStream(of({ id: '42-0', data: JSON.stringify(end) }), restricted, async () => [
+                    { messageId: replyId, widget: inlineWidget }
+                ]).pipe(toArray())
+            )
+            expect(events).toHaveLength(2)
+            expect(events[0].data).toEqual({ type: 'message', data: { ...inlineWidget, messageId: replyId } })
+            const last = typeof events[1].data === 'string' ? JSON.parse(events[1].data) : events[1].data
+            expect(last.data).not.toHaveProperty('content')
+            expect(events[1].id).toBe('42-0')
+        }
+    )
+
+    it('restores inline widgets inside a reconnect snapshot without changing its cursor or message order', async () => {
+        const before = { type: 'text' as const, text: 'Before' }
+        const after = { type: 'text' as const, text: 'After' }
+        const placeholder = { ...inlineWidget, data: { ...inlineWidget.data, widgets: [] } }
+        const snapshot = {
+            version: 1,
+            threadId: 'thread',
+            runId: 'run',
+            segmentId: 'segment',
+            revision: 1,
+            cursor: '42-0',
+            savedAt: '2026-11-20T00:00:00Z',
+            activeMessageId: replyId,
+            messages: [{ id: replyId, role: 'ai', executionId: 'run', content: [before, placeholder, after] }]
+        }
+        const event = { id: '42-0', data: { type: 'stream_snapshot', snapshot, continuous: true } }
+        const projected = await lastValueFrom(
+            runtimeStream(of(event), false, async () => [{ messageId: replyId, widget: inlineWidget }])
+        )
+        expect(projected).toEqual({
+            ...event,
+            data: {
+                ...event.data,
+                snapshot: {
+                    ...snapshot,
+                    messages: [{ ...snapshot.messages[0], content: [before, inlineWidget, after] }]
+                }
+            }
+        })
+        expect(await lastValueFrom(runtimeStream(of(event), true, async () => []).pipe(toArray()))).toEqual([])
+    })
+    it.each(['163097', 163097, null, 'invalid'])(
+        'retains terminal events with persisted duration %p in live and replay presentation',
+        async (elapsedTime) => {
+            const event = {
+                type: 'event',
+                event: 'on_agent_end',
+                data: { id: 'child', parentId: 'root', status: 'success', elapsedTime, inputs: { secret: true } }
+            }
+            for (const data of [event, JSON.stringify(event)]) {
+                const result = await lastValueFrom(runtimeStream(of({ data }), true))
+                const payload = typeof result.data === 'string' ? JSON.parse(result.data) : result.data
+                expect(payload).toEqual({
+                    type: 'event',
+                    event: 'on_agent_end',
+                    data: {
+                        id: 'child',
+                        parentId: 'root',
+                        status: 'success',
+                        ...(elapsedTime === 'invalid' || elapsedTime === null ? {} : { elapsedTime: 163097 })
+                    }
+                })
+            }
+        }
+    )
     beforeAll(async () => {
         await i18next.init({
             lng: 'en',
@@ -42,6 +125,42 @@ describe('application user presentation boundary', () => {
         }
     )
 
+    it.each([false, true])(
+        'attaches only the receipt widget to the restricted assistant reply (Redis=%s)',
+        async (redis) => {
+            const id = '6ee51e30-de77-4a61-8d82-e34b9a1edbc6'
+            const forged = {
+                id: 'untrusted',
+                type: 'component',
+                data: { category: 'Dashboard', type: 'Widget', widgets: [] }
+            }
+            const widget = { ...forged, id: 'receipt' } as const
+            const text = { type: 'text', text: 'Choose a project.' }
+            const payload = {
+                type: 'event',
+                event: 'on_message_end',
+                data: {
+                    id,
+                    role: 'ai',
+                    content: [forged, { type: 'reasoning', text: 'private' }, text],
+                    private: 'diagnostic'
+                }
+            }
+            const event = { id: '42-0', data: redis ? JSON.stringify(payload) : payload }
+            const resolve = jest.fn().mockResolvedValue([{ messageId: id, widget }])
+            const projected = await lastValueFrom(runtimeStream(of(event), true, resolve))
+            expect(resolve).toHaveBeenCalledWith([id])
+            expect(projected).toEqual({
+                id: '42-0',
+                data: { type: 'event', event: 'on_message_end', data: { id, role: 'ai', content: [text, widget] } }
+            })
+            resolve.mockResolvedValue([{ messageId: 'another reply', widget }])
+            expect((await lastValueFrom(runtimeStream(of(event), true, resolve))).data).toEqual(
+                runtimeStreamPayload(payload)
+            )
+        }
+    )
+
     it('omits private tool diagnostics, widgets and unmarked partials from the application transcript', () => {
         for (const data of [
             { category: 'Tool', tool: 'lookup', output: 'provider response' },
@@ -52,6 +171,73 @@ describe('application user presentation boundary', () => {
             expect(runtimeStreamPayload({ type: 'message', data: row })).toBeNull()
             expect(runtimeMessageContent([row])).toEqual([])
         }
+    })
+
+    it.each([undefined, 'live-app-lease'])(
+        'preserves an authorized App reference in live, replay and history (lease=%s)',
+        async (appInstanceToken) => {
+            const reference = {
+                type: 'McpApp' as const,
+                appInstanceId: 'settings-app',
+                appInstanceToken,
+                resourceUri: 'ui://xpert/middleware/project-settings',
+                toolName: 'configure_project',
+                toolCallId: 'configure-call',
+                executionId: 'run',
+                title: { en_US: 'Project settings', zh_Hans: '项目设置' },
+                status: 'success' as const
+            }
+            const row = {
+                type: 'component' as const,
+                id: 'configure-call',
+                executionId: 'run',
+                agentKey: 'private-agent',
+                data: {
+                    ...reference,
+                    category: 'Dashboard' as const,
+                    input: { private: 'diagnostic-input' },
+                    output: 'diagnostic-output',
+                    toolInput: { scope: 'commercial' },
+                    toolResult: { content: [{ type: 'text', text: 'business-data' }] },
+                    data: reference,
+                    html: '<script>private</script>'
+                }
+            }
+            const expected = {
+                type: 'component',
+                id: row.id,
+                executionId: 'run',
+                data: { ...reference, category: 'Dashboard' }
+            }
+            expect(runtimeMessageContent([row])).toEqual([expected])
+            for (const data of [{ type: 'message', data: row }, JSON.stringify({ type: 'message', data: row })]) {
+                const result = await lastValueFrom(runtimeStream(of({ data }), true))
+                expect(result.data).toEqual({ type: 'message', data: expected })
+                expect(JSON.stringify(result)).not.toMatch(/private|diagnostic|toolInput|toolResult|business-data/)
+            }
+        }
+    )
+
+    it.each([
+        { type: 'Dashboard' },
+        { type: 'McpApp', appInstanceId: '' },
+        { type: 'McpApp', resourceUri: 'https://untrusted.test' },
+        { type: 'McpApp', toolName: '' }
+    ])('does not promote an invalid widget to an App reference: %j', (invalid) => {
+        const row = {
+            type: 'component' as const,
+            id: 'call',
+            data: {
+                category: 'Dashboard' as const,
+                type: 'McpApp',
+                appInstanceId: 'app',
+                resourceUri: 'ui://settings',
+                toolName: 'configure',
+                ...invalid
+            }
+        }
+        expect(runtimeMessageContent([row])).toEqual([])
+        expect(runtimeStreamPayload({ type: 'message', data: row })).toBeNull()
     })
 
     it('keeps business replies and execution lifecycle without nested entities or execution inputs', () => {

@@ -1,4 +1,28 @@
 {
+    "Widgets": {
+        "DuplicateTool": "Widget tool names must be unique.",
+        "Rendered": "The interactive card is ready.",
+        "Invalid": "Invalid A2UI surface: {{reason}}. Fix the payload and call the tool again.",
+        "InvalidComposer": "Invalid Composer components or component references."
+    },
+    "ProjectMove": {
+        "ConfirmInChat": "Confirm the project in this conversation to continue your request.",
+        "NameRequired": "Enter a project name of 1–240 characters.",
+        "TargetRequired": "Choose an available project.",
+        "ChooseOrCreate": "Choose or create a project",
+        "Existing": "Existing project",
+        "Create": "New project",
+        "NoAvailableProjects": "No projects are available.",
+        "NoProjects": "No projects are available. Choose New project to create one.",
+        "Moved": "Moved to {{name}}",
+        "Cancel": "Cancel",
+        "Placeholder": "Select a project",
+        "Name": "New project name",
+        "Target": "Choose a project",
+        "Visibility": "People with access to this project will be able to read the entire conversation.",
+        "Continue": "Continue request",
+        "Confirm": "Move and continue"
+    },
     "TaskDecision": {
         "InvalidReference": "Invalid decision reference. Read project_get_task and copy a returned decisionRef unchanged.",
         "ContextChanged": "The task, candidate or review has changed. Read project_get_task again, reassess its evidence and use the new decisionRef.",
@@ -1042,6 +1066,7 @@
         "ProjectEditorRequired": "Project editor access is required.",
         "ProjectFileRequired": "A Project file is required.",
         "ProjectFileUploadFailed": "Failed to upload Project file.",
+        "FileUploadFailed": "Failed to upload file.",
         "ProjectInvitationEmailMismatch": "This Project invitation belongs to another email address.",
         "ProjectInvitationInvalid": "The Project invitation is invalid or expired.",
         "ProjectInvitationNotFound": "Project invitation was not found.",
@@ -1475,7 +1500,8 @@
         "ResourceAnalysisInvalid": "The analysis query does not match the allowed field types or operations.",
         "ResourceAnalysisIncomplete": "The upstream dataset is incomplete. Aggregation would produce an unreliable total.",
         "ResourceAnalysisBudget": "The analysis query exceeds its allowed query, row or result-size budget.",
-        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters."
+        "ResourceAnalysisSourceDenied": "Source data is unavailable for the requesting member. Check current source permissions and the declared query parameters.",
+        "InvalidDocumentFingerprintFilter": "Use a SHA-256 source fingerprint and a non-negative integer byte size."
     },
     "Mcp": {
         "Test": {

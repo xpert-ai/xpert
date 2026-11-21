@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-coding-project",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "artifactNamespace": "coding_project",
   "skills": ["./skills/coding-project-delivery", "./skills/cloud-project-delivery"]
 }

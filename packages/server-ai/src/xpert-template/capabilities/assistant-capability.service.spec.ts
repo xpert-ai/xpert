@@ -4,6 +4,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentTenantId: jest.fn(() => 'tenant'),
         getOrganizationId: jest.fn(() => 'organization'),
+        isTenantScope: jest.fn(() => false),
+        hasRole: jest.fn(() => false),
         getLanguageCode: jest.fn(() => 'en-US')
     }
 }))
@@ -21,6 +23,7 @@ import {
 } from './template-capability-reference'
 import { parseCapabilityTemplateDraft } from './template-draft'
 import { ProjectTasksCapabilityProvider } from '../../xpert-project/plugins/project-tasks/project-tasks.capability'
+import { ProjectCapabilityProvider } from '../../xpert-project/plugins/project/project.capability'
 import { ProviderWithModelsDto } from '../../copilot/dto/provider-with-models'
 import { instanceToPlain } from 'class-transformer'
 
@@ -58,6 +61,9 @@ describe('Assistant capabilities (OSS)', () => {
     beforeEach(() => {
         providers.splice(0)
         jest.clearAllMocks()
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant')
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(false)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(false)
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue('organization')
         jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.English)
         query.execute.mockResolvedValue([
@@ -92,6 +98,29 @@ describe('Assistant capabilities (OSS)', () => {
         expect(query.execute).toHaveBeenCalled()
         await expect(service.setup(template, language, ['missing'])).rejects.toThrow()
     })
+    it('lets a tenant administrator prepare a tenant Assistant with authorized models', async () => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(undefined)
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(true)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(true)
+        expect(await service.setup(template, language)).toMatchObject({ canInstall: true, requiresModel: true })
+        const draft = parseCapabilityTemplateDraft(template.export_data)
+        await service.prepareInstallation(template, draft, language, [], model, [])
+        expect(draft.team.copilotModel).toEqual(model)
+        query.execute.mockResolvedValue([])
+        await expect(service.prepareInstallation(template, draft, language, [], model, [])).rejects.toThrow()
+    })
+    it.each([
+        { tenantScope: true, administrator: false, tenantId: 'tenant' },
+        { tenantScope: false, administrator: true, tenantId: 'tenant' },
+        { tenantScope: true, administrator: true, tenantId: undefined }
+    ])('rejects an unqualified tenant authoring scope %j', async ({ tenantScope, administrator, tenantId }) => {
+        jest.mocked(RequestContext.getOrganizationId).mockReturnValue(undefined)
+        jest.mocked(RequestContext.currentTenantId).mockReturnValue(tenantId)
+        jest.mocked(RequestContext.isTenantScope).mockReturnValue(tenantScope)
+        jest.mocked(RequestContext.hasRole).mockReturnValue(administrator)
+        await expect(service.setup(template, language)).rejects.toThrow()
+        expect(query.execute).not.toHaveBeenCalled()
+    })
     it('creates a blank Assistant with all capabilities off and lists only explicitly compatible providers', async () => {
         providers.push(createProvider('template-only'), {
             ...createProvider('optional-tool'),
@@ -116,43 +145,57 @@ describe('Assistant capabilities (OSS)', () => {
         query.execute.mockResolvedValue([])
         await expect(service.prepareInstallation(blank, draft, language, [], model, [])).rejects.toThrow()
     })
-    it('offers Project management in both creation clients, defaults off and requires an authorized tool-calling model', async () => {
-        const provider = new ProjectTasksCapabilityProvider()
-        providers.push(provider)
-        query.execute.mockResolvedValue([
-            {
-                id: 'authorized',
-                providerWithModels: {
-                    provider: 'model-provider',
-                    models: [
-                        { model: 'text-only', features: [] },
-                        { model: model.model, features: [ModelFeature.TOOL_CALL] }
-                    ]
+    it.each([
+        [new ProjectTasksCapabilityProvider(), 'Project tasks'],
+        [new ProjectCapabilityProvider(), 'Project management']
+    ] as const)(
+        'offers %s in both creation clients, defaults off and requires an authorized tool-calling model',
+        async (provider, label) => {
+            providers.push(provider)
+            query.execute.mockResolvedValue([
+                {
+                    id: 'authorized',
+                    providerWithModels: {
+                        provider: 'model-provider',
+                        models: [
+                            { model: 'text-only', features: [] },
+                            { model: model.model, features: [ModelFeature.TOOL_CALL] }
+                        ]
+                    }
                 }
-            }
-        ])
-        const blank = service.blankTemplate()
-        const setup = await service.setup(blank, language)
+            ])
+            const blank = service.blankTemplate()
+            const setup = await service.setup(blank, language)
+            expect(setup.optionalCapabilities).toEqual([
+                expect.objectContaining({ key: provider.key, label, supportsQuickCreation: true })
+            ])
+            expect(
+                provider.isEnabled(
+                    parseCapabilityTemplateDraft((await service.compose(blank, language, [], jest.fn())).export_data)
+                )
+            ).toBe(false)
+            const enabled = await service.setup(blank, language, [provider.key])
+            expect(enabled.requiredModelFeatures).toEqual([ModelFeature.TOOL_CALL])
+            expect(enabled.models.map((entry) => entry.copilotModel.model)).toEqual([model.model])
+            const composed = await service.compose(blank, language, [provider.key], jest.fn())
+            const draft = parseCapabilityTemplateDraft(composed.export_data)
+            expect(provider.isEnabled(draft)).toBe(true)
+            expect(draft.team.options?.assistantCapabilities?.selected).toEqual([provider.key])
+            await service.prepareInstallation(composed, draft, language, [provider.key], model, [])
+            query.execute.mockResolvedValue([])
+            await expect(
+                service.prepareInstallation(composed, draft, language, [provider.key], model, [])
+            ).rejects.toThrow()
+        }
+    )
+    it('lists 项目管理 and 项目任务 as separate localized options', async () => {
+        providers.push(new ProjectCapabilityProvider(), new ProjectTasksCapabilityProvider())
+        jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.SimplifiedChinese)
+        const setup = await service.setup(service.blankTemplate(), LanguagesEnum.SimplifiedChinese)
         expect(setup.optionalCapabilities).toEqual([
-            expect.objectContaining({ key: 'project-tasks', label: 'Project management' })
+            expect.objectContaining({ key: 'project-management', label: '项目管理' }),
+            expect.objectContaining({ key: 'project-tasks', label: '项目任务' })
         ])
-        expect(
-            provider.isEnabled(
-                parseCapabilityTemplateDraft((await service.compose(blank, language, [], jest.fn())).export_data)
-            )
-        ).toBe(false)
-        const enabled = await service.setup(blank, language, [provider.key])
-        expect(enabled.requiredModelFeatures).toEqual([ModelFeature.TOOL_CALL])
-        expect(enabled.models.map((entry) => entry.copilotModel.model)).toEqual([model.model])
-        const composed = await service.compose(blank, language, [provider.key], jest.fn())
-        const draft = parseCapabilityTemplateDraft(composed.export_data)
-        expect(provider.isEnabled(draft)).toBe(true)
-        expect(draft.team.options?.assistantCapabilities?.selected).toEqual([provider.key])
-        await service.prepareInstallation(composed, draft, language, [provider.key], model, [])
-        query.execute.mockResolvedValue([])
-        await expect(
-            service.prepareInstallation(composed, draft, language, [provider.key], model, [])
-        ).rejects.toThrow()
     })
     it('offers arbitrary registered capabilities, defaults off, and checks only enabled ones', async () => {
         const provider = createProvider('document-analysis', [ModelFeature.VISION])

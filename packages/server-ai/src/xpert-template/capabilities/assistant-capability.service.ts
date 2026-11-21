@@ -6,6 +6,7 @@ import {
     AssistantCapabilityConfiguration,
     LanguagesEnum,
     ModelFeature,
+    RolesEnum,
     TCopilotModel,
     TXpertTeamDraft,
     TXpertTemplate,
@@ -132,7 +133,8 @@ export class AssistantCapabilityService {
             template.type === XpertTypeEnum.Copilot ||
             draft.nodes.some((node) => node.type === 'agent')
         if (!active.length && !result.requiresModel) return { setup: result, copilots: [] }
-        if (!RequestContext.currentTenantId() || !RequestContext.getOrganizationId()) {
+        const tenantAdministrator = RequestContext.isTenantScope() && RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+        if (!RequestContext.currentTenantId() || (!RequestContext.getOrganizationId() && !tenantAdministrator)) {
             throw new BadRequestException(t('server-ai:Error.TemplateCapabilityOrganizationRequired'))
         }
         for (const provider of active) {

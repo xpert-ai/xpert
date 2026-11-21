@@ -10,6 +10,7 @@ import {
     TRunDisplayMessage
 } from '@xpert-ai/contracts'
 import z from 'zod'
+import { executionDuration } from '../execution-duration'
 import {
     appendMessageSteps,
     sanitizeMessageContentForPersistence
@@ -24,7 +25,7 @@ const agentSchema = z.object({
     title: z.string().optional(),
     status: z.string().optional(),
     error: z.string().optional(),
-    elapsedTime: z.number().optional(),
+    elapsedTime: z.preprocess(executionDuration, z.number().optional()),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional()
 })
@@ -81,6 +82,8 @@ export class DisplaySnapshotCapture {
     private readonly appendContext = createMessageAppendContextTracker()
     private activeMessageId: string | null = null
     private lastCapture = 0
+    private dirty = false
+    private frozen: FrozenDisplay | null = null
 
     capture(event: unknown): FrozenDisplay | null {
         const lifecycle = lifecycleSchema.safeParse(event)
@@ -94,11 +97,13 @@ export class DisplaySnapshotCapture {
                     role: 'ai',
                     content: cloneContent(data.content ?? '')
                 })
+                this.dirty = true
             } else if (name === 'on_message_end') {
                 const message = this.messages.get(data.id)
                 if (message) {
                     message.status = data.status ?? message.status
                     message.error = data.error
+                    this.dirty = true
                 }
             }
         }
@@ -112,20 +117,29 @@ export class DisplaySnapshotCapture {
                 fallbackStreamId: message.id
             })
             appendMessageContent(message, incoming, messageContext)
+            this.dirty = true
         }
         const step = stepSchema.safeParse(event)
-        if (step.success) appendMessageSteps(message, [cloneContent(step.data.data)])
+        if (step.success) {
+            appendMessageSteps(message, [cloneContent(step.data.data)])
+            this.dirty = true
+        }
         const agent = agentEventSchema.safeParse(event)
         if (agent.success) {
             let runs = this.agents.get(message.id)
             if (!runs) this.agents.set(message.id, (runs = new Map()))
             const value = agent.data.data
             runs.set(value.id, { ...runs.get(value.id), ...value })
+            this.dirty = true
         }
-        const isText =
-            delta.success &&
-            (typeof delta.data.data === 'string' || ['text', 'reasoning'].includes(delta.data.data.type))
-        if (isText && Date.now() - this.lastCapture < 1000) return null
+        const complete = typeof event === 'object' && event !== null && 'type' in event && event.type === 'complete'
+        // Heartbeats and unrelated events do not change the display. Retrying a
+        // quiet save reuses the same frozen value, including an oversized null.
+        if (!complete && !lifecycle.success && !delta.success && !step.success && !agent.success) return null
+        if (!this.dirty) return complete ? this.frozen : null
+        // Coalesce tool/agent bursts as well as text. Lifecycle and final flushes
+        // remain synchronous boundaries with the exact represented Redis cursor.
+        if (!complete && !lifecycle.success && Date.now() - this.lastCapture < 1000) return null
         this.lastCapture = Date.now()
         const result: FrozenDisplay = {
             activeMessageId: message.id,
@@ -145,7 +159,9 @@ export class DisplaySnapshotCapture {
         }
         const serialized = JSON.stringify(result)
         // Keep the previous durable snapshot and bounded tail on overflow; never silently truncate display state.
-        return Buffer.byteLength(serialized) <= 2 * 1024 * 1024 ? JSON.parse(serialized) : null
+        this.frozen = Buffer.byteLength(serialized) <= 2 * 1024 * 1024 ? JSON.parse(serialized) : null
+        this.dirty = false
+        return this.frozen
     }
 }
 

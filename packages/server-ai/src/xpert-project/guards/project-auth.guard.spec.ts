@@ -1,5 +1,6 @@
 import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ExecutionContext, ForbiddenException } from '@nestjs/common'
+import { QueryBus } from '@nestjs/cqrs'
 import { Reflector } from '@nestjs/core'
 import { XpertProjectAuthGuard } from './project-auth.guard'
 
@@ -24,12 +25,12 @@ describe('XpertProjectAuthGuard', () => {
         return {
             getClass: () => class TestController {},
             getHandler: () => () => undefined,
-            switchToHttp: () => ({ getRequest: () => request })
+            switchToHttp: () => ({ getRequest: () => request, getResponse: () => ({ setHeader: jest.fn() }) })
         } as unknown as ExecutionContext
     }
 
     it('accepts delegated user ChatKit sessions', async () => {
-        const guard = new TestGuard(new Reflector())
+        const guard = new TestGuard(new Reflector(), { execute: jest.fn() } as unknown as QueryBus)
 
         await expect(guard.canActivate(context(SecretTokenBindingType.USER_XPERT))).resolves.toBe(true)
     })
@@ -39,7 +40,7 @@ describe('XpertProjectAuthGuard', () => {
         SecretTokenBindingType.ENTERPRISE_XPERT,
         SecretTokenBindingType.API_KEY
     ])('rejects non-interactive client secret binding %s', async (bindingType) => {
-        const guard = new TestGuard(new Reflector())
+        const guard = new TestGuard(new Reflector(), { execute: jest.fn() } as unknown as QueryBus)
 
         await expect(guard.canActivate(context(bindingType))).rejects.toBeInstanceOf(ForbiddenException)
     })

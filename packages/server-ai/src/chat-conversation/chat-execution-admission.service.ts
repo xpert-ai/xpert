@@ -8,6 +8,9 @@ import { TChatRequest, TChatCheckpointReference, XpertAgentExecutionStatusEnum }
 import { DataSource, EntityManager, IsNull } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { EMPTY, Observable } from 'rxjs'
+import { QueryBus } from '@nestjs/cqrs'
+import type { ConversationContinuation } from './continuation'
+import { AssertProjectConversationAdmissionQuery } from '../xpert-project/queries/assert-project-conversation-admission.query'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
@@ -48,7 +51,8 @@ export async function lockRuntimeThread(manager: EntityManager, conversation: Ch
 export class ChatExecutionAdmissionService {
     constructor(
         private readonly dataSource: DataSource,
-        private readonly control: ThreadRunControlService
+        private readonly control: ThreadRunControlService,
+        private readonly queries?: QueryBus
     ) {}
 
     async run<T>(
@@ -56,6 +60,7 @@ export class ChatExecutionAdmissionService {
         options: {
             resumeCheckpoint?: TChatCheckpointReference
             automatic?: boolean
+            continuation?: ConversationContinuation
             once?: boolean
             eventBinding?: { id: string; revision: number; fence: string }
             threadId?: string
@@ -66,6 +71,7 @@ export class ChatExecutionAdmissionService {
         },
         execute: (executionId?: string, request?: TChatRequest) => Promise<Observable<T>>
     ): Promise<Observable<T>> {
+        if (options.continuation && !options.once) throw resumeTargetDenied()
         if (
             options.once &&
             (!options.execution?.id ||
@@ -130,6 +136,17 @@ export class ChatExecutionAdmissionService {
                 admittedRequest = { ...request, target }
             }
             const thread = await lockRuntimeThread(manager, conversation, threadId)
+            if (!conversation.projectId) {
+                // A move can commit between the initial scope lookup and the writer lock.
+                const current = await manager
+                    .getRepository(ChatConversation)
+                    .findOne({ where: { id: conversation.id } })
+                if (current?.projectId)
+                    throw threadControlConflict(
+                        'ConversationProjectChanged',
+                        'Project changed before execution admission'
+                    )
+            }
             if (options.once) {
                 const existing = await manager.getRepository(XpertAgentExecution).findOneBy({ id: executionId })
                 if (existing) {
@@ -144,6 +161,29 @@ export class ChatExecutionAdmissionService {
                     // Admission and the writer claim commit together. Never replay an uncertain model/tool call.
                     return 'already_admitted'
                 }
+            }
+            if (conversation.projectId) {
+                if (!this.queries) throw resumeTargetDenied()
+                const target =
+                    admittedRequest.action === 'retry'
+                        ? admittedRequest.source
+                        : admittedRequest.action === 'resume'
+                          ? admittedRequest.target
+                          : undefined
+                await this.queries.execute(
+                    new AssertProjectConversationAdmissionQuery(
+                        manager,
+                        {
+                            conversationId: conversation.id,
+                            threadId,
+                            projectId: conversation.projectId,
+                            executionId,
+                            headMessageId: thread.headMessageId
+                        },
+                        options.continuation?.sourceMessageId,
+                        target && { ...target, aiMessageId: target.aiMessageId ?? thread.headMessageId }
+                    )
+                )
             }
             if (
                 options.eventBinding &&

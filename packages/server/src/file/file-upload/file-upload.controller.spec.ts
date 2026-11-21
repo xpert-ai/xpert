@@ -51,7 +51,7 @@ describe('FileUploadController', () => {
 	})
 
 	it('dispatches a legal server-managed cloud storage upload', async () => {
-		const asset = { status: 'success', destinations: [] }
+		const asset = { status: 'success', destinations: [{ kind: 'storage', status: 'success' }] }
 		const commandBus = { execute: jest.fn().mockResolvedValue(asset) }
 		const controller = new FileUploadController(commandBus as never)
 

@@ -14,6 +14,7 @@ import { getConfig } from '@xpert-ai/server-config'
 import { User } from '@xpert-ai/server-core'
 import { AppPlatformDelivery } from './app-platform-delivery.entity'
 import { PlatformUpdateService } from './platform-update.service'
+import { createHash } from 'node:crypto'
 
 jest.mock('@xpert-ai/server-config', () => ({
     ...jest.requireActual('@xpert-ai/server-config'),
@@ -139,6 +140,51 @@ describe('explicit platform adoption', () => {
         jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
         await expect(service.list({ skip: 0, take: 10 })).rejects.toMatchObject({ status: 403 })
         expect(deliveries.findAndCount).toHaveBeenCalledTimes(1)
+    })
+
+    it('preserves an account storage grant through adoption and remains idempotent without changing other accounts', async () => {
+        const grant = 10 * 1024 ** 3
+        row.configuration = {
+            ...row.configuration,
+            environment: {
+                ...environment,
+                plans: { ...environment.plans, trial: { ...environment.plans.trial, maxStorageBytes: grant } }
+            }
+        }
+        const config = getConfig().appPlatform
+        const deploymentBefore = JSON.stringify(config)
+        await service.adopt(row.id, row.configurationDigest)
+        expect(row.configuration.environment.plans.trial.maxStorageBytes).toBe(grant)
+        expect(row.configuration.definition.version).toBe(2)
+        expect(row.configuration.environment.plans.trial.creditLimit).toBe(environment.plans.trial.creditLimit)
+        expect(JSON.stringify(config)).toBe(deploymentBefore)
+        expect(row.configurationDigest).toBe(
+            createHash('sha256')
+                .update(
+                    JSON.stringify({
+                        definition: row.configuration.definition,
+                        environment: row.configuration.environment
+                    })
+                )
+                .digest('hex')
+        )
+        expect(row.configuration.digest).toBe(row.configurationDigest)
+        const release = row.apps[0].updateOperationId
+        await service.adopt(row.id, row.configurationDigest)
+        expect(row.apps[0].updateOperationId).toBe(release)
+        expect(platform.enqueue).toHaveBeenCalledTimes(1)
+        expect(commands.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('adopts a larger deployed allowance without adding it to the existing account capacity', async () => {
+        const config = getConfig().appPlatform
+        config.environment = {
+            ...environment,
+            plans: { ...environment.plans, trial: { ...environment.plans.trial, maxStorageBytes: 20 * 1024 ** 3 } }
+        }
+        await service.adopt(row.id, row.configurationDigest)
+        expect(row.configuration.environment.plans.trial.maxStorageBytes).toBe(20 * 1024 ** 3)
+        expect(row.configurationDigest).toBe(config.digest)
     })
 
     it('does not replace the snapshot of an unfinished release', async () => {

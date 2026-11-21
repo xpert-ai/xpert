@@ -19,6 +19,7 @@ import { threadControlSchema } from '../execution-control/control-admission'
 
 describe('ThreadRunControlService', () => {
     beforeEach(() => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
     })
@@ -47,9 +48,11 @@ describe('ThreadRunControlService', () => {
             query: jest.fn(async (sql: string) =>
                 sql.includes('app_platform_storage_usage')
                     ? [usage]
-                    : threadControlSchema.flatMap((item) =>
-                          item.columns.map((column) => ({ table_name: item.table, column_name: column }))
-                      )
+                    : sql.includes('app_platform_storage_grant')
+                      ? [{ bytes: null }]
+                      : threadControlSchema.flatMap((item) =>
+                            item.columns.map((column) => ({ table_name: item.table, column_name: column }))
+                        )
             ),
             getRepository: jest.fn((entity: unknown) =>
                 entity === AppPlatformDelivery

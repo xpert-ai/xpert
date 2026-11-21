@@ -1,10 +1,11 @@
 import { t } from 'i18next'
+import { documentFingerprintFilter } from './document-fingerprint-filter'
 import { createHash } from 'node:crypto'
 import fsPromises from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { TextDecoder } from 'node:util'
-import { BadRequestException, Injectable, InternalServerErrorException, Optional } from '@nestjs/common'
+import { BadRequestException, Injectable, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     classificateDocumentCategory,
@@ -24,10 +25,11 @@ import {
     KnowledgebaseReadImageResult,
     KnowledgebaseReadTextResult,
     DocumentTransformerRegistry,
+    RequestContext,
     WORKSPACE_FILES_SOURCE
 } from '@xpert-ai/plugin-sdk'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
-import { getFileAssetDestination, RequestContext, UploadFileCommand } from '@xpert-ai/server-core'
+import { requireFileAssetDestination, UploadFileCommand } from '@xpert-ai/server-core'
 import * as tar from 'tar'
 import { ILike, In, IsNull, Not, Raw } from 'typeorm'
 import unzipper from 'unzipper'
@@ -118,9 +120,11 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
         }
         const folderPath = normalizeKnowledgebaseFolderPath(command.input.folderPath)
         const folderMode = command.input.folderMode ?? 'direct'
+        const fingerprint = documentFingerprintFilter(command.input)
         const { items, total } = await this.documentService.findAll({
             where: {
                 knowledgebaseId,
+                ...fingerprint.where,
                 ...(hasParentBoundary ? { parent: parent ? ({ id: parent.id } as IKnowledgeDocument) : IsNull() } : {}),
                 ...(folderPath !== undefined
                     ? {
@@ -165,7 +169,8 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
             documents: items.map((document) => serializeKnowledgeDocument(document, this.transformerRegistry)),
             total,
             page,
-            pageSize
+            pageSize,
+            ...(fingerprint.appliedFilters ? { appliedFilters: fingerprint.appliedFilters } : {})
         }
     }
 }
@@ -790,10 +795,7 @@ async function uploadKnowledgebaseBufferFile(
             ]
         })
     )
-    const destination = getFileAssetDestination(asset, 'volume')
-    if (!destination || destination.status !== 'success') {
-        throw new InternalServerErrorException(destination?.error || 'Failed to upload knowledgebase file')
-    }
+    const destination = requireFileAssetDestination(asset, 'volume')
 
     return {
         name: input.fileName,

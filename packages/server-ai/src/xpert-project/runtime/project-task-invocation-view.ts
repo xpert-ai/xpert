@@ -63,18 +63,29 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
 export async function observeProjectTaskInvocations<T extends IXpertProjectTaskExecution>(
     manager: EntityManager,
     scope: { projectId: string; tenantId: string; organizationId?: string | null },
-    attempts: T[]
+    attempts: T[],
+    compact = false
 ): Promise<T[]> {
     const ids = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
     if (!ids.length) return attempts.map((attempt) => projectTaskInvocationView(attempt))
     if (!scope.tenantId || !scope.organizationId) return attempts.map((attempt) => projectTaskInvocationView(attempt))
-    const records = await manager.getRepository(AgentInvocationEntity).find({
-        where: {
-            id: In(ids),
-            tenantId: scope.tenantId,
-            organizationId: scope.organizationId
-        }
-    })
+    const where = { id: In(ids), tenantId: scope.tenantId, organizationId: scope.organizationId }
+    const records = compact
+        ? await manager
+              .getRepository(AgentInvocationEntity)
+              .createQueryBuilder('record')
+              .select('record.id', 'id')
+              // Input and non-review result bodies are unnecessary for status observation. Keep control evidence intact.
+              .addSelect(
+                  `jsonb_set(record.invocation - 'result', '{request,input}', '{}'::jsonb) ||
+                  CASE WHEN record.invocation #>> '{request,dispatch,projectTask,purpose,type}' = 'review'
+                  THEN jsonb_build_object('result', jsonb_build_object('text', record.invocation #> '{result,text}'))
+                  ELSE '{}'::jsonb END`,
+                  'invocation'
+              )
+              .where(where)
+              .getRawMany<{ id: string; invocation: AgentInvocation }>()
+        : await manager.getRepository(AgentInvocationEntity).find({ where })
     const pipelineNodeIds = records.flatMap((record) => {
         const parsed = projectPipelineInvocationScopeSchema.safeParse(record.invocation.scope)
         return parsed.success && parsed.data.projectId === scope.projectId
@@ -86,16 +97,16 @@ export async function observeProjectTaskInvocations<T extends IXpertProjectTaskE
               where: { ...scope, nodeInstanceId: In(pipelineNodeIds) }
           })
         : []
+    const invocations = new Map(
+        records
+            .filter((record) => record.invocation.scope.projectId === scope.projectId)
+            .map((record) => [record.id, record.invocation])
+    )
+    const taskLinks = new Map(links.map((link) => [`${link.taskId}:${link.nodeInstanceId}`, link]))
     return attempts.map((attempt) => {
-        const invocation = records.find(
-            (record) => record.id === attempt.invocationId && record.invocation.scope.projectId === scope.projectId
-        )?.invocation
+        const invocation = invocations.get(attempt.invocationId)
         // A logical task may have links in several rounds; match this execution's exact node.
         const nodeId = invocation?.scope.pipelineOrigin?.nodeInstanceId
-        return projectTaskInvocationView(
-            attempt,
-            invocation,
-            links.find((link) => link.taskId === attempt.taskId && link.nodeInstanceId === nodeId)
-        )
+        return projectTaskInvocationView(attempt, invocation, taskLinks.get(`${attempt.taskId}:${nodeId}`))
     })
 }

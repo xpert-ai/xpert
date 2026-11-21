@@ -220,6 +220,45 @@ export function projectTaskDecisionCases(fixture: () => Fixture) {
                 await expect(decision).resolves.toMatchObject({ outcome: 'accept' })
             }
         )
+        it.each([
+            { controlKind: 'pipeline', native: true, missingInvocation: false, accepts: true },
+            { controlKind: 'pipeline', native: false, missingInvocation: false, accepts: false },
+            { controlKind: 'ordinary', native: true, missingInvocation: false, accepts: false },
+            { controlKind: 'provider', native: true, missingInvocation: false, accepts: false },
+            { controlKind: 'pipeline', native: true, missingInvocation: true, accepts: false }
+        ] as const)(
+            'checks the project reservation during acceptance ($controlKind, native=$native, missingInvocation=$missingInvocation)',
+            async ({ controlKind, native, missingInvocation, accepts }) => {
+                const binding = await assignExecutionReviewer()
+                const input = await implemented()
+                const review = await executeReview(input, binding, 'pass', true)
+                const tasks = f.database.getRepository(XpertProjectTask)
+                const reviewed = await tasks.findOneByOrFail({ id: input.taskId })
+                const sibling = await tasks.save({ ...reviewed, id: randomUUID(), status: 'in_progress', controlKind })
+                await f.database.getRepository(XpertProjectTaskExecution).save({
+                    id: randomUUID(),
+                    tenantId: f.scope.tenantId,
+                    organizationId: f.scope.organizationId,
+                    projectId: f.scope.projectId,
+                    createdById: f.scope.userId,
+                    taskId: sibling.id,
+                    agentExecutionId: native ? f.caller.executionId : undefined,
+                    invocationId: missingInvocation ? randomUUID() : null,
+                    status: 'running',
+                    attempt: 1
+                })
+                const decision = decisions.decide(
+                    f.scope.projectId,
+                    { ...input, reviewExecutionId: review.taskExecutionId },
+                    f.caller
+                )
+                if (accepts) await expect(decision).resolves.toMatchObject({ outcome: 'accept' })
+                else await expect(decision).rejects.toThrow('active or unverified execution')
+                expect((await tasks.findOneByOrFail({ id: sibling.id })).status).toBe('in_progress')
+                expect((await tasks.findOneByOrFail({ id: input.taskId })).status).toBe(accepts ? 'done' : 'review')
+            }
+        )
+
         it('blocks malformed report delivery without accepting the review or losing the candidate', async () => {
             const binding = await assignExecutionReviewer()
             const input = await implemented()

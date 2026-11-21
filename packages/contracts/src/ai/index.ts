@@ -9,6 +9,7 @@ export type * from '@xpert-ai/chatkit-types'
 export type { IconDefinition, IconType } from '../types'
 export type { TChatRequest } from './xpert-chat.model'
 export type { ProjectSelection } from './project-selection.model'
+export * from './conversation-project-move.model'
 export { CHAT_EVENT_TYPE_FOLLOW_UP_CONSUMED } from './chat-event.model'
 export * from './assistant-binding.model'
 export * from './clawxpert-recovery.model'
@@ -168,3 +169,5 @@ export * from './model-management.model'
 export * from './model-replacement.model'
 
 export * from './default-model-role'
+
+export * from './project-task-view.model'

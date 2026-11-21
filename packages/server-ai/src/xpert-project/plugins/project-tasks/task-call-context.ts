@@ -1,11 +1,21 @@
 // Only acknowledged, persisted task operations become historical receipts in model input.
 // Pending, failed, parallel and provider-signed exchanges keep their original protocol messages.
 // This never changes checkpoints, executes a tool or supplies an acceptance decision.
-import { AIMessage, isAIMessage, isToolMessage, type BaseMessage } from '@langchain/core/messages'
+import { AIMessage, ToolMessage, isAIMessage, isToolMessage, type BaseMessage } from '@langchain/core/messages'
 import { createHash } from 'node:crypto'
 import { z } from 'zod/v3'
 import { ProjectToolEnum } from './constants'
 
+// Some providers attach signatures to their raw calls. Leave unknown fields untouched.
+const rawToolCalls = z.array(
+    z
+        .object({
+            id: z.string(),
+            type: z.literal('function'),
+            function: z.object({ name: z.string(), arguments: z.string() }).strict()
+        })
+        .strict()
+)
 const dispatchReceipt = z
     .object({
         projectId: z.string().uuid(),
@@ -63,7 +73,8 @@ export function projectTaskContextIds(messages: BaseMessage[], projectId: string
  * Only adjacent, matching single-call/success pairs in this project with >= 1,500 serialized argument characters qualify.
  * Keep the host receipt, request hash and reread pointers. Archived delegation prompts can be read after fetching
  * the current invocation revision with project_get_task; creation receipts point to the current task details.
- * Pending, failed, parallel, signed or narrative exchanges stay intact. This only projects model input:
+ * Pending, failed, parallel or signed exchanges stay intact; plain coordinator text is retained in the receipt.
+ * This only projects model input:
  * it neither rewrites checkpoints nor invokes tools, retries work or decides acceptance.
  */
 export function projectTaskCallReceipts(messages: BaseMessage[], projectId: string): BaseMessage[] {
@@ -92,7 +103,7 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
             reply = messages[index + 1]
         if (
             !isAIMessage(call) ||
-            call.content !== '' ||
+            typeof call.content !== 'string' ||
             call.tool_calls?.length !== 1 ||
             !reply ||
             !isToolMessage(reply) ||
@@ -102,6 +113,7 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
             call.tool_calls[0].name !== reply.name ||
             call.invalid_tool_calls?.length ||
             Object.keys(call.additional_kwargs).some((key) => !['reasoning_content', 'tool_calls'].includes(key)) ||
+            (call.additional_kwargs.tool_calls && !rawToolCalls.safeParse(call.additional_kwargs.tool_calls).success) ||
             call.response_metadata.output
         ) {
             result.push(call)
@@ -115,12 +127,17 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
             result.push(call)
             continue
         }
-        let receipt: unknown
+        let receipt: object | undefined
         let read: unknown
+        let args = request.args
         if (request.name === ProjectToolEnum.DispatchTask) {
             const parsed = dispatchReceipt.safeParse(value)
             if (parsed.success && parsed.data.projectId === projectId) {
                 receipt = parsed.data
+                args = {
+                    ...request.args,
+                    instructions: '[Archived instructions: read the tool result for the prompt reference.]'
+                }
                 read = {
                     taskId: parsed.data.projectTaskId,
                     executionId: parsed.data.taskExecutionId,
@@ -132,6 +149,27 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
         } else if (request.name === ProjectToolEnum.CreateTasks) {
             const parsed = createReceipt.safeParse(value)
             if (parsed.success && parsed.data.tasks.every((task) => task.projectId === projectId)) {
+                const creation = z
+                    .object({
+                        tasks: z.array(
+                            z.object({ name: z.string(), requirements: z.array(z.string()).optional() }).passthrough()
+                        )
+                    })
+                    .passthrough()
+                    .safeParse(request.args)
+                if (!creation.success || creation.data.tasks.length !== parsed.data.tasks.length) {
+                    result.push(call)
+                    continue
+                }
+                args = {
+                    ...creation.data,
+                    tasks: creation.data.tasks.map((item, i) =>
+                        item.requirements &&
+                        JSON.stringify(item.requirements) === JSON.stringify(parsed.data.tasks[i].requirements)
+                            ? { ...item, requirements: ['See the recorded task requirements.'] }
+                            : item
+                    )
+                }
                 receipt = {
                     ...parsed.data,
                     tasks: parsed.data.tasks.map((task) => {
@@ -155,24 +193,35 @@ export function projectTaskCallReceipts(messages: BaseMessage[], projectId: stri
                 read = { tool: ProjectToolEnum.GetTask, taskIds: parsed.data.tasks.map((task) => task.id) }
             }
         }
-        if (!receipt || JSON.stringify(request.args).length < 1500) {
+        const original = JSON.stringify(request.args)
+        if (!receipt || original.length < 1500 || JSON.stringify(args).length >= original.length) {
             result.push(call)
             continue
         }
+        // Keep the provider's action/result protocol. A past side effect must never appear as
+        // assistant-authored prose that a later model can imitate in place of a tool call.
         result.push(
             new AIMessage({
                 id: call.id,
-                content:
-                    '[Historical task operation receipt; already executed, do not replay. ' +
-                    'This records delegation/creation, not successful execution or acceptance. ' +
-                    'Read current task state and independent evidence before deciding.]\n' +
-                    JSON.stringify({
-                        tool: request.name,
-                        toolCallId: request.id,
-                        requestSha256: createHash('sha256').update(JSON.stringify(request.args)).digest('hex'),
-                        receipt,
-                        read
-                    })
+                name: call.name,
+                content: call.content,
+                response_metadata: call.response_metadata,
+                usage_metadata: call.usage_metadata,
+                additional_kwargs: { ...call.additional_kwargs, tool_calls: undefined },
+                tool_calls: [{ ...request, args }]
+            }),
+            new ToolMessage({
+                id: reply.id,
+                name: reply.name,
+                tool_call_id: reply.tool_call_id,
+                status: reply.status,
+                additional_kwargs: reply.additional_kwargs,
+                response_metadata: reply.response_metadata,
+                artifact: reply.artifact,
+                content: JSON.stringify({
+                    ...receipt,
+                    archivedRequest: { sha256: createHash('sha256').update(original).digest('hex'), read }
+                })
             })
         )
         index++

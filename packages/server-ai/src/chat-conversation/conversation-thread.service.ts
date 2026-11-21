@@ -33,6 +33,7 @@ import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.ent
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationGoal } from './goal/conversation-goal.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
+import { AssertProjectConversationAdmissionQuery } from '../xpert-project/queries/assert-project-conversation-admission.query'
 import { messageAncestorPath } from './message-path'
 import { SideChatForkService } from './side-chat-fork.service'
 import type { CopyConversationThreadInput } from './thread-copy.schema'
@@ -365,7 +366,11 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         })
     }
 
-    async claimForRun(threadId: string): Promise<ChatConversationThread> {
+    async claimForRun(
+        threadId: string,
+        expectedProjectId?: string | null,
+        recoveryExecutionId?: string
+    ): Promise<ChatConversationThread> {
         const source = await this.requireByThreadId(threadId)
         if (source.metadata?.forkGraphRevision) {
             const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
@@ -384,6 +389,23 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 lock: { mode: 'pessimistic_write' }
             })
             if (!thread) throw new NotFoundException(`Thread "${threadId}" not found`)
+            if (expectedProjectId !== undefined) {
+                const persisted = await manager.findOneByOrFail(ChatConversation, { id: thread.conversationId })
+                if (persisted.projectId)
+                    await this.queryBus.execute(
+                        new AssertProjectConversationAdmissionQuery(
+                            manager,
+                            { conversationId: persisted.id, threadId, projectId: persisted.projectId },
+                            undefined,
+                            { executionId: recoveryExecutionId }
+                        )
+                    )
+                if ((persisted.projectId ?? null) !== expectedProjectId)
+                    throw threadControlConflict(
+                        'ConversationProjectChanged',
+                        'Project changed before execution admission'
+                    )
+            }
             if (['busy', 'pausing', 'paused'].includes(thread.status))
                 throw threadControlConflict(
                     'ThreadHasActiveOperation',

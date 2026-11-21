@@ -257,6 +257,7 @@ export class CodingDeliveryService {
       candidateDigest: candidate ? digest(candidate) : null,
       manifestSchema: zodToJsonSchema(schema),
       manifestContextPath: manifestContext.path,
+      serviceLifecycle: await this.store.serviceLifecycle(c, work.context.executor.xpertId),
       graph: delivery.instanceId
         ? deliveryGraphSummary(
             await this.store.capabilities.require(ProjectPipelinesRuntimeCapability).graph(c, delivery.instanceId)

@@ -1,5 +1,7 @@
 import {
   RequestContext,
+  ProjectAccessRuntimeCapability,
+  ProjectConfigurationRuntimeCapability,
   ProjectPipelineEvidenceRuntimeCapability,
   type ProjectTaskAcceptanceReceipt
 } from '@xpert-ai/plugin-sdk'
@@ -60,6 +62,33 @@ describe('Coding delivery business boundaries', () => {
       ])
     ).toMatchObject({ valid: true, issues: [] })
   })
+  it('returns the lifecycle policy using the current actor and the persisted operation Assistant', async () => {
+    const read = jest.spyOn(f.capabilities.require(ProjectConfigurationRuntimeCapability), 'getRuntimeConfiguration')
+    const service = new CodingDeliveryService(f.store, f.evidence)
+    const scope = { actor: { ...f.actor, userId: randomUUID() }, projectId: f.projectId }
+    expect(await service.context(scope, f.context.work.operationId)).toMatchObject({ serviceLifecycle: 'coordinator' })
+    f.setServiceLifecycle('task')
+    expect(await service.context(scope, f.context.work.operationId)).toMatchObject({ serviceLifecycle: 'task' })
+    expect(read).toHaveBeenLastCalledWith({ ...scope, assistantId: f.context.executor.xpertId })
+  })
+  it('does not read lifecycle configuration after Project access is denied', async () => {
+    const denied = new Error('Project access revoked')
+    jest.spyOn(f.capabilities.require(ProjectAccessRuntimeCapability), 'assertEdit').mockRejectedValueOnce(denied)
+    const read = jest.spyOn(f.capabilities.require(ProjectConfigurationRuntimeCapability), 'getRuntimeConfiguration')
+    await expect(
+      new CodingDeliveryService(f.store, f.evidence).context(f.context, f.context.work.operationId)
+    ).rejects.toBe(denied)
+    expect(read).not.toHaveBeenCalled()
+  })
+  it('does not replace a configuration read failure or invalid lifecycle with the default', async () => {
+    const read = jest.spyOn(f.capabilities.require(ProjectConfigurationRuntimeCapability), 'getRuntimeConfiguration')
+    const unavailable = new Error('Configuration unavailable')
+    read.mockRejectedValueOnce(unavailable)
+    const service = new CodingDeliveryService(f.store, f.evidence)
+    await expect(service.context(f.context, f.context.work.operationId)).rejects.toBe(unavailable)
+    read.mockResolvedValueOnce({ projectType: TYPE, revision: 0, effectiveValues: { serviceLifecycle: 'unexpected' } })
+    await expect(service.context(f.context, f.context.work.operationId)).rejects.toMatchObject({ name: 'ZodError' })
+  })
   it('requires the plugin-owned project type before starting a delivery', async () => {
     f.access.applicationKey = 'platform'
     await expect(
@@ -71,9 +100,7 @@ describe('Coding delivery business boundaries', () => {
     expect(await f.db.getRepository(CodingDelivery).count()).toBe(1)
   })
   it('does not complete merely because the Assistant runtime succeeded', async () => {
-    await expect(f.operations.collect(f.context, 'development')).rejects.toMatchObject({
-      response: { code: 'CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED' }
-    })
+    await expect(f.operations.collect(f.context, 'development')).resolves.toBeNull()
   })
   it('does not create delivery state without an authorized destination', async () => {
     f.revoke()
@@ -114,7 +141,7 @@ describe('Coding delivery business boundaries', () => {
     expect(await submit()).toEqual(ref)
     const evidence = await f.evidence.read(f.context, ref)
     expect(evidence.artifacts).toHaveLength(4)
-    expect((await f.operations.collect(f.context, 'development')).result).toEqual(ref)
+    expect((await f.operations.collect(f.context, 'development'))?.result).toEqual(ref)
     // Reconstruct services from the same persisted database: no middleware closure owns state.
     expect((await f.store.operation(f.context, ref.objectKey)).evidence?.manifest).toEqual(f.manifest)
   })
@@ -369,7 +396,7 @@ describe('Coding delivery business boundaries', () => {
       finalTask.taskId,
       correctBranch.artifactId
     )
-    expect((await f.operations.collect(gitContext, 'git')).result).toEqual(delivered)
+    expect((await f.operations.collect(gitContext, 'git'))?.result).toEqual(delivered)
     expect((await f.evidence.read(gitContext, delivered)).manifest).toMatchObject({ commit: f.manifest.commit })
   })
 })

@@ -24,6 +24,7 @@ export class AppPlatformStorageObject extends TenantOrganizationBaseEntity {
 /** Retain ownership of files even when their business metadata has been removed. */
 @Entity('app_platform_storage_root')
 @Index(['tenantId', 'pathSuffix'], { unique: true })
+@Index(['tenantId', 'organizationId'])
 export class AppPlatformStorageRoot extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid' }) userId: string
     @Column({ type: 'varchar', length: 512 }) pathSuffix: string

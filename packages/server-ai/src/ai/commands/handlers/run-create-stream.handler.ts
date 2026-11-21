@@ -624,7 +624,11 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 resumeClaimId
             )
         } else if (ownsRunClaim && this.conversationThreadService) {
-            await this.conversationThreadService.claimForRun(threadId)
+            await this.conversationThreadService.claimForRun(
+                threadId,
+                conversation.projectId ?? null,
+                referencedExecutionId
+            )
         }
         let execution = chatRequest.action === 'follow_up' || inputResume ? referencedExecution : null
 

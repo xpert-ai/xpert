@@ -1,3 +1,6 @@
+import type { ResolvedMessageWidget } from '../chat-message/widgets/message-widgets'
+import { readMessageWidgetDelta } from '../chat-message/widgets/message-widget-stream'
+import { runDisplaySnapshotSchema } from '../shared/stream/display-snapshot/display-snapshot.schema'
 import { assistantRuntimeCredential } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
@@ -8,11 +11,12 @@ import {
 } from '@xpert-ai/contracts'
 import { parseFileActivityContent } from '@xpert-ai/chatkit-types'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { catchError, filter, map, Observable, of } from 'rxjs'
+import { catchError, concatMap, defer, Observable, of } from 'rxjs'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
 import type { SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { publicAppPlatformRuntimeError } from '../plugin-resource/app-platform/platform-error'
+import { executionDuration } from '../shared/stream/execution-duration'
 
 const optionalText = z.string().optional()
 const date = z.union([z.string(), z.date()]).optional()
@@ -25,6 +29,27 @@ const identity = z.object({
     created_date: date
 })
 const textPart = identity.extend({ type: z.literal('text'), text: z.string() })
+// App references are business UI. Inputs, results and HTML are loaded through
+// the scoped MCP App endpoint, never through the diagnostic tool envelope.
+const appPart = identity.extend({
+    type: z.literal('component'),
+    id: z.string(),
+    data: z.object({
+        type: z.literal('McpApp'),
+        appInstanceId: z.string().min(1),
+        appInstanceToken: optionalText,
+        resourceUri: z.string().startsWith('ui://'),
+        toolName: z.string().min(1),
+        toolCallId: optionalText,
+        toolsetId: optionalText,
+        serverName: optionalText,
+        executionId: optionalText,
+        title: z.union([z.string(), z.record(z.string())]).optional(),
+        status: z.enum(['running', 'success', 'fail']).optional(),
+        created_date: date,
+        end_date: date
+    })
+})
 const lifecycle = z.object({
     id: optionalText,
     conversationId: optionalText,
@@ -36,7 +61,7 @@ const lifecycle = z.object({
     role: optionalText,
     status: optionalText,
     error: z.unknown().optional(),
-    elapsedTime: z.number().optional(),
+    elapsedTime: z.preprocess(executionDuration, z.number().optional()),
     createdAt: date,
     updatedAt: date
 })
@@ -59,6 +84,8 @@ export function runtimePresentationError(error?: unknown) {
 }
 
 export function runtimeContentPart(value: unknown): TMessageContentComplex | null {
+    const app = appPart.safeParse(value)
+    if (app.success) return { ...app.data, data: { ...app.data.data, category: 'Dashboard' } }
     const part = value as TMessageContentComponent<{ toolPresentation?: string }> | undefined
     if (
         part?.type === 'component' &&
@@ -124,22 +151,148 @@ export function runtimeStreamPayload(value: unknown): unknown | null {
     }
 }
 
-export function runtimeStream(stream: Observable<SseMessageEvent>, restricted = usesRuntimePresentation()) {
-    if (!restricted) return stream
-    return stream.pipe(
-        map((event) => {
-            let payload: unknown = event.data
+export function appendMessageWidgets(
+    content: IChatMessage['content'],
+    messageId: string,
+    cards: ResolvedMessageWidget[],
+    restricted = false
+) {
+    const widgets = cards.filter((card) => card.messageId === messageId).map((card) => card.widget)
+    if (!widgets.length) return restricted ? runtimeMessageContent(content) : content
+    const remaining = new Map(widgets.map((widget) => [widget.id, widget]))
+    const source = Array.isArray(content) ? content : content ? [{ type: 'text' as const, text: content }] : []
+    const parts: TMessageContentComplex[] = []
+    const restored = new Set<string>()
+    for (const part of source) {
+        if (part.type === 'component' && part.data?.type === 'Widget' && remaining.has(part.id)) {
+            if (!restored.has(part.id)) parts.push(remaining.get(part.id))
+            restored.add(part.id)
+        } else {
+            const visible = restricted ? runtimeContentPart(part) : part
+            if (visible) parts.push(visible)
+        }
+    }
+    return [...parts, ...widgets.filter((widget) => !restored.has(widget.id))]
+}
+
+type ResolveMessageWidget = (ids: string[]) => Promise<ResolvedMessageWidget[]>
+
+const messageEnd = z.object({
+    type: z.literal('event'),
+    event: z.literal('on_message_end'),
+    data: z.object({ id: z.string().uuid(), content: z.unknown(), role: z.literal('ai').optional() })
+})
+
+/** Restore issued Widgets at their saved positions under the viewer's presentation policy. */
+export function runtimeStream(
+    stream: Observable<SseMessageEvent>,
+    restricted = usesRuntimePresentation(),
+    resolveWidget?: ResolveMessageWidget
+) {
+    if (!restricted && !resolveWidget) return stream
+    const presented = stream.pipe(
+        concatMap((event) => {
+            let payload = event.data
             if (typeof payload === 'string') {
                 try {
                     payload = JSON.parse(payload)
                 } catch {
-                    return null
+                    return restricted ? [] : of(event)
                 }
             }
-            const data = runtimeStreamPayload(payload)
-            return data === null ? null : { ...event, data }
-        }),
-        filter((event): event is SseMessageEvent => event !== null),
-        catchError((error) => of({ data: { type: 'event', event: 'on_error', data: runtimePresentationError(error) } }))
+            if (
+                !restricted &&
+                resolveWidget &&
+                payload &&
+                typeof payload === 'object' &&
+                'type' in payload &&
+                payload.type === 'stream_snapshot' &&
+                'snapshot' in payload
+            ) {
+                const snapshot = runDisplaySnapshotSchema.safeParse(payload.snapshot)
+                if (snapshot.success) {
+                    return defer(() => resolveWidget(snapshot.data.messages.map((message) => message.id))).pipe(
+                        concatMap((cards) =>
+                            of({
+                                ...event,
+                                data: {
+                                    ...payload,
+                                    snapshot: {
+                                        ...snapshot.data,
+                                        messages: snapshot.data.messages.map((message) => ({
+                                            ...message,
+                                            content: appendMessageWidgets(message.content, message.id, cards)
+                                        }))
+                                    }
+                                }
+                            })
+                        )
+                    )
+                }
+            }
+            const reference = readMessageWidgetDelta(payload)
+            if (reference && resolveWidget) {
+                return defer(() => resolveWidget([reference.messageId])).pipe(
+                    concatMap((cards) => {
+                        const card = cards.find(
+                            (card) => card.messageId === reference.messageId && card.widget.id === reference.widgetId
+                        )
+                        return card
+                            ? of({
+                                  ...event,
+                                  data: { type: 'message', data: { ...card.widget, messageId: reference.messageId } }
+                              })
+                            : []
+                    })
+                )
+            }
+            const visible = restricted ? runtimeStreamPayload(payload) : payload
+            if (visible === null) return []
+            const output = restricted ? { ...event, data: visible } : event
+            if (
+                !resolveWidget ||
+                typeof payload !== 'object' ||
+                !payload ||
+                !('event' in payload) ||
+                payload.event !== 'on_message_end'
+            )
+                return of(output)
+            const end = messageEnd.safeParse(payload)
+            if (!end.success || typeof visible !== 'object' || !('data' in visible)) return of(output)
+            const { id, content } = end.data.data
+            return defer(() => resolveWidget([id])).pipe(
+                concatMap((cards) => {
+                    if (!cards.some((card) => card.messageId === id)) return of(output)
+                    // Redis end events contain lifecycle fields only; never replace streamed text with just the cards.
+                    if (content === undefined)
+                        return of(
+                            ...cards
+                                .filter((card) => card.messageId === id)
+                                .map((card) => ({
+                                    data: { type: 'message', data: { ...card.widget, messageId: id } }
+                                })),
+                            output
+                        )
+                    const source = content as IChatMessage['content']
+                    return of({
+                        ...event,
+                        data: {
+                            ...visible,
+                            data: {
+                                ...(visible.data as object),
+                                content: appendMessageWidgets(source, id, cards, restricted)
+                            }
+                        }
+                    })
+                })
+            )
+        })
     )
+    return restricted
+        ? presented.pipe(
+              catchError((error) =>
+                  of({ data: { type: 'event', event: 'on_error', data: runtimePresentationError(error) } })
+              )
+          )
+        : presented
 }

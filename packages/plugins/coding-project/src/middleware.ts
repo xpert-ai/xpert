@@ -15,6 +15,7 @@ import { CodingDeliveryService } from './delivery.service'
 import { CodingEvidenceService } from './evidence'
 import { CodingDeploymentService } from './deployment'
 import { CodingGitService } from './git'
+import { checkStageCoordination } from './stage-coordination'
 import { deliveryModeSchema } from './schemas'
 import { PROVIDER, FEATURE, label } from './constants'
 
@@ -71,6 +72,13 @@ export class CodingDeliveryMiddleware implements IAgentMiddlewareStrategy<Record
     }
     return {
       name: PROVIDER,
+      afterModel: {
+        canJumpTo: ['model'],
+        hook: (state) =>
+          context.projectId && context.conversationId && context.xpertId
+            ? checkStageCoordination(this.store, scope(), context, state.messages)
+            : undefined
+      },
       tools: [
         tool(async (input) => JSON.stringify(await this.service.preflight(scope(), context.xpertId!, input)), {
           name: 'coding_delivery_targets',

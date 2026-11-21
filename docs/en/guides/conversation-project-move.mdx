@@ -1,0 +1,91 @@
+---
+title: 'Move a conversation into a project'
+description: 'Choose or create a project inside a personal conversation, preserve its history, and automatically continue the original request.'
+---
+
+A mixed Assistant can discuss a task without a project, then offer a **Choose or create a project** card when the user asks to perform project work. After confirmation, the original conversation and thread remain open, their history is retained, and the Assistant continues the pending request in the selected project. The user does not need to repeat that request.
+
+For an Assistant that requires a project from its first request, use [Prepare a project when starting a conversation](/en/guides/conversation-project-bootstrap).
+
+## Enable the capability
+
+Enable **Project management** (`project-management`) during Assistant creation, quick creation, or capability configuration, then save and publish. It attaches `ProjectMiddleware` and its zero-argument `request_project_selection()` tool. This capability supports selecting or creating a destination for the current conversation; it does not add general project search, update, or delete tools.
+
+**Project tasks** retains task management in `ProjectTasksMiddleware`. Project Tasks and Live Dashboard also include `ProjectMiddleware` through capability composition. Enabling them together reuses the same provider connection on an Agent and exposes one selector. Disabling standalone Project management retains the selector while another enabled capability needs it. Existing published Assistants obtain the connection by reapplying capability configuration or updating and publishing their template.
+
+Use `workspaceScope.mode: project-preferred` to start a mixed Assistant in personal chat. ChatKit renders the message Widget and submits its actions through the SDK. The project module decides whether to issue the card based on the authenticated conversation scope and migration eligibility; no client capability flags are required.
+
+## Select a destination in the conversation
+
+1. Start a personal conversation and discuss the requirements. For example: “First discuss how to compare sales by region; do not build anything yet.” Mentioning a dashboard, title, or example alone should not request project setup.
+2. Ask the Assistant to perform the work: “Create the dashboard using the criteria we just agreed on.” The Agent decides whether to call `request_project_selection()` based on the current request and its need for a project. This is a model tool decision, not a keyword rule in the UI.
+3. The backend publishes the card inside the corresponding assistant reply. When creation is permitted, radio buttons switch between an existing-project dropdown and a new-project name field. Otherwise, only existing projects are offered. The card explains that members with access to the destination project can read the conversation's full history.
+4. Choose the destination and click **Move and continue**. After the current execution has ended and all branches are idle, the backend validates the move, binds the conversation, and starts a new execution of the original request in the same thread.
+5. The card shows the destination, the workbench adopts the project route, and the new reply appears after the retained history. Cancelling before confirmation dismisses the card without creating a project or continuing the request.
+
+The conversation may contain any number of completed discussion turns. “Between executions” means that the personal execution has ended before the project execution begins. Waiting for a blocking clarification answer is still part of an active execution and does not provide a move boundary.
+
+## Supported conversations and destinations
+
+The current flow supports a creator moving their own personal Web conversation into a project in the same tenant and organization. It preserves the conversation ID, current thread ID, and all branches' text history. Moving out of a project or between projects is outside this flow.
+
+The entire conversation is checked, including other branches. Supported history includes text, reasoning, ordinary clarification, project selection, and recognized built-in skill-instruction reads or activation summaries. It excludes attached files, file references, owned workspaces or sandbox resources, goals, other tool activity, and pending or active operations. The server checks eligibility when issuing the card and again on confirmation, after the issuing execution has persisted its history.
+
+An existing destination must be accessible, active, and compatible with the current Assistant. New destinations use the Assistant's configured project type and require project creation permission. The move flow creates only direct project types. An entity-bound application project must be created through its business workflow and can then be selected if compatible. The application-specific first-send provider described in the startup guide is a separate entry.
+
+### Tool prerequisites and the current move limitation
+
+Enabled middleware and tools remain loaded without a project. Each tool checks its own prerequisites; a project-dependent tool can return `PROJECT_REQUIRED` before accessing project data or making changes. The Agent is instructed to request project selection before starting that work. Plan Mode removes the selection tool and rejects attempted calls, and an already bound conversation does not expose it.
+
+**A failed tool call can still prevent a move.** Eligibility is based on persisted history. A non-allowlisted tool record is not exempt merely because its result is `PROJECT_REQUIRED`. The supported path requests the project card before project-only operations. A general “call a tool, receive a missing-project error, then move the conversation” path is not guaranteed by the current implementation.
+
+## Refresh, cancellation, and retries
+
+| Event                                                     | Result                                                                                                                                                      |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Refresh while the card is pending                         | Restore the same card in the same assistant message, with choices permitted for the current user. Unsubmitted form edits are not saved across page reloads. |
+| Cancel before moving                                      | Persist dismissal; omit the card on the next history read and do not start a continuation.                                                                  |
+| Send a new message before confirming                      | The branch head changes and the old confirmation becomes invalid.                                                                                           |
+| Confirm the same destination again                        | Reuse the reserved project and continuation identities; do not start a second execution that has already been admitted.                                     |
+| Project binding succeeds but continuation has not started | The receipt can offer **Continue**. Retry starts the reserved execution without moving again.                                                               |
+| Refresh after moving                                      | Restore the moved receipt and subsequent replies from the original thread.                                                                                  |
+
+Project creation and initialization must succeed before binding. Creating a new destination uses a stable reserved project ID, so a retry can reuse a project already prepared before a failed binding. A retry after binding validates the recorded destination; it cannot choose a different one.
+
+## How the backend and ChatKit cooperate
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Project as Project module
+    participant UI as ChatKit
+    actor User
+    Agent->>Project: request_project_selection()
+    Project->>Project: Persist move receipt and message Widget reference
+    Project-->>UI: A2UI card in the original assistant reply
+    Agent-->>UI: End the personal execution
+    User->>UI: Choose a destination and confirm
+    UI->>Project: SDK → shared Widget endpoint → project.move.confirm
+    Project->>Project: Check receipt, access and idle history; bind project
+    Project->>Agent: Start reserved continuation in the same thread
+    Project-->>UI: refresh = thread
+    Agent-->>UI: Continue the original request
+```
+
+`ProjectMiddleware` invokes the injected `ProjectSelectionService`. The service binds the offer to the persisted human message, originating assistant reply, execution, and thread; a model-supplied conversation ID cannot authorize a move. It records the receipt and Widget reference in one transaction and emits the card. After a successful selection request, the middleware ends the current turn with a confirmation prompt. The generic `request_user_input` tool remains responsible for clarification.
+
+The project's message provider restores cards from current business state. Its action provider handles `project.move.confirm` and `project.move.cancel` through the [shared A2UI server-action mechanism](/en/guides/chatkit-message-widgets). ChatKit submits directly through the SDK. Angular does not build the card or dispatch its business action; it synchronizes the route after the saved conversation's project changes.
+
+Confirmation locks the conversation and its branches, checks the receipt and target access, and commits conversation binding together with the bound receipt. After commit, the runtime starts a new execution using the receipt's stable execution ID. `ConversationContinuation` carries the original user message ID and server confirmation text. The original human message is reused, so no duplicate request appears in the history.
+
+Project-specific admission checks live in the project's `AssertProjectConversationAdmissionQuery` handler and run inside the calling admission transaction and thread lock. Once-only admission prevents duplicate continuation starts. Old personal executions remain readable, but their checkpoints cannot be resumed or retried after the move. The new execution uses the project's environment from the beginning.
+
+Confirmation and history refresh share pending route synchronization for the same destination. The existing ChatKit instance remains mounted; an older cancelled navigation cannot clear a newer navigation's state.
+
+## Enable and verify an installation
+
+Apply the normal API migrations, including `core.project.20261119000000-conversation-project-move`, and deploy compatible API, Web, and ChatKit versions. Reapply and publish Assistant capability or template changes where needed. Plugin activation alone does not update an installed Assistant's graph.
+
+Check both existing-project and new-project paths using ordinary requests: discuss requirements for several turns, request the work, refresh with a pending card, confirm, and verify that the same conversation retains its history and continues without a reload. Inspect the actual saved output in the target project. Also check cancellation, a superseded card, repeated confirmation, and rejection of a conversation with attachments or active work.
+
+The implementation is grouped under `packages/server-ai/src/xpert-project`: `plugins/project/project.middleware.ts`, `services/project-selection-request.ts`, `services/conversation-project-move.ts`, `services/text-conversation-eligibility.ts`, and `conversation-project-widget-actions.ts`. Shared message/action infrastructure is documented separately in the A2UI guide.

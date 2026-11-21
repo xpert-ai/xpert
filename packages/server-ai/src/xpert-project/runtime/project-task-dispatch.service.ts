@@ -16,7 +16,6 @@ import {
     projectTaskDispatchInputSchema,
     projectTaskSpecificationSchema
 } from '@xpert-ai/contracts'
-import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
 import { AgentInvocation, AgentInvocationScope } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
@@ -38,6 +37,7 @@ import {
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
+import { holdsProjectTaskReservation } from './project-task-reservation'
 import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
 import { parseProjectTaskSpecificationSnapshot } from './project-task-specification'
 
@@ -77,6 +77,28 @@ export class ProjectTaskDispatchService {
         const identityScope = await this.factory.resolveInvocationIdentityScope(scope)
         if (input.reviewAsSubtask && purpose.type !== 'review') throw projectTaskRuntimeError('Invalid')
         if (purpose.type === 'implementation' && purpose.coordination) throw projectTaskRuntimeError('Owned')
+        const inheritReviewer = purpose.type === 'implementation' && !purpose.reviewer
+        let observedImplementationId: string | undefined
+        if (inheritReviewer && purpose.type === 'implementation') {
+            // Reuse the task's assignment, but reauthorize it before entering the Project transaction.
+            // A replay uses its own pinned assignment rather than a later attempt's replacement.
+            const history = await this.executions.find({
+                where: {
+                    projectId,
+                    taskId: input.taskId,
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId
+                },
+                order: { attempt: 'DESC' }
+            })
+            const previous =
+                history.find(
+                    (attempt) => attempt.dispatchRequestId === input.requestId && attempt.createdById === scope.userId
+                ) ?? history.find((attempt) => attempt.purpose?.type === 'implementation')
+            observedImplementationId = previous?.id
+            if (previous?.purpose?.type === 'implementation' && previous.purpose.reviewer)
+                purpose = { ...purpose, reviewer: previous.purpose.reviewer }
+        }
         if (purpose.type === 'implementation' && purpose.reviewer) {
             const reviewerTarget = await this.factory.resolveBackgroundTarget(scope, purpose.reviewer.bindingId)
             this.reviews.assertSupported(reviewerTarget, purpose.reviewer.mode)
@@ -92,18 +114,24 @@ export class ProjectTaskDispatchService {
             // A saved dispatch reuses its pinned intent; do not depend on inspecting the implementation again.
             // The transaction below still validates replay input, caller and target before returning it.
             const replay = await this.executions.findOneBy({
-                projectId, tenantId: scope.tenantId, organizationId: scope.organizationId,
-                createdById: scope.userId, dispatchRequestId: input.requestId
+                projectId,
+                tenantId: scope.tenantId,
+                organizationId: scope.organizationId,
+                createdById: scope.userId,
+                dispatchRequestId: input.requestId
             })
             if (!replay) {
                 const row = await this.executions.manager.getRepository(AgentInvocationEntity).findOneBy({
-                    id: purpose.implementationInvocationId, tenantId: scope.tenantId,
-                    organizationId: scope.organizationId, ownerId: scope.userId
+                    id: purpose.implementationInvocationId,
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    ownerId: scope.userId
                 })
                 if (!row || row.invocation.scope.projectId !== projectId) throw projectTaskRuntimeError('Evidence')
                 // Runtime inspection can perform network I/O or reconcile state through another DB connection.
                 // Keep it outside the transaction and capture the returned revision, not the row read above.
-                inspectedRevision = (await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id)).revision
+                inspectedRevision = (await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id))
+                    .revision
             }
         }
         const execution = await this.executions.manager.transaction(async (manager) => {
@@ -151,7 +179,16 @@ export class ProjectTaskDispatchService {
             if (!assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
             await this.context.assertResponsibleAssistant(scope, assigneeXpertId)
             if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
-            if (task.kind !== 'task' || !['todo', 'in_progress', 'blocked', 'review', ...(task.reviewSubject ? ['done'] : [])].includes(task.status))
+            const attempts = await repository.find({ where, relations: ['task'], order: { attempt: 'DESC' } })
+            const previous = attempts.find((item) => item.taskId === task.id && item.purpose?.type === 'implementation')
+            // Do not inherit an assignment that changed while Runtime authorization was in flight.
+            if (inheritReviewer && previous?.id !== observedImplementationId) throw projectTaskRuntimeError('Conflict')
+            if (
+                task.kind !== 'task' ||
+                !['todo', 'in_progress', 'blocked', 'review', ...(task.reviewSubject ? ['done'] : [])].includes(
+                    task.status
+                )
+            )
                 throw projectTaskRuntimeError('State')
             if (purpose.type === 'implementation') {
                 if (task.reviewSubject) throw projectTaskRuntimeError('State')
@@ -165,14 +202,16 @@ export class ProjectTaskDispatchService {
             }
             if (purpose.type === 'review' && task.reviewSubject && !purpose.implementationTaskId)
                 purpose = { ...purpose, implementationTaskId: task.reviewSubject.implementationTaskId }
-            const subjectTask = purpose.type === 'review'
-                ? await reviewImplementationTask(manager, task, scope, purpose) : task
+            const subjectTask =
+                purpose.type === 'review' ? await reviewImplementationTask(manager, task, scope, purpose) : task
             const specificationSnapshot = taskSpecification(subjectTask)
             let prompt = implementationPrompt(specificationSnapshot.specification, input.instructions)
             if (purpose.type === 'implementation') {
                 const feedback = await projectTaskReworkContext(manager, task, scope, purpose)
                 if (feedback) prompt += '\n\n' + projectTaskReworkPrompt(feedback)
-                if (purpose.reviewer) prompt += '\n\nAn independent reviewer is assigned. Submit the candidate and reproducible handoff; your result does not accept the task.'
+                if (purpose.reviewer)
+                    prompt +=
+                        '\n\nAn independent reviewer is assigned. Submit the candidate and reproducible handoff; your result does not accept the task.'
             }
             if (purpose.type === 'review') {
                 const subject = await implementationEvidence(
@@ -190,18 +229,30 @@ export class ProjectTaskDispatchService {
                     throw projectTaskRuntimeError('Evidence')
                 // Evidence was reloaded under the Project lock; reject drift since inspection before reserving work.
                 if (subject.invocation.revision !== inspectedRevision) throw projectTaskRuntimeError('Conflict')
-                const assigned = subject.latest.purpose?.type === 'implementation' ? subject.latest.purpose.reviewer : undefined
-                if (assigned && (assigned.bindingId !== input.bindingId || assigned.mode !== (purpose.mode ?? 'evidence_only')))
-                    throw projectTaskRuntimeError('Evidence')
-                prompt = purpose.mode === 'execution' ? projectExecutionReviewPrompt(
-                    purpose, specificationSnapshot.specification, JSON.stringify(subject.invocation.result ?? null),
-                    input.instructions, subject.invocation.handle?.runner?.workingDirectory
-                ) + '\n\n' + this.reviews.executionInstructions() : reviewPrompt(
-                    purpose,
-                    subjectTask,
-                    JSON.stringify(subject.invocation.result ?? null),
-                    subject.invocation.handle?.runner?.workingDirectory
+                const assigned =
+                    subject.latest.purpose?.type === 'implementation' ? subject.latest.purpose.reviewer : undefined
+                if (
+                    assigned &&
+                    (assigned.bindingId !== input.bindingId || assigned.mode !== (purpose.mode ?? 'evidence_only'))
                 )
+                    throw projectTaskRuntimeError('Evidence')
+                prompt =
+                    purpose.mode === 'execution'
+                        ? projectExecutionReviewPrompt(
+                              purpose,
+                              specificationSnapshot.specification,
+                              JSON.stringify(subject.invocation.result ?? null),
+                              input.instructions,
+                              subject.invocation.handle?.runner?.workingDirectory
+                          ) +
+                          '\n\n' +
+                          this.reviews.executionInstructions()
+                        : reviewPrompt(
+                              purpose,
+                              subjectTask,
+                              JSON.stringify(subject.invocation.result ?? null),
+                              subject.invocation.handle?.runner?.workingDirectory
+                          )
                 const priorFeedback = await projectTaskPriorReviewContext(manager, subjectTask, scope, subject.latest)
                 if (priorFeedback) prompt += '\n\n' + projectTaskPriorReviewPrompt(priorFeedback)
             }
@@ -216,33 +267,32 @@ export class ProjectTaskDispatchService {
                 )
                     throw projectTaskRuntimeError('Dependencies')
             }
-            const attempts = await repository.find({ where, relations: ['task'], order: { attempt: 'DESC' } })
-            const previous = attempts.find((item) => item.taskId === task.id && item.purpose?.type === 'implementation')
-            if (purpose.type === 'implementation' && previous?.purpose?.type === 'implementation' &&
-                previous.purpose.reviewer && !purpose.reviewer) throw projectTaskRuntimeError('ReviewerRequired')
+            if (
+                purpose.type === 'implementation' &&
+                previous?.purpose?.type === 'implementation' &&
+                previous.purpose.reviewer &&
+                !purpose.reviewer
+            )
+                throw projectTaskRuntimeError('ReviewerRequired')
             const invocationIds = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
             const invocations = invocationIds.length
                 ? await manager.getRepository(AgentInvocationEntity).find({
                       where: { tenantId: scope.tenantId, organizationId: scope.organizationId, id: In(invocationIds) }
                   })
                 : []
+            const invocationById = new Map(invocations.map((record) => [record.id, record.invocation]))
             if (
                 attempts.some((attempt) => {
-                    // A native Pipeline Assistant coordinates child tasks; its projection does not reserve the Computer.
-                    // Invocation-backed Pipeline work and unacknowledged attempts still hold the reservation.
-                    if (!attempt.invocationId && attempt.agentExecutionId && attempt.task?.controlKind === 'pipeline')
-                        return false
                     // Group members have isolated conversation runtimes; retries of the same task remain serialized.
-                    if (!attempt.invocationId) return attempt.status === 'queued' || attempt.status === 'running'
-                    const record = invocations.find((record) => record.id === attempt.invocationId)
+                    const invocation = attempt.invocationId ? invocationById.get(attempt.invocationId) : undefined
                     if (
                         input.target &&
                         attempt.taskId !== task.id &&
-                        record &&
-                        assistantTaskGroupContext(record.invocation.request.target)
+                        invocation &&
+                        assistantTaskGroupContext(invocation.request.target)
                     )
                         return false
-                    return !record || !invocationCanRelease(record.invocation)
+                    return holdsProjectTaskReservation(attempt, invocation)
                 })
             )
                 throw projectTaskRuntimeError('Busy')
@@ -346,16 +396,24 @@ export class ProjectTaskDispatchService {
             if (!['todo', 'in_progress', 'blocked', 'review'].includes(current.status))
                 throw projectTaskRuntimeError('State')
             const purpose = intent.request.dispatch.projectTask.purpose
-            const subject = purpose.type === 'review'
-                ? await reviewImplementationTask(this.executions.manager, current, intent.scope, purpose) : current
+            const subject =
+                purpose.type === 'review'
+                    ? await reviewImplementationTask(this.executions.manager, current, intent.scope, purpose)
+                    : current
             if (taskSpecification(subject).digest !== intent.request.dispatch.projectTask.specification.digest)
                 throw projectTaskRuntimeError('Conflict')
             const coordination = await coordinationContext(this.executions.manager, subject, intent.scope)
             if (purpose.type === 'implementation' && !sameInvocationData(coordination, purpose.coordination))
                 throw projectTaskRuntimeError('Conflict')
             if (purpose.type === 'review')
-                await implementationEvidence(this.executions.manager, subject, intent.scope,
-                    purpose.implementationExecutionId, purpose.specificationDigest, purpose.evidence)
+                await implementationEvidence(
+                    this.executions.manager,
+                    subject,
+                    intent.scope,
+                    purpose.implementationExecutionId,
+                    purpose.specificationDigest,
+                    purpose.evidence
+                )
         }
         const api = this.factory.createCapturedApi(intent.scope)
         const identityScope = projectTaskInvocationScope(intent)
@@ -398,9 +456,12 @@ export class ProjectTaskDispatchService {
             invocation = record.invocation
         }
         // A successful response must match the reservation just as strictly as a recovered receipt.
-        if (invocation.id !== execution.invocationId ||
+        if (
+            invocation.id !== execution.invocationId ||
             !sameInvocationData(invocation.scope, identityScope) ||
-            !sameInvocationData(invocation.request, intent.request)) throw projectTaskRuntimeError('Conflict')
+            !sameInvocationData(invocation.request, intent.request)
+        )
+            throw projectTaskRuntimeError('Conflict')
         // Avoid older concurrent receipts overwriting newer runtime facts: Invocation is the source of truth.
         await this.executions.update(
             { id: execution.id, dispatchState: 'pending' },
@@ -441,8 +502,12 @@ export class ProjectTaskDispatchService {
             intent.scope.tenantId !== execution.tenantId ||
             intent.scope.organizationId !== execution.organizationId ||
             intent.input.requestId !== execution.dispatchRequestId ||
-            (intent.input.taskId !== execution.taskId && !(intent.input.reviewAsSubtask &&
-                task?.purpose.type === 'review' && task.purpose.implementationTaskId === intent.input.taskId)) ||
+            (intent.input.taskId !== execution.taskId &&
+                !(
+                    intent.input.reviewAsSubtask &&
+                    task?.purpose.type === 'review' &&
+                    task.purpose.implementationTaskId === intent.input.taskId
+                )) ||
             intent.request.dispatch.requestId !== execution.dispatchRequestId ||
             intent.request.target.bindingId !== (intent.input.target?.participantId ?? intent.input.bindingId) ||
             Boolean(intent.input.target) !== Boolean(assistantTaskGroupContext(intent.request.target)) ||

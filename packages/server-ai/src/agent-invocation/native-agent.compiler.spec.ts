@@ -23,7 +23,9 @@ describe('Native Agent execution tool correlation', () => {
         })
         let execution: Partial<IXpertAgentExecution> = {}
         const graph = {
-            invoke: jest.fn(async () => ({ messages: [new AIMessage('Done')] })),
+            invoke: jest.fn(async (_state: typeof AgentStateAnnotation.State) => ({
+                messages: [new AIMessage('Done')]
+            })),
             getState: jest.fn(async () => ({ config: { configurable: { checkpoint_id: 'checkpoint' } } }))
         }
         const execute = jest.fn(async (command: unknown) => {
@@ -65,8 +67,13 @@ describe('Native Agent execution tool correlation', () => {
         await entryGraph.invoke(
             {
                 messages: [],
+                human: { input: 'parent', selectedSkillIds: [], selectedSkillWorkspaceId: 'parent-workspace' },
                 // A workflow may inherit stale toolCall state. It must not claim that call.
-                toolCall: { id: 'parent-call', name: 'worker', args: { input: 'Do work' } }
+                toolCall: {
+                    id: 'parent-call',
+                    name: 'worker',
+                    args: { input: 'Do work', taskId: 'task', selectedSkillIds: ['caller-only'] }
+                }
             },
             {
                 configurable: { executionId: 'parent', agentKey: 'leader', thread_id: 'thread' }
@@ -74,6 +81,9 @@ describe('Native Agent execution tool correlation', () => {
         )
         expect(runAttached).toHaveBeenCalledWith('child', 'parent', expect.any(Function))
         expect(graph.invoke).toHaveBeenCalledTimes(1)
+        const child = graph.invoke.mock.calls[0][0]
+        expect(child).not.toHaveProperty('selectedSkillIds')
+        if (isTool) expect(child).toMatchObject({ taskId: 'task', human: { input: 'Do work' } })
         expect(execution).toMatchObject({
             parentId: 'parent',
             metadata: { invocationKind: 'sub_agent' }

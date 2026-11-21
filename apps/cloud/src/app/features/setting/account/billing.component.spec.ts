@@ -96,6 +96,7 @@ describe('personal billing settings', () => {
         {
           provide: Store,
           useValue: {
+            selectedOrganization$: of({ tenantId: 'tenant', id: 'org-a' }),
             userRolePermissions$: new BehaviorSubject([]),
             hasPermission: () => true,
             selectOrganizationId: () => new BehaviorSubject('org-a')

@@ -1,3 +1,4 @@
+import type { ConversationContinuation } from '../../chat-conversation/continuation'
 import type { EventRunOptions } from '../../agent-event/agent-event-run-context'
 import {
     BaseMessage,
@@ -72,6 +73,7 @@ export type TStateChannel = {
 }
 
 export type TXpertAgentRuntimeOptions = EventRunOptions & {
+    continuation?: ConversationContinuation
     executionDefinition?: import('./execution-definition').AgentExecutionDefinition
     runtimeResources?: import('../../agent-plugin/runtime-resource.service').ResolvedRuntimeResources
     shouldPause?: (nodeKey?: string) => Promise<boolean>
@@ -84,7 +86,10 @@ export type TXpertAgentRuntimeOptions = EventRunOptions & {
 
 export const AgentStateAnnotation = Annotation.Root({
     // Set only by fresh invocation admission; Resume/Retry retain the saved identity.
-    inputIdentity: Annotation<{ id: string } | null>({
+    inputIdentity: Annotation<{
+        id: string
+        continuation?: ConversationContinuation
+    } | null>({
         reducer: (_previous, next) => next,
         default: () => null
     }),

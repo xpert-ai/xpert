@@ -9,7 +9,7 @@ import {
     RequestContext,
     TransformInterceptor,
     UploadFileCommand,
-    getFileAssetDestination
+    requireFileAssetDestination
 } from '@xpert-ai/server-core'
 import {
     ISandboxManagedService,
@@ -429,10 +429,7 @@ export class SandboxController {
                     ]
                 })
             )
-            const destination = getFileAssetDestination(asset, 'sandbox')
-            if (!destination || destination.status !== 'success') {
-                throw new ForbiddenException(destination?.error || 'Failed to upload sandbox file')
-            }
+            const destination = requireFileAssetDestination(asset, 'sandbox')
             return { url: destination.url, filePath: destination.path }
         })
     }

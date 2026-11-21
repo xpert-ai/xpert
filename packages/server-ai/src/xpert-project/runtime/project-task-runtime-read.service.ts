@@ -1,3 +1,4 @@
+import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import type { TaskResultRead } from './project-task-result-page'
 import { createHash } from 'node:crypto'
 import { Injectable } from '@nestjs/common'
@@ -30,15 +31,35 @@ export class ProjectTaskRuntimeReadService {
         private readonly commandBus: CommandBus
     ) {}
 
-    async get(projectId: string, taskId: string, observe = true) {
+    async get(
+        projectId: string,
+        taskId: string,
+        observe = true,
+        selection?: { executionId?: string; includeDecisions?: boolean }
+    ) {
         if (!z.string().uuid().safeParse(taskId).success) throw projectTaskRuntimeError('Invalid')
         const actor = this.context.actor()
         await this.access.assertCanRead(projectId)
         const task = await this.tasks.findOne({
             where: { id: taskId, projectId, tenantId: actor.tenantId, organizationId: actor.organizationId },
-            relations: ['steps', 'executions']
+            relations: selection ? ['steps'] : ['steps', 'executions']
         })
         if (!task) throw projectTaskRuntimeError('NotFound')
+        if (selection) {
+            task.executions = selection.executionId
+                ? await this.tasks.manager.find(XpertProjectTaskExecution, {
+                      where: {
+                          id: selection.executionId,
+                          taskId,
+                          projectId,
+                          tenantId: actor.tenantId,
+                          organizationId: actor.organizationId
+                      },
+                      loadEagerRelations: false
+                  })
+                : []
+            if (selection.executionId && !task.executions.length) throw projectTaskRuntimeError('NotFound')
+        }
         const specification = projectTaskSpecificationSchema.safeParse({
             version: 1,
             title: task.title || task.name,
@@ -141,15 +162,22 @@ export class ProjectTaskRuntimeReadService {
             })
         }
         // Hierarchy navigation does not inspect child invocations or establish acceptance.
-        const children = await this.tasks.find({
-            where: { projectId, tenantId: actor.tenantId, organizationId: actor.organizationId, parentTaskId: task.id },
-            select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
-            order: { createdAt: 'ASC', id: 'ASC' },
-            loadEagerRelations: false
-        })
+        const children = selection
+            ? []
+            : await this.tasks.find({
+                  where: {
+                      projectId,
+                      tenantId: actor.tenantId,
+                      organizationId: actor.organizationId,
+                      parentTaskId: task.id
+                  },
+                  select: ['id', 'name', 'title', 'kind', 'status', 'revision', 'reviewSubject'],
+                  order: { createdAt: 'ASC', id: 'ASC' },
+                  loadEagerRelations: false
+              })
         // A coordinated implementation's reviews are siblings; standalone reviews are its children.
         const related =
-            (task.kind ?? 'task') === 'task' && !task.reviewSubject
+            !selection && (task.kind ?? 'task') === 'task' && !task.reviewSubject
                 ? task.parentTaskId
                     ? await this.tasks.find({
                           where: {
@@ -166,7 +194,10 @@ export class ProjectTaskRuntimeReadService {
                 : []
         return {
             ...task,
-            decisionOptions: await taskDecisionOptions(this.tasks.manager, actor, task),
+            decisionOptions:
+                !selection || selection.includeDecisions
+                    ? await taskDecisionOptions(this.tasks.manager, actor, task)
+                    : [],
             childTasks: children.map((child) => ({
                 id: child.id,
                 title: child.title || child.name,
@@ -194,7 +225,7 @@ export class ProjectTaskRuntimeReadService {
     async readResult(projectId: string, input: TaskResultRead) {
         // Paging must not refresh the runner and invalidate the very revision being read.
         // Delegation prompts are immutable for an execution; live progress cannot invalidate them.
-        const detail = await this.get(projectId, input.taskId, false)
+        const detail = await this.get(projectId, input.taskId, false, { executionId: input.executionId })
         const attempt = detail.executions.find((execution) => execution.id === input.executionId)
         if (!attempt || !('invocationRevision' in attempt)) throw projectTaskRuntimeError('NotFound')
         if (input.source !== 'prompt' && attempt.invocationRevision !== input.expectedRevision)

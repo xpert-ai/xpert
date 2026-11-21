@@ -3,6 +3,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     ...jest.requireActual('@xpert-ai/server-core'),
     RequestContext: jest.requireActual('@xpert-ai/plugin-sdk').RequestContext
 }))
+import { KnowledgebasePermission } from '@xpert-ai/contracts'
 import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { KnowledgebaseService } from '../management/knowledgebase.service'
@@ -129,6 +130,34 @@ describe('managed application knowledge access', () => {
         const f = fixture()
         f.resourceAccess.authorize.mockResolvedValueOnce(true).mockRejectedValueOnce(new ForbiddenException())
         await expect(f.service.assertKnowledgebaseWriteAccess('assigned')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it.each(['findOne', 'findOneByIdString'] as const)(
+        'allows tenant public reads through %s for enrolled accounts',
+        async (method) => {
+            const f = fixture()
+            const shared = {
+                ...f.row,
+                workspaceId: null,
+                organizationId: null,
+                permission: KnowledgebasePermission.Public
+            }
+            jest.mocked(appPlatformKnowledgeIds).mockResolvedValue([])
+            f.tenantLibraries.find.mockResolvedValue(shared)
+            await expect(f.service[method]('assigned')).resolves.toMatchObject({ id: shared.id })
+            expect(f.tenantLibraries.find).toHaveBeenCalled()
+            expect(f.repository.createQueryBuilder).not.toHaveBeenCalled()
+            expect(appPlatformKnowledgeIds).not.toHaveBeenCalled()
+        }
+    )
+
+    it('does not turn tenant library read access into write access for an organization caller', async () => {
+        const f = fixture()
+        jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)
+        f.tenantLibraries.find.mockResolvedValue({ ...f.row, workspaceId: null })
+        await expect(f.service.assertKnowledgebaseWriteAccess('assigned')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.resourceAccess.authorize).not.toHaveBeenCalled()
+        expect(f.repository.createQueryBuilder).not.toHaveBeenCalled()
     })
 
     it('retains the ordinary tenant library lookup when the account is not enrolled', async () => {

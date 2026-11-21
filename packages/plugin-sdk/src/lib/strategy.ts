@@ -1,6 +1,6 @@
-import { Inject, Logger, OnModuleInit, type Type } from '@nestjs/common'
+import { Inject, Logger, OnModuleInit, type OnModuleDestroy, type Type } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { filter } from 'rxjs'
+import { filter, type Subscription } from 'rxjs'
 import { RequestContext } from './core/context'
 import { StrategyBus } from './core/strategy-bus'
 import {
@@ -25,8 +25,9 @@ export type StrategySource =
       scopeKey: string
     }
 
-export class BaseStrategyRegistry<S> implements OnModuleInit {
+export class BaseStrategyRegistry<S> implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BaseStrategyRegistry.name)
+  private strategySubscription?: Subscription
 
   @Inject(StrategyBus)
   protected readonly bus: StrategyBus
@@ -43,11 +44,16 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    this.bus.events$
+    this.strategySubscription?.unsubscribe()
+    this.strategySubscription = this.bus.events$
       .pipe(filter((event) => !event.strategyType || event.strategyType === this.strategyKey))
       .subscribe((evt) => {
         if (evt.type === 'UPSERT') {
-          this.upsert(evt.entry.instance)
+          try {
+            this.upsert(evt.entry.instance)
+          } catch (error) {
+            this.onRegistrationError(error)
+          }
         } else if (evt.type === 'REMOVE') {
           this.remove(evt.orgId, evt.pluginName)
         }
@@ -59,6 +65,16 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
       if (!instance) continue
       this.upsert(instance)
     }
+  }
+
+  onModuleDestroy() {
+    this.strategySubscription?.unsubscribe()
+    this.strategySubscription = undefined
+  }
+
+  /** Policy for rejected registrations delivered by the lifecycle bus. */
+  protected onRegistrationError(error: unknown): void {
+    throw error
   }
 
   upsert(instance: unknown) {
@@ -179,6 +195,15 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
     return scopeKeys
   }
 
+  /** Resolves a registered name in the effective scope, without requiring a match. */
+  findByName(type: string, organizationId?: string): S | undefined {
+    for (const scopeKey of this.resolveStrategyScopeKeys(organizationId)) {
+      const strategy = this.strategies.get(scopeKey)?.get(type)
+      if (strategy) return strategy
+    }
+    return undefined
+  }
+
   /**
    * Get strategy by type from the given organization including global strategies as fallback.
    *
@@ -187,10 +212,7 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
    * @returns
    */
   get(type: string, organizationId?: string): S {
-    organizationId ??= RequestContext.getOrganizationId()
-    const strategy = this.resolveStrategyScopeKeys(organizationId)
-      .map((scopeKey) => this.strategies.get(scopeKey)?.get(type))
-      .find((item): item is S => !!item)
+    const strategy = this.findByName(type, organizationId)
     if (!strategy) {
       throw new Error(`No strategy found for type '${type}' for strategy '${this.strategyKey}'`)
     }

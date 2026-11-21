@@ -22,6 +22,11 @@ export class XpertProjectPermissionGuard implements CanActivate {
             return true
         }
 
+        const projectId = context.switchToHttp().getRequest<{ params?: { id?: string } }>().params?.id
+        return this.assertPermission(permission, projectId)
+    }
+
+    async assertPermission(permission: AIPermissionsEnum, projectId?: string) {
         const user = RequestContext.currentUser()
         if (!user?.id || !user.tenantId) {
             throw new ForbiddenException(
@@ -29,7 +34,6 @@ export class XpertProjectPermissionGuard implements CanActivate {
             )
         }
 
-        const projectId = context.switchToHttp().getRequest<{ params?: { id?: string } }>().params?.id
         if (!projectId) {
             if (!RequestContext.hasPermissions([permission])) {
                 throw new ForbiddenException(

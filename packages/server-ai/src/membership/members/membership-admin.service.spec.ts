@@ -268,7 +268,8 @@ describe('MembershipService: admin', () => {
             save: jest.fn().mockImplementation(async (membership) => membership)
         }
         const manager = {
-            connection: { options: { type: 'sqlite' } },
+            connection: { options: { type: 'postgres' } },
+            query: jest.fn().mockResolvedValue([]),
             getRepository: jest.fn((entity) => (entity === UserMembership ? membershipRepository : {}))
         }
         const dataSource = {
@@ -300,6 +301,8 @@ describe('MembershipService: admin', () => {
             id: membership.id,
             status: MembershipStatusEnum.Expired
         })
+        expect(manager.query).toHaveBeenCalledWith("SELECT set_config('xpert.storage_member_removal', 'on', true)")
+        expect(manager.query).toHaveBeenLastCalledWith("SELECT set_config('xpert.storage_member_removal', 'off', true)")
         expect(membershipRepository.save).toHaveBeenCalledWith(membership)
         expect(createStatusLedger).toHaveBeenCalledWith(manager, membership, 'Organization membership removed')
         expect(membership.currentPeriodEnd.getTime()).toBeLessThanOrEqual(Date.now())

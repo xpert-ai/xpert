@@ -4,6 +4,7 @@ import { assertConversationMutationAccess } from '../../conversation-mutation-ac
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
 import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
+import { bindMessageWidgetEvent, MessageWidgetTextSegments } from '../../../chat-message/widgets/message-widget-stream'
 import { ProjectResourceCardService } from '../../../xpert-project/services/project-resource-card.service'
 import type { RuntimeResourceService } from '../../../agent-plugin/runtime-resource.service'
 import { resolveAssistantExecutionModel, supportsAssistantPrimaryModelSelection } from '../../assistant-execution-model'
@@ -845,7 +846,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             if (request.action !== 'retry') {
-                if (persistedPendingFollowUpGroup?.matched?.id) {
+                if (options.continuation?.sourceMessageId) {
+                    userMessage = conversation.messages.find(
+                        (m) => m.id === options.continuation?.sourceMessageId && m.role === 'human'
+                    )
+                    if (!options.once || !userMessage)
+                        throw new BadRequestException('Invalid conversation continuation')
+                } else if (persistedPendingFollowUpGroup?.matched?.id) {
                     // Pending follow-ups were already merged into graph state and
                     // marked consumed before the execution was created.
                 } else {
@@ -940,13 +947,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
 
             if (userMessage) runtimeInput = isRuntimeChatMessage(userMessage)
-            if (request.action === 'send' && userMessage) {
+            if (request.action === 'send' && userMessage && !options.continuation?.sourceMessageId) {
                 inputMessageId = userMessage.id
                 submittedUserMessage = userMessage
             }
             aiMessage = await this.commandBus.execute(
                 new ChatMessageUpsertCommand({
-                    parent: userMessage,
+                    parent: options.continuation?.sourceMessageId ? conversation.messages.at(-1) : userMessage,
                     role: 'ai',
                     content: ``,
                     executionId,
@@ -1152,6 +1159,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 let operation: TSensitiveOperation = null
                 let pendingSteerAssistantParentId: string | null = null
                 const messageAppendContextTracker = createMessageAppendContextTracker()
+                const widgetTextSegments = new MessageWidgetTextSegments()
                 concat(
                     agentObservable.pipe(
                         concatMap(async (event) => {
@@ -1190,7 +1198,24 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             })
                             if (resourceCardEvent) event = { ...event, data: resourceCardEvent }
 
+                            const widgetEvent = bindMessageWidgetEvent(event.data, {
+                                messageId: aiMessage.id,
+                                threadId: activeThreadId,
+                                executionId
+                            })
+                            if (widgetEvent) {
+                                widgetTextSegments.insert(widgetEvent.widgetReference)
+                                event = { ...event, data: widgetEvent }
+                            }
+
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
+                                event = {
+                                    ...event,
+                                    data: {
+                                        ...event.data,
+                                        data: widgetTextSegments.text(event.data.data, aiMessage.id)
+                                    }
+                                }
                                 const { messageContext } = messageAppendContextTracker.resolve({
                                     incoming: event.data.data,
                                     fallbackStreamId: aiMessage?.id ?? executionId
@@ -1203,13 +1228,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     messageContext
                                 )
                                 result = appendMessagePlainText(result, event.data.data, messageContext)
-                                if (resourceCardEvent)
+                                if (resourceCardEvent || widgetEvent)
                                     await this.commandBus
                                         .execute(new ChatMessageUpsertCommand(aiMessage))
                                         .catch((error) => {
                                             // The business mutation has already committed. Keep the receipt in memory for the final save.
                                             this.logger.error(
-                                                `Resource card persistence failed for reply ${aiMessage.id}`,
+                                                `Message card persistence failed for reply ${aiMessage.id}`,
                                                 error
                                             )
                                         })

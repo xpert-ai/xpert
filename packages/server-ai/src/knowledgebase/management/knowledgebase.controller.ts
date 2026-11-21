@@ -22,7 +22,7 @@ import {
     TransformInterceptor,
     UploadFileCommand,
     UUIDValidationPipe,
-    getFileAssetDestination,
+    requireFileAssetDestination,
     transformWhere
 } from '@xpert-ai/server-core'
 import { getErrorMessage, normalizeUploadedFileName } from '@xpert-ai/server-common'
@@ -412,10 +412,7 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
                 ]
             })
         )
-        const destination = getFileAssetDestination(asset, 'volume')
-        if (!destination || destination.status !== 'success') {
-            throw new InternalServerErrorException(destination?.error || 'Failed to upload knowledgebase file')
-        }
+        const destination = requireFileAssetDestination(asset, 'volume')
 
         return {
             url: destination.url,

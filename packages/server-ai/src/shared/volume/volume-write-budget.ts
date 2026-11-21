@@ -23,7 +23,7 @@ export function volumeBudgetResource(scope: VolumeScope): StorageBudgetResource 
     const owner = {
         tenantId: scope.tenantId,
         userId: scope.userId ?? RequestContext.currentUserId(),
-        organizationId: scope.organizationId
+        organizationId: scope.organizationId ?? RequestContext.getOrganizationId()
     }
     switch (scope.catalog) {
         case 'projects':
@@ -59,7 +59,14 @@ export function commandVolumeWriteBudget(commands: Pick<CommandBus, 'execute'>):
                 throw error
             })
             const growthBytes = bytes - (previous?.isFile() ? previous.size : 0)
-            await commands.execute(new CheckStorageQuotaCommand({ kind: 'write', scope: resource, growthBytes }))
+            await commands.execute(
+                new CheckStorageQuotaCommand({
+                    kind: 'write',
+                    scope: resource,
+                    growthBytes,
+                    root: ['environment', 'skills'].includes(scope.catalog) ? undefined : root
+                })
+            )
         }
         const result = await commit()
         if (bytes === null)

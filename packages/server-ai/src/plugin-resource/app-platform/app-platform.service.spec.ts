@@ -143,7 +143,7 @@ describe('App delivery account boundary and scheduling', () => {
                 refreshPending: true
             }
         })
-        expect(deliveries.find).toHaveBeenCalledWith({ where: { tenantId: 'tenant', userId: 'user' } })
+        expect(deliveries.find).toHaveBeenCalledWith({ where: { tenantId: 'tenant', organizationId: 'organization' } })
         expect(storage.snapshot).toHaveBeenCalledWith(row)
         expect(queue.add).not.toHaveBeenCalled()
         expect(deliveries.createQueryBuilder).not.toHaveBeenCalled()
@@ -157,6 +157,22 @@ describe('App delivery account boundary and scheduling', () => {
             expect(await service.storageForCurrentUser()).toEqual({ limitBytes: 2 * 1024 ** 3, snapshot: null })
         }
     )
+
+    it('uses the selected organization for a user belonging to multiple organizations', async () => {
+        deliveries.find.mockResolvedValue([row])
+        await service.storageForCurrentUser()
+        expect(memberships.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    tenantId: 'tenant',
+                    userId: 'user',
+                    organizationId: 'organization',
+                    isActive: true
+                })
+            })
+        )
+        expect(deliveries.find).toHaveBeenCalledWith({ where: { tenantId: 'tenant', organizationId: 'organization' } })
+    })
 
     it('does not provision an account when reading storage', async () => {
         deliveries.find.mockResolvedValue([])

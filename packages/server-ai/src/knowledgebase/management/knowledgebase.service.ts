@@ -1,3 +1,4 @@
+import { includeTenantLibrariesForSearch } from '../tenant-library/tenant-library-search'
 import {
     TenantLibraryAccessService,
     assertTenantLibraryAdministrator
@@ -353,6 +354,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         id: string | number | FindOneOptions<Knowledgebase>,
         options?: FindOneOptions<Knowledgebase>
     ): Promise<Knowledgebase> {
+        // Published tenant libraries are readable by enrolled application users too.
+        if (typeof id === 'string' && this.tenantLibraries) {
+            const shared = await this.tenantLibraries.find(id, options)
+            if (shared) return shared
+        }
         const managed = await appPlatformKnowledgeIds(this.repository.manager)
         if (managed) {
             const filter = typeof id === 'object' ? id : { ...options, where: { id: String(id) } }
@@ -369,10 +375,6 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             const resourceAuthorized = await this.resourceAccess.authorize(row.id, 'read')
             if (!resourceAuthorized && !managed.includes(row.id)) throw knowledgebaseAccessDenied()
             return row
-        }
-        if (typeof id === 'string' && this.tenantLibraries) {
-            const shared = await this.tenantLibraries.find(id, options)
-            if (shared) return shared
         }
         const result = await super.findOne(id, options)
         await this.resourceAccess?.authorize(result.id, 'read')
@@ -418,7 +420,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         }
         const { tenantId, organizationId } = scope
         const where = { tenantId, organizationId, id: ids ? In(ids) : Not(IsNull()) }
-        return this.findAll({ where }, purpose === 'retrieval' ? ids : undefined)
+        const result = await this.findAll({ where }, purpose === 'retrieval' ? ids : undefined)
+        return includeTenantLibrariesForSearch(result, ids, tenantId, this.tenantLibraries)
     }
 
     async findOneForSearch(

@@ -82,7 +82,8 @@ function App() {
         [nextSelection, setNextSelection] = useState<{ id: string | null } | null>(null)
     const [now, setNow] = useState(Date.now())
     const detailTrigger = useRef<HTMLElement | null>(null)
-    const loading = useRef(false),
+    const indexVersion = useRef<string | undefined>(undefined)
+    const loading = useRef<number | null>(null),
         generation = useRef(0)
     const detailDraft = useRef<DetailDraft | null>(null)
     const columns = useTaskColumns()
@@ -100,14 +101,42 @@ function App() {
         []
     )
     const load = useCallback(async () => {
-        if (loading.current) return
-        loading.current = true
+        if (loading.current !== null) return
         setRefreshing(true)
         const current = ++generation.current
+        loading.current = current
         try {
-            const response = await request('requestData', { query: avatarCache.current.query() })
+            const query = avatarCache.current.query()
+            const response = await request('requestData', {
+                query: pipelineSelected
+                    ? { parameters: { contractVersion: 2, resource: 'context' } }
+                    : { parameters: { ...query.parameters, knownVersion: indexVersion.current } }
+            })
             if (current !== generation.current) return
+            if (pipelineSelected) {
+                const context = z
+                    .object({
+                        item: z.object({
+                            projectId: z.string(),
+                            projectTitle: z.string().optional(),
+                            canEditPlan: z.boolean()
+                        })
+                    })
+                    .parse(response)
+                setGraph(
+                    (previous) =>
+                        previous ?? { ...context.item, tasks: [], executions: [], diagnostics: [], cursor: '' }
+                )
+                setError(null)
+                return
+            }
+            if (z.object({ notModified: z.literal(true) }).safeParse(response).success) {
+                setError(null)
+                setUpdatedAt(new Date().toISOString())
+                return
+            }
             const result = { item: avatarCache.current.read(response) }
+            indexVersion.current = result.item.cursor
             setGraph((previous) =>
                 previous?.cursor === result.item.cursor && previous.canEditPlan === result.item.canEditPlan
                     ? previous
@@ -118,13 +147,20 @@ function App() {
         } catch (error) {
             if (current === generation.current) setError(error instanceof Error ? error.message : String(error))
         } finally {
-            loading.current = false
-            setRefreshing(false)
+            if (loading.current === current) {
+                loading.current = null
+                setRefreshing(false)
+            }
         }
-    }, [])
+    }, [pipelineSelected])
     useEffect(() => {
         if (!ready || !visible) return
         void load()
+        if (pipelineSelected)
+            return () => {
+                generation.current++
+                loading.current = null
+            }
         const timer = window.setInterval(() => {
             setNow(Date.now())
             if (!document.hidden) void load()
@@ -137,10 +173,13 @@ function App() {
             window.clearInterval(timer)
             document.removeEventListener('visibilitychange', visibility)
             generation.current++
+            loading.current = null
         }
-    }, [ready, visible, load])
+    }, [ready, visible, load, pipelineSelected])
     const onGraph = (graph: Graph) => {
         generation.current++
+        indexVersion.current = undefined
+        loading.current = null
         setGraph(graph)
         setUpdatedAt(new Date().toISOString())
     }

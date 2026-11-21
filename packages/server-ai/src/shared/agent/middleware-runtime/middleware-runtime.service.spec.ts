@@ -401,7 +401,8 @@ describe('AgentMiddlewareRuntimeService', () => {
                     findAnomalies: jest.fn()
                 })
             },
-            { forView: jest.fn() }
+            { forView: jest.fn() },
+            { forTurn: jest.fn() }
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')

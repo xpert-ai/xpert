@@ -72,7 +72,11 @@ async function fixture() {
     const invocations: AgentInvocationEntity[] = []
     let committed = false
     const executionRepo = {
-        find: jest.fn(async () => rows),
+        find: jest.fn(async (options?: { where?: { taskId?: string } }) =>
+            rows
+                .filter((row) => !options?.where?.taskId || row.taskId === options.where.taskId)
+                .sort((a, b) => b.attempt - a.attempt)
+        ),
         create: jest.fn((value) => Object.assign(new XpertProjectTaskExecution(), value)),
         save: jest.fn(async (value: XpertProjectTaskExecution) => {
             rows.push(value)
@@ -138,7 +142,7 @@ async function fixture() {
     })
     const factory = {
         resolveInvocationIdentityScope: jest.fn(async (value: AgentInvocationScope) => ({ ...value })),
-        resolveBackgroundTarget: jest.fn(async () => target),
+        resolveBackgroundTarget: jest.fn(async (_scope: AgentInvocationScope, _bindingId: string) => target),
         resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
@@ -180,12 +184,139 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    function previousImplementation(f: Awaited<ReturnType<typeof fixture>>) {
+        const reviewer = { bindingId: randomUUID(), mode: 'execution' as const }
+        const previous = Object.assign(new XpertProjectTaskExecution(), {
+            id: randomUUID(),
+            taskId: f.task.id,
+            projectId: f.scope.projectId,
+            tenantId: f.scope.tenantId,
+            organizationId: f.scope.organizationId,
+            createdById: f.scope.userId,
+            attempt: 1,
+            status: 'failed',
+            dispatchRequestId: randomUUID(),
+            purpose: { type: 'implementation' as const, reviewer }
+        })
+        f.rows.push(previous)
+        return { previous, reviewer }
+    }
+
+    it('inherits and reauthorizes the assigned reviewer on a new attempt without changing replay input', async () => {
+        const f = await fixture()
+        const { reviewer } = previousImplementation(f)
+        const first = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId)
+        const row = f.rows.find((row) => row.id === first.taskExecutionId)
+        expect(row.purpose).toMatchObject({ type: 'implementation', reviewer })
+        expect(row.dispatchIntent.input).toEqual(f.input)
+        expect(row.dispatchIntent.request.input.prompt).toContain('independent reviewer is assigned')
+        const replay = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(replay.taskExecutionId).toBe(first.taskExecutionId)
+        expect(f.rows).toHaveLength(2)
+        expect(f.start.mock.calls[1][0]).toEqual(f.start.mock.calls[0][0])
+        expect(f.executionRepo.find).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    projectId: f.scope.projectId,
+                    taskId: f.task.id,
+                    tenantId: f.scope.tenantId,
+                    organizationId: f.scope.organizationId
+                }
+            })
+        )
+    })
+
+    it('rejects a revoked inherited reviewer before reserving or starting another attempt', async () => {
+        const f = await fixture()
+        const { reviewer } = previousImplementation(f)
+        f.factory.resolveBackgroundTarget.mockImplementation(async (_scope, bindingId) => {
+            if (bindingId === reviewer.bindingId) throw new Error('Reviewer revoked')
+            return f.target
+        })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow('Reviewer revoked')
+        expect(f.executionRepo.save).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+    })
+
+    it('reauthorizes a replay against its pinned reviewer even after a later assignment changes', async () => {
+        const f = await fixture()
+        const { previous, reviewer } = previousImplementation(f)
+        const first = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        const replacement = { bindingId: randomUUID(), mode: 'evidence_only' as const }
+        f.rows.push(
+            Object.assign(new XpertProjectTaskExecution(), previous, {
+                id: randomUUID(),
+                attempt: 3,
+                dispatchRequestId: randomUUID(),
+                purpose: { type: 'implementation', reviewer: replacement }
+            })
+        )
+        f.factory.resolveBackgroundTarget.mockClear()
+        const replay = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(replay.taskExecutionId).toBe(first.taskExecutionId)
+        expect(f.rows).toHaveLength(3)
+        expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId)
+        expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalledWith(f.scope, replacement.bindingId)
+        expect(f.start.mock.calls[1][0]).toEqual(f.start.mock.calls[0][0])
+
+        f.factory.resolveBackgroundTarget.mockImplementation(async (_scope, bindingId) => {
+            if (bindingId === reviewer.bindingId) throw new Error('Pinned reviewer revoked')
+            return f.target
+        })
+        const startsBeforeRevocation = f.start.mock.calls.length
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow(
+            'Pinned reviewer revoked'
+        )
+        expect(f.start).toHaveBeenCalledTimes(startsBeforeRevocation)
+        expect(f.rows).toHaveLength(3)
+    })
+
+    it('rejects an assignment changed during authorization rather than using the stale inherited reviewer', async () => {
+        const f = await fixture()
+        const { reviewer, previous } = previousImplementation(f)
+        f.factory.resolveBackgroundTarget.mockImplementation(async (_scope, bindingId) => {
+            if (bindingId === reviewer.bindingId)
+                f.rows.push(
+                    Object.assign(new XpertProjectTaskExecution(), previous, {
+                        id: randomUUID(),
+                        attempt: 2,
+                        dispatchRequestId: randomUUID()
+                    })
+                )
+            return f.target
+        })
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+        expect(f.executionRepo.save).not.toHaveBeenCalled()
+        expect(f.start).not.toHaveBeenCalled()
+    })
+
+    it('still accepts an explicitly reassigned and authorized reviewer', async () => {
+        const f = await fixture()
+        previousImplementation(f)
+        const reviewer = { bindingId: randomUUID(), mode: 'evidence_only' as const }
+        const result = await f.service.dispatch(
+            f.scope.projectId,
+            { ...f.input, purpose: { type: 'implementation', reviewer } },
+            f.caller
+        )
+        expect(f.rows.find((row) => row.id === result.taskExecutionId).purpose).toMatchObject({ reviewer })
+        expect(f.reviews.assertSupported).toHaveBeenCalledWith(f.target, 'evidence_only')
+    })
+
     it('preflights an assigned reviewer through the Runtime before implementation reservation', async () => {
         const f = await fixture()
         const reviewer = { bindingId: randomUUID(), mode: 'evidence_only' as const }
-        f.reviews.assertSupported.mockImplementation(() => { throw new Error('Reviewer not available') })
-        await expect(f.service.dispatch(f.scope.projectId, { ...f.input,
-            purpose: { type: 'implementation', reviewer } }, f.caller)).rejects.toThrow('Reviewer not available')
+        f.reviews.assertSupported.mockImplementation(() => {
+            throw new Error('Reviewer not available')
+        })
+        await expect(
+            f.service.dispatch(
+                f.scope.projectId,
+                { ...f.input, purpose: { type: 'implementation', reviewer } },
+                f.caller
+            )
+        ).rejects.toThrow('Reviewer not available')
         expect(f.factory.resolveBackgroundTarget).toHaveBeenCalledWith(f.scope, reviewer.bindingId)
         expect(f.reviews.assertSupported).toHaveBeenCalledWith(f.target, reviewer.mode)
         expect(f.executionRepo.save).not.toHaveBeenCalled()
@@ -196,8 +327,13 @@ describe('explicit Project task delegation', () => {
         const canonical = { ...f.scope, parentExecutionId: randomUUID() }
         f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
         f.start.mockImplementation(async (request) => ({
-            id: agentInvocationId(canonical, request.callId), scope: canonical, request,
-            revision: 1, status: 'running', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+            id: agentInvocationId(canonical, request.callId),
+            scope: canonical,
+            request,
+            revision: 1,
+            status: 'running',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         }))
         const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
         expect(result.invocationId).toBe(agentInvocationId(canonical, `project-task:${f.input.requestId}`))
@@ -207,26 +343,34 @@ describe('explicit Project task delegation', () => {
         expect(intent.invocationParentExecutionId).toBe(canonical.parentExecutionId)
         expect(f.rows[0].dispatchState).toBe('submitted')
     })
-    it.each(['id', 'scope', 'request'] as const)('refuses a returned %s mismatch instead of submitting an untraceable attempt', async (field) => {
-        const f = await fixture()
-        const original = f.start.getMockImplementation()
-        f.start.mockImplementation(async (request) => {
-            const result = await original(request)
-            if (field === 'id') return { ...result, id: randomUUID() }
-            if (field === 'scope') return { ...result, scope: { ...result.scope, parentExecutionId: randomUUID() } }
-            return { ...result, request: { ...result.request, input: { prompt: 'Different work' } } }
-        })
-        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
-        expect(f.rows[0].dispatchState).toBe('pending')
-    })
+    it.each(['id', 'scope', 'request'] as const)(
+        'refuses a returned %s mismatch instead of submitting an untraceable attempt',
+        async (field) => {
+            const f = await fixture()
+            const original = f.start.getMockImplementation()
+            f.start.mockImplementation(async (request) => {
+                const result = await original(request)
+                if (field === 'id') return { ...result, id: randomUUID() }
+                if (field === 'scope') return { ...result, scope: { ...result.scope, parentExecutionId: randomUUID() } }
+                return { ...result, request: { ...result.request, input: { prompt: 'Different work' } } }
+            })
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
+            expect(f.rows[0].dispatchState).toBe('pending')
+        }
+    )
     it('keeps a canonical unknown receipt after a resumed launch throws', async () => {
         const f = await fixture()
         const canonical = { ...f.scope, parentExecutionId: randomUUID() }
         f.factory.resolveInvocationIdentityScope.mockResolvedValue(canonical)
         f.start.mockImplementation(async (request) => {
             const invocation: AgentInvocation = {
-                id: agentInvocationId(canonical, request.callId), scope: canonical, request, revision: 1,
-                status: 'unknown', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+                id: agentInvocationId(canonical, request.callId),
+                scope: canonical,
+                request,
+                revision: 1,
+                status: 'unknown',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             }
             f.invocations[0] = Object.assign(new AgentInvocationEntity(), { id: invocation.id, invocation })
             throw new Error('Ambiguous external result')
@@ -588,19 +732,29 @@ describe('explicit Project task delegation', () => {
             expect(f.start).not.toHaveBeenCalled()
         }
     )
-    it.each(['queued', 'running'] as const)('lets a %s native Pipeline coordinator dispatch work without allowing a second runtime', async (status) => {
-        const f = await fixture()
-        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
-            id: randomUUID(), taskId: randomUUID(), status, agentExecutionId: f.caller.executionId,
-            task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' })
-        }))
-        const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
-        expect(result.status).toBe('running')
-        expect(f.executionRepo.find).toHaveBeenCalledWith(expect.objectContaining({ relations: ['task'] }))
-        expect(f.start).toHaveBeenCalledTimes(1)
-        await expect(f.service.dispatch(f.scope.projectId, { ...f.input, requestId: randomUUID() }, f.caller)).rejects.toThrow()
-        expect(f.start).toHaveBeenCalledTimes(1)
-    })
+    it.each(['queued', 'running'] as const)(
+        'lets a %s native Pipeline coordinator dispatch work without allowing a second runtime',
+        async (status) => {
+            const f = await fixture()
+            f.rows.push(
+                Object.assign(new XpertProjectTaskExecution(), {
+                    id: randomUUID(),
+                    taskId: randomUUID(),
+                    status,
+                    agentExecutionId: f.caller.executionId,
+                    task: Object.assign(new XpertProjectTask(), { controlKind: 'pipeline' })
+                })
+            )
+            const result = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            expect(result.status).toBe('running')
+            expect(f.executionRepo.find).toHaveBeenCalledWith(expect.objectContaining({ relations: ['task'] }))
+            expect(f.start).toHaveBeenCalledTimes(1)
+            await expect(
+                f.service.dispatch(f.scope.projectId, { ...f.input, requestId: randomUUID() }, f.caller)
+            ).rejects.toThrow()
+            expect(f.start).toHaveBeenCalledTimes(1)
+        }
+    )
     it.each([
         { controlKind: 'ordinary', agentExecutionId: randomUUID() },
         { controlKind: 'provider', agentExecutionId: randomUUID() },
@@ -608,10 +762,17 @@ describe('explicit Project task delegation', () => {
         { controlKind: undefined, agentExecutionId: randomUUID() }
     ] as const)('retains reservations without a confirmed native Pipeline coordinator (%j)', async (state) => {
         const f = await fixture()
-        f.rows.push(Object.assign(new XpertProjectTaskExecution(), {
-            id: randomUUID(), taskId: randomUUID(), status: 'running', agentExecutionId: state.agentExecutionId,
-            task: state.controlKind ? Object.assign(new XpertProjectTask(), { controlKind: state.controlKind }) : undefined
-        }))
+        f.rows.push(
+            Object.assign(new XpertProjectTaskExecution(), {
+                id: randomUUID(),
+                taskId: randomUUID(),
+                status: 'running',
+                agentExecutionId: state.agentExecutionId,
+                task: state.controlKind
+                    ? Object.assign(new XpertProjectTask(), { controlKind: state.controlKind })
+                    : undefined
+            })
+        )
         await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow()
         expect(f.start).not.toHaveBeenCalled()
     })

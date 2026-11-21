@@ -157,7 +157,7 @@ platform's durable completion delivery or supported bounded waiting mechanism.
 An observation timeout is not the execution's configured deadline. Inspect progress
 and remaining budget before deciding to cancel or re-dispatch; a useful build should
 continue in its existing execution. Ending the coordinator's turn to await durable
-delivery is different from ending or cancelling the Coding CLI task and its services.
+delivery is different from ending or cancelling one Coding execution; Project services follow the coordinator policy.
 On a completion event, reload persisted requirements and results, assess the
 evidence and continue the next appropriate task without another user message.
 When a Project dispatch registers durable result delivery to this conversation,
@@ -176,19 +176,24 @@ Cancellation is a request until termination is confirmed. Preserve the attempt
 and narrow the rework task using its concrete failure or missing deliverable;
 do not silently relaunch concurrent writers or implement the missing code yourself.
 
-The Coding CLI starts, checks and stops development services with the project's own
-commands. For Xpert, use `tools/local-environment/cli.py`, prepare with
-`--supervisor-mode detached`, then use start/status/logs/restart/stop. Give the CLI
-the checkout and skill paths. It may use ordinary background processes or its
-shell/session facilities while working; services need not outlive the task.
-Before independent review or a resumed attempt, check the original instance and
-start it again when needed, preserving its source, package, database and credentials.
-Save startup commands, paths, logs and test evidence; a stopped process after task
-completion is not by itself a failed candidate. Stop services when finished and
-respect cancellation cleanup. The host supplies Computer access and resource limits.
-`sandbox_service_start` is a host Assistant tool, not a CLI command or prerequisite
-for this flow. Do not change CLIs or seek a persistent host owner just to keep a
-development service alive between tasks.
+The Coding CLI operates development services using project commands and the
+Computer-local `computer-service` capability when available. The main Assistant
+decides lifecycle timing from Project configuration and remaining work. In
+`serviceLifecycle=coordinator` mode (the Coding Project default), tell each CLI
+task to inspect/reuse existing services, start only missing ones, and preserve
+them for independent review, rework and pending human acceptance. A task ending
+is not a shutdown instruction. Return service names, endpoints, generation,
+PID/startTime and readiness receipts. Use `computer_project_services` when
+available to inspect the current Project without launching anything.
+
+When no work or human acceptance still needs the services, explicitly delegate
+final shutdown and verify its receipt. In `serviceLifecycle=task` mode, stop only
+that task's exclusive services. Application-specific startup knowledge belongs
+in the selected project's scripts and installed skills. Ordinary session children
+still end with the Coding execution; without the local manager, report this
+limitation instead of promising persistence. Host tools such as
+`sandbox_service_start` are not CLI commands. Retain the existing source, package,
+database, configuration and caches whenever a stopped service needs recovery.
 
 ## Recovery and evidence
 

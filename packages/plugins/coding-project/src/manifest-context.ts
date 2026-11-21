@@ -1,6 +1,8 @@
 // Stage identities come from the host. The CLI reads exact bytes instead of
 // relying on a coordinating model to transcribe IDs into a second prompt.
 import { createHash } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
+import { canonical } from './constants'
 import {
   ProjectFilesRuntimeCapability,
   type ProjectPipelineAssistantContext,
@@ -19,7 +21,8 @@ export async function prepareManifestContext(
 ) {
   const files = capabilities.require(ProjectFilesRuntimeCapability)
   const path = manifestContextPath(context.work.operationId)
-  const buffer = Buffer.from(JSON.stringify({ version: 1, phase, work: context.work }, null, 2) + '\n')
+  const identity = { version: 1, phase, work: context.work }
+  const buffer = Buffer.from(canonical(identity) + '\n')
   const sha256 = createHash('sha256').update(buffer).digest('hex')
   await files.mkdir({ ...context, path: `.coding-delivery/stages/${context.work.operationId}` })
   try {
@@ -36,7 +39,16 @@ export async function prepareManifestContext(
     )
       throw error
     const existing = await files.read({ ...context, path })
-    if (existing.sha256 !== sha256) throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+    if (existing.sha256 === sha256) return { path, sha256 }
+    // Older files retain their original bytes and digest across JSONB/schema round trips.
+    let stored: unknown
+    try {
+      stored = JSON.parse(existing.buffer.toString('utf8'))
+    } catch {
+      throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+    }
+    if (!isDeepStrictEqual(stored, identity)) throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+    return { path, sha256: existing.sha256 }
   }
   return { path, sha256 }
 }

@@ -1,3 +1,5 @@
+import { appendMessageWidgets, usesRuntimePresentation } from './runtime-presentation'
+import { MessageWidgets } from '../chat-message/widgets/message-widgets'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
@@ -139,7 +141,8 @@ export class ConversationsController {
         private readonly xpertService: XpertService,
         @Optional() private readonly projectService?: XpertProjectService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly agentRunsService?: ConversationAgentRunsService
+        @Optional() private readonly agentRunsService?: ConversationAgentRunsService,
+        @Optional() private readonly widgets?: MessageWidgets
     ) {}
 
     @Post()
@@ -444,6 +447,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
+        await this.attachWidgets(conversation.threadId, items, result.items)
         return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
@@ -495,6 +499,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
+        await this.attachWidgets(requestedThreadId || conversation.threadId, items, result.items)
         return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
@@ -535,14 +540,19 @@ export class ConversationsController {
     @Get(':conversation_id/messages/:message_id')
     async getMessage(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
-        @Param('message_id', UUIDValidationPipe) messageId: string
+        @Param('message_id', UUIDValidationPipe) messageId: string,
+        @Query('threadId') threadId?: string
     ) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
             where: { conversationId, messageEnvelope: visibleChatMessage() },
             relations: ['attachments', 'fileAssets']
         })
-        return new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(message, conversation.id))
+        const dto = new ChatMessageDTO(
+            await this.messageService.filterAuthorizedFileRelations(message, conversation.id)
+        )
+        await this.attachWidgets(threadId || conversation.threadId, [dto], [message])
+        return dto
     }
 
     @Patch(':conversation_id/messages/:message_id')
@@ -685,6 +695,20 @@ export class ConversationsController {
         await this.ensureMessage(conversationId, messageId, 'contribute')
         await this.feedbackService.findOneInOrganizationOrTenant(feedbackId, { where: { conversationId, messageId } })
         await this.feedbackService.delete(feedbackId)
+    }
+
+    private async attachWidgets(threadId: string | undefined, items: ChatMessageDTO[], source: IChatMessage[]) {
+        if (!threadId || !this.widgets) return
+        const replies = items.filter((item) => item.role === 'ai' || item.role === 'assistant')
+        const restricted = usesRuntimePresentation()
+        const cards = await this.widgets.resolve(
+            threadId,
+            replies.map((item) => item.id),
+            restricted
+        )
+        const content = new Map(source.map((item) => [item.id, item.content]))
+        for (const reply of replies)
+            reply.content = appendMessageWidgets(content.get(reply.id), reply.id, cards, restricted)
     }
 
     private async withAgentRuns(conversation: IChatConversation, items: ChatMessageDTO[]) {

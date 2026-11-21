@@ -14,6 +14,41 @@ import { getChannelState } from '../../agent'
 describe('checkpointed agent input consumption', () => {
     afterEach(() => jest.restoreAllMocks())
 
+    it.each([
+        [true, false],
+        [false, false],
+        [true, true]
+    ])(
+        'stages a continuation with the original request exactly once (previous=%s, disableHistory=%s)',
+        async (inHistory, disableMessageHistory) => {
+            const fixture = createInputGraphFixture({ disableMessageHistory })
+            const graph = await fixture.compile({})
+            const task = 'Complete the requested work'
+            const continuation = {
+                sourceMessageId: 'source',
+                confirmation: {
+                    name: 'context_confirmation',
+                    content: 'The required context is ready. Continue the request.'
+                }
+            }
+            if (inHistory) await graph.invoke({ ...input(task), inputIdentity: { id: 'source' } }, config)
+            await graph.invoke(
+                {
+                    ...input(task),
+                    inputIdentity: {
+                        id: 'continuation',
+                        continuation
+                    }
+                },
+                config
+            )
+            const messages = humanMessages(fixture.requests.at(-1))
+            expect(messages.filter((message) => message.content === task)).toHaveLength(1)
+            expect(messages.at(-1)).toMatchObject(continuation.confirmation)
+            await graph.invoke({ ...input('What next?'), inputIdentity: { id: 'next' } }, config)
+            expect(humanMessages(fixture.requests.at(-1)).at(-1).content).toBe('What next?')
+        }
+    )
     it.each([false, true])(
         'sends a new repeated greeting after a paused tool result (beforeModel=%s)',
         async (beforeModel) => {

@@ -10,3 +10,10 @@ export * from './types'
 export * from './strategy-bus'
 export * from './webhook'
 export * from './runtime-capability'
+export * from './named-provider.registry'
+export {
+  assertPluginRegistrationOwner,
+  definePluginRegistration,
+  readPluginProviderRegistrations,
+  type PluginProviderRegistration
+} from './provider-registration'

@@ -55,6 +55,19 @@ it('renders configured labels/icons and inline controls while keeping node and l
                 projection: { key: 'route', kind: 'router', title: 'Route', laneKey: null, stageKey: 'check', state }
             },
             {
+                id: 'human',
+                taskIds: [],
+                executionIds: [],
+                projection: {
+                    key: 'human',
+                    kind: 'human_gate',
+                    title: 'Approve',
+                    laneKey: 'role',
+                    stageKey: 'check',
+                    state
+                }
+            },
+            {
                 id: 'finish',
                 taskIds: ['task'],
                 executionIds: [],
@@ -63,7 +76,8 @@ it('renders configured labels/icons and inline controls while keeping node and l
         ],
         edges: [
             { key: 'check-route', from: 'check', to: 'route', selection: 'selected' },
-            { key: 'edge', from: 'route', to: 'finish', label: '满足配置中的审核条件后继续', selection: 'selected' }
+            { key: 'edge', from: 'route', to: 'human', label: '满足配置中的审核条件后继续', selection: 'selected' },
+            { key: 'human-finish', from: 'human', to: 'finish', selection: 'selected' }
         ],
         tasks: {
             tasks: [{ id: 'task', title: 'Review item' }],
@@ -97,7 +111,8 @@ it('renders configured labels/icons and inline controls while keeping node and l
         )
         expect(container.querySelectorAll('svg.lucide-code')).toHaveLength(2)
         expect(container.querySelectorAll('svg.lucide-shield-check')).toHaveLength(2)
-        expect(container.textContent).toContain('Configured check')
+        expect(container.querySelectorAll('[role="group"][aria-label="Configured check"]')).toHaveLength(1)
+        expect(container.querySelectorAll('[role="group"][aria-label="人工确认 / 批准"]')).toHaveLength(1)
         expect(container.querySelector('[role="group"][aria-label="Route"]')?.textContent).toBe('Route')
         const condition = container.querySelector('svg text')!
         expect([...condition.querySelectorAll('tspan')].map((line) => line.textContent).join('')).toBe(

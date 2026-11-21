@@ -6,7 +6,7 @@ import {
     ApiKeyOrClientSecretAuthGuard,
     Public,
     UploadFileCommand,
-    getFileAssetDestination,
+    requireFileAssetDestination,
     getStorageFileFromAsset,
     StorageFileService,
     TransformInterceptor
@@ -138,12 +138,7 @@ export class ContextsController {
             })
         )
 
-        const destination = getFileAssetDestination(asset, target.kind)
-        if (!destination || destination.status !== 'success') {
-            throw new BadRequestException(
-                destination?.error || `Failed to upload context file to target '${target.kind}'`
-            )
-        }
+        const destination = requireFileAssetDestination(asset, target.kind)
 
         if (target.kind === 'storage') {
             const storageFile = getStorageFileFromAsset(asset)

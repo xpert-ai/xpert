@@ -6,6 +6,8 @@ jest.mock('../../../@core', () => ({
     CLAWXPERT: 'clawxpert'
   },
   AssistantBindingService: class AssistantBindingService {},
+  XpertAPIService: class XpertAPIService {},
+  XpertTypeEnum: { Agent: 'agent' },
   ChatConversationService: class ChatConversationService {},
   Store: class Store {},
   OrderTypeEnum: {
@@ -32,7 +34,13 @@ import { BehaviorSubject, Subject, of, throwError } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
-import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../../@core'
+import {
+  XpertAPIService,
+  AssistantBindingService,
+  ChatConversationService,
+  IChatConversation,
+  Store
+} from '../../../@core'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { XpertWorkbenchFacade } from './xpert-workbench.facade'
 import type { ConversationEntryResolution } from './conversation-entry.resolver'
@@ -48,7 +56,10 @@ describe('XpertWorkbenchFacade', () => {
   let store: {
     organizationId: string | null
     selectOrganizationId: jest.Mock
+    activeScope: { level: 'tenant' } | { level: 'organization'; organizationId: string }
+    selectActiveScope: jest.Mock
   }
+  let xpertService: { getMyAll: jest.Mock }
   let assistantBindingService: {
     getAvailableXperts: jest.Mock
   }
@@ -79,6 +90,8 @@ describe('XpertWorkbenchFacade', () => {
     }
     store = {
       organizationId: 'org-1',
+      activeScope: { level: 'organization', organizationId: 'org-1' },
+      selectActiveScope: jest.fn(() => of(store.activeScope)),
       selectOrganizationId: jest.fn(() => of('org-1'))
     }
     assistantBindingService = {
@@ -99,6 +112,9 @@ describe('XpertWorkbenchFacade', () => {
         ])
       )
     }
+    xpertService = {
+      getMyAll: jest.fn(() => of({ items: [{ id: 'xpert-1', slug: 'sales', latest: true }], total: 1 }))
+    }
     conversationService = {
       getByThreadId: jest.fn(),
       findAllByXpert: jest.fn(() => of({ items: [] as IChatConversation[] }))
@@ -115,6 +131,7 @@ describe('XpertWorkbenchFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         XpertWorkbenchFacade,
+        { provide: XpertAPIService, useValue: xpertService },
         { provide: ActivatedRoute, useValue: { data: routeData, snapshot: { data: routeData.value } } },
         {
           provide: Router,
@@ -155,6 +172,7 @@ describe('XpertWorkbenchFacade', () => {
     await settle()
 
     expect(assistantBindingService.getAvailableXperts).toHaveBeenCalled()
+    expect(xpertService.getMyAll).not.toHaveBeenCalled()
     expect(facade.viewState()).toBe('ready')
     expect(facade.xpertId()).toBe('xpert-1')
     expect(facade.assistantId()).toBe('xpert-1')
@@ -164,6 +182,42 @@ describe('XpertWorkbenchFacade', () => {
     expect(projectApi.access).not.toHaveBeenCalled()
     expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
     expect(facade.defaultViewKey()).toBe('provider__metrics')
+  })
+
+  it('loads a tenant Assistant in explicit tenant scope without an organization binding', async () => {
+    store.organizationId = null
+    store.activeScope = { level: 'tenant' }
+    store.selectOrganizationId.mockReturnValue(of(null))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('ready')
+    expect(facade.assistantId()).toBe('xpert-1')
+    expect(xpertService.getMyAll).toHaveBeenCalledWith({
+      where: { type: 'agent', latest: true },
+      order: { createdAt: 'DESC' }
+    })
+    expect(projectApi.access).not.toHaveBeenCalled()
+    expect(assistantBindingService.getAvailableXperts).not.toHaveBeenCalled()
+  })
+
+  it('does not interpret a missing organization as permission to use tenant scope', async () => {
+    store.organizationId = null
+    store.selectOrganizationId.mockReturnValue(of(null))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('organization-required')
+    expect(xpertService.getMyAll).not.toHaveBeenCalled()
+  })
+
+  it('keeps unavailable tenant Assistants blocked by the server-accessible list', async () => {
+    store.organizationId = null
+    store.activeScope = { level: 'tenant' }
+    store.selectOrganizationId.mockReturnValue(of(null))
+    xpertService.getMyAll.mockReturnValue(of({ items: [], total: 0 }))
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('error')
+    expect(facade.assistantId()).toBeNull()
   })
 
   function navigateEntry(entry: ConversationEntryResolution) {
@@ -296,21 +350,24 @@ describe('XpertWorkbenchFacade', () => {
     })
   })
 
-  it('defaults an opted-in Assistant to automatic creation without looking up a previous Project', async () => {
+  it.each([
+    ['project-required', 'auto-new'],
+    ['project-preferred', 'none']
+  ] as const)('defaults %s to %s without looking up a previous Project', async (scope, selection) => {
     assistantBindingService.getAvailableXperts.mockReturnValue(
       of([
         {
           id: 'xpert-1',
           slug: 'sales',
           latest: true,
-          options: { workspaceScope: { mode: 'project-required', onMissing: 'create' } }
+          options: { workspaceScope: { mode: scope, onMissing: 'create' } }
         }
       ])
     )
     const facade = TestBed.inject(XpertWorkbenchFacade)
     await settle()
     await facade.ensureConversationEntry(createMockChatKitControl())
-    expect(facade.chatkitProjectSelection()).toEqual({ mode: 'auto-new' })
+    expect(facade.chatkitProjectSelection()).toEqual({ mode: selection })
     expect(facade.chatkitMountProjectId()).toBeNull()
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
   })
@@ -401,6 +458,47 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.identity()).toBe(identity)
     expect(facade.suppressAutoResume()).toBe(false)
     expect(tabs()[0]).toMatchObject({ projectScope: { projectId: 'project-1' } })
+  })
+
+  it('shares the pending navigation when move confirmation and history refresh the same thread', async () => {
+    router.url = '/chat/x/sales/c/thread-1'
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    const conversation = { id: 'conversation-1', threadId: 'thread-1', projectId: 'project-1', xpertId: 'xpert-1' }
+    conversationService.getByThreadId.mockReturnValue(of(conversation))
+    let finishNavigation!: (opened: boolean) => void
+    router.navigate.mockReturnValue(new Promise<boolean>((resolve) => (finishNavigation = resolve)))
+    const completed = jest.fn()
+    const confirmation = facade.syncConversationProject('thread-1').then(completed)
+    const historyRefresh = facade.syncConversationProject('thread-1', conversation).then(completed)
+    await settle()
+    expect(router.navigate).toHaveBeenCalledTimes(1)
+    expect(conversationService.getByThreadId).toHaveBeenCalledTimes(1)
+    expect(completed).not.toHaveBeenCalled()
+    setRoute('/chat/x/sales/p/project-1/c/thread-1')
+    finishNavigation(true)
+    await Promise.all([confirmation, historyRefresh])
+    expect(completed).toHaveBeenCalledTimes(2)
+    expect(facade.threadId()).toBe('thread-1')
+    expect(facade.chatkitMountProjectId()).toBeNull()
+    expect(facade.chatkitProjectSelection()).toEqual({ mode: 'none' })
+  })
+
+  it('keeps the newer adoption when an older project navigation is cancelled', async () => {
+    router.url = '/chat/x/sales/c/thread-1'
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    let cancelFirst!: (opened: boolean) => void
+    router.navigate.mockReturnValueOnce(new Promise<boolean>((resolve) => (cancelFirst = resolve)))
+    const conversation = { id: 'conversation-1', threadId: 'thread-1', xpertId: 'xpert-1' }
+    const first = facade.syncConversationProject('thread-1', { ...conversation, projectId: 'project-1' })
+    const second = facade.syncConversationProject('thread-1', { ...conversation, projectId: 'project-2' })
+    setRoute('/chat/x/sales/p/project-2/c/thread-1')
+    cancelFirst(false)
+    await Promise.all([first, second])
+    expect(router.navigate).toHaveBeenCalledTimes(2)
+    expect(facade.chatkitMountProjectId()).toBeNull()
+    expect(facade.chatkitProjectSelection()).toEqual({ mode: 'none' })
   })
 
   it('ignores late project lookups after the user switches conversations', async () => {

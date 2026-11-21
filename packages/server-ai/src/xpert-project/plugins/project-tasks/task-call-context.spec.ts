@@ -56,12 +56,16 @@ it('retains an acknowledged dispatch receipt and exact reread pointers without i
         user = new HumanMessage('Keep the acceptance scope unchanged.')
     const before = JSON.stringify([call.toDict(), reply.toDict()])
     const projected = projectTaskCallReceipts([user, call, reply], projectId)
-    expect(projected).toHaveLength(2)
+    expect(projected).toHaveLength(3)
     expect(projected[0]).toBe(user)
-    expect(projected[1].content).toContain('not successful execution or acceptance')
-    expect(projected[1].content).toContain(executionId)
-    expect(projected[1].content).toContain('"source":"prompt"')
-    expect(JSON.stringify(projected).length).toBeLessThan(1600)
+    expect(projected[1]).toBeInstanceOf(AIMessage)
+    expect(projected[1].content).toBe('')
+    expect((projected[1] as AIMessage).tool_calls[0]).toMatchObject({ id: 'call', name: 'project_dispatch_task' })
+    expect(projected[2]).toBeInstanceOf(ToolMessage)
+    expect((projected[2] as ToolMessage).tool_call_id).toBe('call')
+    expect(projected[2].content).toContain(executionId)
+    expect(projected[2].content).toContain('"source":"prompt"')
+    expect(JSON.stringify(projected.map((message) => message.toDict())).length).toBeLessThan(1600)
     expect(JSON.stringify([call.toDict(), reply.toDict()])).toBe(before)
     expect(projectTaskCallReceipts(projected, projectId)).toEqual(projected)
 })
@@ -74,7 +78,6 @@ it('preserves negative findings, unknown tool output, pending calls, foreign sco
             call,
             new ToolMessage({ content: 'Uncertain outcome', tool_call_id: 'call', name: reply.name, status: 'success' })
         ],
-        [new AIMessage({ content: 'Important finding', tool_calls: call.tool_calls }), reply],
         [
             new AIMessage({
                 content: '',
@@ -89,6 +92,16 @@ it('preserves negative findings, unknown tool output, pending calls, foreign sco
     }
     expect(projectTaskCallReceipts([call, reply], taskId)).toEqual([call, reply])
 })
+it('keeps the coordinator narrative while compacting its already acknowledged delegation arguments', () => {
+    const { call, reply } = pair()
+    const narrative = new AIMessage({ content: 'A required operation is still failing.', tool_calls: call.tool_calls })
+    const result = projectTaskCallReceipts([narrative, reply], projectId)
+    expect(result).toHaveLength(2)
+    expect(result[0].content).toContain('A required operation is still failing.')
+    expect(result[1].content).toContain(executionId)
+    expect(JSON.stringify(result)).not.toContain('requirementsrequirements')
+    expect(narrative.tool_calls).toEqual(call.tool_calls)
+})
 it('preserves created requirements in the receipt, including a negative constraint', () => {
     const call = new AIMessage({
         content: '',
@@ -96,7 +109,7 @@ it('preserves created requirements in the receipt, including a negative constrai
             {
                 id: 'create',
                 name: 'project_create_tasks',
-                args: { tasks: [{ requirements: ['No host deployment', 'r'.repeat(2000)] }] }
+                args: { tasks: [{ name: 'Example task', requirements: ['No host deployment', 'r'.repeat(2000)] }] }
             }
         ]
     })
@@ -108,7 +121,7 @@ it('preserves created requirements in the receipt, including a negative constrai
             tasks: [{ id: taskId, projectId, requirements: ['No host deployment', 'r'.repeat(2000)] }]
         })
     })
-    expect(String(projectTaskCallReceipts([call, reply], projectId)[0].content)).toContain('No host deployment')
+    expect(String(projectTaskCallReceipts([call, reply], projectId)[1].content)).toContain('No host deployment')
     const latest = new ToolMessage({
         name: 'project_get_task',
         tool_call_id: 'read',
@@ -116,7 +129,7 @@ it('preserves created requirements in the receipt, including a negative constrai
         content: JSON.stringify({ id: taskId, projectId, requirements: ['No host deployment', 'r'.repeat(2000)] })
     })
     const projected = projectTaskCallReceipts([call, reply, latest], projectId)
-    expect(String(projected[0].content)).toContain('requirementsSource')
+    expect(String(projected[1].content)).toContain('requirementsSource')
     expect(projected.at(-1)).toBe(latest)
     const changed = new ToolMessage({
         name: 'project_get_task',
@@ -124,7 +137,7 @@ it('preserves created requirements in the receipt, including a negative constrai
         status: 'success',
         content: JSON.stringify({ id: taskId, projectId, requirements: ['Changed scope'] })
     })
-    expect(String(projectTaskCallReceipts([call, reply, changed], projectId)[0].content)).toContain(
+    expect(String(projectTaskCallReceipts([call, reply, changed], projectId)[1].content)).toContain(
         'No host deployment'
     )
 })

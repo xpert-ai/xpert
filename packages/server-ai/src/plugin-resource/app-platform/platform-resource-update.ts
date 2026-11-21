@@ -1,5 +1,25 @@
 import { AppPlatformConfiguration } from '@xpert-ai/contracts'
+import { createHash } from 'node:crypto'
 import { platformFailure } from './platform-error'
+
+/** App upgrades may increase base storage, but reducing an existing account grant
+ * requires an explicit capacity operation. Keep the shared deployment config immutable. */
+export function platformConfigurationForUpgrade(previous: AppPlatformConfiguration, next: AppPlatformConfiguration) {
+    const plan = previous.definition.entitlements.defaultPlanRef
+    if (plan !== next.definition.entitlements.defaultPlanRef) return next
+    const granted = previous.environment.plans[plan].maxStorageBytes
+    if (granted <= next.environment.plans[plan].maxStorageBytes) return next
+    const environment = {
+        ...next.environment,
+        plans: {
+            ...next.environment.plans,
+            [plan]: { ...next.environment.plans[plan], maxStorageBytes: granted }
+        }
+    }
+    const definition = next.definition
+    const digest = createHash('sha256').update(JSON.stringify({ definition, environment })).digest('hex')
+    return { definition, environment, digest }
+}
 
 /** Index/model and shared-resource replacement require an explicit resource migration.
  * Reject before adopting a snapshot rather than reporting unapplied settings as ready. */

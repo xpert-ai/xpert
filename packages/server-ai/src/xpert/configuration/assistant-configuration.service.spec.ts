@@ -39,6 +39,8 @@ import {
 } from '../../xpert-template/capabilities/builtin-capabilities'
 import { SandboxService } from '../../sandbox/sandbox.service'
 import { REQUEST_USER_INPUT_MIDDLEWARE_NAME } from '../../shared/agent/user-input'
+import { PROJECT_CAPABILITY, ProjectCapabilityProvider } from '../../xpert-project/plugins/project/project.capability'
+import { ProjectTasksCapabilityProvider } from '../../xpert-project/plugins/project-tasks/project-tasks.capability'
 
 function fixture(
     providers: IAssistantCapabilityProvider[] | ((catalog: RealtimeModelCatalog) => IAssistantCapabilityProvider[]) = []
@@ -95,6 +97,42 @@ function fixture(
 const language = LanguagesEnum.English
 const settings = { prompt: 'Answer concisely.', modelId: 'provider/llm', capabilities: [] }
 describe('Assistant configuration authoring', () => {
+    it('toggles project management independently while retaining the shared selector for project tasks', async () => {
+        const { service, entity } = fixture([new ProjectCapabilityProvider(), new ProjectTasksCapabilityProvider()])
+        primaryAgent(entity.draft).entity.prompt = 'User instructions'
+        for (const selection of [
+            [PROJECT_CAPABILITY],
+            [PROJECT_CAPABILITY, 'project-tasks'],
+            ['project-tasks'],
+            [PROJECT_CAPABILITY],
+            []
+        ]) {
+            const setup = await service.getCapabilities('expert', language)
+            expect(setup.options).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ key: PROJECT_CAPABILITY, required: false, available: true }),
+                    expect.objectContaining({ key: 'project-tasks', required: false, available: true })
+                ])
+            )
+            entity.draft = await service.previewCapabilities('expert', language, {
+                revision: setup.revision,
+                capabilities: selection
+            })
+            expect((await service.getCapabilities('expert', language)).selected).toEqual(selection)
+            const selectors = entity.draft.nodes.filter(
+                (node) =>
+                    node.type === 'workflow' &&
+                    'provider' in node.entity &&
+                    node.entity.provider === 'ProjectMiddleware'
+            )
+            expect(selectors).toHaveLength(selection.length ? 1 : 0)
+            expect(hasAssistantMiddleware(entity.draft, 'project-tasks')).toBe(selection.includes('project-tasks'))
+        }
+        expect(primaryAgent(entity.draft).entity.prompt).toBe('User instructions')
+        expect(entity.draft.nodes).toHaveLength(1)
+        expect(entity.draft.connections).toEqual([])
+    })
+
     it('updates the primary prompt and model, preserves the graph and publishes a version', async () => {
         const { service, xperts, entity } = fixture()
         entity.draft.team.copilotModel = {

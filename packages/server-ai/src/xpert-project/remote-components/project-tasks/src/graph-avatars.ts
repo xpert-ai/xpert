@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { graphSchema, nodeSchema } from './bridge'
 
 const responseSchema = z.object({
+    version: z.string().optional(),
     item: graphSchema,
     avatars: z.record(z.string(), nodeSchema.shape.assigneeAvatar).optional(),
     avatarRefs: z.record(z.string(), z.string()).optional()
@@ -10,10 +11,17 @@ const responseSchema = z.object({
 export class GraphAvatarCache {
     private avatars = new Map<string, z.infer<typeof nodeSchema.shape.assigneeAvatar>>()
     query() {
-        return { parameters: { compactAvatars: true, avatarVersions: [...this.avatars.keys()].slice(0, 128) } }
+        return {
+            parameters: {
+                contractVersion: 2,
+                resource: 'task-index',
+                compactAvatars: true,
+                avatarVersions: [...this.avatars.keys()].slice(0, 128)
+            }
+        }
     }
     read(response: unknown) {
-        const { item, avatars, avatarRefs } = responseSchema.parse(response)
+        const { item, avatars, avatarRefs, version } = responseSchema.parse(response)
         const next = new Map<string, z.infer<typeof nodeSchema.shape.assigneeAvatar>>()
         const tasks = item.tasks.map((task) => {
             const version = avatarRefs?.[task.id]
@@ -24,6 +32,6 @@ export class GraphAvatarCache {
             return { ...task, assigneeAvatar: avatar }
         })
         this.avatars = next
-        return { ...item, tasks }
+        return { ...item, cursor: version ?? item.cursor, tasks }
     }
 }

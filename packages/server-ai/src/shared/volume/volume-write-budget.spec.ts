@@ -49,6 +49,7 @@ describe('Volume storage budget integration', () => {
         expect(writes[0]).toEqual({
             kind: 'write',
             scope: { tenantId: 'tenant', userId: 'user', organizationId: 'org', kind: 'project', id: 'project' },
+            root,
             growthBytes: 6
         })
         reject = true

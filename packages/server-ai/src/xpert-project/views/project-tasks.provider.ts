@@ -1,3 +1,6 @@
+import { executionSummaryDto, taskIndexDto } from './task-data/task-view.dto'
+import { projectTaskDecisionToolInputSchema, projectTaskViewQuerySchema } from '@xpert-ai/contracts'
+import { readTaskView } from './task-data/task-view.reader'
 import { projectTaskPlanSchema } from '../project-task-plan.schema'
 import { compactTaskAvatars } from './project-task-avatars'
 import { projectRemoteEntry } from './project-remote-entry'
@@ -109,6 +112,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                         'task-detail',
                         'workspace-target',
                         'decide-task',
+                        'decide-task-reference',
                         'cancel-attempt',
                         'request-check',
                         'pipeline-list',
@@ -156,6 +160,10 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         }
     }
     async getViewData(context: XpertResolvedViewHostContext, _viewKey?: string, query?: XpertViewQuery) {
+        if (query?.parameters?.contractVersion !== undefined) {
+            const input = projectTaskViewQuerySchema.parse(query.parameters)
+            return readTaskView(this.tasks, this.runtime, this.context(context), input)
+        }
         const graph = await this.tasks.graph(this.context(context))
         if (query?.parameters?.compactAvatars !== true) return { item: graph }
         const versions = z
@@ -287,12 +295,30 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         }
         if (actionKey === 'pipeline-graph') {
             const input = z
-                .object({ instanceId: z.string().uuid(), roundId: z.string().uuid().optional() })
+                .object({
+                    instanceId: z.string().uuid(),
+                    roundId: z.string().uuid().optional(),
+                    contractVersion: z.literal(2).optional()
+                })
                 .strict()
                 .parse(request.input)
+            const graph = await this.pipelines.graph(this.context(context), input.instanceId, {
+                roundId: input.roundId,
+                ...(input.contractVersion === 2 ? { compact: true } : {})
+            })
             return {
                 success: true,
-                data: await this.pipelines.graph(this.context(context), input.instanceId, { roundId: input.roundId })
+                data:
+                    input.contractVersion === 2
+                        ? {
+                              ...graph,
+                              tasks: {
+                                  ...graph.tasks,
+                                  tasks: taskIndexDto(graph.tasks),
+                                  executions: graph.tasks.executions.map(executionSummaryDto)
+                              }
+                          }
+                        : graph
             }
         }
         if (actionKey === 'pipeline-refresh') {
@@ -355,6 +381,19 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         if (actionKey === 'task-detail') {
             const input = z.object({ taskId: z.string().uuid() }).strict().parse(request.input)
             return { success: true, data: await this.runtime.get(this.context(context).projectId, input.taskId) }
+        }
+        if (actionKey === 'decide-task-reference') {
+            const input = projectTaskDecisionToolInputSchema
+                .extend({ requestId: z.string().uuid() })
+                .parse(request.input)
+            await this.decisions.decideReference(this.context(context).projectId, {
+                ...input,
+                requestId: input.requestId,
+                decisionRef: input.decisionRef,
+                outcome: input.outcome,
+                rationale: input.rationale
+            })
+            return { success: true, refresh: true }
         }
         if (actionKey === 'decide-task') {
             return {
