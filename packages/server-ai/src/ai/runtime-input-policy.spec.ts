@@ -29,6 +29,48 @@ describe('managed application run admission', () => {
         expect(() => assertRuntimeInputPolicy(request)).not.toThrow()
     })
     it('accepts a business message', () => expect(() => assertRuntimeInputPolicy(request)).not.toThrow())
+    const commandSource = {
+        type: 'slash_command',
+        name: 'bid-commercial-writing',
+        source: 'runtime',
+        executionType: 'insert_invocation',
+        kind: 'prompt_workflow',
+        workflow: { type: 'prompt_workflow', label: { 'zh-CN': '编写商务标' }, tags: ['商务标'] }
+    }
+    it.each(['legacy', 'send', 'follow_up'])(
+        'accepts shortcut provenance in %s input and mirrored human state',
+        (action) => {
+            const human = { input: '/bid-commercial-writing', commandSource, files: [{ fileId: 'tender' }] }
+            const input =
+                action === 'legacy'
+                    ? { id: 'message', input: human, state: { human }, projectSelection: { mode: 'auto-new' } }
+                    : {
+                          action,
+                          conversationId: 'conversation',
+                          ...(action === 'follow_up' ? { mode: 'queue' } : {}),
+                          message: { clientMessageId: 'message', input: human },
+                          state: { human }
+                      }
+            expect(assertRuntimeInputPolicy({ ...request, input })?.input).toEqual(input)
+        }
+    )
+    it.each([
+        { ...commandSource, model: 'other' },
+        { ...commandSource, source: 'admin' },
+        { ...commandSource, executionType: 'execute_code' },
+        { ...commandSource, workflow: { ...commandSource.workflow, environmentId: 'other' } },
+        { ...commandSource, workflow: { ...commandSource.workflow, runtimeResources: { plugins: [] } } }
+    ])('rejects malformed or executable shortcut metadata %j', (source) => {
+        expect(() =>
+            assertRuntimeInputPolicy({ ...request, input: { input: { input: 'Hello', commandSource: source } } })
+        ).toThrow()
+        expect(() =>
+            assertRuntimeInputPolicy({
+                ...request,
+                input: { input: { input: 'Hello' }, state: { human: { commandSource: source } } }
+            })
+        ).toThrow()
+    })
     it('accepts native regeneration of a restored conversation without a Project', () => {
         const result = assertRuntimeInputPolicy({
             assistant_id: 'assigned-assistant',
