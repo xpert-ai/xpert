@@ -104,10 +104,19 @@ export class CodingOperations {
     const candidate = phase === 'development' ? undefined : await this.evidence.input(c, 'candidate')
     if (phase !== 'development') await this.approved(c)
     if (phase === 'git') await this.evidence.input(c, 'deployment')
-    await this.store.begin(c, phase)
+    const stage = await this.store.begin(c, phase)
+    const attempts = await this.store.stageAttempts(c, delivery.id, phase, stage.requirementVersion)
+    const previous = attempts[attempts.findIndex((attempt) => attempt.work.operationId === stage.id) + 1]
     await prepareManifestContext(this.store.capabilities, c, phase)
     return {
-      prompt: workPrompt(phase, delivery.requirement, c, candidate),
+      prompt: [
+        workPrompt(phase, delivery.requirement, c, candidate),
+        ...(previous
+          ? [
+              `This is a technical retry of operation ${previous.work.operationId}, stage conversation ${previous.executor.conversationId}. Inspect its existing Project tasks, real executions, reports, working tree and registered services first. Reuse verified work and continue the outstanding requirements. Bind new submissions and formal task acceptance to this stage conversation and its current manifest identity.`
+            ]
+          : [])
+      ].join('\n\n'),
       context: { codingDeliveryId: delivery.id, codingOperationId: c.work.operationId }
     }
   }
@@ -115,10 +124,10 @@ export class CodingOperations {
     const row = await this.store.operation(c, c.work.operationId)
     await this.store.current(c, c.subjects[0])
     if (row.requirement.mode === 'local' && phase !== 'development') throw conflict('CODING_LOCAL_RELEASE_FORBIDDEN')
-    if (row.phase !== phase || !row.evidence || row.context.executor.conversationId !== c.executor.conversationId)
-      throw conflict('CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED')
+    if (row.phase !== phase || row.context.executor.conversationId !== c.executor.conversationId)
+      throw conflict('CODING_EXECUTOR_SCOPE_MISMATCH')
     if (phase !== 'development') await this.approved(c)
-    return { result: evidenceRef(row.evidence) }
+    return row.evidence ? { result: evidenceRef(row.evidence) } : null
   }
 }
 
@@ -149,7 +158,7 @@ export class CodingCurrentDevelopmentOperation {
   }
   async collect(c: ProjectPipelineAssistantContext) {
     const result = await this.operations.collect(c, 'development')
-    return { ...result, request: deploymentRequestRef(await this.evidence.read(c, result.result)) }
+    return result ? { ...result, request: deploymentRequestRef(await this.evidence.read(c, result.result)) } : null
   }
 }
 @Injectable()

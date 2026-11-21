@@ -16,7 +16,6 @@ import {
     projectTaskDispatchInputSchema,
     projectTaskSpecificationSchema
 } from '@xpert-ai/contracts'
-import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
 import { AgentInvocation, AgentInvocationScope } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
@@ -38,6 +37,7 @@ import {
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
+import { holdsProjectTaskReservation } from './project-task-reservation'
 import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
 import { parseProjectTaskSpecificationSnapshot } from './project-task-specification'
 
@@ -280,23 +280,19 @@ export class ProjectTaskDispatchService {
                       where: { tenantId: scope.tenantId, organizationId: scope.organizationId, id: In(invocationIds) }
                   })
                 : []
+            const invocationById = new Map(invocations.map((record) => [record.id, record.invocation]))
             if (
                 attempts.some((attempt) => {
-                    // A native Pipeline Assistant coordinates child tasks; its projection does not reserve the Computer.
-                    // Invocation-backed Pipeline work and unacknowledged attempts still hold the reservation.
-                    if (!attempt.invocationId && attempt.agentExecutionId && attempt.task?.controlKind === 'pipeline')
-                        return false
                     // Group members have isolated conversation runtimes; retries of the same task remain serialized.
-                    if (!attempt.invocationId) return attempt.status === 'queued' || attempt.status === 'running'
-                    const record = invocations.find((record) => record.id === attempt.invocationId)
+                    const invocation = attempt.invocationId ? invocationById.get(attempt.invocationId) : undefined
                     if (
                         input.target &&
                         attempt.taskId !== task.id &&
-                        record &&
-                        assistantTaskGroupContext(record.invocation.request.target)
+                        invocation &&
+                        assistantTaskGroupContext(invocation.request.target)
                     )
                         return false
-                    return !record || !invocationCanRelease(record.invocation)
+                    return holdsProjectTaskReservation(attempt, invocation)
                 })
             )
                 throw projectTaskRuntimeError('Busy')

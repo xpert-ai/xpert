@@ -87,8 +87,9 @@ export interface ProjectPipelineAssistantContext extends ProjectPipelineOperatio
 export interface ProjectPipelineAssistantOperation {
   /** Bounded domain prompt/context only; no actor, Project, model or executor overrides. */
   prepare(context: ProjectPipelineAssistantContext): Promise<ProjectPipelineAssistantInput>
-  /** Read the domain outputs after the native Runtime confirms success. Must be idempotent. */
-  collect(context: ProjectPipelineAssistantContext): Promise<Record<string, ProjectPipelineEvidenceRef>>
+  /** Called after native execution and delegated result delivery settle. Return null only when the
+   * assigned assistant definitively ended without the required outputs. Throw on an uncertain read. */
+  collect(context: ProjectPipelineAssistantContext): Promise<Record<string, ProjectPipelineEvidenceRef> | null>
 }
 
 export interface ProjectPipelineRuntimeContext extends ProjectPipelineOperationContext {

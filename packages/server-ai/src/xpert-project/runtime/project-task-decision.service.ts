@@ -31,6 +31,7 @@ import {
 import { implementationEvidence, reviewReport } from './project-task-evidence'
 import { diagnoseReviewReport } from './project-task-review-report-diagnostic'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
+import { holdsProjectTaskReservation } from './project-task-reservation'
 import { invocationCanRelease } from '../../agent-invocation/invocation-control-evidence'
 import {
     decisionBinding,
@@ -346,23 +347,29 @@ export class ProjectTaskDecisionService {
                     sha256: createHash('sha256').update(report.markdown).digest('hex')
                 }
                 if (input.outcome === 'accept' && review.purpose.mode === 'execution') {
-                    // Other owned work can still mutate the shared checkout. Fail closed until all attempts have stopped.
-                    // This guards platform-managed work, not arbitrary filesystem writes after the point-in-time comparison.
-                    const attempts = await manager
-                        .getRepository(XpertProjectTaskExecution)
-                        .findBy({ ...where, projectId })
+                    // Under the project lock, recheck work that could have changed the candidate after verification.
+                    const attempts = await manager.getRepository(XpertProjectTaskExecution).find({
+                        where: { ...where, projectId },
+                        relations: ['task'],
+                        select: {
+                            id: true,
+                            invocationId: true,
+                            agentExecutionId: true,
+                            status: true,
+                            task: { controlKind: true }
+                        }
+                    })
                     const ids = attempts.flatMap((attempt) => (attempt.invocationId ? [attempt.invocationId] : []))
                     const records = ids.length
                         ? await manager.getRepository(AgentInvocationEntity).findBy({ ...where, id: In(ids) })
                         : []
+                    const invocationById = new Map(records.map((record) => [record.id, record.invocation]))
                     if (
                         attempts.some((attempt) =>
-                            attempt.invocationId
-                                ? !records.some(
-                                      (item) =>
-                                          item.id === attempt.invocationId && invocationCanRelease(item.invocation)
-                                  )
-                                : ['queued', 'running'].includes(attempt.status)
+                            holdsProjectTaskReservation(
+                                attempt,
+                                attempt.invocationId ? invocationById.get(attempt.invocationId) : undefined
+                            )
                         )
                     )
                         throw projectTaskRuntimeError('Busy')

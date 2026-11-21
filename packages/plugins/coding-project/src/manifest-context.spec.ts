@@ -1,5 +1,5 @@
 import { ForbiddenException, ServiceUnavailableException } from '@nestjs/common'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { ProjectFilesRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { deliveryFixture } from './delivery.fixture'
 import { CodingDeliveryService } from './delivery.service'
@@ -24,6 +24,34 @@ it.each(['development', 'deployment', 'git'] as const)(
     expect(f.projectFiles.size).toBe(1)
   }
 )
+
+it('loads a persisted stage and keeps the legacy identity file and its digest', async () => {
+  const work = { runId: f.context.work.runId, ...Object.fromEntries(Object.entries(f.context.work).reverse()) }
+  const path = manifestContextPath(f.context.work.operationId)
+  const bytes = Buffer.from(JSON.stringify({ version: 1, phase: 'development', work }, null, 2) + '\n')
+  f.projectFiles.set(path, bytes)
+  await f.store.begin(f.context, 'development')
+  const persisted = await f.store.operation(f.context, f.context.work.operationId)
+  expect(Object.keys(work)).not.toEqual(Object.keys(persisted.context.work))
+  const result = await new CodingDeliveryService(f.store, f.evidence).context(f.context, f.context.work.operationId)
+  expect(result.requirement).toEqual(f.requirement)
+  expect(await prepareManifestContext(f.capabilities, persisted.context, 'development')).toEqual({
+    path,
+    sha256: createHash('sha256').update(bytes).digest('hex')
+  })
+  expect(f.projectFiles.get(path)).toBe(bytes)
+})
+
+it.each(['inputDigest', 'operationId'] as const)('rejects a different %s in a legacy file', async (field) => {
+  const work = { ...f.context.work, [field]: field === 'inputDigest' ? 'b'.repeat(64) : randomUUID() }
+  const path = manifestContextPath(f.context.work.operationId)
+  const bytes = Buffer.from(JSON.stringify({ version: 1, phase: 'development', work }))
+  f.projectFiles.set(path, bytes)
+  await expect(prepareManifestContext(f.capabilities, f.context, 'development')).rejects.toMatchObject({
+    response: { code: 'CODING_MANIFEST_WORK_MISMATCH' }
+  })
+  expect(f.projectFiles.get(path)).toBe(bytes)
+})
 
 it('preserves a conflicting identity file instead of overwriting it', async () => {
   const path = manifestContextPath(f.context.work.operationId)
