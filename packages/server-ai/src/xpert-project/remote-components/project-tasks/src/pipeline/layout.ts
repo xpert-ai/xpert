@@ -5,7 +5,8 @@ import { dependencyColumns } from './layout-columns'
 
 export const laneWidth = 180,
     stageWidth = 220,
-    headerHeight = 56,
+    stageHeaderHeight = 40,
+    headerHeight = 88,
     nodeWidth = 184,
     nodeHeight = 112,
     controlSize = 32
@@ -35,10 +36,10 @@ type LayoutGraph = {
     edges: Array<Pick<PipelineGraph['edges'][number], 'from' | 'to' | 'label'>>
 }
 
-/** Display ownership follows the nearest upstream role, without changing execution ownership.
+/** Overview placement follows upstream work for human gates and controls, never changing ownership.
  * Entry controls fall back to downstream roles. Stable topology, never runtime state, decides ties.
  */
-function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition']['lanes']) {
+function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition']['lanes'], inlineHuman: boolean) {
     const nodes = new Map(graph.nodes.map(({ projection }) => [projection.key, projection]))
     const predecessors = new Map<string, string[]>(),
         successors = new Map<string, string[]>()
@@ -55,8 +56,10 @@ function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition'][
                 .sort()
             for (const item of next) {
                 visited.add(item)
-                const lane = nodes.get(item)?.laneKey
-                if (lane && lanes.some((candidate) => candidate.key === lane)) return lane
+                const candidate = nodes.get(item)
+                const lane = candidate?.laneKey
+                if (lane && (!inlineHuman || candidate.kind !== 'human_gate') && lanes.some((row) => row.key === lane))
+                    return lane
             }
             frontier = next
         }
@@ -65,9 +68,10 @@ function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition'][
     return new Map(
         graph.nodes.map(({ projection }) => [
             projection.key,
-            projection.laneKey ??
+            (inlineHuman && projection.kind === 'human_gate' ? undefined : projection.laneKey) ??
                 nearestLane(projection.key, predecessors) ??
                 nearestLane(projection.key, successors) ??
+                projection.laneKey ??
                 lanes[0]?.key
         ])
     )
@@ -77,7 +81,21 @@ function presentationLanes(graph: LayoutGraph, lanes: LayoutGraph['definition'][
 export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
     const lanes = [...graph.definition.lanes].sort((a, b) => a.order - b.order || a.key.localeCompare(b.key))
     // Resolve against the full graph before filtering, so controls never jump to another role.
-    const displayLanes = presentationLanes(graph, lanes)
+    // In the overview, human gates sit beside the work they review. Role filtering
+    // still uses declared ownership, so the human lane remains independently inspectable.
+    const displayLanes = presentationLanes(graph, lanes, !laneFilter)
+    const relocatedHumanRows = new Set(
+        lanes
+            .filter((lane) => {
+                const owned = graph.nodes.filter((node) => node.projection.laneKey === lane.key)
+                return (
+                    owned.length > 0 &&
+                    owned.every((node) => node.projection.kind === 'human_gate') &&
+                    ![...displayLanes.values()].includes(lane.key)
+                )
+            })
+            .map((lane) => lane.key)
+    )
     let x = laneWidth
     const stages = [...graph.definition.stages]
         .sort((a, b) => a.order - b.order || a.key.localeCompare(b.key))
@@ -94,9 +112,16 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
                     .filter((node) => ranks.get(node.projection.key) === rank)
                     .sort((a, b) => a.projection.key.localeCompare(b.projection.key))
                 const controls = ranked.filter((node) => isControlNode(node.projection.kind))
-                const work = ranked.filter((node) => !isControlNode(node.projection.kind))
+                const humans = ranked.filter((node) => node.projection.kind === 'human_gate')
+                const work = ranked.filter(
+                    (node) => !isControlNode(node.projection.kind) && node.projection.kind !== 'human_gate'
+                )
                 // Each control owns a visible column, even alongside work or another control at the same depth.
-                return [...controls.map((node) => [node]), ...(work.length || !ranked.length ? [work] : [])]
+                return [
+                    ...controls.map((node) => [node]),
+                    ...(work.length || !ranked.length ? [work] : []),
+                    ...(humans.length ? [humans] : [])
+                ]
             }).flat()
             const columns = groups.map((group) => {
                 const keys = group.map((node) => node.projection.key)
@@ -105,7 +130,8 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
                 const labels = graph.edges.filter((edge) => edge.label && keys.includes(edge.from))
                 const labelWidth = Math.max(0, ...labels.map((edge) => edgeLabelWidth(edge.label!)))
                 const width = control ? Math.max(controlWidth, Math.min(340, labelWidth * 2 + 64)) : stageWidth
-                const column = { x, width, keys, control }
+                const human = group.length > 0 && group.every((node) => node.projection.kind === 'human_gate')
+                const column = { x, width, keys, control, human }
                 x += width
                 return column
             })
@@ -120,11 +146,13 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
             label: string
             icon: typeof stage.icon
             stageNumber: number
+            human: boolean
+            stageKey: string
             control: LayoutGraph['nodes'][number]['projection'] | null
         }> = []
         stage.columns.forEach((column, columnIndex) => {
             const previous = sections[sections.length - 1]
-            if (!column.control && previous && !previous.control) {
+            if (!column.control && previous && !previous.control && previous.human === column.human) {
                 previous.width += column.width
                 return
             }
@@ -135,7 +163,9 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
                 label: column.control?.title ?? stage.label,
                 icon: stage.icon,
                 stageNumber: stages.slice(0, index + 1).filter((item) => !item.control).length,
-                control: column.control
+                control: column.control,
+                human: column.human,
+                stageKey: stage.key
             })
         })
         return sections
@@ -144,7 +174,9 @@ export function pipelineLayout(graph: LayoutGraph, laneFilter: string) {
     const positions = new Map<string, { x: number; y: number; width: number }>()
     const topPadding = 24
     let y = headerHeight
-    for (const lane of lanes.filter((item) => !laneFilter || item.key === laneFilter)) {
+    for (const lane of lanes.filter((item) =>
+        laneFilter ? item.key === laneFilter : !relocatedHumanRows.has(item.key)
+    )) {
         let count = 1
         for (const column of stages.flatMap((stage) => stage.columns)) {
             const nodes = graph.nodes
