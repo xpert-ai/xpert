@@ -1,3 +1,4 @@
+import { externalAssistantState } from '../shared/agent/external-assistant-state'
 // Native compatibility compiler: preserves existing state projections and graph edges.
 import { RunnableLambda } from '@langchain/core/runnables'
 import { DynamicStructuredTool } from '@langchain/core/tools'
@@ -176,18 +177,15 @@ export class NativeAgentCompiler {
                 }
 
                 try {
-                    const subState = {
-                        ...state,
-                        ...(isTool
-                            ? {
-                                  ...call.args,
-                                  [STATE_VARIABLE_HUMAN]: {
-                                      input: call.args.input
-                                  }
-                                  // [`${agent.key}.messages`]: [new HumanMessage(call.args.input)]
-                              }
-                            : {})
-                    }
+                    // A delegated native Agent has its own configured Skills, just
+                    // like an external Assistant. The caller's entry-point selection
+                    // must not override them (including an explicitly empty list).
+                    const subState = isTool
+                        ? {
+                              ...externalAssistantState(state, call.args),
+                              [STATE_VARIABLE_HUMAN]: { input: call.args.input }
+                          }
+                        : state
                     const output = await this.executionControls.runAttached(_execution.id, executionId, () =>
                         graph.invoke(subState, {
                             ...config,
