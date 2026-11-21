@@ -1,4 +1,10 @@
 {
+    "Widgets": {
+        "DuplicateTool": "小部件工具名称不能重复。",
+        "Rendered": "交互卡片已生成。",
+        "Invalid": "A2UI 界面无效：{{reason}}。请修正参数后重新调用工具。",
+        "InvalidComposer": "Composer 组件或组件引用无效。"
+    },
     "ProjectMove": {
         "ConfirmInChat": "请在当前对话中确认目标项目，确认后将继续处理刚才的请求。",
         "NameRequired": "请输入 1 至 240 个字符的项目名称。",

@@ -1,4 +1,10 @@
 {
+    "Widgets": {
+        "DuplicateTool": "Widget tool names must be unique.",
+        "Rendered": "The interactive card is ready.",
+        "Invalid": "Invalid A2UI surface: {{reason}}. Fix the payload and call the tool again.",
+        "InvalidComposer": "Invalid Composer components or component references."
+    },
     "ProjectMove": {
         "ConfirmInChat": "Confirm the project in this conversation to continue your request.",
         "NameRequired": "Enter a project name of 1–240 characters.",

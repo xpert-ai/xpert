@@ -15,10 +15,12 @@ import { SummarizationMiddleware } from './summarization.middleware'
 import { TodoListMiddleware } from './todo-list.middleware'
 import { ThreadReferenceMiddleware } from './thread-reference.middleware'
 import { RequestUserInputMiddleware } from './request-user-input.middleware'
+import { WidgetsMiddleware } from './widgetsMiddleware'
 
 @Module({
     imports: [ChatConversationModule],
     providers: [
+        WidgetsMiddleware,
         McpAppToolsMiddleware,
         ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
@@ -36,6 +38,7 @@ import { RequestUserInputMiddleware } from './request-user-input.middleware'
         TodoListMiddleware
     ],
     exports: [
+        WidgetsMiddleware,
         McpAppToolsMiddleware,
         ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
