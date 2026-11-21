@@ -325,6 +325,26 @@ export function registerManagedCases1(fixture: ReturnType<typeof managedPipeline
         expect((await fixture.operations()).filter((item) => item.roundId === next.roundId)).toHaveLength(2)
         expect(fixture.nativeStart).toHaveBeenCalledTimes(1)
     })
+    it('makes a confirmed missing assistant output actionable without replaying the original dispatch', async () => {
+        await fixture.launchAssistant()
+        const operation = (await fixture.operations())[0]
+        fixture.nativeStart.mockImplementationOnce(async (input) => ({
+            status: 'succeeded',
+            control: nativeCompletion(input.executionId!),
+            executionId: input.executionId!
+        }))
+        fixture.collect.mockResolvedValueOnce(null)
+        await fixture.request(() => fixture.runner.run(fixture.context, operation.id))
+        const saved = await fixture.db
+            .getRepository(ProjectPipelineOperationEntity)
+            .findOneByOrFail({ id: operation.id })
+        expect(saved).toMatchObject({
+            state: 'failed',
+            receipt: { code: 'ASSISTANT_OUTPUT_NOT_SUBMITTED', execution: { status: 'succeeded' } }
+        })
+        await fixture.request(() => fixture.runner.run(fixture.context, operation.id))
+        expect(fixture.nativeStart).toHaveBeenCalledTimes(1)
+    })
     it('keeps successful native runtime distinct from output acceptance and retries collection without another execution', async () => {
         await fixture.launchAssistant()
         const operation = (await fixture.operations())[0]

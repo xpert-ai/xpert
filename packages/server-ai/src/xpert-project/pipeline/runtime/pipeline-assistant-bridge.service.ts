@@ -224,23 +224,26 @@ export class ProjectPipelineAssistantBridgeService {
         if (native.status === 'unknown') return { status: 'unknown', receiptKey: operation.id, execution }
         if (native.status !== 'succeeded') return { status: 'pending', receiptKey: operation.id, execution }
         try {
-            return {
-                control,
-                status: 'succeeded',
-                receiptKey: operation.id,
-                execution,
-                outputs: await adapter.collect({
-                    ...operation.context,
-                    executor: {
-                        userId: intent.userId,
-                        xpertId: intent.xpertId,
-                        workspaceId: intent.workspaceId,
-                        publishedVersion: intent.publishedVersion,
-                        executionId: intent.executionId,
-                        conversationId: intent.conversationId
-                    }
-                })
-            }
+            const outputs = await adapter.collect({
+                ...operation.context,
+                executor: {
+                    userId: intent.userId,
+                    xpertId: intent.xpertId,
+                    workspaceId: intent.workspaceId,
+                    publishedVersion: intent.publishedVersion,
+                    executionId: intent.executionId,
+                    conversationId: intent.conversationId
+                }
+            })
+            if (outputs === null)
+                return {
+                    status: 'failed',
+                    code: 'ASSISTANT_OUTPUT_NOT_SUBMITTED',
+                    receiptKey: operation.id,
+                    control,
+                    execution
+                }
+            return { status: 'succeeded', receiptKey: operation.id, control, execution, outputs }
         } catch {
             return { status: 'unknown', receiptKey: operation.id, execution }
         }
