@@ -6,7 +6,7 @@ jest.mock('../../../@core', () => ({
     CLAWXPERT: 'clawxpert'
   },
   AssistantBindingService: class AssistantBindingService {},
-  XpertService: class XpertService {},
+  XpertAPIService: class XpertAPIService {},
   XpertTypeEnum: { Agent: 'agent' },
   ChatConversationService: class ChatConversationService {},
   Store: class Store {},
@@ -35,7 +35,7 @@ import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import {
-  XpertService,
+  XpertAPIService,
   AssistantBindingService,
   ChatConversationService,
   IChatConversation,
@@ -131,7 +131,7 @@ describe('XpertWorkbenchFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         XpertWorkbenchFacade,
-        { provide: XpertService, useValue: xpertService },
+        { provide: XpertAPIService, useValue: xpertService },
         { provide: ActivatedRoute, useValue: { data: routeData, snapshot: { data: routeData.value } } },
         {
           provide: Router,

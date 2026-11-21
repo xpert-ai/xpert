@@ -10,7 +10,7 @@ import {
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum,
   OrderTypeEnum,
   ChatConversationService,
@@ -37,7 +37,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #pendingAdoption: Promise<boolean> | null = null
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
-  readonly #xpertService = inject(XpertService)
+  readonly #xpertService = inject(XpertAPIService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #store = inject(Store)
   readonly #router = inject(Router)
