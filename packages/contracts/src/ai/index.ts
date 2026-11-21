@@ -169,3 +169,5 @@ export * from './model-management.model'
 export * from './model-replacement.model'
 
 export * from './default-model-role'
+
+export * from './project-task-view.model'

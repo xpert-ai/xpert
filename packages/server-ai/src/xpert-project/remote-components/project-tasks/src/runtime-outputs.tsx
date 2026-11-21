@@ -6,7 +6,8 @@ import { Button } from '@xpert-ai/shadcn-ui'
 
 // Only committed artifacts are files. Result prose and declared paths are not download grants.
 export const outputResultSchema = z.object({
-    text: z.string(),
+    text: z.string().optional(),
+    hasText: z.boolean().optional(),
     textTruncated: z.boolean().optional(),
     report: z
         .discriminatedUnion('status', [

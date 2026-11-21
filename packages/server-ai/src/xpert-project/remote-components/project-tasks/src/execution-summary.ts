@@ -6,10 +6,16 @@ export function executionSummary(attempt: Attempt, t: Texts) {
     const succeeded = state === 'success' || state === 'succeeded'
     const failed = ['failed', 'error', 'timeout'].includes(state)
     const reviewResult =
-        succeeded && attempt.purpose?.type === 'review' && attempt.reviewReportAvailable ? t.reviewReportReady : null
+        succeeded && (attempt.purposeType ?? attempt.purpose?.type) === 'review' && attempt.reviewReportAvailable
+            ? t.reviewReportReady
+            : null
     const businessResult =
         reviewResult ??
-        (attempt.outputSummary === 'rejected' ? t.rejected : attempt.status === 'failed' && succeeded ? t.failed : null)
+        ((attempt.businessResult ?? attempt.outputSummary) === 'rejected'
+            ? t.rejected
+            : attempt.status === 'failed' && succeeded
+              ? t.failed
+              : null)
     const color = failed
         ? 'bg-destructive'
         : succeeded
@@ -18,10 +24,10 @@ export function executionSummary(attempt: Attempt, t: Texts) {
             ? 'bg-primary'
             : 'bg-muted-foreground'
     const purposeLabel =
-        attempt.purpose?.type === 'review'
+        (attempt.purposeType ?? attempt.purpose?.type) === 'review'
             ? t.executionReview
-            : attempt.purpose?.type === 'implementation'
-              ? attempt.purpose.rework
+            : (attempt.purposeType ?? attempt.purpose?.type) === 'implementation'
+              ? attempt.isRework || (attempt.purpose?.type === 'implementation' && attempt.purpose.rework)
                   ? t.reworkAttempt
                   : t.implementationAttempt
               : ''

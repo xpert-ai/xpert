@@ -1,3 +1,4 @@
+import { useExecutionRows, useVisibleBoardTasks } from './execution-data'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { GitBranch, MessageSquare, CalendarClock } from 'lucide-react'
 import { cn } from '@xpert-ai/shadcn-ui'
@@ -65,7 +66,7 @@ export interface ViewProps {
     onError: (message: string) => void
 }
 export function TaskTable({
-    graph,
+    graph: indexGraph,
     rows,
     selected,
     select,
@@ -80,6 +81,11 @@ export function TaskTable({
 }: ViewProps) {
     const virtual = useVirtualRows(rows.length)
     useDragScroll(virtual.ref)
+    const graph = useExecutionRows(
+        indexGraph,
+        rows.slice(virtual.start, virtual.end).flatMap((row) => (row.type === 'task' ? [row.task.id] : [])),
+        onError
+    )
     const visibleColumns: Column[] = [
         'name',
         ...(['status', 'assignee', 'attempts', 'dates'] as const).filter((key) => fields[key])
@@ -167,7 +173,8 @@ export function TaskTable({
                             )}
                             {fields.attempts && (
                                 <span role="cell" className="truncate px-3 text-xs tabular-nums text-muted-foreground">
-                                    {graph.executions.filter((item) => item.taskId === row.task.id).length}
+                                    {row.task.executionCount ??
+                                        graph.executions.filter((item) => item.taskId === row.task.id).length}
                                 </span>
                             )}
                             {fields.dates && (
@@ -187,7 +194,7 @@ export function TaskTable({
 }
 /** A board is a projection of authoritative statuses; dragging never invents a domain transition. */
 export function TaskBoard({
-    graph,
+    graph: indexGraph,
     tasks,
     selected,
     select,
@@ -203,12 +210,14 @@ export function TaskBoard({
     locale: string
     onError: (message: string) => void
 }) {
+    const board = useVisibleBoardTasks(tasks.map((task) => task.id))
+    const graph = useExecutionRows(indexGraph, board.taskIds, onError)
     const visibleStatuses = statuses.filter(
         (status) =>
             ['todo', 'in_progress', 'review', 'done'].includes(status) || tasks.some((task) => task.status === status)
     )
     return (
-        <div className="flex min-h-0 flex-1 gap-3 overflow-auto bg-muted/20 p-3" aria-label={t.board}>
+        <div ref={board.ref} className="flex min-h-0 flex-1 gap-3 overflow-auto bg-muted/20 p-3" aria-label={t.board}>
             {visibleStatuses.map((status) => {
                 const items = tasks.filter((task) => task.status === status)
                 return (
@@ -221,6 +230,7 @@ export function TaskBoard({
                         </header>
                         {items.map((task) => (
                             <article
+                                data-task-id={task.id}
                                 key={task.id}
                                 aria-label={task.title}
                                 className={cn(
@@ -271,7 +281,8 @@ export function TaskBoard({
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <MessageSquare className="size-3.5" />
-                                        {graph.executions.filter((item) => item.taskId === task.id).length}
+                                        {task.executionCount ??
+                                            graph.executions.filter((item) => item.taskId === task.id).length}
                                     </span>
                                     <span className="ml-auto flex items-center gap-1">
                                         <CalendarClock className="size-3.5" />

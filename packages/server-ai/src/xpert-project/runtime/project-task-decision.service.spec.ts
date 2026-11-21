@@ -301,6 +301,25 @@ describe('Project task decision inspection boundaries', () => {
         }
     }
 
+    it('accepts an authenticated user decision without fabricating an agent caller', async () => {
+        executionReview()
+        const input = await referenceInput()
+        await expect(f.service.decideReference(f.scope.projectId, input)).resolves.toMatchObject({
+            outcome: 'accept',
+            actorType: 'user'
+        })
+        expect(f.context.resolve).not.toHaveBeenCalled()
+        expect(f.access.assertCanEdit).toHaveBeenCalledWith(f.scope.projectId)
+    })
+
+    it('rechecks user edit access before resolving a view decision reference', async () => {
+        executionReview()
+        const input = await referenceInput()
+        f.access.assertCanEdit.mockRejectedValue(new Error('Revoked'))
+        await expect(f.service.decideReference(f.scope.projectId, input)).rejects.toThrow('Revoked')
+        expect(f.transaction).not.toHaveBeenCalled()
+    })
+
     it('accepts a reference with no model-assembled versions/evidence and replays after a lost response', async () => {
         executionReview()
         const input = await referenceInput()

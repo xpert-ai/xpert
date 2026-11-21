@@ -53,10 +53,10 @@ export class ProjectTaskDecisionService {
     async decideReference(
         projectId: string,
         input: ProjectTaskDecisionToolInput & { requestId: string },
-        caller: ProjectTaskCaller
+        caller?: ProjectTaskCaller
     ) {
         await this.access.assertCanEdit(projectId)
-        await this.context.resolve(projectId, caller)
+        if (caller) await this.context.resolve(projectId, caller)
         const actor = this.context.actor()
         const reference = parseDecisionRef(input.decisionRef)
         const task = await this.tasks.findOne({

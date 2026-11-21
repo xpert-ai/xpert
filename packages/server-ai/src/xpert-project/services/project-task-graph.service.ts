@@ -1,3 +1,4 @@
+import { taskViewTaskColumns, taskViewExecutionColumns } from '../views/task-data/task-view.columns'
 import { latestTaskExecutor } from '../runtime/project-task-executor'
 import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
@@ -13,7 +14,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
-import { EntityManager, In, IsNull, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, LessThan, Repository } from 'typeorm'
 import {
     validateProjectTaskGraph,
     type ProjectTaskGraph,
@@ -84,23 +85,96 @@ export class ProjectTaskGraphService {
     }
 
     /** Used by the Pipeline reader to observe task facts and graph structure in the same MVCC snapshot. */
-    async graphWithinTransaction(context: ProjectTaskContext, manager: EntityManager) {
+    async graphWithinTransaction(
+        context: ProjectTaskContext,
+        manager: EntityManager,
+        taskIds?: string[],
+        compact = false
+    ) {
         const access = await this.assertRead(context)
         return {
-            ...(await this.readGraph(context, [], manager)),
+            ...(await this.readGraph(context, [], manager, { taskIds, compact })),
             canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
+        }
+    }
+
+    async viewContext(context: ProjectTaskContext) {
+        const access = await this.assertRead(context)
+        const project = await this.tasks.manager.findOne(XpertProject, {
+            where: {
+                id: context.projectId,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId ?? IsNull()
+            },
+            select: ['id', 'name'],
+            loadEagerRelations: false
+        })
+        return {
+            projectId: context.projectId,
+            projectTitle: project?.name,
+            canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
+        }
+    }
+
+    async viewIndex(context: ProjectTaskContext) {
+        const access = await this.assertRead(context)
+        return {
+            ...(await this.readGraph(context, await this.projection.diagnostics(context), this.tasks.manager, {
+                compact: true
+            })),
+            canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
+        }
+    }
+
+    async viewExecutions(context: ProjectTaskContext, input: { taskIds: string[]; after?: string; limit: number }) {
+        await this.assertRead(context)
+        const before = input.after
+            ? await this.tasks.manager.findOne(XpertProjectTaskExecution, {
+                  where: { ...this.where(context), id: input.after, taskId: In(input.taskIds) },
+                  select: ['id', 'createdAt'],
+                  loadEagerRelations: false
+              })
+            : undefined
+        if (input.after && !before) throw new NotFoundException(t('server-ai:Error.ProjectTaskNotFound'))
+        const graph = await this.readGraph(context, [], this.tasks.manager, {
+            compact: true,
+            taskIds: input.taskIds,
+            page: { limit: input.limit, before: before ? { id: before.id, createdAt: before.createdAt } : undefined }
+        })
+        const hasNext = graph.executions.length > input.limit
+        return {
+            items: graph.executions.slice(0, input.limit),
+            next: hasNext ? graph.executions[input.limit - 1].id : null
         }
     }
 
     private async readGraph(
         context: ProjectTaskContext,
         diagnostics: ProjectTaskGraph['diagnostics'] = [],
-        manager: EntityManager = this.tasks.manager
+        manager: EntityManager = this.tasks.manager,
+        options: {
+            compact?: boolean
+            taskIds?: string[]
+            page?: { before?: { id: string; createdAt?: Date }; limit: number }
+        } = {}
     ): Promise<ProjectTaskGraph> {
-        const rows = await manager.find(XpertProjectTask, { where: this.where(context), order: { createdAt: 'ASC' } })
+        const rows = await manager.find(XpertProjectTask, {
+            where: { ...this.where(context), ...(options.taskIds ? { id: In(options.taskIds) } : {}) },
+            ...(options.compact ? { select: taskViewTaskColumns, loadEagerRelations: false } : {}),
+            order: { createdAt: 'ASC' }
+        })
+        const executionWhere = { ...this.where(context), ...(options.taskIds ? { taskId: In(options.taskIds) } : {}) }
+        const before = options.page?.before
         const storedExecutions = await manager.find(XpertProjectTaskExecution, {
-            where: this.where(context),
-            order: { startedAt: 'ASC', attempt: 'ASC' }
+            where: before
+                ? [
+                      { ...executionWhere, createdAt: LessThan(before.createdAt) },
+                      { ...executionWhere, createdAt: before.createdAt, id: LessThan(before.id) }
+                  ]
+                : executionWhere,
+            ...(options.compact ? { select: taskViewExecutionColumns, loadEagerRelations: false } : {}),
+            ...(options.page ? { take: options.page.limit + 1 } : {}),
+            order: options.page ? { createdAt: 'DESC', id: 'DESC' } : { startedAt: 'ASC', attempt: 'ASC' }
         })
         const pipelineFacts = await pipelineTaskFacts(manager, context, rows, storedExecutions)
         const dispositions = await pipelineTaskDispositions(manager, context, rows)
@@ -112,7 +186,8 @@ export class ProjectTaskGraphService {
                 tenantId: context.actor.tenantId,
                 organizationId: context.actor.organizationId
             },
-            storedExecutions
+            storedExecutions,
+            options.compact
         )
         const ids = executions.flatMap((item) => (item.agentExecutionId ? [item.agentExecutionId] : []))
         const runtime = ids.length
@@ -126,10 +201,11 @@ export class ProjectTaskGraphService {
                   }
               })
             : []
+        const runtimeById = new Map(runtime.map((run) => [run.id, run]))
         const observed = executions.map((item) => {
             const pipelineAttemptKind = pipelineFacts.kinds.get(item.id)
             if (item.invocationId) return { ...item, pipelineAttemptKind }
-            const run = runtime.find((run) => run.id === item.agentExecutionId)
+            const run = runtimeById.get(item.agentExecutionId)
             return {
                 ...item,
                 pipelineAttemptKind,
@@ -138,26 +214,30 @@ export class ProjectTaskGraphService {
                 ...(pipelineFacts.services.get(item.id) ?? projectTaskRuntimeTiming(run))
             }
         })
+        const observedByTask = new Map<string, typeof observed>()
+        for (const attempt of observed) {
+            const attempts = observedByTask.get(attempt.taskId) ?? []
+            attempts.push(attempt)
+            observedByTask.set(attempt.taskId, attempts)
+        }
         const nodes = rows.map((row) =>
             toProjectTaskNode(
                 row,
-                observed
-                    .filter((item) => item.taskId === row.id)
-                    .map((item) => ({
-                        ...item,
-                        startedAt:
-                            item.invocationId || item.agentExecutionId
-                                ? item.runtimeStartedAt
-                                    ? new Date(item.runtimeStartedAt)
-                                    : null
-                                : item.startedAt,
-                        completedAt:
-                            item.invocationId || item.agentExecutionId
-                                ? item.runtimeCompletedAt
-                                    ? new Date(item.runtimeCompletedAt)
-                                    : null
-                                : item.completedAt
-                    }))
+                (observedByTask.get(row.id) ?? []).map((item) => ({
+                    ...item,
+                    startedAt:
+                        item.invocationId || item.agentExecutionId
+                            ? item.runtimeStartedAt
+                                ? new Date(item.runtimeStartedAt)
+                                : null
+                            : item.startedAt,
+                    completedAt:
+                        item.invocationId || item.agentExecutionId
+                            ? item.runtimeCompletedAt
+                                ? new Date(item.runtimeCompletedAt)
+                                : null
+                            : item.completedAt
+                }))
             )
         )
         const scope = { tenantId: context.actor.tenantId, organizationId: context.actor.organizationId ?? IsNull() }
@@ -200,7 +280,7 @@ export class ProjectTaskGraphService {
                 pipelineDisposition: dispositions.get(node.id) ?? node.pipelineDisposition,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
                 executor: latestTaskExecutor(
-                    observed.filter((attempt) => attempt.taskId === node.id),
+                    observedByTask.get(node.id) ?? [],
                     reviewTaskIds.has(node.id) ? 'review' : 'implementation'
                 ),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
@@ -260,10 +340,12 @@ export class ProjectTaskGraphService {
             // The plan form also submits unchanged relations. Compare the locked row so schedule
             // edits still work without exposing the host-owned binding through the public graph.
             if (row.reviewSubject) {
-                const parentChanged = input.parentTaskId !== undefined && input.parentTaskId !== (row.parentTaskId ?? null)
+                const parentChanged =
+                    input.parentTaskId !== undefined && input.parentTaskId !== (row.parentTaskId ?? null)
                 const predecessors = row.predecessorIds ?? []
                 const requested = input.predecessorIds
-                const dependenciesChanged = requested !== undefined &&
+                const dependenciesChanged =
+                    requested !== undefined &&
                     (requested.length !== predecessors.length ||
                         requested.some((id) => !predecessors.includes(id)) ||
                         predecessors.some((id) => !requested.includes(id)))
