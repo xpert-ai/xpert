@@ -469,6 +469,10 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                       await loadBots()
                       selectBot(id)
                     }}
+                    onDescriptionSaved={(id, description) => {
+                      setBots((items) => items.map((bot) => (bot.id === id ? { ...bot, description } : bot)))
+                      selectBot(id)
+                    }}
                     onRefresh={() => void loadBots()}
                     onRefreshOrganizations={async () => {
                       try {

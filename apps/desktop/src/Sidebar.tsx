@@ -40,6 +40,7 @@ export function Sidebar({
   onLogout,
   notice,
   onBotSaved,
+  onDescriptionSaved,
   selectedGroup,
   groupRevision,
   onSelectGroup,
@@ -69,6 +70,7 @@ export function Sidebar({
   onLogout: () => void
   notice?: ConversationNotice
   onBotSaved: (id: string) => Promise<void>
+  onDescriptionSaved: (id: string, description: string) => void
 }) {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -482,6 +484,7 @@ export function Sidebar({
       {dialog && (
         <AssistantDialog
           onOpenConversation={onSelect}
+          onDescriptionSaved={onDescriptionSaved}
           bot={dialog.bot}
           webUrl={state.config.webUrl}
           mode={dialog.mode}
