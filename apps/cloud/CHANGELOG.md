@@ -1,5 +1,15 @@
 # @xpert-ai/xpert-ui
 
+## 3.38.0
+
+### Patch Changes
+
+- a6266ef: Allow trusted artifact document hosts to opt an iframe into file downloads when mounting it.
+- 9b5c471: Upgrade the ChatKit dependency family to UI 0.27.0 and types 0.24.0, with Angular 0.18.6, web component 0.19.6 and web shared 0.18.6. Align development, API, Web and Desktop locks so Widgets use the released shared primitives and inherit ChatKit theme and density consistently.
+- 2a774c5: Add the turn-scoped `ConversationRuntimeCapability` with `publishWidget()`. Allow plugins to publish and restore A2UI Widgets and register one scoped Widget action provider per Widget type with an explicit set of handlers from their own Nest modules. The host resolves durable references for live messages and history, dispatches authorized actions through a shared ChatKit endpoint and removes providers and handlers when their installation is unloaded. Plugin-owned strategy decorators can declare a registration category and name for ownership and conflict checks before module initialization.
+
+  Expose `NamedProviderRegistry` as an opt-in shared registry for validated, owner-qualified providers with strict conflicts. Consolidate discovery, scoped name lookup and subscription cleanup in `BaseStrategyRegistry` while preserving ordinary registry naming and replacement behavior.
+
 ## 3.37.2
 
 ### Patch Changes

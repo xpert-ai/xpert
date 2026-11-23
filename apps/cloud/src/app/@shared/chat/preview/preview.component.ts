@@ -1,4 +1,4 @@
-import { toXpertOpenerPrompt } from '@xpert-ai/contracts'
+import { hasRuntimePresentation, toXpertOpenerPrompt } from '@xpert-ai/contracts'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
@@ -1183,6 +1183,7 @@ export class ChatConversationPreviewComponent {
           }
           break
         }
+        if (hasRuntimePresentation(chatEventData)) break
         this.currentMessage.update((state) => ({
           ...state,
           events: [...(state?.events ?? []), chatEventData]

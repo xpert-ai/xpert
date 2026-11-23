@@ -18,6 +18,7 @@ import {
     edgeLabelLines,
     isControlNode,
     laneWidth,
+    stageHeaderHeight,
     headerHeight,
     nodeHeight,
     controlSize
@@ -73,7 +74,11 @@ export function Swimlane({
     const visible = (node: PipelineNode) =>
         !onlyBlocked || (isCurrentNode(node) && node.projection.state.readiness === 'blocked')
     const marker = useId().replace(/:/g, '')
-    const layout = pipelineLayout(graph, lane)
+    const displayGraph = {
+        ...graph,
+        edges: graph.edges.map((edge) => (edge.label || !edge.outcome ? edge : { ...edge, label: edge.outcome }))
+    }
+    const layout = pipelineLayout(displayGraph, lane)
     const nodeKinds = new Map(graph.nodes.map((node) => [node.projection.key, node.projection.kind]))
     return (
         <PipelineViewport
@@ -101,54 +106,66 @@ export function Swimlane({
                             {graph.historical ? t.history : t.round} {graph.round.sequence}
                         </p>
                     </div>
-                    {layout.headers.map((header) => {
-                        const HeaderIcon = header.control
-                            ? icons[header.control.kind]
-                            : header.icon
-                              ? pipelineStageIcons[header.icon]
-                              : Layers
+                    {layout.stages.map((stage, stageIndex) => {
+                        const StageIcon = stage.icon ? pipelineStageIcons[stage.icon] : Layers
                         return (
-                            <div
-                                key={header.key}
-                                role="group"
-                                aria-label={header.label}
-                                className={cn('relative shrink-0 border-r px-3 py-2', header.control && 'bg-muted/30')}
-                                style={{ width: header.width }}
-                            >
-                                {!header.control && (
-                                    <p className="absolute right-2 top-1 text-[10px] text-muted-foreground">
-                                        {String(header.stageNumber).padStart(2, '0')}
-                                    </p>
-                                )}
+                            <div key={stage.key} className="shrink-0 border-r" style={{ width: stage.width }}>
                                 <div
-                                    className={cn(
-                                        'flex h-full items-center gap-2',
-                                        header.control && 'justify-center gap-1.5'
-                                    )}
+                                    role="group"
+                                    aria-label={stage.label}
+                                    className="flex items-center gap-2 border-b px-3"
+                                    style={{ height: stageHeaderHeight }}
                                 >
-                                    <span
-                                        className={cn(
-                                            'flex shrink-0 items-center justify-center',
-                                            header.control
-                                                ? 'text-muted-foreground'
-                                                : 'size-7 rounded-lg bg-primary text-primary-foreground'
-                                        )}
-                                    >
-                                        <HeaderIcon className="size-4" />
+                                    <StageIcon className="size-4 shrink-0 text-muted-foreground" />
+                                    <span className="min-w-0 truncate text-sm font-semibold" title={stage.label}>
+                                        {stage.label}
                                     </span>
-                                    <p
-                                        className={cn(
-                                            'min-w-0 truncate font-semibold',
-                                            header.control ? 'text-xs' : 'text-sm'
-                                        )}
-                                        title={
-                                            header.control
-                                                ? `${t[header.control.kind]} · ${header.label}`
-                                                : header.label
-                                        }
-                                    >
-                                        {header.label}
-                                    </p>
+                                    <span className="ml-auto text-[10px] text-muted-foreground">
+                                        {String(stageIndex + 1).padStart(2, '0')}
+                                    </span>
+                                </div>
+                                <div className="flex" style={{ height: headerHeight - stageHeaderHeight }}>
+                                    {layout.headers
+                                        .filter((header) => header.stageKey === stage.key)
+                                        .map((header) => {
+                                            const HeaderIcon = header.human
+                                                ? UserCheck
+                                                : header.control
+                                                  ? icons[header.control.kind]
+                                                  : Layers
+                                            const label = header.human
+                                                ? t.humanDecision
+                                                : header.control
+                                                  ? header.label
+                                                  : t.taskProcessing
+                                            return (
+                                                <div
+                                                    key={header.key}
+                                                    role="group"
+                                                    aria-label={label}
+                                                    className={cn(
+                                                        'flex shrink-0 items-center justify-center gap-1.5 border-r px-2 last:border-r-0',
+                                                        header.human
+                                                            ? 'border-warning/20 bg-warning/10'
+                                                            : header.control && 'bg-muted/30'
+                                                    )}
+                                                    style={{ width: header.width }}
+                                                >
+                                                    <HeaderIcon
+                                                        className={cn(
+                                                            'size-4 shrink-0',
+                                                            header.human ? 'text-warning' : 'text-muted-foreground'
+                                                        )}
+                                                    />
+                                                    <span
+                                                        className="line-clamp-2 min-w-0 text-xs font-semibold leading-tight"
+                                                        title={label}
+                                                    >
+                                                        {label}
+                                                    </span>
+                                                </div>
+                                            )
+                                        })}
                                 </div>
                             </div>
                         )
@@ -247,7 +264,10 @@ export function Swimlane({
                         {layout.headers.map((header) => (
                             <div
                                 key={header.key}
-                                className={cn('shrink-0 border-r border-dashed', header.control && 'bg-muted/10')}
+                                className={cn(
+                                    'shrink-0 border-r border-dashed',
+                                    header.human ? 'border-warning/20 bg-warning/5' : header.control && 'bg-muted/10'
+                                )}
                                 style={{ width: header.width }}
                             />
                         ))}
@@ -264,7 +284,7 @@ export function Swimlane({
                             <path d="M0,0 L8,4 L0,8 z" fill="currentColor" />
                         </marker>
                     </defs>
-                    {graph.edges
+                    {displayGraph.edges
                         .filter(
                             (edge) =>
                                 !onlyBlocked ||
@@ -323,9 +343,7 @@ export function Swimlane({
                         state = projection.state
                     const stageIcon = graph.definition.stages.find((stage) => stage.key === projection.stageKey)?.icon
                     const Icon =
-                        !isControlNode(projection.kind) && stageIcon
-                            ? pipelineStageIcons[stageIcon]
-                            : icons[projection.kind]
+                        projection.kind === 'work' && stageIcon ? pipelineStageIcons[stageIcon] : icons[projection.kind]
                     const logic = isControlNode(projection.kind)
                     const label =
                         state.freshness === 'superseded'
@@ -378,10 +396,18 @@ export function Swimlane({
                                 >
                                     <Icon className={cn('size-4', projection.kind !== 'terminal' && '-rotate-45')} />
                                 </span>
-                                <span className="max-w-full truncate font-medium" title={projection.title}>
+                                <span
+                                    className="line-clamp-2 w-full shrink-0 break-words text-center font-medium leading-tight"
+                                    title={projection.title}
+                                >
                                     {projection.title}
                                 </span>
-                                <span className="text-muted-foreground">{t[label]}</span>
+                                <span
+                                    className="max-w-full shrink-0 truncate text-[10px] leading-3 text-muted-foreground"
+                                    title={t[label]}
+                                >
+                                    {t[label]}
+                                </span>
                             </button>
                         )
                     return (
@@ -401,6 +427,7 @@ export function Swimlane({
                                       : label === 'ready'
                                         ? 'border-info/60'
                                         : 'border-border',
+                                projection.kind === 'human_gate' && 'bg-warning/5',
                                 (state.applicability === 'excluded' || state.freshness === 'superseded') && 'opacity-50'
                             )}
                             style={{ left: position.x, top: position.y, width: position.width, height: nodeHeight }}
@@ -411,8 +438,16 @@ export function Swimlane({
                                 aria-pressed={selected === node.id}
                             >
                                 <span className="flex w-full items-center justify-between gap-2">
-                                    <span className="flex size-5 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                                        <Icon className="size-4" />
+                                    <span
+                                        className={cn(
+                                            'flex items-center justify-center gap-1 rounded-md bg-muted text-muted-foreground',
+                                            projection.kind === 'human_gate'
+                                                ? 'shrink-0 whitespace-nowrap px-1 py-0.5 text-[10px] font-medium'
+                                                : 'size-5'
+                                        )}
+                                    >
+                                        <Icon className="size-4 shrink-0" />
+                                        {projection.kind === 'human_gate' && t.humanRole}
                                     </span>
                                     <span
                                         title={t[label]}
@@ -433,8 +468,18 @@ export function Swimlane({
                                 <span className="w-full truncate text-sm font-semibold" title={projection.title}>
                                     {projection.title}
                                 </span>
-                                <span className="w-full truncate text-xs" title={graph.instance.title}>
-                                    {graph.instance.title}
+                                <span
+                                    className="w-full truncate text-xs"
+                                    title={
+                                        projection.kind === 'human_gate'
+                                            ? graph.definition.lanes.find((row) => row.key === projection.laneKey)
+                                                  ?.label
+                                            : graph.instance.title
+                                    }
+                                >
+                                    {projection.kind === 'human_gate'
+                                        ? graph.definition.lanes.find((row) => row.key === projection.laneKey)?.label
+                                        : graph.instance.title}
                                 </span>
                                 <span className="w-full truncate text-xs text-muted-foreground">
                                     {t[projection.kind]} ·{' '}

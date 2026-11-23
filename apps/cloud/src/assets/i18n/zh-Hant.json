@@ -713,6 +713,18 @@
         "ClearBusinessDomain": "清除業務領域"
       },
       "Application": {
+        "OrganizationSetup": {
+          "EmptySources": "暫無可用的共享資料來源。請先發布此提供方的分析定義，將可見性設為組織，再重新開啟表單。",
+          "Title": "組織業務設定",
+          "Complete": "補全組織設定",
+          "Source": "選擇已授權的資料來源",
+          "Query": "唯讀查詢定義（AnalyticsBinding JSON）",
+          "Invalid": "請填寫含操作、參數和輸出欄位的查詢定義。",
+          "Loading": "正在讀取本組織資源…",
+          "Retry": "重試",
+          "Save": "儲存設定",
+          "Saved": "組織設定已儲存。"
+        },
         "Toolsets": {
           "Title": "必要工具集",
           "Description": "首次新增配置將準備應用工作空間。新配置直接儲存在其中；選擇已有配置時，會在啟用應用時複製。",

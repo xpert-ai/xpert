@@ -124,7 +124,7 @@ export async function readPipeline(instanceId: string, roundId?: string) {
     return z.object({ success: z.literal(true), data: pipelineGraphSchema }).parse(
         await request('executeAction', {
             actionKey: 'pipeline-graph',
-            input: { instanceId, ...(roundId ? { roundId } : {}) }
+            input: { contractVersion: 2, instanceId, ...(roundId ? { roundId } : {}) }
         })
     ).data
 }

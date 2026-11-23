@@ -54,7 +54,12 @@ function fixture(status = 'succeeded', executionBudget?: { maxDurationSeconds: n
             steps: [],
             executions: [{ id: attemptId, taskId, projectId, invocationId, attempt: 1, purpose }]
         }),
-        manager: { getRepository: () => ({ findOneBy, find: jest.fn().mockResolvedValue([]) }) }
+        manager: {
+            find: jest.fn(async (_entity, options) =>
+                (await repository.findOne({})).executions.filter((item) => item.id === options.where.id)
+            ),
+            getRepository: () => ({ findOneBy, find: jest.fn().mockResolvedValue([]) })
+        }
     })
     const service = new ProjectTaskRuntimeReadService(
         repository,
@@ -429,4 +434,15 @@ describe('authorized result pages', () => {
         f.assertCanRead.mockRejectedValue(new Error('Denied'))
         await expect(f.service.readResult(projectId, input)).rejects.toThrow('Denied')
     })
+})
+
+it('loads only the selected execution for view details after project authorization', async () => {
+    const f = fixture()
+    await f.service.get(projectId, taskId, false, { executionId: attemptId })
+    expect(f.repository.findOne).toHaveBeenCalledWith(expect.objectContaining({ relations: ['steps'] }))
+    expect(f.repository.manager.find).toHaveBeenCalledWith(expect.anything(), {
+        where: { id: attemptId, taskId, projectId, tenantId: 'tenant', organizationId: 'organization' },
+        loadEagerRelations: false
+    })
+    expect(f.inspect).not.toHaveBeenCalled()
 })

@@ -1,6 +1,7 @@
 jest.mock('./project.service', () => ({ XpertProjectService: class XpertProjectService {} }))
 
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import type { ConversationProjectMoveService } from './services/conversation-project-move'
 import { XpertProjectWorkspaceFilesService } from './services/project-workspace-files.service'
 import { XpertProjectInvitationService } from './services/project-invitation.service'
 import { XpertProjectTypeService } from './services/project-type.service'
@@ -30,6 +31,22 @@ describe('XpertProjectController collaboration endpoints', () => {
         expect(Reflect.getMetadata(XPERT_PROJECT_PERMISSION, XpertProjectController.prototype.removeXpert)).toBe(
             AIPermissionsEnum.XPERT_PROJECT_MANAGE
         )
+    })
+
+    it('creates and moves only when the caller passes the explicit source and confirmation', async () => {
+        const project = { id: 'project' }
+        const moves = { confirm: jest.fn().mockResolvedValue({ projectId: project.id }) }
+        const service = { findOne: jest.fn().mockResolvedValue(project), createProject: jest.fn() }
+        const controller = createController(service, {}, {}, {}, {}, {}, moves)
+        const source = {
+            moveFromConversationId: 'conversation',
+            requestId: 'request',
+            threadId: 'thread',
+            shareHistory: true as const
+        }
+        await expect(controller.create({ ...source, name: 'Sales' })).resolves.toBe(project)
+        expect(moves.confirm).toHaveBeenCalledWith({ ...source, target: { mode: 'create', name: 'Sales' } })
+        expect(service.createProject).not.toHaveBeenCalled()
     })
 
     it('passes creation seeds to the service and records the complete initialized member count', async () => {
@@ -192,7 +209,8 @@ function createController(
     membershipService: object = {},
     contentService: object = {},
     planService: object = {},
-    activityService: object = {}
+    activityService: object = {},
+    conversationMoves: object = {}
 ) {
     return new XpertProjectController(
         service as XpertProjectService,
@@ -208,6 +226,7 @@ function createController(
         membershipService as XpertProjectMembershipService,
         {} as XpertProjectInvitationService,
         {} as XpertProjectWorkspaceFilesService,
-        {} as VolumeClient
+        {} as VolumeClient,
+        conversationMoves as ConversationProjectMoveService
     )
 }

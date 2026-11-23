@@ -10,7 +10,7 @@ import {
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
-  XpertService,
+  XpertAPIService,
   XpertTypeEnum,
   OrderTypeEnum,
   ChatConversationService,
@@ -34,9 +34,10 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #projectAccessRequestId = 0
   #projectNavigationRequestId = 0
+  #pendingAdoption: Promise<boolean> | null = null
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
-  readonly #xpertService = inject(XpertService)
+  readonly #xpertService = inject(XpertAPIService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #store = inject(Store)
   readonly #router = inject(Router)
@@ -107,7 +108,8 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     if (projectId) return { mode: 'existing', projectId }
     const mode = this.#routeProjectMode()
     if (mode) return { mode }
-    return { mode: this.currentXpert()?.options?.workspaceScope?.onMissing ? 'auto-new' : 'none' }
+    const workspace = this.currentXpert()?.options?.workspaceScope
+    return { mode: workspace?.onMissing && workspace.mode !== 'project-preferred' ? 'auto-new' : 'none' }
   })
   readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
   readonly projectName = signal<string | null>(null)
@@ -263,24 +265,43 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       }
       const slug = this.currentXpert()?.slug ?? this.slug()
       if (!slug) return
-      this.#adoptedProject.set({
+      const current = this.#adoptedProject()
+      if (
+        this.#pendingAdoption &&
+        current?.assistantId === assistantId &&
+        current.threadId === threadId &&
+        current.projectId === savedProjectId
+      ) {
+        await this.#pendingAdoption
+        return
+      }
+      const adoption = {
         assistantId,
         threadId,
         projectId: savedProjectId,
         mountProjectId: this.chatkitMountProjectId(),
         selection: this.chatkitProjectSelection()
-      })
-      const opened = await this.#router.navigate(
-        savedProjectId ? ['/chat/x', slug, 'p', savedProjectId, 'c', threadId] : ['/chat/x', slug, 'c', threadId],
-        projectId
-          ? {
-              queryParamsHandling: 'merge',
-              queryParams: { projectMode: null, viewSelection: null, viewParameters: null },
-              replaceUrl: true
-            }
-          : { queryParamsHandling: 'preserve', replaceUrl: true }
-      )
-      if (!opened && this.threadId() === threadId) this.#adoptedProject.set(null)
+      }
+      this.#adoptedProject.set(adoption)
+      let navigation: Promise<boolean> | undefined
+      let opened = false
+      try {
+        navigation = this.#router.navigate(
+          savedProjectId ? ['/chat/x', slug, 'p', savedProjectId, 'c', threadId] : ['/chat/x', slug, 'c', threadId],
+          projectId
+            ? {
+                queryParamsHandling: 'merge',
+                queryParams: { projectMode: null, viewSelection: null, viewParameters: null },
+                replaceUrl: true
+              }
+            : { queryParamsHandling: 'preserve', replaceUrl: true }
+        )
+        this.#pendingAdoption = navigation
+        opened = await navigation
+      } finally {
+        if (this.#pendingAdoption === navigation) this.#pendingAdoption = null
+        if (!opened && this.#adoptedProject() === adoption) this.#adoptedProject.set(null)
+      }
     } catch {
       // Route refresh is best effort; the persisted conversation remains the
       // runtime authority, and the response-end event retries the refresh.
@@ -424,10 +445,12 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     try {
       const xperts = await firstValueFrom(
         this.activeScope().level === 'tenant'
-          ? this.#xpertService.getMyAll({
-              where: { type: XpertTypeEnum.Agent, latest: true },
-              order: { createdAt: OrderTypeEnum.DESC }
-            })
+          ? this.#xpertService
+              .getMyAll({
+                where: { type: XpertTypeEnum.Agent, latest: true },
+                order: { createdAt: OrderTypeEnum.DESC }
+              })
+              .pipe(map(({ items }) => items))
           : this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
       )
       const normalizedXperts = normalizeXperts(xperts)

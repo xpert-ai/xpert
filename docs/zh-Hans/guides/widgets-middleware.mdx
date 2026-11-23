@@ -1,0 +1,49 @@
+---
+title: '聊天中的 A2UI 小部件'
+---
+
+`WidgetsMiddleware` 让 Agent 按回答内容生成聊天卡片。普通问答使用文本；比较多条数据、收集输入或探索参数时，可调用 `a2ui_catalog` 查看组件契约，再调用 `render_a2ui_surface`。
+
+## 启用
+
+在 Assistant Studio 中为目标 Agent 添加“小部件中间件”，连接后发布 Assistant。无需填写模板。若希望每次对话都具备此能力，将中间件设为必需；否则需要在聊天的能力选择中启用它。
+
+对应 DSL 节点：
+
+```yaml
+type: workflow
+key: Middleware_Widgets
+entity:
+  type: middleware
+  key: Middleware_Widgets
+  provider: WidgetsMiddleware
+  required: true
+  options:
+    autoRender: true
+```
+
+使用 `workflow` 连接从目标 Agent 指向该节点。`entity.required` 决定是否始终加载，不能用连接上的 `required` 代替。
+
+`autoRender: false` 时只在用户明确要求表单或交互界面时生成。`widgets` 仍支持已有的手工模板；`toolPrompt` 和 `systemPrompt` 分别补充工具模式与无工具模型的 JSON 模式提示词。
+
+已有配置继续使用 `WidgetsMiddleware` provider，无需迁移节点。模板 JSON、值样例编辑器、自动推导的工具参数和旧 Composer 格式保持兼容。模型可直接返回单个模板的值对象；多个模板支持按顺序排列的数组或以模板名为键的对象，未提供的模板沿用值样例。已有工具调用仍返回 `widget` 和 `values`，手工模板的业务动作不会自动改为 Agent 提交。
+
+实现按职责拆到 `widgets/`，原文件保留中间件和兼容导出。跨仓库同步时须一起同步该目录、原文件、回归测试和 `Widgets` 翻译资源，避免只复制入口文件。
+
+## 消息与交互
+
+- 沿用 ChatKit 的 A2UI **0.8** 原生渲染器。参考 dsh-a2ui 的按需目录、工具输出和 action 回传方式，没有切换为其 1.0 协议。
+- 每次工具调用产生完整、独立的 surface 快照。结构、组件字段、引用、大小和深度先经过后端校验；错误作为工具结果交给模型修正。
+- Widget 通过 `ON_TOOL_MESSAGE` 进入平台组件消息和持久化链路，历史消息可恢复卡片。
+- 输入框、滑块在本地更新数据。生成式 Button 的 action 被列入 `agentActions`，点击时解析绑定值，通过当前 thread 的标准消息提交继续 Agent。
+- 提交包含 action 名称、消息/卡片来源、时间和 context。它是用户输入，不授予业务权限。处理中及成功提交后禁止重复点击；失败可重试。
+- 聊天中显示提交摘要，内部 action JSON 供 Agent 使用。刷新后根据同一消息、卡片和 surface 的提交记录恢复提交状态；按钮 context 中以绝对路径绑定的标量输入可恢复已提交值，未提交的本地编辑不保存。
+- 已有 `serverActions` 优先走原服务端业务接口，未声明的动作保留宿主回调。历史卡片加载不会自动提交。
+
+`TextField` 使用 `text: { path: '/name' }` 与 `textFieldType`；`Button` 使用 `child` 引用单独的 Text 标签组件。`value`、`keyboardType` 和 `Button.text` 并非这些组件的有效字段。
+
+## 版本与验收
+
+后端和 ChatKit 前端必须同时更新。后端启用中间件并不意味着旧版 ChatKit 已支持 `agentActions`。每次发布后确认运行实例能列出中间件、Assistant 已发布，再验证普通文本、真实模型生成、编辑后提交、会话隔离和刷新恢复。
+
+组件 Schema 固定于 ChatKit 渲染器所用的 `@a2ui/lit@0.8.1` 的 `standard_catalog_definition.json`，源自 [Google A2UI](https://github.com/google/A2UI)，采用 Apache-2.0 许可证。升级渲染器时须同步目录与协议回归测试。

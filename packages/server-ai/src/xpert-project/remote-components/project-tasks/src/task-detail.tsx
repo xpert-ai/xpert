@@ -1,6 +1,6 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
 import { z } from 'zod'
-import { Bot, ExternalLink, Info, GitBranch, ChevronRight } from 'lucide-react'
+import { Bot, GitBranch, ChevronRight } from 'lucide-react'
 import {
     Button,
     Badge,
@@ -18,12 +18,11 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import { forecastProjectTasks } from '@xpert-ai/contracts'
 import { graphSchema, request, type Graph, type Node } from './bridge'
-import { type Texts, dateTime, runtimeLabel, outcomeLabel } from './i18n'
-import { type Attempt, attemptTimes, owner } from './model'
+import { type Texts, dateTime } from './i18n'
+import { owner } from './model'
 import { Status, Choice, Empty } from './ui'
-import { openTaskExecution } from './execution-navigation'
 import { TaskTypeIcon } from './task-type-icon'
-import { RuntimeDetail } from './runtime-detail'
+import { TaskExecutionHistory } from './task-execution-history'
 
 function toLocal(value: string | null) {
     if (!value) return ''
@@ -62,7 +61,7 @@ export function TaskDetail({
 }) {
     const cached = draftRef.current?.taskId === task.id ? draftRef.current : null
     const attempts = graph.executions.filter((item) => item.taskId === task.id).sort((a, b) => b.attempt - a.attempt)
-    const [tab, setTab] = useState(cached?.tab ?? (attempts.length ? 'history' : 'overview'))
+    const [tab, setTab] = useState(cached?.tab ?? ((task.executionCount ?? attempts.length) ? 'history' : 'overview'))
     const [busy, setBusy] = useState<string | null>(null),
         [error, setError] = useState<string | null>(null)
     const [saved, setSaved] = useState(false),
@@ -127,20 +126,6 @@ export function TaskDetail({
             setBusy(null)
         }
     }
-    const open = (attempt: Attempt) => void act(attempt.id, () => openTaskExecution(attempt.id, t.openFailed))
-    const openButton = (attempt: Attempt, primary: boolean) => (
-        <Button
-            variant={primary ? 'default' : 'outline'}
-            size="sm"
-            className="w-full"
-            disabled={!(attempt.agentExecutionId || attempt.invocationId) || !!busy}
-            title={!(attempt.agentExecutionId || attempt.invocationId) ? t.unavailable : undefined}
-            onClick={() => open(attempt)}
-        >
-            <ExternalLink />
-            {busy === attempt.id ? t.saving : t.open}
-        </Button>
-    )
     return (
         <div className="flex min-h-0 flex-col gap-4">
             <div className="space-y-2">
@@ -160,8 +145,8 @@ export function TaskDetail({
                     {(['overview', 'history', 'outputs'] as const).map((value) => (
                         <TabsTrigger key={value} value={value}>
                             {t[value]}
-                            {value === 'history' && attempts.length > 0 && (
-                                <Badge variant="secondary">{attempts.length}</Badge>
+                            {value === 'history' && (task.executionCount ?? attempts.length) > 0 && (
+                                <Badge variant="secondary">{task.executionCount ?? attempts.length}</Badge>
                             )}
                         </TabsTrigger>
                     ))}
@@ -212,70 +197,15 @@ export function TaskDetail({
                     {task.diagnostic && (
                         <p className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">{task.diagnostic}</p>
                     )}
-                    {(tab === 'history' || tab === 'outputs') && attempts.some((item) => item.invocationId) && (
-                        <RuntimeDetail
-                            section={tab}
+                    {(tab === 'history' || tab === 'outputs') && (
+                        <TaskExecutionHistory
+                            key={task.id}
                             taskId={task.id}
+                            executionVersion={task.executionVersion ?? graph.cursor}
                             locale={locale}
+                            section={tab}
                             canEdit={canEdit}
-                            openAttempt={(id) => void act(id, () => openTaskExecution(id, t.openFailed))}
-                            openConversation={(id) =>
-                                void act(id, () => openTaskExecution(id, t.openFailed, 'conversation'))
-                            }
                         />
-                    )}
-                    {tab === 'history' && (
-                        <div className="space-y-3 border-t pt-3">
-                            {!attempts.length && <Empty title={t.noExecutions} />}
-                            {attempts
-                                .filter((item) => !item.invocationId)
-                                .map((attempt, index) => {
-                                    const times = attemptTimes(attempt)
-                                    return (
-                                        <section
-                                            key={attempt.id}
-                                            className="space-y-2 rounded-lg border p-3"
-                                            aria-label={`${t.attempt} ${attempt.attempt} ${t.execution}`}
-                                        >
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <h3 className="text-sm font-semibold">
-                                                    {t.attempt} {attempt.attempt} {t.execution}
-                                                </h3>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {runtimeLabel(attempt.runtimeStatus, t)}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs tabular-nums text-muted-foreground">
-                                                {dateTime(times.start, locale)} → {dateTime(times.end, locale)}
-                                            </p>
-                                            {attempt.outputSummary && (
-                                                <p className="text-sm leading-6">
-                                                    <span className="text-muted-foreground">{t.outcome}: </span>
-                                                    {outcomeLabel(attempt.outputSummary, t)}
-                                                </p>
-                                            )}
-                                            {attempt.error && (
-                                                <p className="break-words text-sm leading-6 text-destructive">
-                                                    {attempt.error}
-                                                </p>
-                                            )}
-                                            {openButton(attempt, index === 0)}
-                                        </section>
-                                    )
-                                })}
-                            {!!attempts.length && (
-                                <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-                                    <Info className="mt-0.5 size-4 shrink-0" />
-                                    {t.independent}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                    {tab === 'outputs' && !attempts.some((item) => item.invocationId) && (
-                        <div className="space-y-4 border-t pt-4">
-                            <p className="text-xs leading-5 text-muted-foreground">{t.outputsHint}</p>
-                            <Empty title={t.noOutputs} />
-                        </div>
                     )}
                     {tab === 'overview' && (
                         <div className="space-y-4 border-t pt-4">

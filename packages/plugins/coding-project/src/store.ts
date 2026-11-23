@@ -2,7 +2,7 @@
 // immutable evidence record; retries may only reuse that same record.
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IsNull, Repository } from 'typeorm'
+import { IsNull, Raw, Repository } from 'typeorm'
 import { z } from 'zod/v3'
 import {
   ProjectAccessRuntimeCapability,
@@ -146,6 +146,9 @@ export class CodingDeliveryStore {
     await this.access(c)
     const row = await this.works.findOneBy({ ...scopeWhere(c), id })
     if (!row) throw new NotFoundException(codingError('CODING_OPERATION_NOT_FOUND'))
+    return this.parseWork(row)
+  }
+  private parseWork(row: CodingDeliveryWork) {
     return {
       ...row,
       context: storedContextSchema.parse(row.context),
@@ -155,16 +158,26 @@ export class CodingDeliveryStore {
   }
   async stageForConversation(c: ProjectPipelineContext, conversationId: string) {
     await this.access(c)
-    const rows = await this.works.find({
-      where: scopeWhere(c),
-      select: ['id', 'deliveryId', 'context'],
-      order: { createdAt: 'DESC' }
+    const row = await this.works.findOne({
+      where: {
+        ...scopeWhere(c),
+        context: Raw((column) => `(${column} -> 'executor' ->> 'conversationId') = :conversationId`, { conversationId })
+      },
+      order: { createdAt: 'DESC', id: 'DESC' }
     })
-    for (const row of rows) {
-      const context = storedContextSchema.parse(row.context)
-      if (context.executor.conversationId === conversationId) return { ...row, context }
-    }
-    return null
+    return row ? this.parseWork(row) : null
+  }
+  /** Technical retries share the immutable stage identity and have distinct operation IDs. */
+  async stageAttempts(c: ProjectPipelineAssistantContext, deliveryId: string, phase: Phase, revision: number) {
+    const rows = await this.works.find({
+      where: { ...scopeWhere(c), deliveryId, phase, requirementVersion: revision },
+      select: ['id', 'context'],
+      order: { createdAt: 'DESC', id: 'DESC' }
+    })
+    return rows.flatMap((row) => {
+      const previous = storedContextSchema.parse(row.context)
+      return canonical({ ...previous.work, operationId: c.work.operationId }) === canonical(c.work) ? [previous] : []
+    })
   }
   async begin(c: ProjectPipelineAssistantContext, phase: Phase) {
     if (c.subjects.length !== 1) throw conflict('CODING_REQUIREMENT_REQUIRED')

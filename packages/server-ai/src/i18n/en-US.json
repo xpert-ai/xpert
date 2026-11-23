@@ -1,4 +1,28 @@
 {
+    "Widgets": {
+        "DuplicateTool": "Widget tool names must be unique.",
+        "Rendered": "The interactive card is ready.",
+        "Invalid": "Invalid A2UI surface: {{reason}}. Fix the payload and call the tool again.",
+        "InvalidComposer": "Invalid Composer components or component references."
+    },
+    "ProjectMove": {
+        "ConfirmInChat": "Confirm the project in this conversation to continue your request.",
+        "NameRequired": "Enter a project name of 1–240 characters.",
+        "TargetRequired": "Choose an available project.",
+        "ChooseOrCreate": "Choose or create a project",
+        "Existing": "Existing project",
+        "Create": "New project",
+        "NoAvailableProjects": "No projects are available.",
+        "NoProjects": "No projects are available. Choose New project to create one.",
+        "Moved": "Moved to {{name}}",
+        "Cancel": "Cancel",
+        "Placeholder": "Select a project",
+        "Name": "New project name",
+        "Target": "Choose a project",
+        "Visibility": "People with access to this project will be able to read the entire conversation.",
+        "Continue": "Continue request",
+        "Confirm": "Move and continue"
+    },
     "TaskDecision": {
         "InvalidReference": "Invalid decision reference. Read project_get_task and copy a returned decisionRef unchanged.",
         "ContextChanged": "The task, candidate or review has changed. Read project_get_task again, reassess its evidence and use the new decisionRef.",
@@ -86,6 +110,22 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "ApplicationModelBootstrapAccess": "Select a private workspace you manage in this organization and check access to the dedicated area and reader.",
+        "ApplicationModelReaderTitle": "{{model}} · Read-only access",
+        "ApplicationModelSetupUnavailable": "This application or authorized connection is unavailable.",
+        "ApplicationModelCatalogFailed": "Could not read the model catalog. Check the connection, organization runtime identity and model read permissions.",
+        "ApplicationModelPreviewFailed": "The selected model did not return complete results for the required queries. Check its cubes, fields and read permissions.",
+        "ApplicationModelPreviewChanged": "The settings or preview changed. Refresh the form and preview again.",
+        "OrganizationSetupRole": "The published role is missing or ambiguous in the original workspace. Check the application suite before completing setup.",
+        "OrganizationSetupUnavailable": "This application does not support organization setup.",
+        "OrganizationSetupRequired": "Complete the organization settings before enabling this application.",
+        "OrganizationSetupChanged": "Another administrator changed the settings. Reopen the form to load the latest revision.",
+        "OrganizationSetupUnknownField": "The application no longer declares one of these fields. Reload its settings.",
+        "OrganizationSetupMembers": "Select active members of this organization for {{field}}.",
+        "OrganizationSetupSource": "Select a published source shared with this organization for {{field}}.",
+        "OrganizationSetupResult": "The {{field}} query must return a complete, nonempty result with the required numeric fields.",
+        "OrganizationSetupInitializationRequired": "Initialize the application in this organization before editing its settings.",
+        "ProjectApplicationInstallationNotReady": "The organization application installation is {{status}}. Check its resources in application details.",
         "RunReconciliationDeferred": "Run reconciliation is deferred; the remaining candidates will still be checked.",
         "ToolFinalResultMissing": "Tool execution ended without a final result. Completed output was preserved.",
         "HandoffDispatchUncertain": "Callback execution is uncertain; automatic replay is withheld.",

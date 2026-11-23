@@ -2,6 +2,7 @@ import { In, IsNull, type DataSource, type FindOptionsSelect } from 'typeorm'
 import type { IChatMessage } from '@xpert-ai/contracts'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { toAgentRunSummary } from '../../ai/agent-run-summary'
+import { readAgentRunSnapshot } from '../../chat-message/agent-run-snapshot'
 import type { TrailRun } from './trail-execution'
 
 /** The root must belong to the reply's original authorized thread, including inherited history. */
@@ -11,7 +12,7 @@ export async function readTrailRuns(
     message: IChatMessage,
     threadId: string
 ): Promise<{ runs: TrailRun[]; truncated: boolean }> {
-    if (message.historical) return { runs: message.historicalAgentRuns ?? [], truncated: false }
+    if (message.historical) return { runs: readAgentRunSnapshot(message.historicalAgentRuns), truncated: false }
     if (!message.executionId) return { runs: [], truncated: false }
     const repository = db.getRepository(XpertAgentExecution)
     const where = {

@@ -17,14 +17,16 @@ export const CHAT_EVENT_TYPE_THREAD_GOAL_CLEARED = 'thread_goal_cleared' as cons
 export type TConversationTitleSummaryEvent = TChatEventMessage & {
   id?: string
   type: typeof CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY
+  presentation: 'runtime'
 }
 
 export function createConversationTitleSummaryEvent(
-  event: Omit<TConversationTitleSummaryEvent, 'type'>
+  event: Omit<TConversationTitleSummaryEvent, 'type' | 'presentation'>
 ): TConversationTitleSummaryEvent {
   return {
+    ...event,
     type: CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY,
-    ...event
+    presentation: 'runtime'
   }
 }
 

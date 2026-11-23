@@ -6,14 +6,18 @@ import { t } from 'i18next'
 import { z } from 'zod/v3'
 import { runtimeCommandSourceSchema } from './runtime-command-source.schema'
 
-// Workbench views also send display context. Only Project scope reaches managed execution;
+// Managed execution accepts Project scope;
 // environment and model configuration always come from the published installation.
 // ChatKit represents a conversation without a Project as null after history restoration.
 const projectIdSchema = z
     .string()
     .nullish()
     .transform((value) => value ?? undefined)
-const contextSchema = z.object({ projectId: projectIdSchema }).strip()
+const contextSchema = z
+    .object({
+        projectId: projectIdSchema
+    })
+    .strip()
 // File and reference handles retain their existing resource-authorization boundary.
 const humanSchema = z
     .object({

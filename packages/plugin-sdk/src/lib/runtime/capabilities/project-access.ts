@@ -1,5 +1,5 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
-import type { XpertProjectClassification } from '@xpert-ai/contracts'
+import type { ProjectApplicationBindings, XpertProjectClassification } from '@xpert-ai/contracts'
 
 import type { RuntimeActor } from '../actor'
 
@@ -8,6 +8,8 @@ export interface ProjectHumanAccess extends XpertProjectClassification {
   projectId: string
   name?: string
   role: 'owner' | 'manager' | 'editor' | 'member' | 'assistant'
+  /** Organization installation metadata resolved on request by {@link ProjectAccessApi.assertManage}. */
+  applicationBindings?: ProjectApplicationBindings
   canManage: boolean
   archived: boolean
   /** Explicit Project bindings, for plugins that choose to use assignment as business policy. */
@@ -17,7 +19,17 @@ export interface ProjectHumanAccess extends XpertProjectClassification {
 export interface ProjectAccessApi {
   listReadable(input: { actor: ProjectAccessActor; projectIds?: string[] }): Promise<ProjectHumanAccess[]>
   assertEdit(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess>
-  assertManage(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess>
+  /**
+   * Require project management access and return the actor's access record for that project.
+   * By default this checks project access alone. Request installation bindings when the operation
+   * needs the current organization's role assignments or application settings.
+   */
+  assertManage(input: {
+    actor: ProjectAccessActor
+    projectId: string
+    /** A matching installation must be ready. Without a matching installation, the result omits applicationBindings. */
+    includeApplicationBindings?: boolean
+  }): Promise<ProjectHumanAccess>
   /** Validate an explicit Assistant connection, including published/root identity normalization. */
   assertAssistant(input: {
     actor: ProjectAccessActor

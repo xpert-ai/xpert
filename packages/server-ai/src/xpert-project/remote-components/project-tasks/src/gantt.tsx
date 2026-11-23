@@ -1,3 +1,4 @@
+import { useExecutionRows } from './execution-data'
 import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@xpert-ai/shadcn-ui'
 import type { ProjectTaskForecast } from '@xpert-ai/contracts'
@@ -27,7 +28,7 @@ export function Gantt(
     }
 ) {
     const {
-        graph,
+        graph: indexGraph,
         rows,
         selected,
         select,
@@ -50,19 +51,27 @@ export function Gantt(
         [locatePending, setLocatePending] = useState(false)
     const virtual = useVirtualRows(rows.length),
         markerId = useId().replace(/:/g, '')
+    const graph = useExecutionRows(
+        indexGraph,
+        rows.slice(virtual.start, virtual.end).flatMap((row) => (row.type === 'task' ? [row.task.id] : [])),
+        onError
+    )
     const pendingAnchor = useRef<{ time: number; screenX: number } | null>(null)
     useDragScroll(virtual.ref)
     const domain = useMemo(
         () =>
             timelineDomain(
                 [
+                    graph.timelineBounds?.startAt,
+                    graph.timelineBounds?.endAt,
+                    graph.timelineBounds?.hasRunning ? new Date(now).toISOString() : null,
                     ...graph.tasks.flatMap((task) => [
                         task.plannedStartAt,
                         plannedEnd(task),
                         task.actualStartAt,
                         task.actualEndAt
                     ]),
-                    ...graph.executions.flatMap((item) => {
+                    ...(indexGraph.progressive ? [] : graph.executions).flatMap((item) => {
                         const times = attemptTimes(item)
                         return [times.start, times.end, isRunning(item) ? new Date(now).toISOString() : null]
                     }),

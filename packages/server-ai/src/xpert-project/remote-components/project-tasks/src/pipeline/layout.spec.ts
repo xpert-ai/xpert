@@ -35,7 +35,9 @@ it('places routers and terminal nodes inline with their upstream role without ch
         [edge('draft', 'route'), edge('route', 'review'), edge('review', 'end')]
     )
     const layout = pipelineLayout(graph, '')
-    expect(layout.rows.map((row) => row.key)).toEqual(['engineering', 'review'])
+    expect(layout.rows.map((row) => row.key)).toEqual(['engineering'])
+    expect(layout.positions.get('review')?.y).toBe(layout.positions.get('draft')?.y)
+    expect(graph.nodes[2].projection.laneKey).toBe('review')
     expect(layout.positions.get('route')?.y).toBe(layout.positions.get('draft')?.y)
     expect(layout.positions.get('end')?.y).toBe(layout.positions.get('review')?.y)
     expect(layout.stages.find((stage) => stage.key === 'route')?.width).toBeLessThan(stageWidth)
@@ -232,4 +234,59 @@ it('keeps same-stage cycles finite with separate control columns between upstrea
     expect(layout.positions.get('a')!.x).toBeLessThan(layout.positions.get('b')!.x)
     expect(layout.positions.get('a')!.x).toBeGreaterThan(layout.positions.get('entry')!.x)
     expect(layout.positions.get('finish')!.x).toBeGreaterThan(layout.positions.get('b')!.x)
+})
+
+it('keeps each human gate inline with the distinct Assistant work it reviews', () => {
+    const graph = makeGraph(
+        [
+            node('draft', 'work', 'engineering', 'prepare'),
+            node('gate', 'human_gate', 'human', 'prepare'),
+            node('inspect', 'work', 'review', 'inspect'),
+            node('route', 'router', null, 'inspect'),
+            node('release', 'human_gate', 'human', 'inspect')
+        ],
+        [edge('draft', 'gate'), edge('gate', 'inspect'), edge('inspect', 'route'), edge('route', 'release')]
+    )
+    graph.definition.lanes.push({ key: 'human', label: 'Authorized people', roleKey: 'human', order: 3 })
+    const before = JSON.stringify(graph)
+    const overview = pipelineLayout(graph, '')
+    expect(overview.rows.map((row) => row.key)).toEqual(['engineering', 'review'])
+    expect(overview.positions.get('gate')!.y).toBe(overview.positions.get('draft')!.y)
+    expect(overview.positions.get('release')!.y).toBe(overview.positions.get('inspect')!.y)
+    expect(overview.positions.get('gate')!.x).toBeGreaterThan(overview.positions.get('draft')!.x + nodeWidth)
+    expect(JSON.stringify(graph)).toBe(before)
+    const humans = pipelineLayout(graph, 'human')
+    expect(humans.rows.map((row) => row.key)).toEqual(['human'])
+    expect([...humans.positions.keys()].sort()).toEqual(['gate', 'release'])
+    expect(
+        pipelineLayout({ ...graph, nodes: [...graph.nodes].reverse(), edges: [...graph.edges].reverse() }, '').positions
+    ).toEqual(overview.positions)
+})
+
+it('keeps a standalone human decision visible when there is no Assistant anchor', () => {
+    const graph = makeGraph([node('approve', 'human_gate', 'review')], [])
+    const layout = pipelineLayout(graph, '')
+    expect(layout.positions.has('approve')).toBe(true)
+    expect(layout.rows.some((row) => row.key === 'review')).toBe(true)
+})
+
+it('reserves a human decision column separately from parallel work within a business stage', () => {
+    const graph = makeGraph(
+        [
+            node('parallel-task', 'work', 'engineering', 'shared'),
+            node('human-check', 'human_gate', 'review', 'shared'),
+            node('another-check', 'human_gate', 'review', 'shared')
+        ],
+        []
+    )
+    const before = JSON.stringify(graph)
+    const layout = pipelineLayout(graph, '')
+    expect(layout.stages).toHaveLength(1)
+    expect(layout.headers.map((header) => header.human)).toEqual([false, true])
+    expect(layout.headers.every((header) => header.stageKey === 'shared')).toBe(true)
+    expect(layout.headers.reduce((width, header) => width + header.width, 0)).toBe(layout.stages[0].width)
+    expect(layout.positions.get('human-check')!.x).toBeGreaterThan(layout.positions.get('parallel-task')!.x + nodeWidth)
+    expect(layout.positions.get('human-check')!.x).toBe(layout.positions.get('another-check')!.x)
+    expect(JSON.stringify(graph)).toBe(before)
+    expect(pipelineLayout(graph, 'review').headers).toEqual(layout.headers)
 })

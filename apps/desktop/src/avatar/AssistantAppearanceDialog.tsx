@@ -14,6 +14,8 @@ import { ArrowLeft, LoaderCircle, Palette, Upload } from 'lucide-react'
 import { invoke } from '../host'
 import { t } from '../i18n'
 import { AppearancePreview } from './AppearancePreview'
+import { BotAvatar } from './BotAvatar'
+import { configuredAvatarColor } from './color'
 import { CharacterEditor } from './CharacterEditor'
 import { CharacterSettings } from './CharacterSettings'
 import { ActivityPicker } from './ActivityPicker'
@@ -57,6 +59,8 @@ export function AssistantAppearanceDialog({
   const [reload, setReload] = useState(0)
   const upload = useRef<HTMLInputElement>(null)
   const generation = useRef(0)
+  const currentColor = configuredAvatarColor(avatar)
+  const sharedBackground = currentColor ?? avatar.background
   useEffect(() => {
     let active = true
     setLoading(true)
@@ -133,9 +137,19 @@ export function AssistantAppearanceDialog({
     setZoom(1)
     setX(50)
     setY(50)
-    setAvatar({ appearance: { version: 1, kind: 'image' } })
+    setAvatar({ background: sharedBackground, appearance: { version: 1, kind: 'image' } })
     setPreview(preset.src)
     setChanged(true)
+  }
+  const chooseDefault = () => {
+    generation.current++
+    setError('')
+    setSource('')
+    setPetSource('')
+    setPetUpload(undefined)
+    setAvatar({ background: sharedBackground })
+    setPreview('')
+    setChanged(false)
   }
   const choose = async (appearance: Exclude<TAssistantAppearance, { kind: 'image' }>) => {
     const version = ++generation.current
@@ -144,7 +158,7 @@ export function AssistantAppearanceDialog({
     if (appearance.kind === 'character') {
       setPetUpload(undefined)
       setPetSource('')
-      setAvatar({ appearance })
+      setAvatar({ appearance, background: avatar.appearance?.kind === 'character' ? avatar.background : undefined })
       setPreview(characterSvg(appearance))
       setChanged(true)
       return
@@ -156,7 +170,10 @@ export function AssistantAppearanceDialog({
       if (version !== generation.current) return
       setPetSource(asset?.src ?? '')
       setPetUpload(undefined)
-      setAvatar({ appearance: { ...appearance, spriteVersionNumber: asset.spriteVersionNumber } })
+      setAvatar({
+        background: sharedBackground,
+        appearance: { ...appearance, spriteVersionNumber: asset.spriteVersionNumber }
+      })
       setPreview(png)
       setChanged(true)
     } catch (reason) {
@@ -164,6 +181,13 @@ export function AssistantAppearanceDialog({
         setError(reason instanceof Error ? t(reason.message) : t('Could not load the image.'))
     } finally {
       if (version === generation.current) setPending(false)
+    }
+  }
+  const chooseColor = (color: string) => {
+    if (avatar.appearance?.kind === 'character') {
+      void choose({ ...avatar.appearance, color })
+    } else {
+      setAvatar((current) => ({ ...current, background: color }))
     }
   }
   const save = async () => {
@@ -198,7 +222,8 @@ export function AssistantAppearanceDialog({
   const studio =
     designing && avatar.appearance?.kind === 'character' && avatar.appearance.config ? avatar.appearance : undefined
   const disabled = loading || pending || !profile?.canEdit
-  const currentColor = avatar.appearance?.kind === 'character' ? avatar.appearance.color : characterColors[0]
+  const isDefault = !avatar.appearance && !avatar.url && !avatar.emoji
+  const mediaInset = avatar.appearance?.kind !== 'character' && !!avatar.background
   return (
     <Dialog
       open
@@ -258,6 +283,15 @@ export function AssistantAppearanceDialog({
                     selectedSrc={avatar.appearance?.kind === 'image' ? source : ''}
                     onSelect={chooseImage}
                   />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={() => upload.current?.click()}>
+                      <Upload className="size-4" />
+                      {t('Upload image')}
+                    </Button>
+                    <Button type="button" variant="outline" aria-pressed={isDefault} onClick={chooseDefault}>
+                      {t('Default avatar')}
+                    </Button>
+                  </div>
                   <CharacterPresetPicker
                     value={avatar.appearance}
                     color={currentColor}
@@ -266,72 +300,29 @@ export function AssistantAppearanceDialog({
                       setPreviewState('idle')
                     }}
                   />
-                  <div>
-                    <h3 className="mb-3 text-sm text-muted-foreground">{t('Colors')}</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {characterColors.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          aria-label={color}
-                          aria-pressed={color === currentColor}
-                          className="size-8 rounded-full ring-offset-2 ring-offset-background aria-pressed:ring-2 aria-pressed:ring-foreground"
-                          style={{ backgroundColor: color }}
-                          onClick={() =>
-                            void choose({
-                              ...(avatar.appearance?.kind === 'character' ? avatar.appearance : { id: 'bosi' }),
-                              version: 1,
-                              kind: 'character',
-                              color
-                            })
-                          }
-                        />
-                      ))}
-                      <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                        {t('Custom color')}
-                        <input
-                          aria-label={t('Custom color')}
-                          type="color"
-                          value={currentColor}
-                          className="size-8 cursor-pointer rounded border-0 bg-transparent"
-                          onChange={(event) =>
-                            void choose({
-                              ...(avatar.appearance?.kind === 'character'
-                                ? avatar.appearance
-                                : { id: 'custom', config: defaultCharacterConfig }),
-                              version: 1,
-                              kind: 'character',
-                              color: event.target.value
-                            })
-                          }
-                        />
-                      </label>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="mt-4"
-                      onClick={() => {
-                        setDesigning(true)
-                        void choose({
-                          version: 1,
-                          kind: 'character',
-                          id:
-                            avatar.appearance?.kind === 'character' && avatar.appearance.config
-                              ? avatar.appearance.id
-                              : 'custom',
-                          color: currentColor,
-                          config:
-                            avatar.appearance?.kind === 'character'
-                              ? (avatar.appearance.config ?? defaultCharacterConfig)
-                              : defaultCharacterConfig
-                        })
-                      }}
-                    >
-                      <Palette className="size-4" />
-                      {t('Design a character')}
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setDesigning(true)
+                      void choose({
+                        version: 1,
+                        kind: 'character',
+                        id:
+                          avatar.appearance?.kind === 'character' && avatar.appearance.config
+                            ? avatar.appearance.id
+                            : 'custom',
+                        color: currentColor ?? characterColors[0],
+                        config:
+                          avatar.appearance?.kind === 'character'
+                            ? (avatar.appearance.config ?? defaultCharacterConfig)
+                            : defaultCharacterConfig
+                      })
+                    }}
+                  >
+                    <Palette className="size-4" />
+                    {t('Design a character')}
+                  </Button>
                   <div>
                     <h3 className="mb-3 text-sm text-muted-foreground">{t('Virtual pets')}</h3>
                     {pets.loading && <p className="text-xs text-muted-foreground">{t('Loading…')}</p>}
@@ -430,6 +421,7 @@ export function AssistantAppearanceDialog({
                           setPetSource(asset.src)
                           setPreview(asset.preview)
                           setAvatar({
+                            background: sharedBackground,
                             appearance: {
                               version: 1,
                               kind: 'pet',
@@ -448,10 +440,6 @@ export function AssistantAppearanceDialog({
                       }}
                     />
                   </div>
-                  <Button type="button" variant="outline" onClick={() => upload.current?.click()}>
-                    <Upload className="size-4" />
-                    {t('Upload image')}
-                  </Button>
                   <input
                     ref={upload}
                     hidden
@@ -485,7 +473,7 @@ export function AssistantAppearanceDialog({
                         setZoom(1)
                         setX(50)
                         setY(50)
-                        setAvatar({ appearance: { version: 1, kind: 'image' } })
+                        setAvatar({ background: sharedBackground, appearance: { version: 1, kind: 'image' } })
                         setPreview(image)
                         setChanged(true)
                       } catch {
@@ -512,6 +500,33 @@ export function AssistantAppearanceDialog({
               disabled={disabled}
               className="h-12 shrink-0 text-xl"
             />
+            {!studio && (
+              <fieldset disabled={disabled} className="min-w-0 shrink-0">
+                <legend className="mb-3 text-sm font-medium">{t('Avatar color')}</legend>
+                <div className="flex flex-wrap items-center gap-2">
+                  {characterColors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={color}
+                      aria-pressed={color === currentColor?.toLowerCase()}
+                      className="size-7 rounded-full ring-offset-2 ring-offset-background aria-pressed:ring-2 aria-pressed:ring-foreground"
+                      style={{ backgroundColor: color }}
+                      onClick={() => chooseColor(color)}
+                    />
+                  ))}
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                    {t('Custom color')}
+                    <input
+                      type="color"
+                      value={currentColor ?? characterColors[0]}
+                      className="size-7 cursor-pointer rounded border-0 bg-transparent"
+                      onChange={(event) => chooseColor(event.target.value)}
+                    />
+                  </label>
+                </div>
+              </fieldset>
+            )}
             {studio ? (
               <fieldset disabled={disabled} className="min-h-0 min-w-0 overflow-y-auto pr-1">
                 <CharacterSettings
@@ -525,14 +540,34 @@ export function AssistantAppearanceDialog({
             ) : (
               <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1">
                 <div className="flex min-h-48 flex-1 shrink-0 items-center justify-center">
-                  <div className="size-44 text-primary">
-                    <AppearancePreview
-                      appearance={avatar.appearance}
-                      preview={preview}
-                      petSource={petSource}
-                      state={previewState}
-                      name={name}
-                    />
+                  <div
+                    className="@container flex size-44 items-center justify-center overflow-hidden rounded-3xl text-primary"
+                    style={{ background: avatar.background }}
+                  >
+                    {!avatar.appearance && !preview ? (
+                      <BotAvatar
+                        size="fill"
+                        bot={{
+                          id: botId,
+                          avatar,
+                          avatarUrl: null,
+                          avatarEmoji: avatar.emoji
+                            ? { id: avatar.emoji.id, unified: avatar.emoji.unified ?? null }
+                            : null
+                        }}
+                      />
+                    ) : (
+                      <div className={mediaInset ? 'size-[90%]' : 'size-full'}>
+                        <AppearancePreview
+                          appearance={avatar.appearance}
+                          preview={preview}
+                          petSource={petSource}
+                          state={previewState}
+                          name={name}
+                          size={mediaInset ? 158 : 176}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
                 {source && avatar.appearance?.kind === 'image' && (

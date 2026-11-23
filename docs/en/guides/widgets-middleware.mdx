@@ -1,0 +1,45 @@
+---
+title: 'A2UI widgets in chat'
+---
+
+`WidgetsMiddleware` adds optional interactive answers to an Agent. Simple questions remain text. Comparisons, input collection and parameter exploration can use `a2ui_catalog` followed by `render_a2ui_surface`.
+
+## Enable
+
+Add Widgets Middleware to the target Agent in Studio, connect it and publish the Assistant. Templates are optional. Mark the middleware as required to make it available in every conversation; otherwise select it in the chat capability picker.
+
+```yaml
+type: workflow
+key: Middleware_Widgets
+entity:
+  type: middleware
+  key: Middleware_Widgets
+  provider: WidgetsMiddleware
+  required: true
+  options:
+    autoRender: true
+```
+
+Connect the Agent to this node with a `workflow` connection. The runtime selection flag is `entity.required`, not the connection's `required` field. Set `autoRender: false` to require an explicit user request for UI. Existing `widgets` templates remain supported; `toolPrompt` and `systemPrompt` customize tool mode and the JSON fallback for models without tool calling.
+
+Existing nodes keep the `WidgetsMiddleware` provider without migration. Template and example-value JSON editors, inferred tool arguments and legacy Composer shapes remain supported. A model may return a value object for one template, or an ordered array or name-keyed object for multiple templates; omitted templates retain their example values. Manual tool results retain `widget` and `values`, and template business actions do not automatically become Agent submissions.
+
+The implementation is split into focused modules under `widgets/`; the original entry retains the middleware and compatibility exports. When synchronizing repositories, include the directory, entry, regression tests and `Widgets` translation resources together.
+
+## Contract
+
+The implementation retains ChatKit's native A2UI **0.8** renderer. It adopts dsh-a2ui's on-demand catalog and action feedback pattern without adopting its 1.0 protocol.
+
+Each tool call emits a complete surface snapshot. The backend validates component properties, references, size and depth, returning correctable tool errors for invalid output. `ON_TOOL_MESSAGE` carries the Widget through the platform's persisted component message path.
+
+Inputs update the local data model. Generated Button actions are declared in `agentActions`; clicking resolves their context and submits ordinary user input to the originating thread. The event includes the action name, message/widget origin, timestamp and resolved context. It grants no additional business permissions. Duplicate clicks are blocked during submission and after acceptance; rejected submissions can be retried. Restoring history never submits an action automatically.
+
+Existing `serverActions` retain priority and use their business endpoint. Undeclared actions retain the host callback. Manual templates do not acquire Agent routing implicitly.
+
+Chat displays a submission summary while the Agent receives the action envelope. History matches receipts by message, widget and surface to restore submitted status. Scalar values bound by absolute paths in the button context restore the submitted inputs; unsent local edits are not persisted.
+
+`TextField` uses `text: { path: '/name' }` and `textFieldType`. `Button.child` references a separate label component. `value`, `keyboardType` and `Button.text` are invalid for these components.
+
+Deploy both backend and ChatKit changes. Verify runtime registration, the published Assistant, text-only answers, actual model-generated forms, edited-value submission, conversation isolation and history restoration.
+
+The pinned component catalog is `standard_catalog_definition.json` from ChatKit's `@a2ui/lit@0.8.1`, originating in [Google A2UI](https://github.com/google/A2UI) under Apache-2.0. Update the catalog and protocol regression tests together when upgrading the renderer.

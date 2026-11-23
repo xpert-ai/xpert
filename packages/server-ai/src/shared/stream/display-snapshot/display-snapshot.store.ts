@@ -1,9 +1,9 @@
 // The DB commit grants permission to trim. A segment token fences delayed saves from earlier producers.
 import { Injectable } from '@nestjs/common'
-import type { IChatMessage, TRunDisplaySnapshot } from '@xpert-ai/contracts'
+import type { TRunDisplaySnapshot } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { randomUUID } from 'crypto'
-import z from 'zod'
+import { runDisplaySnapshotSchema } from './display-snapshot.schema'
 import type { FrozenDisplay } from './display-snapshot.capture'
 
 export interface DisplaySnapshotScope {
@@ -17,46 +17,6 @@ export interface DisplaySnapshotWriter extends DisplaySnapshotScope {
     owner: string
     startedAt: string
 }
-const displayMessageSchema = z.object({
-    id: z.string(),
-    role: z.literal('ai'),
-    executionId: z.string(),
-    conversationId: z.string().nullish(),
-    parentId: z.string().nullish(),
-    content: z.custom<IChatMessage['content']>((value) => typeof value === 'string' || Array.isArray(value)),
-    reasoning: z.custom<IChatMessage['reasoning']>((value) => value === undefined || Array.isArray(value)).optional(),
-    events: z.custom<IChatMessage['events']>((value) => value === undefined || Array.isArray(value)).optional(),
-    status: z.custom<IChatMessage['status']>((value) => value === undefined || typeof value === 'string').optional(),
-    error: z.string().nullish(),
-    agentRuns: z
-        .array(
-            z.object({
-                id: z.string(),
-                parentId: z.string().optional(),
-                agentKey: z.string().optional(),
-                xpertId: z.string().optional(),
-                xpertName: z.string().optional(),
-                title: z.string().optional(),
-                status: z.string().optional(),
-                error: z.string().optional(),
-                elapsedTime: z.number().optional(),
-                createdAt: z.string().optional(),
-                updatedAt: z.string().optional()
-            })
-        )
-        .optional()
-})
-const snapshotSchema = z.object({
-    version: z.literal(1),
-    threadId: z.string(),
-    runId: z.string(),
-    segmentId: z.string(),
-    revision: z.number().int().nonnegative(),
-    cursor: z.string().regex(/^\d+-\d+$/),
-    savedAt: z.string(),
-    activeMessageId: z.string(),
-    messages: z.array(displayMessageSchema)
-})
 
 @Injectable()
 export class RunDisplaySnapshotStore {
@@ -145,7 +105,7 @@ export class RunDisplaySnapshotStore {
               AND "tenantId" = $3 AND "organizationId" IS NOT DISTINCT FROM $4::uuid`,
             [threadId, runId, scope.tenantId, scope.organizationId ?? null]
         )
-        const parsed = snapshotSchema.safeParse(rows[0]?.snapshot)
+        const parsed = runDisplaySnapshotSchema.safeParse(rows[0]?.snapshot)
         if (!parsed.success || parsed.data.threadId !== threadId || parsed.data.runId !== runId) return null
         if (
             !parsed.data.messages.some((message) => message.id === parsed.data.activeMessageId) ||

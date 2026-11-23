@@ -1,4 +1,28 @@
 {
+    "Widgets": {
+        "DuplicateTool": "小部件工具名称不能重复。",
+        "Rendered": "交互卡片已生成。",
+        "Invalid": "A2UI 界面无效：{{reason}}。请修正参数后重新调用工具。",
+        "InvalidComposer": "Composer 组件或组件引用无效。"
+    },
+    "ProjectMove": {
+        "ConfirmInChat": "请在当前对话中确认目标项目，确认后将继续处理刚才的请求。",
+        "NameRequired": "请输入 1 至 240 个字符的项目名称。",
+        "TargetRequired": "请选择一个可用项目。",
+        "ChooseOrCreate": "选择或创建项目",
+        "Existing": "已有项目",
+        "Create": "新建项目",
+        "NoAvailableProjects": "暂无可选项目。",
+        "NoProjects": "暂无可选项目，可切换到「新建项目」。",
+        "Moved": "已移入「{{name}}」",
+        "Cancel": "取消",
+        "Placeholder": "请选择项目",
+        "Name": "新项目名称",
+        "Target": "选择项目",
+        "Visibility": "有权查看此项目的成员将能阅读本次对话的全部历史消息。",
+        "Continue": "继续原请求",
+        "Confirm": "移入并继续"
+    },
     "TaskDecision": {
         "InvalidReference": "决定引用无效。请调用 project_get_task，原样使用返回的 decisionRef。",
         "ContextChanged": "任务、候选或评审已变化。请重新调用 project_get_task，查看新证据后使用新的 decisionRef，不要猜测版本或重启编码。",
@@ -86,6 +110,22 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "ApplicationModelBootstrapAccess": "请选择本组织内您有管理权限的专用私有工作空间，并确认可管理业务区域及只读身份。",
+        "ApplicationModelReaderTitle": "{{model}} · 只读访问",
+        "ApplicationModelSetupUnavailable": "当前应用或已授权连接不可用。",
+        "ApplicationModelCatalogFailed": "读取模型失败，请检查连接、本组织的运行身份和模型读取权限。",
+        "ApplicationModelPreviewFailed": "所选模型未能返回所需查询的完整结果，请检查模型的立方体、字段及读取权限。",
+        "ApplicationModelPreviewChanged": "配置或试读结果已变化，请刷新配置并重新试读。",
+        "OrganizationSetupRole": "原工作空间中的已发布角色缺失或匹配到多个实例，请先核对应用套件。",
+        "OrganizationSetupUnavailable": "当前应用不支持组织配置。",
+        "OrganizationSetupRequired": "请先补全本组织的应用配置。",
+        "OrganizationSetupChanged": "其他管理员已修改配置。请重新打开表单以载入最新版本。",
+        "OrganizationSetupUnknownField": "应用配置字段已变更，请重新载入。",
+        "OrganizationSetupMembers": "请为 {{field}} 选择本组织的有效成员。",
+        "OrganizationSetupSource": "请为 {{field}} 选择本组织共享的已发布数据源。",
+        "OrganizationSetupResult": "{{field}} 查询必须返回非空的完整结果，并包含所需数值字段。",
+        "OrganizationSetupInitializationRequired": "请先在本组织初始化应用，再修改配置。",
+        "ProjectApplicationInstallationNotReady": "组织应用安装状态为 {{status}}，请在应用详情中检查安装资源。",
         "RunReconciliationDeferred": "运行调和已延后，其他候选任务仍将继续检查。",
         "ToolFinalResultMissing": "工具执行已结束，但缺少最终结果。已完成的输出已保留。",
         "HandoffDispatchUncertain": "回调执行结果不确定，已暂停自动重放。",

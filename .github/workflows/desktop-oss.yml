@@ -1,5 +1,5 @@
 # Invariants: each large asset receives a separate one-hour STS session.
-# Serialize complete releases; only the final all-assets verification may advance latest.json.
+# Serialize complete releases; benchmarks use run-specific paths and never publish latest.json.
 name: Mirror Bosi release to OSS
 
 on:
@@ -14,6 +14,10 @@ on:
         description: Published stable Bosi tag, e.g. desktop-v0.4.1
         type: string
         required: true
+      benchmark:
+        description: Upload all files to an isolated temporary directory; never update the release index
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,6 +28,7 @@ concurrency:
 
 env:
   BOSI_TAG: ${{ inputs.tag }}
+  BOSI_OSS_BENCHMARK: ${{ inputs.benchmark && 'true' || 'false' }}
   PYTHONUNBUFFERED: '1'
 
 jobs:
@@ -31,6 +36,8 @@ jobs:
     if: github.repository == 'xpert-ai/xpert' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      BOSI_OSS_DOMAIN: ${{ vars.BOSI_OSS_DOMAIN }}
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       upload: ${{ steps.plan.outputs.upload }}
@@ -60,7 +67,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: bosi-oss-plan-${{ inputs.tag }}
-          path: ${{ runner.temp }}/oss-plan.json
+          path: |
+            ${{ runner.temp }}/oss-plan.json
+            ${{ runner.temp }}/oss-production-before.json
           if-no-files-found: error
           overwrite: true
           retention-days: 30
@@ -150,3 +159,14 @@ jobs:
           role-session-expiration: 3600
       - name: Verify every remote asset and advance the public index
         run: python .deploy/desktop/oss/stages.py finalize "$RUNNER_TEMP/oss-plan.json" "$RUNNER_TEMP/bosi-assets"
+      - name: Save isolated benchmark evidence
+        if: ${{ always() && inputs.benchmark }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bosi-oss-benchmark-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/oss-production-before.json
+            ${{ runner.temp }}/oss-benchmark-result.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30

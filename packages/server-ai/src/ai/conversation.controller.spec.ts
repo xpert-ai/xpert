@@ -4,6 +4,7 @@ jest.mock('@xpert-ai/server-core', () => {
     const { In } = jest.requireActual('typeorm')
 
     return {
+        assistantRuntimeCredential: () => null,
         AllowClientSecretBindings: () => () => undefined,
         ApiKeyOrClientSecretAuthGuard: class {},
         Public: () => () => undefined,
@@ -32,6 +33,8 @@ jest.mock('@xpert-ai/server-core', () => {
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
+        currentUser: jest.fn(),
+        hasPermission: () => true,
         currentUserId: jest.fn()
     }
 }))
@@ -508,6 +511,71 @@ describe('ConversationsController searchConversations', () => {
         expect(agentRunsService.forMessages).not.toHaveBeenCalled()
     })
 
+    it.each(['list', 'search', 'get'])(
+        'restores the project Widget on its original reply through %s',
+        async (method) => {
+            const { controller, conversationService, messageService, projectWidgets } = createController()
+            conversationService.findOneInOrganizationOrTenant.mockResolvedValue({
+                id: 'conversation',
+                threadId: 'thread'
+            })
+            const before = { type: 'text', text: 'Choose a project' }
+            const after = { type: 'text', text: 'Then continue the request' }
+            const reply = {
+                id: 'reply',
+                role: 'ai',
+                content: [
+                    before,
+                    { id: 'receipt', type: 'component', data: { category: 'Dashboard', type: 'Widget', widgets: [] } },
+                    after
+                ]
+            }
+            messageService.findOneInOrganizationOrTenant.mockResolvedValue(reply)
+            messageService.findAllInOrganizationOrTenant.mockResolvedValue({
+                items: [{ id: 'human', role: 'human', content: 'Make a dashboard' }, reply],
+                total: 2
+            })
+            const widget = {
+                id: 'receipt',
+                type: 'component',
+                data: { category: 'Dashboard', type: 'Widget', widgets: [] }
+            }
+            projectWidgets.resolve.mockResolvedValue([{ messageId: 'reply', widget }])
+            const messages =
+                method === 'get'
+                    ? [await controller.getMessage('conversation', 'reply')]
+                    : (method === 'search'
+                          ? await controller.searchMessages('conversation', {})
+                          : await controller.listMessages('conversation')
+                      ).items
+            expect(projectWidgets.resolve).toHaveBeenCalledWith('thread', ['reply'], expect.any(Boolean))
+            expect(messages.find((item) => item.id === 'reply')?.content).toEqual([before, widget, after])
+            if (method !== 'get') expect(messages[0].content).toBe('Make a dashboard')
+        }
+    )
+
+    it('restores an inline card before projecting a restricted history reply', async () => {
+        const { controller, conversationService, messageService, projectWidgets } = createController()
+        const permission = jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        const before = { type: 'text', text: 'Before' }
+        const after = { type: 'text', text: 'After' }
+        const widget = { id: 'card', type: 'component', data: { category: 'Dashboard', type: 'Widget', widgets: [] } }
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue({ id: 'conversation', threadId: 'thread' })
+        messageService.findOneInOrganizationOrTenant.mockResolvedValue({
+            id: 'reply',
+            role: 'ai',
+            content: [before, widget, { type: 'reasoning', text: 'private' }, after]
+        })
+        projectWidgets.resolve.mockResolvedValue([{ messageId: 'reply', widget }])
+        try {
+            const reply = await controller.getMessage('conversation', 'reply')
+            expect(reply.content).toEqual([before, widget, after])
+            expect(projectWidgets.resolve).toHaveBeenCalledWith('thread', ['reply'], true)
+        } finally {
+            permission.mockRestore()
+        }
+    })
+
     it('filters unauthorized file relations before returning conversation messages', async () => {
         const { controller, conversationService, messageService } = createController()
         const conversation = { id: 'conversation-1', threadId: 'thread-1' }
@@ -534,7 +602,7 @@ describe('ConversationsController searchConversations', () => {
 })
 
 function createController() {
-    const agentRunsService = { forMessages: jest.fn().mockResolvedValue(new Map()) }
+    const agentRunsService = { forMessages: jest.fn().mockResolvedValue(new Map()), filterCopiedHistory: jest.fn() }
     const conversationService = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 }),
         findOneInOrganizationOrTenant: jest.fn(),
@@ -582,6 +650,7 @@ function createController() {
         execute: jest.fn()
     }
 
+    const projectWidgets = { resolve: jest.fn().mockResolvedValue([]) }
     const controller = new ConversationsController(
         conversationService as any,
         goalService as any,
@@ -594,10 +663,12 @@ function createController() {
         xpertService as any,
         projectService as never,
         undefined,
-        agentRunsService as never
+        agentRunsService as never,
+        projectWidgets as never
     )
 
     return {
+        projectWidgets,
         agentRunsService,
         controller,
         conversationService,

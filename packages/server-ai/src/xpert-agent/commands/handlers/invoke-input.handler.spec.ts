@@ -9,35 +9,52 @@ describe('Invocation input and pause boundary', () => {
         jest.clearAllMocks()
     })
 
-    it.each(['persisted-message', undefined])(
-        'assigns trusted input identity on a new send (%s)',
-        async (inputMessageId) => {
-            const { handler, commandBus } = createInvokeHarness()
-            const graph = createGraph()
-            commandBus.execute.mockImplementation(async (command) =>
-                command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
-            )
-            const stream = await handler.execute(
-                new XpertAgentInvokeCommand(
-                    { human: { input: 'hi' }, inputIdentity: { id: 'untrusted' } } as never,
-                    'agent-1',
-                    { id: 'xpert-1', features: {} } as never,
-                    {
-                        execution: { id: 'execution-1' },
-                        thread_id: 'thread-1',
-                        subscriber: { next: jest.fn() },
-                        store: null,
-                        inputMessageId
-                    } as never
-                )
-            )
-            await consumeStream(stream)
-            expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
-                human: { input: 'hi' },
-                inputIdentity: { id: inputMessageId ?? 'execution-1' }
-            })
+    it.each([
+        { inputMessageId: 'persisted-message' },
+        {},
+        {
+            continuation: { sourceMessageId: 'original', confirmation: { name: 'selection', content: 'Confirmed' } }
         }
-    )
+    ])('assigns trusted input identity on a new send (%j)', async ({ inputMessageId, continuation }) => {
+        const { handler, commandBus } = createInvokeHarness()
+        const graph = createGraph()
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+        )
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: { input: 'hi' },
+                    inputIdentity: {
+                        id: 'untrusted',
+                        continuation: {
+                            sourceMessageId: 'forged',
+                            confirmation: { name: 'forged', content: 'Untrusted' }
+                        }
+                    }
+                } as never,
+                'agent-1',
+                { id: 'xpert-1', features: {} } as never,
+                {
+                    execution: { id: 'execution-1' },
+                    thread_id: 'thread-1',
+                    subscriber: { next: jest.fn() },
+                    store: null,
+                    inputMessageId,
+                    continuation
+                } as never
+            )
+        )
+        await consumeStream(stream)
+        expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+            human: { input: 'hi' },
+            inputIdentity: { id: inputMessageId ?? 'execution-1' }
+        })
+        expect(graph.streamEvents.mock.calls[0][0].inputIdentity).toEqual({
+            id: inputMessageId ?? 'execution-1',
+            ...(continuation ? { continuation } : {})
+        })
+    })
 
     it.each(['resume', 'retry', 'pause-resume'])('does not admit fresh human input on %s', async (mode) => {
         const { handler, commandBus } = createInvokeHarness()

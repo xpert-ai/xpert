@@ -1,3 +1,4 @@
+import type { ConversationContinuation } from '../../chat-conversation/continuation'
 import type { EventRunOptions } from '../../agent-event/agent-event-run-context'
 import {
     IXpertAgentExecution,
@@ -42,6 +43,7 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
                 messageEnvelope?: TChatMessageEnvelope
                 /** Host-reserved, single-use execution ID for a durable timer occurrence. */
                 once?: boolean
+                continuation?: ConversationContinuation
                 eventBinding?: { id: string; revision: number; fence: string }
                 execution?: { id: string; metadata?: IXpertAgentExecution['metadata'] }
                 streamPersistence?: XpertChatStreamPersistenceOptions

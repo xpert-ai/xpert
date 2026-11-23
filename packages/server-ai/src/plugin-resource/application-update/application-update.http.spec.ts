@@ -1,5 +1,6 @@
 import { INestApplication, ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { OrganizationSettingsService } from '../application-setup/organization-settings.service'
 import { PluginApplicationController } from '../application/plugin-application.controller'
 import { PluginApplicationService } from '../application/plugin-application.service'
 
@@ -11,7 +12,13 @@ describe('application update HTTP boundary', () => {
     beforeAll(async () => {
         const module = await Test.createTestingModule({
             controllers: [PluginApplicationController],
-            providers: [{ provide: PluginApplicationService, useValue: service }]
+            providers: [
+                { provide: PluginApplicationService, useValue: service },
+                {
+                    provide: OrganizationSettingsService,
+                    useValue: { form: () => ({}), complete: () => ({ revision: 1 }) }
+                }
+            ]
         }).compile()
         app = module.createNestApplication({ logger: false })
         await app.listen(0, '127.0.0.1')

@@ -6,6 +6,7 @@ import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
 import type { IModelUsageDetails } from './model-usage.model'
 import type { TAvatar } from '../types'
+import type { TChatActivityPresentation } from '@xpert-ai/chatkit-types'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -130,6 +131,8 @@ export enum XpertAgentExecutionStatusEnum {
 }
 
 export type TAgentExecutionMetadata = {
+  /** Runtime-only executions are omitted from the conversation transcript. */
+  presentation?: TChatActivityPresentation
   /** Host-created result continuation; its inbox claim proves the originating execution. */
   runtimeContinuation?: {
     /** Durable runtime inbox entry whose claim identifies this continuation and its source invocation. */

@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { CreateBusinessAreaInput, IPagination, UpdateBusinessAreaInput } from '@xpert-ai/contracts'
 import { t } from 'i18next'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { PermissionsEnum } from '@xpert-ai/contracts'
 import type { FindManyOptions, Repository } from 'typeorm'
 
 import { TenantOrganizationAwareCrudService } from '../core'
@@ -31,6 +33,21 @@ export class BusinessAreaService extends TenantOrganizationAwareCrudService<Busi
 			parentId: parent?.id ?? null,
 			parent
 		})
+	}
+
+	/** Internal, retryable allocation. The caller derives the id from the managed resource's trusted scope. */
+	async ensureApplicationArea(id: string, name: string): Promise<BusinessArea> {
+		RequestContext.hasPermission(PermissionsEnum.BUSINESS_AREA_MANAGE, true)
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.requireOrganizationScope()
+		const existing = await this.repository.findOneBy({ id })
+		if (existing) {
+			if (existing.tenantId !== tenantId || existing.organizationId !== organizationId || existing.parentId) {
+				throw new ConflictException(t('server-ai:Error.ApplicationModelBootstrapAccess'))
+			}
+			return existing
+		}
+		return super.create({ id, name: this.requireName(name), tenantId, organizationId })
 	}
 
 	async updateArea(id: string, input: UpdateBusinessAreaInput): Promise<BusinessArea> {

@@ -1,5 +1,6 @@
+import { PluginApplicationInstallation } from '../../plugin-resource/plugin-application-installation.entity'
 import { AssistantPrincipalAccessService } from '../../xpert/assistant-principal/assistant-principal-access.service'
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     ProjectAccessRuntimeCapability,
@@ -132,9 +133,51 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
         return query
     }
 
-    async assertManage(input: { actor: ProjectAccessActor; projectId: string }): Promise<ProjectHumanAccess> {
+    async assertManage(input: {
+        actor: ProjectAccessActor
+        projectId: string
+        includeApplicationBindings?: boolean
+    }): Promise<ProjectHumanAccess> {
         const access = (await this.listReadable({ actor: input.actor, projectIds: [input.projectId] }))[0]
         if (!access?.canManage) throw new ForbiddenException(t('server-ai:Error.ProjectManagerRequired'))
+        if (!input.includeApplicationBindings || !input.actor.organizationId || !access.applicationKey) return access
+        const separator = access.applicationKey.lastIndexOf(':')
+        if (separator < 1) return access
+        const installation = await this.projects.manager.getRepository(PluginApplicationInstallation).findOne({
+            select: { status: true, errorCode: true, xpertId: true, resourceRefs: true, organizationSettings: true },
+            where: {
+                tenantId: input.actor.tenantId,
+                organizationId: input.actor.organizationId,
+                scopeKey: input.actor.organizationId,
+                declaredScope: 'organization',
+                pluginName: access.applicationKey.slice(0, separator),
+                appName: access.applicationKey.slice(separator + 1)
+            }
+        })
+        if (installation && installation.status !== 'ready') {
+            throw new ConflictException({
+                errorCode: 'organization_application_installation_not_ready',
+                installationStatus: installation.status,
+                reason: installation.errorCode,
+                message: t('server-ai:Error.ProjectApplicationInstallationNotReady', {
+                    status: installation.status,
+                    defaultValue:
+                        'The organization application installation is {{status}}. Check its resources in application details.'
+                })
+            })
+        }
+        if (installation?.xpertId) {
+            const roles = Object.fromEntries(
+                Object.entries(installation.resourceRefs ?? {})
+                    .filter(([key]) => key.startsWith('role:'))
+                    .map(([key, id]) => [key.slice(5), id])
+            )
+            access.applicationBindings = {
+                coordinatorId: installation.xpertId,
+                roles,
+                settings: installation.organizationSettings ?? { revision: 0, members: {}, queries: {} }
+            }
+        }
         return access
     }
 
@@ -151,7 +194,8 @@ export class ProjectAccessRuntimeService implements ProjectAccessApi {
 
     /** Recheck an already-authorized human manager using only the lock-owning connection. */
     async assertHumanManageWithinTransaction(
-        input: { actor: ProjectAccessActor; projectId: string }, manager: EntityManager
+        input: { actor: ProjectAccessActor; projectId: string },
+        manager: EntityManager
     ) {
         const access = await this.readableQuery(
             { actor: input.actor, projectIds: [input.projectId] },

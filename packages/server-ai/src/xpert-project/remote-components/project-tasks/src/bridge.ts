@@ -142,6 +142,8 @@ export const nodeSchema = z.object({
     controlKind: z.enum(['ordinary', 'provider', 'pipeline']).optional(),
     pipelineInstanceId: z.string().nullable().optional(),
     pipelineDisposition: z.enum(['active', 'removed', 'excluded', 'superseded']).nullable().optional(),
+    executionCount: z.number().int().nonnegative().optional(),
+    executionVersion: z.string().optional(),
     id: z.string(),
     title: z.string(),
     status: z.enum(['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled']),
@@ -178,6 +180,10 @@ export const nodeSchema = z.object({
         .nullish()
 })
 export const graphSchema = z.object({
+    progressive: z.boolean().optional(),
+    timelineBounds: z
+        .object({ startAt: z.string().nullable(), endAt: z.string().nullable(), hasRunning: z.boolean() })
+        .optional(),
     projectId: z.string(),
     projectTitle: z.string().optional(),
     canEditPlan: z.boolean().optional(),
@@ -190,6 +196,9 @@ export const graphSchema = z.object({
             executorName: z.string().nullish(),
             attempt: z.number(),
             purpose: projectTaskExecutionPurposeSchema.nullish(),
+            purposeType: z.enum(['implementation', 'review']).optional(),
+            isRework: z.boolean().optional(),
+            businessResult: z.enum(['rejected']).optional(),
             reviewReportAvailable: z.boolean().optional(),
             status: z.string(),
             invocationId: z.string().nullish(),

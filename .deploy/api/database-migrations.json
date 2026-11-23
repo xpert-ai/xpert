@@ -41,6 +41,8 @@
     "content_location_change",
     "content_proposal",
     "content_revision",
+    "chat_message_widget_reference",
+    "conversation_project_move",
     "copilot_knowledge_collection",
     "copilot_knowledge_vector",
     "copilot_store_vectors",
@@ -103,6 +105,9 @@
     "core/database/platform-baseline/migrations/checks/20261020000500-validate-adoption.sql"
   ],
   "checks": [
+    "ai/plugin-resource/migrations/checks/20261123000000-organization-application-settings.sql",
+    "ai/chat-message/widgets/migrations/checks/20261119010000-message-widget-reference.sql",
+    "ai/xpert-project/migrations/checks/20261119000000-conversation-project-move.sql",
     "core/task-control/migrations/checks/20261118000000-task-publication-diagnostics.sql",
     "ai/xpert-task/migrations/checks/20261112000100-conversation-monitor-differences.sql",
     "ai/xpert-task/migrations/checks/20261116033000-auto-task-occurrence-source.sql",

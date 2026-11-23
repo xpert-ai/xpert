@@ -331,7 +331,7 @@ export function CatalogDialog({
             workspaceId={workspace?.canWrite && !writesPaused ? workspace.id : ''}
             installationScope={installationScope}
             organizationId={organizationId}
-            key={selected.id}
+            key={JSON.stringify([installationScope, organizationId, selected.id])}
             item={selected}
             creation={creating}
             webUrl={webUrl}

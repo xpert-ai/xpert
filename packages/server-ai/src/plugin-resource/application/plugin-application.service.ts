@@ -40,6 +40,7 @@ import {
     resolveI18nText
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
+import { OrganizationSettingsService } from '../application-setup/organization-settings.service'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
@@ -105,6 +106,12 @@ export class PluginApplicationService {
     getDefinition(pluginName: string, appName: string, scope: PluginApplicationScope) {
         return this.resolveApplication(pluginName, appName, scope).application
     }
+    async existingResourcesHealthy(row: PluginApplicationInstallation) {
+        return (await this.refreshHealth(row, false)).status === PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
+    }
+    @Inject(OrganizationSettingsService)
+    private readonly organizationSettings: OrganizationSettingsService
+
     @Inject(ApplicationInitializationLocks)
     private readonly initializationLocks: ApplicationInitializationLocks
     @Inject(ApplicationUpdateService)
@@ -331,6 +338,10 @@ export class PluginApplicationService {
             if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
             await this.assistantSuites.validate(application)
         }
+        const settings =
+            application.config.organizationSetup?.length || input.organizationSettings
+                ? await this.organizationSettings.validate(application, input.organizationSettings)
+                : undefined
         const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing, options)
         const claim = await claimApplicationInstallation(this.installationRepo, resolved, operationId, true)
         const installation = claim.installation
@@ -504,6 +515,7 @@ export class PluginApplicationService {
                 await this.commandBus.execute(XpertPublishCommand.repairSpeechModel(xpertId, speechToTextModel.config))
             }
             installation.xpertId = xpertId
+            if (settings) installation.organizationSettings = settings
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
             installation.errorCode = null
             installation.errorMessage = null
@@ -741,20 +753,21 @@ export class PluginApplicationService {
      * Missing plugin definitions or resources transition a ready installation
      * to `degraded`; health checks never rediscover resources by name.
      */
-    private async refreshHealth(installation: PluginApplicationInstallation): Promise<PluginApplicationInstallation> {
-        if (installation.status !== PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) {
-            return installation
-        }
-        let expectedKnowledgebaseCount = installation.knowledgebaseIds?.length ?? 0
+    private async refreshHealth(
+        installation: PluginApplicationInstallation,
+        persist = true
+    ): Promise<PluginApplicationInstallation> {
+        if (installation.status !== PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) return installation
+        const { pluginName, appName, declaredScope } = installation
+        let expectedKnowledgebaseCount: number
         try {
             expectedKnowledgebaseCount =
-                this.resolveApplication(installation.pluginName, installation.appName, installation.declaredScope)
-                    .application.config.knowledgebases?.length ?? 0
+                this.getDefinition(pluginName, appName, declaredScope).config.knowledgebases?.length ?? 0
         } catch {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'application_definition_missing'
             installation.errorMessage = 'The trusted plugin App definition is no longer available.'
-            return this.saveHealth(installation)
+            return persist ? this.saveHealth(installation) : installation
         }
         const [workspaceExists, xpertExists, knowledgebaseExists] = await Promise.all([
             installation.workspaceId
@@ -799,11 +812,7 @@ export class PluginApplicationService {
                       (results) => results.length === expectedKnowledgebaseCount && results.every((exists) => exists)
                   )
         ])
-        const application = this.resolveApplication(
-            installation.pluginName,
-            installation.appName,
-            installation.declaredScope
-        ).application
+        const application = this.getDefinition(pluginName, appName, declaredScope)
         const suiteHealthy =
             !application.config.assistantSuite ||
             (this.assistantSuites && (await this.assistantSuites.healthy(application, installation)))
@@ -812,7 +821,7 @@ export class PluginApplicationService {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'resource_missing'
             installation.errorMessage = 'One or more initialized App resources are missing.'
-            return this.saveHealth(installation)
+            return persist ? this.saveHealth(installation) : installation
         }
         if (application.config.modelRequirements?.speechToText) {
             const assistant = await this.xpertRepo.findOne({
@@ -826,7 +835,7 @@ export class PluginApplicationService {
                 installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
                 installation.errorCode = 'speech_to_text_model_missing'
                 installation.errorMessage = t('server-ai:Error.ApplicationSpeechModelRequired')
-                return this.saveHealth(installation)
+                return persist ? this.saveHealth(installation) : installation
             }
         }
         return installation

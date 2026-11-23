@@ -1,9 +1,79 @@
 jest.mock('../xpert-agent-execution/agent-execution.service', () => ({ XpertAgentExecutionService: class {} }))
-import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { STATE_VARIABLE_TITLE_CHANNEL, XpertTypeEnum } from '@xpert-ai/contracts'
+import * as presentation from './runtime-presentation'
 import { ConversationAgentRunsService, toAgentRunSummary } from './conversation-agent-runs.service'
 import type { XpertAgentExecutionService } from '../xpert-agent-execution/agent-execution.service'
 
 describe('conversation agent run history', () => {
+    beforeEach(() => {
+        jest.spyOn(presentation, 'usesRuntimePresentation').mockReturnValue(false)
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    it.each([false, true])('omits runtime and legacy title runs in history (restricted=%s)', async (restricted) => {
+        jest.spyOn(presentation, 'usesRuntimePresentation').mockReturnValue(restricted)
+        const common = { category: 'agent', parentId: 'root', threadId: 'thread', status: 'success' }
+        const find = jest
+            .fn()
+            .mockResolvedValueOnce({ items: [{ id: 'root', threadId: 'thread' }] })
+            .mockResolvedValueOnce({
+                items: [
+                    { ...common, id: 'internal', metadata: { presentation: 'runtime' } },
+                    { ...common, id: 'old-title', channelName: STATE_VARIABLE_TITLE_CHANNEL },
+                    { ...common, id: 'visible', title: '总结标题' },
+                    {
+                        ...common,
+                        id: 'explicit',
+                        channelName: STATE_VARIABLE_TITLE_CHANNEL,
+                        metadata: { presentation: 'event' }
+                    }
+                ]
+            })
+            .mockResolvedValueOnce({ items: [] })
+        const service = new ConversationAgentRunsService({
+            findAllInOrganizationOrTenant: find
+        } as unknown as XpertAgentExecutionService)
+        const result = await service.forMessages([{ id: 'reply', role: 'ai', executionId: 'root' }], ['thread'])
+        expect(find.mock.calls[1][0].select).toMatchObject({ metadata: true, channelName: true })
+        expect(result.get('reply')?.map((run) => run.id)).toEqual(['root', 'visible', 'explicit'])
+    })
+
+    it('filters a legacy branch copy by its stored run IDs, preserving other snapshots and root timing', async () => {
+        const find = jest.fn().mockResolvedValue({ items: [{ id: 'old-title' }] })
+        const service = new ConversationAgentRunsService({
+            findAllInOrganizationOrTenant: find
+        } as unknown as XpertAgentExecutionService)
+        const root = { id: 'root', isRoot: true, elapsedTime: 1300 }
+        const visible = { id: 'business', title: '总结标题' }
+        const runs = [root, { id: 'old-title' }, visible, { id: 'missing-source' }]
+        const copy = { historicalAgentRuns: runs, agentRuns: runs }
+        const versioned = { historicalAgentRuns: { version: 1 as const, runs }, agentRuns: runs }
+        const explicit = [{ id: 'old-title', presentation: 'event' as const }]
+        const transitional = { historicalAgentRuns: explicit, agentRuns: explicit }
+        await service.filterCopiedHistory([copy, versioned, transitional, { agentRuns: [{ id: 'unrelated' }] }])
+        expect(find).toHaveBeenCalledTimes(1)
+        const query = find.mock.calls[0][0]
+        for (const condition of query.where)
+            expect(condition.id.value).toEqual(['old-title', 'business', 'missing-source'])
+        expect(query.where[1].channelName).toBe(STATE_VARIABLE_TITLE_CHANNEL)
+        expect(query).toMatchObject({ select: ['id'], withDeleted: true })
+        expect(copy.agentRuns).toEqual([root, visible, { id: 'missing-source' }])
+        expect(versioned.agentRuns).toBe(runs)
+        expect(transitional.agentRuns).toEqual(explicit)
+    })
+
+    it('opens a versioned branch without looking up any original execution', async () => {
+        const find = jest.fn()
+        const service = new ConversationAgentRunsService({
+            findAllInOrganizationOrTenant: find
+        } as unknown as XpertAgentExecutionService)
+        const runs = [{ id: 'business', title: '总结标题' }]
+        const copy = { historicalAgentRuns: { version: 1 as const, runs }, agentRuns: runs }
+        await service.filterCopiedHistory([copy])
+        expect(find).not.toHaveBeenCalled()
+        expect(copy.agentRuns).toEqual(runs)
+    })
+
     it('expands only authorized message roots and keeps each descendant in its original thread', async () => {
         const find = jest
             .fn()

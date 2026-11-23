@@ -6,6 +6,11 @@ import i18next from 'i18next'
 import { z } from 'zod/v3'
 import {
 	AgentMiddlewareRegistry,
+	WidgetActionProvider,
+	WidgetActionProviderRegistry,
+	MessageWidgetProviderRegistry,
+	MessageWidgetProvider,
+	RequestContext,
 	AgentMiddlewareStrategy,
 	StrategyBus,
 	ToolsetRegistry,
@@ -15,6 +20,7 @@ import {
 	XpertToolProviderRegistry,
 	type XpertPlugin
 } from '@xpert-ai/plugin-sdk'
+import { registerInstalledPluginStrategies } from './plugin-strategy-registration'
 import { loadPlugin } from './plugin-loader'
 import { readWorkspacePluginRuntimeRevision } from './organization-plugin.store'
 import { loaded, loadFailures, registerPluginsAsync } from './plugin.helper'
@@ -38,7 +44,7 @@ jest.mock('./organization-plugin.store', () => ({
 jest.mock('./plugin-loader', () => ({ loadPlugin: jest.fn() }))
 jest.mock('./lifecycle', () => ({ createPluginContext: () => ({ config: {} }) }))
 jest.mock('../managed-connection', () => ({ InstanceRegistryService: class {} }))
-jest.mock('@xpert-ai/server-config', () => ({ getConfig: () => ({}) }))
+jest.mock('@xpert-ai/server-config', () => ({ getConfig: () => ({ assetOptions: { serverRoot: '/fixture' } }) }))
 jest.mock('./plugin-instance.entity', () => ({ resolvePluginLevel: (level: string) => level ?? 'organization' }))
 
 const input = z.object({}).strict()
@@ -144,6 +150,8 @@ async function api(modules: DynamicModule[], requirements: IRuntimePluginRequire
 		providers: [
 			RuntimeLifecycleService,
 			StrategyBus,
+			WidgetActionProviderRegistry,
+			MessageWidgetProviderRegistry,
 			XpertToolProviderRegistry,
 			XpertToolProviderCoordinator,
 			ToolsetRegistry,
@@ -191,6 +199,90 @@ describe('plugin provider startup admission', () => {
 		loaded.length = 0
 		loadFailures.length = 0
 		jest.clearAllMocks()
+	})
+
+	it('discovers widget handlers in a plugin module, rejects conflicting modules, and removes and reloads the exact installation', async () => {
+		const name = '@test/dashboard'
+		const providerName = name + ':summary'
+		const action = providerName + '.publish'
+		const cancelAction = providerName + '.cancel'
+		const cardType = name + ':summary'
+		@MessageWidgetProvider(cardType)
+		class SummaryCard {
+			async resolve() {
+				return []
+			}
+		}
+		const handler = (key: string) => {
+			@WidgetActionProvider(key)
+			class Publish {
+				readonly actions = {
+					publish: { execute: async () => ({ refresh: 'thread' as const }) },
+					cancel: { execute: async () => ({}) }
+				}
+			}
+			return Publish
+		}
+		const result = await register([
+			fixture(name, [handler(providerName), SummaryCard]),
+			fixture('@test/other', [handler(providerName)], true),
+			fixture('@test/duplicate', [handler('@test/duplicate:run'), handler('@test/duplicate:run')], true),
+			fixture('@test/reserved', [handler('project.move')], true),
+			fixture('@test/foreign-card', [class ForeignCard extends SummaryCard {}], true)
+		])
+		expect(result.modules).toHaveLength(1)
+		expect(result.errors.map((item) => item.pluginName).sort()).toEqual([
+			'@test/duplicate',
+			'@test/foreign-card',
+			'@test/other',
+			'@test/reserved'
+		])
+		const app = await api(result.modules)
+		const org = jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-a')
+		try {
+			const registry = app.get(WidgetActionProviderRegistry)
+			const bus = app.get(StrategyBus)
+			const cards = app.get(MessageWidgetProviderRegistry)
+			const first = registry.resolve(action)
+			const cancel = registry.resolve(cancelAction)
+			expect(cancel).toBeDefined()
+			expect(cards.findByName(cardType)).toBeInstanceOf(SummaryCard)
+			await expect(
+				first.execute({ threadId: 'thread', messageId: 'message', widgetId: 'widget', fields: {} })
+			).resolves.toEqual({ refresh: 'thread' })
+			org.mockReturnValue('org-b')
+			expect(registry.resolve(action)).toBeUndefined()
+			expect(registry.resolve(cancelAction)).toBeUndefined()
+			org.mockReturnValue('org-a')
+			bus.remove('org-b', name, 'uninstall')
+			bus.remove('org-a', '@test/other', 'uninstall')
+			expect(registry.resolve(action)).toBe(first)
+			expect(registry.resolve(cancelAction)).toBe(cancel)
+			bus.remove('org-a', name, 'refresh')
+			expect(cards.findByName(cardType)).toBeUndefined()
+			expect(registry.resolve(action)).toBeUndefined()
+			expect(registry.resolve(cancelAction)).toBeUndefined()
+			await registerInstalledPluginStrategies(
+				app.get(ModuleRef),
+				'org-a',
+				{ pluginName: name },
+				new Logger('test'),
+				new Set(),
+				bus,
+				'org-a'
+			)
+			expect(registry.resolve(action)).toBe(first)
+			expect(registry.resolve(cancelAction)).toBe(cancel)
+			expect(cards.findByName(cardType)).toBeInstanceOf(SummaryCard)
+			bus.remove('org-a', name, 'uninstall')
+			expect(cards.findByName(cardType)).toBeUndefined()
+			expect(registry.resolve(action)).toBeUndefined()
+			expect(registry.resolve(cancelAction)).toBeUndefined()
+			expect(constructed).not.toHaveBeenCalled()
+		} finally {
+			org.mockRestore()
+			await app.close()
+		}
 	})
 
 	it('boots HTTP with two plugins sharing a component key and keeps both usable', async () => {

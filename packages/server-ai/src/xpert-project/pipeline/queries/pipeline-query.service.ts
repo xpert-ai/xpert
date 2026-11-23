@@ -85,7 +85,7 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
     async graph(
         context: ProjectPipelineContext,
         instanceId: string,
-        input: { roundId?: string } = {}
+        input: { roundId?: string; compact?: boolean } = {}
     ): Promise<ProjectPipelineGraph> {
         const access = await this.assertRead(context)
         const dispatchEnabled = pipelineDispatchEnabled()
@@ -215,7 +215,12 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                           )
                       )
                     : []
-            const liveGraph = await this.taskGraph.graphWithinTransaction(context, manager)
+            const liveGraph = await this.taskGraph.graphWithinTransaction(
+                context,
+                manager,
+                [...new Set(nodes.flatMap((node) => node.taskIds))],
+                input.compact
+            )
             const graph =
                 historical && instance.authority === 'provider'
                     ? observeHistoricalPipelineTasks(
