@@ -35,7 +35,6 @@ import { buildEditCommand } from './file-edit-command'
 import { buildListDirCommand } from './directory-listing-command'
 import { workspaceRelativeDisplayPath } from './workspace-path-display'
 
-const MAX_LINE_LENGTH = 500
 const MAX_GREP_LINE_LENGTH = 2000
 const GREP_RESULT_LIMIT = 100
 const GLOB_RESULT_LIMIT = 100
@@ -210,7 +209,6 @@ function buildSliceReadCommand(filePath: string, offset: number, limit: number):
 
   return `node -e "
 const fs = require('fs');
-const MAX_LINE_LENGTH = ${MAX_LINE_LENGTH};
 
 const filePath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
 const offset = ${safeOffset};
@@ -239,10 +237,7 @@ const selected = lines.slice(offset, offset + limit);
 
 for (let i = 0; i < selected.length; i++) {
   const lineNum = offset + i + 1;
-  let line = selected[i];
-  if (line.length > MAX_LINE_LENGTH) {
-    line = line.substring(0, MAX_LINE_LENGTH);
-  }
+  const line = selected[i];
   console.log('L' + lineNum + ': ' + line);
 }
 "`
@@ -268,9 +263,8 @@ function buildIndentationReadCommand(
 
   return `node -e "
 const fs = require('fs');
-const MAX_LINE_LENGTH = ${MAX_LINE_LENGTH};
 const TAB_WIDTH = ${TAB_WIDTH};
-const COMMENT_PREFIXES = ${JSON.stringify(COMMENT_PREFIXES)};
+const COMMENT_PREFIXES = JSON.parse(Buffer.from('${utf8ToBase64(JSON.stringify(COMMENT_PREFIXES))}', 'base64').toString('utf8'));
 
 const filePath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
 const anchorLine = ${anchorLine};
@@ -305,12 +299,11 @@ function measureIndent(line) {
 
 function isBlank(line) { return line.trim() === ''; }
 function isComment(line) { return COMMENT_PREFIXES.some(p => line.trim().startsWith(p)); }
-function formatLine(line) { return line.length > MAX_LINE_LENGTH ? line.substring(0, MAX_LINE_LENGTH) : line; }
 
 const records = rawLines.map((raw, i) => ({
   number: i + 1,
   raw,
-  display: formatLine(raw),
+  display: raw,
   indent: measureIndent(raw)
 }));
 
@@ -682,7 +675,12 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
       return result.output || `Error: File '${filePath}' not found`
     }
 
-    return result.output
+    // Exact-text edits require the entire selected line, including long JSON strings.
+    // The backend still enforces the operation output budget; never disguise clipping as a complete read.
+    return result.truncated
+      ? result.output +
+          '\n[Read output truncated by the sandbox output limit. Do not use incomplete lines as exact edit text; read a smaller line range.]'
+      : result.output
   }
 
   /**
