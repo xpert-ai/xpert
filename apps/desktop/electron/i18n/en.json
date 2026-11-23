@@ -1514,5 +1514,17 @@
   "Recent notifications": "Recent notifications",
   "Awaiting decision": "Awaiting decision",
   "Assistant notifications, scheduled tasks and announcements": "Assistant notifications, scheduled tasks and announcements",
-  "Read": "Read"
+  "Read": "Read",
+  "Complete the organization settings.": "Complete the organization settings.",
+  "Organization settings": "Organization settings",
+  "Edit organization settings": "Edit organization settings",
+  "Organization settings saved.": "Organization settings saved.",
+  "Save organization settings": "Save organization settings",
+  "Select organization members": "Select organization members",
+  "No active organization members are available.": "No active organization members are available.",
+  "Select an authorized data source": "Select an authorized data source",
+  "Publish an analytics definition shared with this organization, then refresh settings.": "Publish an analytics definition shared with this organization, then refresh settings.",
+  "Read-only query (AnalyticsBinding JSON)": "Read-only query (AnalyticsBinding JSON)",
+  "Required numeric fields: {{fields}}": "Required numeric fields: {{fields}}",
+  "Check the query JSON and its output fields.": "Check the query JSON and its output fields."
 }

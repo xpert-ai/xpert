@@ -1,6 +1,8 @@
 import type { Bot } from './types'
 import type { ModelOption } from './catalog/model-options'
 import type {
+  AnalyticsBinding,
+  AnalyticsSourceSummary,
   PluginApplicationScope,
   PluginApplicationStatusSummary,
   PluginApplicationToolsetRequirement,
@@ -52,6 +54,7 @@ export interface ApplicationSetup {
   defaultVisionModelId: string
   canConfigure: boolean
   canDiscardConfiguration: boolean
+  organizationFields?: OrganizationSetupField[]
   toolsetRequirements: ApplicationToolsetRequirement[]
 }
 export type ApplicationToolsetRequirement = Omit<PluginApplicationToolsetRequirement, 'label'> & { label: string }
@@ -61,8 +64,28 @@ export interface ApplicationInput {
   appName: string
   installationScope?: PluginApplicationScope
 }
+export type OrganizationSetupField =
+  | { kind: 'members'; key: string; label: string; optional: boolean }
+  | { kind: 'analytics'; key: string; label: string; providerId: string; requiredNumericFields: string[] }
+
+export interface OrganizationSettings {
+  revision: number
+  members: Record<string, string[]>
+  queries: Record<string, AnalyticsBinding>
+}
+export interface OrganizationSettingsForm {
+  settings: OrganizationSettings
+  users: Array<{ id: string; label: string }>
+  sources: AnalyticsSourceSummary[]
+}
+export interface OrganizationSettingsTarget extends ApplicationInput {
+  organizationId: string
+  installationScope: 'organization'
+}
 export interface InitializeApplicationInput extends ApplicationInput {
   operationId: string
+  organizationId?: string
+  organizationSettings?: OrganizationSettings
   embeddingModelId?: string
   visionModelId?: string
   toolsets?: ApplicationToolsetSelection[]
