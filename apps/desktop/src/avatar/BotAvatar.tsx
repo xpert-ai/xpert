@@ -16,9 +16,11 @@ export function BotAvatar({
 }) {
   const [failedUrl, setFailedUrl] = useState('')
   const emoji = avatarEmoji(bot.avatarEmoji)
-  const bosi =
-    bot.avatar?.appearance?.kind === 'character' && bot.avatar.appearance.id === 'bosi' ? bot.avatar.appearance : null
+  const appearance = bot.avatar?.appearance
+  const bosi = appearance?.kind === 'character' && appearance.id === 'bosi' ? appearance : null
   const imageUrl = !bosi && bot.avatarUrl && failedUrl !== bot.avatarUrl ? bot.avatarUrl : null
+  const fillPhoto = size === 'fill' && (!appearance || appearance.kind === 'image')
+  const insetImage = !fillPhoto && !!bot.avatar?.background && appearance?.kind !== 'character'
   const fallback = !bosi && !imageUrl && !emoji
   return (
     <span
@@ -33,7 +35,7 @@ export function BotAvatar({
         <img
           src={imageUrl}
           alt=""
-          className={`object-contain ${bot.avatar?.background && bot.avatar.appearance?.kind !== 'character' ? 'size-[90%]' : 'size-full'}`}
+          className={`${insetImage ? 'size-[90%]' : 'size-full'} ${fillPhoto ? 'object-cover' : 'object-contain'}`}
           onError={() => setFailedUrl(imageUrl)}
         />
       ) : emoji ? (
