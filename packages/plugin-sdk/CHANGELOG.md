@@ -1,5 +1,15 @@
 # @xpert-ai/plugin-sdk
 
+## 3.38.1
+
+### Patch Changes
+
+- a98f2e2: Support organization-owned application setup, published role bindings, and in-place completion of existing installations.
+- fdc02dc: Keep up to three verified recent tool images in a current image-inspection request so sequential reads can be compared. Bound history to the same user turn and twelve messages, prioritize current images, revalidate access and hashes, and keep pixels out of persistent checkpoints.
+- Updated dependencies [338aa7c]
+- Updated dependencies [a98f2e2]
+  - @xpert-ai/contracts@3.38.1
+
 ## 3.38.0
 
 ### Minor Changes

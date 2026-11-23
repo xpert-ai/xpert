@@ -1,5 +1,13 @@
 # @xpert-ai/desktop
 
+## 0.5.5
+
+### Patch Changes
+
+- 116210a: Configure organization approvers and authorized analytics queries when installing an app in Bosi. Administrators can also complete settings on existing installations without recreating assistants or projects.
+- 338aa7c: Use ChatKit types 0.24.1 and UI 0.27.1 to keep background activities such as title generation out of live and reopened conversations.
+  - @xpert-ai/desktop-protocol@0.5.7
+
 ## 0.5.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.4.6
+
+### Patch Changes
+
+- fdc02dc: Preserve results of sandbox commands with no file changes during concurrent host updates. Keep conflict checks for writes and report disappearing workspace entries as conflicts instead of internal errors.
+
 ## 0.4.5
 
 ### Patch Changes
