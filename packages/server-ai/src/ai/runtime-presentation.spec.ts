@@ -5,6 +5,22 @@ import i18next, { t } from 'i18next'
 import { serializeRunStreamPayload } from '../shared/stream/run-stream-payload'
 
 describe('application user presentation boundary', () => {
+    it('omits background executions before their metadata is stripped', () => {
+        const data = { id: 'background', metadata: { presentation: 'runtime' } }
+        for (const event of ['on_agent_start', 'on_agent_end']) {
+            expect(runtimeStreamPayload({ type: 'event', event, data })).toBeNull()
+        }
+    })
+
+    it('restores presentation on legacy title progress during replay', () => {
+        const event = {
+            type: 'event',
+            event: 'on_chat_event',
+            data: { type: 'conversation_title_summary', status: 'success' }
+        }
+        expect(serializeRunStreamPayload(event)).toEqual({ ...event, data: { ...event.data, presentation: 'runtime' } })
+    })
+
     const replyId = '00000000-0000-4000-8000-000000000001'
     const inlineWidget = {
         id: 'inline',

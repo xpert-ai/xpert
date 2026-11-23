@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { Client } from 'pg'
+import { getDefaultTenantId, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING } from '@xpert-ai/contracts'
 import { CopilotCheckpoint } from '../../copilot-checkpoint/copilot-checkpoint.entity'
@@ -12,8 +13,11 @@ const connectionString = process.env.CHATKIT_BRANCH_TEST_DATABASE_URL
 const postgres = connectionString ? describe : describe.skip
 postgres('conversation branch PostgreSQL migration and retention', () => {
     const client = new Client({ connectionString })
+    const defaultTenantId = randomUUID()
+    const previousDefaultTenantId = getDefaultTenantId()
     const schema = `branch_test_${randomUUID().replace(/-/g, '')}`
     beforeAll(async () => {
+        setDefaultTenantId(defaultTenantId)
         await client.connect()
         await client.query(`CREATE SCHEMA "${schema}"`)
         await client.query(`SET search_path TO "${schema}"`)
@@ -24,10 +28,12 @@ postgres('conversation branch PostgreSQL migration and retention', () => {
             CREATE TABLE chat_conversation_thread ("threadId" text, "runControl" jsonb);
             CREATE TABLE copilot_checkpoint (id uuid PRIMARY KEY, thread_id text, checkpoint_ns text,
                 checkpoint_id text, parent_id text, "tenantId" text, "organizationId" text, "createdAt" timestamptz);
-            CREATE TABLE tenant_setting ("tenantId" text, name text, value text);
+            CREATE TABLE xpert_agent_execution ("threadId" text, "tenantId" text, "organizationId" text, metadata jsonb, status text);
+            CREATE TABLE tenant_setting ("tenantId" uuid, name text, value text);
         `)
     })
     afterAll(async () => {
+        setDefaultTenantId(previousDefaultTenantId)
         await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`)
         await client.end()
     })
@@ -46,7 +52,7 @@ postgres('conversation branch PostgreSQL migration and retention', () => {
 
     it('retains sealed roots and all ancestors while collecting unrelated expired checkpoints', async () => {
         await client.query('INSERT INTO tenant_setting VALUES ($1, $2, $3)', [
-            'tenant',
+            defaultTenantId,
             COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING,
             'true'
         ])
@@ -76,6 +82,7 @@ postgres('conversation branch PostgreSQL migration and retention', () => {
                 'tenant',
                 'org',
                 {
+                    agentRuns: { version: 1, runs: [] },
                     checkpoints: [
                         { threadId: 'thread', checkpointNs: '', checkpointId: 'sealed' },
                         { threadId: 'thread', checkpointNs: 'subgraph', checkpointId: 'child' },

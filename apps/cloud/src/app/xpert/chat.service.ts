@@ -52,6 +52,7 @@ import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/
 import { parseFollowUpConsumedEvent, resolveFollowUpConsumedIds } from '../@shared/chat/context/follow-up-consumed'
 import { TCopilotChatMessage } from './types'
 import type { ChatKitCommandSource, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import { hasRuntimePresentation, isRuntimeAgentExecution } from '@xpert-ai/contracts'
 
 function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
   return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
@@ -643,6 +644,7 @@ export abstract class ChatService {
                       }
                     })
                   }
+                  if (hasRuntimePresentation(event.data)) break
                   this.updateLatestMessage((message) => {
                     message.events ??= []
                     const step = event.data as TChatMessageStep
@@ -802,6 +804,7 @@ export abstract class ChatService {
   }
 
   upsertAgentExecution(execution: IXpertAgentExecution) {
+    if (isRuntimeAgentExecution(execution)) return
     this.#messages.update((messages) => {
       const nextMessages = [...(messages ?? [])]
       let lastMessageIndex = -1
@@ -967,7 +970,7 @@ export abstract class ChatService {
         break
       case ChatMessageEventTypeEnum.ON_CHAT_EVENT:
         if (isThreadContextUsageEvent(event.data)) this.setContextUsage(event.data)
-        else this.updateEvent(event)
+        else if (!hasRuntimePresentation(event.data)) this.updateEvent(event)
         break
       default:
         this.updateEvent(event)

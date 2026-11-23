@@ -663,6 +663,19 @@ describe('XpertChatHandler', () => {
             channelType: 'wechat',
             sourceMessageLogIds: ['inbound-log-1', 'inbound-log-2']
         })
+        expect(commands).toContainEqual(
+            expect.objectContaining({
+                entity: expect.objectContaining({ id: 'conversation-1', title: 'Generated title' })
+            })
+        )
+        expect(events).toContainEqual(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+                    data: expect.objectContaining({ title: 'Generated title' })
+                })
+            })
+        )
         expect(
             commands.some((command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human')
         ).toBe(true)

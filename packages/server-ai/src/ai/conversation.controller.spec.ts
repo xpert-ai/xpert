@@ -602,7 +602,7 @@ describe('ConversationsController searchConversations', () => {
 })
 
 function createController() {
-    const agentRunsService = { forMessages: jest.fn().mockResolvedValue(new Map()) }
+    const agentRunsService = { forMessages: jest.fn().mockResolvedValue(new Map()), filterCopiedHistory: jest.fn() }
     const conversationService = {
         findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [], total: 0 }),
         findOneInOrganizationOrTenant: jest.fn(),

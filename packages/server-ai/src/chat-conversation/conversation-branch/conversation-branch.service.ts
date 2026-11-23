@@ -150,8 +150,8 @@ export class ConversationBranchService {
                             messageEnvelope: message.messageEnvelope,
                             inputCheckpoint: rebindInputCheckpoint(message.inputCheckpoint, threadId),
                             outputCheckpoint: rebindOutputCheckpoint(message.outputCheckpoint, threadId),
-                            historicalAgentRuns:
-                                message.historicalAgentRuns ?? message.outputCheckpoint?.agentRuns ?? [],
+                            historicalAgentRuns: message.historicalAgentRuns ??
+                                message.outputCheckpoint?.agentRuns ?? { version: 1, runs: [] },
                             // Copying history must not make old replies appear to have been sent now.
                             createdAt: message.createdAt,
                             updatedAt: message.updatedAt,

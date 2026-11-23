@@ -1,5 +1,6 @@
 import type { IChatMessage, TChatMessageBranching } from '@xpert-ai/contracts'
 import { createHash } from 'node:crypto'
+import { readAgentRunSnapshot } from './agent-run-snapshot'
 import { readChatMessageEnvelope } from './message-envelope.schema'
 
 /** Exclude row identities and timestamps so a copied reply can retain its content integrity check. */
@@ -54,7 +55,7 @@ export function publicChatMessage<T extends Partial<IChatMessage>>(message: T) {
         ...visible,
         messageEnvelope: readChatMessageEnvelope(message),
         branching: messageBranching(message),
-        ...(agentRuns ? { agentRuns } : {}),
+        ...(agentRuns ? { agentRuns: readAgentRunSnapshot(agentRuns) } : {}),
         ...(historicalAgentRuns ? { historical: true } : {})
     }
 }

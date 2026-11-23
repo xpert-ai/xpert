@@ -1,3 +1,5 @@
+import type { TChatActivityPresentation } from '@xpert-ai/chatkit-types'
+
 /** Provenance is descriptive, never an execution principal or an authorization grant. */
 export type TChatMessageSource =
   | { type: 'user'; userId: string }
@@ -8,7 +10,7 @@ export type TChatMessageSource =
   | { type: 'automation'; taskId: string }
 
 /** Presentation does not change model roles or remove input from execution/retry history. */
-export type TChatMessagePresentation = 'message' | 'event' | 'runtime'
+export type TChatMessagePresentation = 'message' | TChatActivityPresentation
 
 /** Host-created provenance, persisted in ChatMessage.messageEnvelope. */
 export interface TChatMessageEnvelope {

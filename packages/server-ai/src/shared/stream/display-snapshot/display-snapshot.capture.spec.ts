@@ -48,6 +48,11 @@ describe('display snapshot projection', () => {
         capture.capture({ ...event, data: { ...event.data, outputCheckpoint: { secret: true } } })
         capture.capture({
             type: 'event',
+            event: 'on_agent_end',
+            data: { id: 'internal', status: 'success', metadata: { presentation: 'runtime' } }
+        })
+        capture.capture({
+            type: 'event',
             event: 'on_agent_start',
             data: { id: 'agent', status: 'running', metadata: { password: 'secret' }, inputs: { secret: true } }
         })

@@ -25,6 +25,18 @@ describe('ChatMessageDTO', () => {
         expect(instanceToPlain(dto).content).toEqual([row])
     })
 
+    it('exposes a flat run list for both historical snapshot formats', () => {
+        const visible = { id: 'business', title: '总结标题' }
+        const legacy = [visible, { id: 'title-job', title: '总结标题', presentation: 'runtime' as const }]
+        for (const stored of [legacy, { version: 1 as const, runs: [visible] }]) {
+            const dto = new ChatMessageDTO({ role: 'ai', historicalAgentRuns: stored })
+            const payload = instanceToPlain(dto)
+            expect(payload.agentRuns).toEqual([visible])
+            expect(payload.historical).toBe(true)
+            expect(payload).not.toHaveProperty('historicalAgentRuns')
+        }
+    })
+
     it('serializes derived execution summaries without exposing raw execution metadata', () => {
         const dto = new ChatMessageDTO({ id: 'a', role: 'ai' })
         dto.agentRuns = [{ id: 'external', invocationKind: 'external_assistant', model: 'model-a' }]
