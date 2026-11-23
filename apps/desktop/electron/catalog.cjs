@@ -81,6 +81,33 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       access: choice(value.accessStatus, ['owned', 'accessible', 'approved', 'requested', 'not_requested', 'rejected'])
     }
   }
+  // Renderer identity is only a stale-form guard. The session supplies request scope.
+  const organizationTarget = (service, input) => {
+    if (
+      input?.installationScope !== 'organization' ||
+      !input.organizationId ||
+      input.organizationId !== service.profile?.organizationId
+    )
+      throw new ClientError('The session changed. Please retry.', 409)
+    return {
+      pluginName: required(input.pluginName, 'Plugin name'),
+      appName: required(input.appName, 'App name'),
+      installationScope: 'organization'
+    }
+  }
+  const organizationFields = (config, locale) =>
+    list(config.organizationSetup ?? []).map((field) => {
+      const key = required(field?.key, 'Field key', 64)
+      const label = localizedText(field.label, locale) || key
+      if (field.kind === 'members') return { kind: field.kind, key, label, optional: field.optional === true }
+      return {
+        kind: choice(field.kind, ['analytics']),
+        key,
+        label,
+        providerId: required(field.providerId, 'Query provider'),
+        requiredNumericFields: strings(field.requiredNumericFields)
+      }
+    })
   const applicationIcon = (icon, webUrl) => {
     if (typeof icon?.value !== 'string') return null
     if (icon.type === 'emoji') return { type: 'emoji', value: icon.value.slice(0, 64) }
@@ -295,6 +322,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         canInitialize: check.supported === true && check.canInitialize,
         canConfigure: check.supported === true && detail.status?.initializationAccess === 'allowed',
         canDiscardConfiguration: detail.status?.canDiscardConfiguration === true,
+        organizationFields:
+          (detail.status?.installationScope ?? detail.application.scope) === 'organization'
+            ? organizationFields(detail.application.config ?? {}, this.config.locale)
+            : [],
         toolsetRequirements: applicationToolsets(check.toolsetRequirements, this.config.locale, ClientError),
         reason:
           preflightReasons[check.reason] ||
@@ -308,6 +339,23 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         defaultEmbeddingModelId: embeddingModels.find((item) => item.id === check.defaultEmbeddingModelId)?.id || '',
         defaultVisionModelId: visionModels.find((item) => item.id === check.defaultVisionModelId)?.id || ''
       }
+    },
+    async applicationOrganizationSettings(input) {
+      const target = organizationTarget(this, input)
+      return this.request('/api/plugin-applications/organization-settings?' + new URLSearchParams(target), {
+        scope: 'organization',
+        includeServerMessage: true
+      })
+    },
+    async saveApplicationOrganizationSettings(input) {
+      const target = organizationTarget(this, input)
+      return this.request('/api/plugin-applications/organization-settings', {
+        method: 'PUT',
+        scope: 'organization',
+        includeServerMessage: true,
+        timeout: 180000,
+        body: { ...target, organizationSettings: input.organizationSettings }
+      })
     },
     async initializeApplication(input) {
       const setup = await this.applicationSetup(input)
@@ -333,6 +381,11 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       }
       const toolsets = selectedApplicationToolsets(input?.toolsets, setup.toolsetRequirements, ClientError)
       if (toolsets.length || input?.toolsets !== undefined) body.toolsets = toolsets
+      if (setup.organizationFields.length) {
+        organizationTarget(this, input)
+        if (!input.organizationSettings) throw new ClientError('Complete the organization settings.', 400)
+        body.organizationSettings = input.organizationSettings
+      }
       // Only the installation choice from fresh preflight is forwarded; owner and resource IDs remain server-owned.
       const result = await this.request('/api/plugin-applications/initialize', {
         method: 'POST',

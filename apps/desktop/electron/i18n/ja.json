@@ -1514,5 +1514,17 @@
   "Quiet hours end": "おやすみ時間の終了",
   "Enable and save": "有効にして保存",
   "Turn off": "無効にする",
-  "Could not save or load preferences. Check the time range and account binding.": "設定を保存または読み込めませんでした。時間帯とアカウント連携を確認してください。"
+  "Could not save or load preferences. Check the time range and account binding.": "設定を保存または読み込めませんでした。時間帯とアカウント連携を確認してください。",
+  "Complete the organization settings.": "組織の設定を完了してください。",
+  "Organization settings": "組織の設定",
+  "Edit organization settings": "組織の設定を編集",
+  "Organization settings saved.": "組織の設定を保存しました。",
+  "Save organization settings": "組織の設定を保存",
+  "Select organization members": "組織のメンバーを選択",
+  "No active organization members are available.": "選択できる有効な組織メンバーがいません。",
+  "Select an authorized data source": "承認済みのデータソースを選択",
+  "Publish an analytics definition shared with this organization, then refresh settings.": "この組織に共有する分析定義を公開してから、設定を更新してください。",
+  "Read-only query (AnalyticsBinding JSON)": "読み取り専用クエリ（AnalyticsBinding JSON）",
+  "Required numeric fields: {{fields}}": "必須の数値フィールド：{{fields}}",
+  "Check the query JSON and its output fields.": "クエリの JSON と出力フィールドを確認してください。"
 }

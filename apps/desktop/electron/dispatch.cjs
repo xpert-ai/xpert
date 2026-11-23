@@ -126,6 +126,8 @@ const methods = new Set([
   'requestExpertAccess',
   'applicationSetup',
   'initializeApplication',
+  'applicationOrganizationSettings',
+  'saveApplicationOrganizationSettings',
   'applicationToolsetSetup',
   'saveApplicationToolset',
   'discardApplicationConfiguration',

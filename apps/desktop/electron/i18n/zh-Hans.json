@@ -1514,5 +1514,17 @@
   "Recent notifications": "最近通知",
   "Awaiting decision": "待决定",
   "Assistant notifications, scheduled tasks and announcements": "助手通知、定时任务和公告",
-  "Read": "已读"
+  "Read": "已读",
+  "Complete the organization settings.": "请补全组织业务配置。",
+  "Organization settings": "组织业务配置",
+  "Edit organization settings": "补全组织配置",
+  "Organization settings saved.": "组织配置已保存。",
+  "Save organization settings": "保存组织配置",
+  "Select organization members": "选择本组织成员",
+  "No active organization members are available.": "当前组织没有可选的活跃成员。",
+  "Select an authorized data source": "选择已授权的数据源",
+  "Publish an analytics definition shared with this organization, then refresh settings.": "请发布一份对本组织可见的分析定义，然后刷新配置。",
+  "Read-only query (AnalyticsBinding JSON)": "只读查询定义（AnalyticsBinding JSON）",
+  "Required numeric fields: {{fields}}": "必需的数值字段：{{fields}}",
+  "Check the query JSON and its output fields.": "请检查查询 JSON 及其输出字段。"
 }

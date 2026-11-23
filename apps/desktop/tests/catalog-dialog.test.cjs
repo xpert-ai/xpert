@@ -226,6 +226,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         if (
           [
             './catalog/ApplicationToolsets',
+            './catalog/OrganizationSettingsEditor',
             './ApplicationToolsetEditor',
             './catalog/TemplateInstallation',
             './catalog/TemplateManifestDetails',
@@ -993,3 +994,5 @@ test('workspace discovery gates writes and sends each resource action to the sel
 })
 
 require('./fixtures/discovery-permissions.cjs')(mountCatalog)
+
+require('./fixtures/catalog-organization-settings.cjs')(mountCatalog)
