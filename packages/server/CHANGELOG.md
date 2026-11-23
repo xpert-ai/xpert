@@ -1,5 +1,17 @@
 # @xpert-ai/server-core
 
+## 3.38.1
+
+### Patch Changes
+
+- Updated dependencies [338aa7c]
+- Updated dependencies [a98f2e2]
+- Updated dependencies [fdc02dc]
+    - @xpert-ai/contracts@3.38.1
+    - @xpert-ai/plugin-sdk@3.38.1
+    - @xpert-ai/server-common@3.38.1
+    - @xpert-ai/server-config@3.38.1
+
 ## 3.38.0
 
 ### Patch Changes

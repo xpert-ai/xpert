@@ -1,5 +1,7 @@
 # @xpert-ai/server-config
 
+## 3.38.1
+
 ## 3.38.0
 
 ## 3.37.2

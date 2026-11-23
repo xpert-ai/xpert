@@ -1,5 +1,14 @@
 # @xpert-ai/xpert-ui
 
+## 3.38.1
+
+### Patch Changes
+
+- 338aa7c: Use ChatKit types 0.24.1 and UI 0.27.1 to keep background activities such as title generation out of live and reopened conversations.
+- b867788: Use ChatKit UI 0.27.2 for clearer upload errors, reliable conversation retries and run controls, and longer Workbench downloads.
+- a98f2e2: Support organization-owned application setup, published role bindings, and in-place completion of existing installations.
+- fdc02dc: Release the shared runtime fixes for complete sandbox file reads, read-only workspace concurrency, and bounded verified image comparisons.
+
 ## 3.38.0
 
 ### Patch Changes

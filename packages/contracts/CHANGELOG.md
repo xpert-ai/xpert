@@ -1,5 +1,12 @@
 # @xpert-ai/contracts
 
+## 3.38.1
+
+### Patch Changes
+
+- 338aa7c: Use ChatKit types 0.24.1 and UI 0.27.1 to keep background activities such as title generation out of live and reopened conversations.
+- a98f2e2: Support organization-owned application setup, published role bindings, and in-place completion of existing installations.
+
 ## 3.38.0
 
 ## 3.37.2
