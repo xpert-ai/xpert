@@ -1,11 +1,13 @@
 import { INestApplication, ForbiddenException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { init } from 'i18next'
+import { OrganizationSettingsService } from '../application-setup/organization-settings.service'
 import { PluginApplicationController } from '../application/plugin-application.controller'
 import { PluginApplicationService } from '../application/plugin-application.service'
 
 describe('application initialize HTTP validation', () => {
     const service = {
+        getDefinition: jest.fn().mockReturnValue({ scope: 'organization' }),
         getDetail: jest.fn().mockResolvedValue({ status: { status: 'not_installed' } }),
         initialize: jest.fn(),
         prepare: jest.fn(),
@@ -26,7 +28,13 @@ describe('application initialize HTTP validation', () => {
         })
         const module = await Test.createTestingModule({
             controllers: [PluginApplicationController],
-            providers: [{ provide: PluginApplicationService, useValue: service }]
+            providers: [
+                { provide: PluginApplicationService, useValue: service },
+                {
+                    provide: OrganizationSettingsService,
+                    useValue: { form: () => ({}), complete: () => ({ revision: 1 }) }
+                }
+            ]
         }).compile()
         app = module.createNestApplication({ logger: false })
         await app.listen(0, '127.0.0.1')
@@ -45,6 +53,34 @@ describe('application initialize HTTP validation', () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         })
+
+    it('validates configuration updates and forbids client-supplied organization and Assistant IDs', async () => {
+        const body = {
+            pluginName: input.pluginName,
+            appName: input.appName,
+            installationScope: 'organization',
+            organizationSettings: { revision: 0, members: { finance: [selection.toolsetId] }, queries: {} }
+        }
+        const save = (value: unknown) =>
+            fetch(origin + '/plugin-applications/organization-settings', {
+                method: 'PUT',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(value)
+            })
+        expect((await save(body)).status).toBe(200)
+        expect((await save({ ...body, organizationId: 'other' })).status).toBe(400)
+        expect(
+            (await save({ ...body, organizationSettings: { ...body.organizationSettings, roles: {} } })).status
+        ).toBe(400)
+        expect(
+            (
+                await fetch(
+                    origin +
+                        '/plugin-applications/organization-settings?pluginName=example&appName=example&tenantId=other'
+                )
+            ).status
+        ).toBe(400)
+    })
 
     it('validates the scope selector on the actual detail query boundary', async () => {
         const params = new URLSearchParams({

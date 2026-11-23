@@ -1,6 +1,8 @@
+import { organizationSettingsSchema } from './application-setup/organization-settings.schema'
 import { applicationReleaseSchema, type ApplicationRelease } from './application-update/application-update.schema'
 import {
     IPluginApplicationInstallation,
+    OrganizationApplicationSettings,
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
     PluginApplicationInstallationStatus,
     PluginApplicationScope
@@ -74,6 +76,17 @@ export class PluginApplicationInstallation
 
     @Column({ type: 'jsonb', nullable: true })
     knowledgebaseIds?: string[] | null
+
+    @Column({
+        type: 'jsonb',
+        nullable: true,
+        select: false,
+        transformer: {
+            to: (settings: OrganizationApplicationSettings | null) => settings,
+            from: (raw: unknown) => (raw == null ? null : organizationSettingsSchema.parse(raw))
+        }
+    })
+    organizationSettings?: OrganizationApplicationSettings | null
 
     @Column({ type: 'jsonb', nullable: true })
     resourceRefs?: Record<string, string> | null

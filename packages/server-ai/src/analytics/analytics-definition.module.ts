@@ -33,6 +33,7 @@ import {
         ListAnalyticsSourcesHandler,
         ResolveAnalyticsSourceHandler
     ],
+    exports: [AnalyticsDefinitionService],
     controllers: [AnalyticsDefinitionController]
 })
 export class AnalyticsDefinitionModule {}

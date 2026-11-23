@@ -168,6 +168,23 @@ databaseTests('Analytics Definition on PostgreSQL', () => {
         expect((await service.version(first.definition.id, first.version.id)).version.options).toEqual(input.options)
         expect((await service.create(input, 'another-request')).definition.id).not.toBe(first.definition.id)
     })
+    it('reuses the current organization version across administrators and serializes first creation', async () => {
+        const input = { name: 'Model A', providerId: 'file.table', options: { resourceId: 'a' } }
+        const initial = await Promise.all(Array.from({ length: 5 }, () => service.ensureOrganizationDefinition(input)))
+        expect(new Set(initial.map((r) => r.version.id)).size).toBe(1)
+        const first = initial[0]
+        const secondAdmin = jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(randomUUID())
+        try {
+            const reused = await service.ensureOrganizationDefinition({ ...input, name: 'Different display label' })
+            expect(reused.version.id).toEqual(first.version.id)
+            const other = await service.ensureOrganizationDefinition({ ...input, options: { resourceId: 'b' } })
+            expect(other.definition.id).not.toEqual(first.definition.id)
+        } finally {
+            secondAdmin.mockReturnValue(actor.userId)
+        }
+        await service.status(first.definition.id, 'archived')
+        expect((await service.ensureOrganizationDefinition(input)).definition.id).not.toEqual(first.definition.id)
+    })
     it('applies the schema and serializes concurrent publication with immutable pinned reads', async () => {
         const original = await service.create({
             name: 'Sales',
