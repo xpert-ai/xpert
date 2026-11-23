@@ -88,6 +88,13 @@ export function readPluginPackageJson(workspacePath) {
   }
 }
 
+export function pluginInstallationScope(packageJson, defaultLevel = null) {
+  const level = packageJson?.xpert?.plugin?.level ?? defaultLevel
+  if (level === 'system' || level === 'tenant') return { declaredLevel: level, expectedScope: TENANT_SCOPE }
+  if (level === 'organization') return { declaredLevel: level, expectedScope: ORGANIZATION_SCOPE }
+  return { declaredLevel: null, expectedScope: null }
+}
+
 export function resolvePluginInput(args) {
   const firstPositional = args._[0]
   const secondPositional = args._[1]
@@ -201,7 +208,7 @@ function resolveLoginCredentials(args) {
   }
 }
 
-async function loginWithCredentials(args, credentials) {
+async function loginWithCredentials(args, credentials, requestOptions) {
   const headers = {
     accept: 'application/json',
     'content-type': 'application/json'
@@ -210,10 +217,15 @@ async function loginWithCredentials(args, credentials) {
   if (requestedTenantId) {
     headers['tenant-id'] = requestedTenantId
   }
-  const response = await postJson(resolveLoginEndpoint(args), headers, {
-    email: credentials.username,
-    password: credentials.password
-  })
+  const response = await postJson(
+    resolveLoginEndpoint(args),
+    headers,
+    {
+      email: credentials.username,
+      password: credentials.password
+    },
+    requestOptions
+  )
   assertResponseOk('Xpert login', response)
   const body = response.body
   if (!body || typeof body !== 'object' || Array.isArray(body) || typeof body.token !== 'string') {
@@ -240,7 +252,7 @@ export async function resolveAuthentication(args, options = {}) {
     if (options.dryRun) {
       return { source: `${credentials.source} (dry run)`, token: 'dry-run-token' }
     }
-    return await loginWithCredentials(args, credentials)
+    return await loginWithCredentials(args, credentials, options.requestOptions)
   }
 
   if (process.env.XPERT_TOKEN) {
@@ -285,10 +297,18 @@ export async function requireAuthentication(args, options = {}) {
   return authentication
 }
 
+export function resolveRequestScope(args) {
+  return (
+    args.scope ||
+    process.env.XPERT_SCOPE ||
+    (args.orgId || process.env.XPERT_ORG_ID ? ORGANIZATION_SCOPE : TENANT_SCOPE)
+  )
+}
+
 export function createRequestHeaders(args, token, authenticatedTenantId) {
   const organizationId = args.orgId || process.env.XPERT_ORG_ID
   const tenantId = args.tenantId || process.env.XPERT_TENANT_ID || authenticatedTenantId
-  const scope = args.scope || process.env.XPERT_SCOPE || (organizationId ? ORGANIZATION_SCOPE : TENANT_SCOPE)
+  const scope = resolveRequestScope(args)
   const headers = {
     accept: 'application/json',
     authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`,
@@ -355,14 +375,19 @@ export function resolveLoginEndpoint(args) {
   return `${input}/api/auth/login`
 }
 
-/** Sends a JSON request and returns a normalized response without logging credentials or payload secrets. */
-export async function requestJson(method, url, headers, body) {
+/** Send a JSON or multipart payload and normalize the API response without logging credentials. */
+export async function requestJson(method, url, headers, body, { redirect, timeoutMs, expectJson } = {}) {
+  const multipart = body instanceof FormData
+  const requestHeaders = new Headers(headers)
+  if (multipart) requestHeaders.delete('content-type') // fetch supplies the multipart boundary.
   let response
   try {
     response = await fetch(url, {
       method,
-      headers,
-      ...(body === undefined ? {} : { body: JSON.stringify(body) })
+      headers: requestHeaders,
+      redirect,
+      signal: timeoutMs === undefined ? undefined : AbortSignal.timeout(timeoutMs),
+      body: multipart ? body : JSON.stringify(body)
     })
   } catch (error) {
     throw new LocalPluginCliError(
@@ -372,11 +397,13 @@ export async function requestJson(method, url, headers, body) {
 
   const responseText = await response.text()
   let responseBody = responseText
-  if (responseText && response.headers.get('content-type')?.includes('application/json')) {
+  if (expectJson || (responseText && response.headers.get('content-type')?.includes('application/json'))) {
     try {
       responseBody = JSON.parse(responseText)
     } catch {
-      responseBody = responseText
+      if (expectJson && response.ok) {
+        throw new LocalPluginCliError(`Expected a JSON response from ${new URL(url).pathname}.`)
+      }
     }
   }
   return { body: responseBody, ok: response.ok, status: response.status }
@@ -388,8 +415,8 @@ export async function getJson(url, headers) {
 }
 
 /** Posts JSON to a platform endpoint. */
-export async function postJson(url, headers, body) {
-  return requestJson('POST', url, headers, body)
+export async function postJson(url, headers, body, options) {
+  return requestJson('POST', url, headers, body, options)
 }
 
 export function readResponseMessage(body) {
@@ -473,9 +500,19 @@ export function summarizePluginResponse(body) {
   return Object.keys(summary).length ? summary : null
 }
 
+function pluginDescriptorItems(body) {
+  if (Array.isArray(body)) return body
+  return Array.isArray(body?.items) ? body.items : null
+}
+
 export function isVerifiedPluginList(body) {
-  if (Array.isArray(body)) {
-    return body.length > 0
-  }
-  return Boolean(body && typeof body === 'object' && Array.isArray(body.items) && body.items.length > 0)
+  return (pluginDescriptorItems(body)?.length ?? 0) > 0
+}
+
+export async function queryPluginDescriptors(pluginEndpoint, headers, name, options) {
+  const response = await postJson(`${pluginEndpoint}/by-names`, headers, { names: [name] }, options)
+  if (!response.ok) return response
+  const descriptors = pluginDescriptorItems(response.body)
+  if (!descriptors) throw new LocalPluginCliError(`Plugin verification returned no descriptor list for ${name}.`)
+  return { ...response, body: descriptors }
 }

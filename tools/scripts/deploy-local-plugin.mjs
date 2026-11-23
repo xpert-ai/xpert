@@ -13,14 +13,16 @@ import {
   assertResponseOk,
   createRequestHeaders,
   handleCliError,
-  isVerifiedPluginList,
   parseCliArgs,
   parsePluginConfig,
+  pluginInstallationScope,
   postJson,
+  queryPluginDescriptors,
   readResponseMessage,
   requireAuthentication,
   resolvePluginEndpoint,
   resolvePluginInput,
+  resolveRequestScope,
   summarizePluginResponse,
   summarizePluginRuntimeTarget
 } from './local-plugin-cli.mjs'
@@ -161,36 +163,15 @@ function runCommandPlan(label, plan, dryRun) {
   return 'passed'
 }
 
-/** Reads the plugin's declared installation level from its package metadata. */
-function readDeclaredPluginLevel(packageJson) {
-  const level = packageJson?.xpert?.plugin?.level
-  return level === 'system' || level === 'tenant' || level === 'organization' ? level : null
-}
-
-/** Maps a declared plugin level to the only supported local installation scope. */
-function expectedScopeForLevel(level) {
-  return level === 'organization' ? 'organization' : level === 'system' || level === 'tenant' ? 'tenant' : null
-}
-
 /** Rejects a scope mismatch before build, test, or deployment can mutate state. */
-function assertDeclaredScope(packageJson, headers) {
-  const declaredLevel = readDeclaredPluginLevel(packageJson)
-  const expectedScope = expectedScopeForLevel(declaredLevel)
-  const actualScope = headers['x-scope-level']
+function assertDeclaredScope(packageJson, actualScope) {
+  const { declaredLevel, expectedScope } = pluginInstallationScope(packageJson)
   if (expectedScope && actualScope !== expectedScope) {
     throw new LocalPluginCliError(
       `Plugin declares xpert.plugin.level=${declaredLevel} and must use ${expectedScope} scope; received ${actualScope}.`
     )
   }
   return { declaredLevel, expectedScope, actualScope }
-}
-
-/** Returns the first verified descriptor without assuming a response pagination shape. */
-function firstVerifiedDescriptor(body) {
-  if (Array.isArray(body)) {
-    return body[0] ?? null
-  }
-  return body && typeof body === 'object' && Array.isArray(body.items) ? (body.items[0] ?? null) : null
 }
 
 /** Writes a deterministic, secret-free receipt that later Assistant provisioning and tests can consume. */
@@ -261,9 +242,7 @@ async function main() {
 
   const { packageJson, pluginName, workspacePath } = resolvePluginInput(args)
   const config = parsePluginConfig(args)
-  const requestedScope =
-    args.scope || process.env.XPERT_SCOPE || (args.orgId || process.env.XPERT_ORG_ID ? 'organization' : 'tenant')
-  const scope = assertDeclaredScope(packageJson, { 'x-scope-level': requestedScope })
+  const scope = assertDeclaredScope(packageJson, resolveRequestScope(args))
   const authentication = await requireAuthentication(args, { dryRun: args.dryRun })
   if (!authentication) {
     console.log('[plugin:deploy:local] Dry run: no token found; a real deployment would stop and request secure setup.')
@@ -271,7 +250,6 @@ async function main() {
     console.log(`[plugin:deploy:local] Authentication source: ${authentication.source}`)
   }
   const headers = createRequestHeaders(args, authentication?.token ?? 'dry-run-token', authentication?.tenantId)
-  assertDeclaredScope(packageJson, headers)
 
   console.log('[plugin:deploy:local] Preflight plugin level:', scope.declaredLevel ?? 'undeclared')
   console.log('[plugin:deploy:local] Preflight install scope:', scope.actualScope)
@@ -332,13 +310,13 @@ async function main() {
   }
 
   const deployment = await deployPlugin({ args, config, headers, pluginEndpoint, pluginName, workspacePath })
-  const verifyResponse = await postJson(`${pluginEndpoint}/by-names`, headers, { names: [pluginName] })
+  const verifyResponse = await queryPluginDescriptors(pluginEndpoint, headers, pluginName)
   assertResponseOk('Plugin verification', verifyResponse)
-  if (!isVerifiedPluginList(verifyResponse.body)) {
+  if (!verifyResponse.body.length) {
     throw new LocalPluginCliError(`Plugin verification returned no descriptor for ${pluginName}.`)
   }
 
-  const descriptor = firstVerifiedDescriptor(verifyResponse.body)
+  const descriptor = verifyResponse.body[0] ?? null
   const restartRequired =
     deployment.result?.restartRequired === true ||
     descriptor?.restartRequired === true ||
