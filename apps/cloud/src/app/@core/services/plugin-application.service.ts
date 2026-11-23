@@ -1,6 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
+  OrganizationApplicationSettings,
+  OrganizationApplicationSetupForm,
   PluginApplicationUpdateInput,
   PluginApplicationUpdateProgress,
   PluginApplicationScope,
@@ -73,6 +75,23 @@ export class PluginApplicationService {
         }
       })
     )
+  }
+
+  organizationSettings(app: PluginApplicationSetupInput) {
+    const params = this.scopeParams(app.installationScope).set('pluginName', app.pluginName).set('appName', app.appName)
+    return this.#http.get<OrganizationApplicationSetupForm>(`${API_PREFIX}/plugin-applications/organization-settings`, {
+      params
+    })
+  }
+
+  completeOrganizationSettings(
+    app: PluginApplicationSetupInput,
+    organizationSettings: OrganizationApplicationSettings
+  ) {
+    return this.#http.put<{ revision: number }>(`${API_PREFIX}/plugin-applications/organization-settings`, {
+      ...app,
+      organizationSettings
+    })
   }
 
   initialize(input: PluginApplicationInitializeInput) {

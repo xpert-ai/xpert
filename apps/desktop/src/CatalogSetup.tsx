@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
 import { ModelCascader } from './catalog/ModelCascader'
 import { TemplateRequirements } from './catalog/TemplateRequirements'
+import { OrganizationSettingsEditor } from './catalog/OrganizationSettingsEditor'
 import { ApplicationToolsets } from './catalog/ApplicationToolsets'
 import { applicationToolsetsSelected, reconcileApplicationToolsets } from './catalog/application-toolsets'
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
@@ -17,6 +18,7 @@ import type {
   ApplicationSetup,
   ApplicationToolsetSelection,
   CatalogItem,
+  OrganizationSettings,
   ExpertItem,
   TemplatePreflight
 } from './catalog-types'
@@ -65,6 +67,9 @@ export function CatalogSetup({
   const [embedding, setEmbedding] = useState('')
   const [vision, setVision] = useState('')
   const [toolsets, setToolsets] = useState<ApplicationToolsetSelection[]>([])
+  const [organizationSettings, setOrganizationSettings] = useState<OrganizationSettings | null>(null)
+  const [editingSettings, setEditingSettings] = useState(false)
+  const [savedSettings, setSavedSettings] = useState(false)
   const [editingToolset, setEditingToolset] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [operationId] = useState(() => crypto.randomUUID())
@@ -89,6 +94,7 @@ export function CatalogSetup({
     async function load() {
       setLoading(item.kind !== 'experts')
       setError('')
+      setOrganizationSettings(null)
       setHasPrimaryLanguageModel(null)
       try {
         if (item.kind === 'applications') {
@@ -151,35 +157,59 @@ export function CatalogSetup({
     }
   }, [item, revision, capabilities, onItemUpdated, workspaceId, appScope, installationScope])
   const initializing = setup?.application.status === 'initializing'
+  const requiresSettings = !!setup?.organizationFields?.length
+  const existingSettings =
+    requiresSettings && !!setup?.application.botId && ['ready', 'degraded'].includes(setup.application.status)
+  const savingExisting =
+    existingSettings && setup?.canConfigure && (editingSettings || setup.application.status === 'degraded')
+  const showOrganizationForm =
+    requiresSettings && setup?.canConfigure && !initializing && (!existingSettings || savingExisting)
   const canSubmit =
     !busy &&
     !loading &&
     !uncertain &&
     !editingToolset &&
-    (installed ||
-      (item.kind === 'experts'
-        ? reason.trim().length > 0
-        : item.kind === 'templates'
-          ? installation.client &&
-            !templateLocked &&
-            workspaceId &&
-            title.trim() &&
-            preflight?.canInstall !== false &&
-            (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
-            (preflight?.requiresModel
-              ? preflight.models.some((model) => model.id === templateModel)
-              : hasPrimaryLanguageModel === true)
-          : setup?.canInitialize &&
-            !initializing &&
-            (!setup.requireEmbedding || embedding) &&
-            (!setup.requireVision || vision) &&
-            applicationToolsetsSelected(setup.toolsetRequirements, toolsets)))
+    (savingExisting
+      ? !!organizationSettings
+      : installed ||
+        (item.kind === 'experts'
+          ? reason.trim().length > 0
+          : item.kind === 'templates'
+            ? installation.client &&
+              !templateLocked &&
+              workspaceId &&
+              title.trim() &&
+              preflight?.canInstall !== false &&
+              (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
+              (preflight?.requiresModel
+                ? preflight.models.some((model) => model.id === templateModel)
+                : hasPrimaryLanguageModel === true)
+            : setup?.canInitialize &&
+              (!requiresSettings || !!organizationSettings) &&
+              !initializing &&
+              (!setup.requireEmbedding || embedding) &&
+              (!setup.requireVision || vision) &&
+              applicationToolsetsSelected(setup.toolsetRequirements, toolsets)))
   const submit = async () => {
     if (!canSubmit) return
     setBusy(true)
     onBusy(true)
     setError('')
     try {
+      if (savingExisting && organizationSettings && item.kind === 'applications') {
+        await invoke('saveApplicationOrganizationSettings', {
+          pluginName: item.pluginName,
+          appName: item.appName,
+          installationScope: 'organization',
+          organizationId,
+          organizationSettings
+        })
+        setEditingSettings(false)
+        setSavedSettings(true)
+        setRevision((value) => value + 1)
+        onInstalled()
+        return
+      }
       if (installed) {
         await onUse(installed)
         return
@@ -210,7 +240,8 @@ export function CatalogSetup({
       const result = await invoke('initializeApplication', {
         pluginName: item.pluginName,
         appName: item.appName,
-        installationScope: appScope,
+        installationScope: setup?.application.installationScope ?? appScope,
+        ...(requiresSettings && organizationSettings ? { organizationId, organizationSettings } : {}),
         operationId,
         toolsets,
         ...(embedding ? { embeddingModelId: embedding } : {}),
@@ -284,6 +315,9 @@ export function CatalogSetup({
                           value={scope}
                           checked={(appScope ?? setup?.application.installationScope) === scope}
                           onChange={() => {
+                            setEditingSettings(false)
+                            setSavedSettings(false)
+                            setOrganizationSettings(null)
                             setInstalled(null)
                             setSetup(null)
                             setEmbedding('')
@@ -442,6 +476,37 @@ export function CatalogSetup({
                       ))}
                     </ol>
                   </div>
+                  {existingSettings && setup.canConfigure && installed && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => {
+                        setSavedSettings(false)
+                        setOrganizationSettings(null)
+                        setEditingSettings(!editingSettings)
+                      }}
+                    >
+                      {editingSettings ? t('Cancel') : t('Edit organization settings')}
+                    </Button>
+                  )}
+                  {savedSettings && (
+                    <p role="status" className="text-sm">
+                      {t('Organization settings saved.')}
+                    </p>
+                  )}
+                  {showOrganizationForm && setup.organizationFields && (
+                    <OrganizationSettingsEditor
+                      key={JSON.stringify([organizationId, item.pluginName, item.appName])}
+                      webUrl={webUrl}
+                      organizationId={organizationId}
+                      pluginName={item.pluginName}
+                      appName={item.appName}
+                      fields={setup.organizationFields}
+                      disabled={busy}
+                      onChange={setOrganizationSettings}
+                    />
+                  )}
                   {!!setup.application.composition?.length && (
                     <section className="space-y-2 border-t pt-4">
                       <h3 className="font-medium">{t('Included with this application')}</h3>
@@ -606,14 +671,18 @@ export function CatalogSetup({
               {busy
                 ? item.kind === 'experts'
                   ? t('Submitting…')
-                  : t('Preparing assistant…')
-                : installed
-                  ? t('Open assistant')
-                  : item.kind === 'experts'
-                    ? t('Submit request')
-                    : creation
-                      ? t('Create & chat')
-                      : t('Install & use')}
+                  : savingExisting
+                    ? t('Saving…')
+                    : t('Preparing assistant…')
+                : savingExisting
+                  ? t('Save organization settings')
+                  : installed
+                    ? t('Open assistant')
+                    : item.kind === 'experts'
+                      ? t('Submit request')
+                      : creation
+                        ? t('Create & chat')
+                        : t('Install & use')}
             </Button>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { applicationInstallationScopeSchema } from '../application/application-scope.schema'
 import { BadRequestException } from '@nestjs/common'
 import { t } from 'i18next'
+import { organizationSettingsSchema } from '../application-setup/organization-settings.schema'
 import { z } from 'zod/v3'
 
 const identifier = z.string().trim().min(1).max(255)
@@ -15,6 +16,7 @@ export const applicationInitializeSchema = z
         embeddingModelId: identifier.optional(),
         visionModelId: identifier.optional(),
         speechToTextModelId: identifier.optional(),
+        organizationSettings: organizationSettingsSchema.optional(),
         toolsets: z
             .array(z.object({ key: identifier, toolsetId: z.string().uuid() }).strict())
             .max(100)
@@ -31,6 +33,7 @@ export const applicationInitializeSchema = z
         ...(input.embeddingModelId ? { embeddingModelId: input.embeddingModelId } : {}),
         ...(input.visionModelId ? { visionModelId: input.visionModelId } : {}),
         ...(input.speechToTextModelId ? { speechToTextModelId: input.speechToTextModelId } : {}),
+        ...(input.organizationSettings ? { organizationSettings: input.organizationSettings } : {}),
         ...(input.toolsets
             ? { toolsets: input.toolsets.map((item) => ({ key: item.key, toolsetId: item.toolsetId })) }
             : {})

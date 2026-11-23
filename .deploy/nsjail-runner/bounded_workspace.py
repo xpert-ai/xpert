@@ -55,43 +55,48 @@ class Entry:
     digest: str = ''
 
 
-def manifest(root: pathlib.Path) -> dict[str, Entry]:
+def manifest(root: pathlib.Path, *, overlay_upper: bool = False) -> dict[str, Entry]:
     result: dict[str, Entry] = {}
 
     def visit(descriptor: int, prefix: str = '') -> None:
-        for item in os.scandir(descriptor):
-            name = f'{prefix}/{item.name}' if prefix else item.name
-            info = item.stat(follow_symlinks=False)
-            if stat.S_ISDIR(info.st_mode):
-                child = os.open(item.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
-                try:
-                    opened = os.fstat(child)
-                    if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
-                        raise StorageBudgetError('Workspace changed during inspection', 409)
-                    result[name] = Entry('directory')
-                    visit(child, name)
-                finally:
-                    os.close(child)
-            elif stat.S_ISREG(info.st_mode):
-                digest = hashlib.sha256()
-                fd = os.open(item.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=descriptor)
-                with os.fdopen(fd, 'rb') as source:
-                    opened = os.fstat(source.fileno())
-                    if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
-                        raise StorageBudgetError('Workspace changed during inspection', 409)
-                    for chunk in iter(lambda: source.read(1024 * 1024), b''):
-                        digest.update(chunk)
-                    final = os.fstat(source.fileno())
-                    if (final.st_size, final.st_mtime_ns) != (opened.st_size, opened.st_mtime_ns):
-                        raise StorageBudgetError('Workspace changed during inspection', 409)
-                result[name] = Entry('file', final.st_size, digest.hexdigest())
-            elif stat.S_ISLNK(info.st_mode):
-                result[name] = Entry('link', info.st_size, os.readlink(item.name, dir_fd=descriptor))
-            else:
-                raise StorageBudgetError('Unsupported workspace entry', 403)
+        with os.scandir(descriptor) as entries:
+            for item in entries:
+                name = f'{prefix}/{item.name}' if prefix else item.name
+                info = item.stat(follow_symlinks=False)
+                if stat.S_ISDIR(info.st_mode):
+                    child = os.open(item.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+                    try:
+                        opened = os.fstat(child)
+                        if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                            raise StorageBudgetError('Workspace changed during inspection', 409)
+                        result[name] = Entry('directory')
+                        visit(child, name)
+                    finally:
+                        os.close(child)
+                elif stat.S_ISREG(info.st_mode):
+                    digest = hashlib.sha256()
+                    fd = os.open(item.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=descriptor)
+                    with os.fdopen(fd, 'rb') as source:
+                        opened = os.fstat(source.fileno())
+                        if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                            raise StorageBudgetError('Workspace changed during inspection', 409)
+                        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                            digest.update(chunk)
+                        final = os.fstat(source.fileno())
+                        if (final.st_size, final.st_mtime_ns) != (opened.st_size, opened.st_mtime_ns):
+                            raise StorageBudgetError('Workspace changed during inspection', 409)
+                    result[name] = Entry('file', final.st_size, digest.hexdigest())
+                elif stat.S_ISLNK(info.st_mode):
+                    result[name] = Entry('link', info.st_size, os.readlink(item.name, dir_fd=descriptor))
+                elif overlay_upper and stat.S_ISCHR(info.st_mode) and info.st_rdev == 0:
+                    result[name] = Entry('whiteout')
+                else:
+                    raise StorageBudgetError('Unsupported workspace entry', 403)
     descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         visit(descriptor)
+    except FileNotFoundError as error:
+        raise StorageBudgetError('Workspace entry disappeared during inspection', 409) from error
     finally:
         os.close(descriptor)
     return result
@@ -191,7 +196,10 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
     with lock:
         before = manifest(workspace)
         uid, gid = identity or (os.geteuid(), os.getegid())
-        ownership = workspace_ownership(workspace, uid, gid, before)
+        try:
+            ownership = workspace_ownership(workspace, uid, gid, before)
+        except (FileNotFoundError, NotADirectoryError) as error:
+            raise StorageBudgetError('Workspace changed during ownership inspection', 409) from error
         directory = pathlib.Path(tempfile.mkdtemp(prefix='storage-budget-', dir=state_root))
         # NsJail resolves bind sources after entering its user namespace.
         # Allow traversal without exposing a listing of the staging directory.
@@ -243,8 +251,15 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
                             restore_owner(descriptor, owner_ids)
                         finally:
                             os.close(descriptor)
+            # Only upper-layer changes belong to the command. New lower-layer
+            # host files are visible through OverlayFS but are not our writes.
+            upper_before = manifest(scratch / 'upper', overlay_upper=True)
             result = operation(merged, scratch)
             if not accept(result):
+                return result
+            # A command with no durable changes has nothing to commit. Host writes
+            # made after copy-up must not invalidate its already-read result.
+            if manifest(scratch / 'upper', overlay_upper=True) == upper_before:
                 return result
             after = manifest(merged)
             if sum(entry.size for entry in after.values()) > budget.workspace_bytes:
@@ -253,6 +268,8 @@ def run_bounded(workspace: pathlib.Path, state_root: pathlib.Path, budget: Stora
                 raise StorageBudgetError('Workspace changed during execution', 409)
             publish(workspace, merged, before, after)
             return result
+        except FileNotFoundError as error:
+            raise StorageBudgetError('Workspace entry disappeared during execution', 409) from error
         except OSError as error:
             if error.errno in (28, 122):
                 raise StorageBudgetError('Storage limit exceeded') from error

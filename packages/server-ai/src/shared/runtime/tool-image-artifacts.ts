@@ -19,6 +19,7 @@ import {
     hasLegacyImageContent,
     imageToolMessageForModel,
     readyImageMessages,
+    recentImageMessages,
     textOnlyToolMessages,
     type ToolImageTextResultPolicy
 } from './tool-image-messages'
@@ -190,6 +191,28 @@ export class ToolImageArtifacts implements ToolImagesApi {
                     defaultValue: 'At most three tool images can be inspected in one model step.'
                 })
             )
+        }
+        if (batches.length) {
+            // Sequential inspection must retain the other document long enough
+            // to compare it. Current images have priority; history is bounded,
+            // deduplicated and re-authorized through read() on every request.
+            const seen = new Set(batches.flatMap((batch) => batch.attachments.map((image) => image.sha256)))
+            let imageCount = batches.reduce((count, batch) => count + batch.attachments.length, 0)
+            for (const message of recentImageMessages(messages, toolNames)) {
+                if (imageCount >= MAX_IMAGES_PER_STEP) break
+                if (textResults.has(message) || hasLegacyImageContent(message)) continue
+                const presentation = parsePresentation(message.artifact)
+                if (!presentation) continue
+                const attachments = presentation.attachments
+                    .filter((image) => !seen.has(image.sha256))
+                    .slice(0, MAX_IMAGES_PER_STEP - imageCount)
+                if (!attachments.length) continue
+                const summary = imageToolMessageForModel(message, presentation)
+                if (typeof summary.content !== 'string' || !summary.content.trim()) continue
+                attachments.forEach((image) => seen.add(image.sha256))
+                imageCount += attachments.length
+                batches.push({ message, summary: summary.content, attachments })
+            }
         }
         const names = new Set(toolNames)
         const projected = messages.map((message) => {

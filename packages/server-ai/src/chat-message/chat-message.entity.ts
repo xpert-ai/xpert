@@ -8,7 +8,7 @@ import {
     IXpertAgentExecution,
     TChatInputCheckpoint,
     TChatOutputCheckpoint,
-    TChatAgentRunSummary,
+    TStoredChatAgentRuns,
     TChatMessageStep,
     TChatMessageEnvelope,
     TChatReference,
@@ -81,7 +81,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     outputCheckpoint?: TChatOutputCheckpoint | null
 
     @Column({ type: 'jsonb', nullable: true })
-    historicalAgentRuns?: TChatAgentRunSummary[] | null
+    historicalAgentRuns?: TStoredChatAgentRuns | null
 
     @ApiProperty({ type: () => String })
     @IsString()

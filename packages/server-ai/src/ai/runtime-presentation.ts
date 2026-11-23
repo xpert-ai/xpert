@@ -5,6 +5,7 @@ import { assistantRuntimeCredential } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     IChatMessage,
+    isRuntimeAgentExecution,
     TMessageContentComponent,
     TMessageContentComplex,
     parseResourceCardContent
@@ -128,6 +129,11 @@ export function runtimeStreamPayload(value: unknown): unknown | null {
         return data === null ? null : { type: 'message', data }
     }
     if (payload.type !== 'event') return null
+    if (
+        (payload.event === 'on_agent_start' || payload.event === 'on_agent_end') &&
+        isRuntimeAgentExecution(payload.data)
+    )
+        return null
     if (payload.event === 'on_error')
         return { type: 'event', event: payload.event, data: runtimePresentationError(payload.data) }
     if (

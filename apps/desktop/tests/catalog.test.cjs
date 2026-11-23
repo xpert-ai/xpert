@@ -616,3 +616,62 @@ test('multi-scope App catalog uses personal status and forwards the selected tar
     service.applicationSetup({ pluginName: app.pluginName, appName: app.appName, installationScope: ['personal'] })
   )
 })
+
+test('organization setup uses organization requests, handles stale forms and saves existing apps without initializing', async () => {
+  const endpoint = '/api/plugin-applications/organization-settings'
+  const target = {
+    pluginName: app.pluginName,
+    appName: app.appName,
+    installationScope: 'organization',
+    organizationId: 'org-1'
+  }
+  const organizationSettings = { revision: 2, members: { reviewers: ['user-one'] }, queries: {} }
+  const { service, calls } = fixture((path, options) => {
+    if (path === endpoint && options.method === 'PUT') return { revision: 3 }
+    if (path === endpoint) return { settings: organizationSettings, users: [], sources: [] }
+    if (path.endsWith('/detail'))
+      return {
+        ...detail,
+        application: {
+          ...app,
+          scope: 'organization',
+          config: { organizationSetup: [{ kind: 'members', key: 'reviewers', label: { en_US: 'Reviewers' } }] }
+        },
+        preflight: { ...detail.preflight, modelRequirements: {} }
+      }
+    if (path.endsWith('/initialize')) return { status: 'ready', xpertId: 'installed' }
+    throw Error('Unexpected endpoint')
+  })
+  const setup = await service.applicationSetup(target)
+  assert.deepEqual(setup.organizationFields, [
+    { kind: 'members', key: 'reviewers', label: 'Reviewers', optional: false }
+  ])
+  assert.equal((await dispatch(service, 'applicationOrganizationSettings', target)).value.settings.revision, 2)
+  assert.equal(
+    (await dispatch(service, 'saveApplicationOrganizationSettings', { ...target, organizationSettings })).value
+      .revision,
+    3
+  )
+  const saved = calls.at(-1)
+  assert.equal(saved.path, endpoint)
+  assert.equal(saved.method, 'PUT')
+  assert.equal(saved.headers['organization-id'], 'org-1')
+  assert.deepEqual(Object.keys(saved.body).sort(), [
+    'appName',
+    'installationScope',
+    'organizationSettings',
+    'pluginName'
+  ])
+  assert.equal(
+    calls.some((c) => c.path.endsWith('/initialize')),
+    false
+  )
+  await service.initializeApplication({ ...target, operationId: 'install', organizationSettings })
+  assert.deepEqual(calls.at(-1).body.organizationSettings, organizationSettings)
+  service.profile.organizationId = 'org-2'
+  const previous = calls.length
+  await assert.rejects(service.saveApplicationOrganizationSettings({ ...target, organizationSettings }), {
+    status: 409
+  })
+  assert.equal(calls.length, previous)
+})

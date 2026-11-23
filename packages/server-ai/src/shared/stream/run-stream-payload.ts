@@ -1,4 +1,5 @@
 import {
+    CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY,
     CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE,
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum
@@ -143,6 +144,14 @@ function toPlainObject(value: object) {
 function serializeEventData(eventName: string, data: object) {
     switch (eventName) {
         case ChatMessageEventTypeEnum.ON_CHAT_EVENT:
+            // Normalize title events already in the replay log from before presentation was recorded.
+            if (
+                'type' in data &&
+                data.type === CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY &&
+                !('presentation' in data)
+            ) {
+                return removeNilProperties({ ...data, presentation: 'runtime' })
+            }
             if (
                 'type' in data &&
                 data.type === CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE &&

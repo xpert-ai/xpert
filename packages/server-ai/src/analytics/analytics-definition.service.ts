@@ -131,10 +131,53 @@ export class AnalyticsDefinitionService {
         return { options: await this.validate(input.providerId, input.options, actor) }
     }
     async create(input: AnalyticsDefinitionCreate, registrationKey?: string) {
+        return this.createVersionOne(input, registrationKey, false)
+    }
+
+    ensureOrganizationDefinition(input: Omit<AnalyticsDefinitionCreate, 'visibility'>) {
+        return this.createVersionOne({ ...input, visibility: 'organization' }, undefined, true)
+    }
+
+    private async createVersionOne(
+        input: AnalyticsDefinitionCreate,
+        registrationKey: string | undefined,
+        reuse: boolean
+    ) {
         const actor = await this.authorize()
         const options = await this.validate(input.providerId, input.options, actor)
         await this.authorize(actor)
         return this.db.transaction(async (manager) => {
+            if (reuse) {
+                const scope = { tenantId: actor.tenantId, organizationId: actor.organizationId }
+                // Serialize compatible creations across administrators. Current, shared versions only.
+                await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+                    JSON.stringify([scope.tenantId, scope.organizationId, input.providerId])
+                ])
+                const version = await manager
+                    .createQueryBuilder(AnalyticsDefinitionVersion, 'v')
+                    .innerJoinAndMapOne(
+                        'v.definition',
+                        AnalyticsDefinition,
+                        'd',
+                        'd.id = v.definitionId AND d.currentVersionId = v.id'
+                    )
+                    .where('v.tenantId = :tenantId AND v.organizationId = :organizationId', scope)
+                    .andWhere('d.tenantId = :tenantId AND d.organizationId = :organizationId', scope)
+                    .andWhere('d.providerId = :provider AND d.visibility = :visibility AND d.status = :status', {
+                        provider: input.providerId,
+                        visibility: 'organization',
+                        status: 'active'
+                    })
+                    .andWhere('CAST(v.options AS jsonb) = CAST(:options AS jsonb)', {
+                        options: JSON.stringify(options)
+                    })
+                    .orderBy('d.id', 'ASC')
+                    .getOne()
+                if (version?.definition) {
+                    if (definitionDigest(version.options) !== version.sha256) throw definitionError('invalid')
+                    return { definition: version.definition, version }
+                }
+            }
             // A deterministic scoped UUID plus transaction lock makes retries safe across processes.
             const digest = registrationKey
                 ? createHash('sha256')

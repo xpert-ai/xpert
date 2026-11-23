@@ -7,6 +7,8 @@ import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.serv
 import { ChatConversationThread } from './conversation-thread.entity'
 import { MessageCheckpointService } from './message-checkpoint.service'
 
+jest.mock('../ai/conversation-agent-runs.service', () => ({ ConversationAgentRunsService: class {} }))
+
 function fixture() {
     const head = Object.assign(new ChatMessage(), {
         id: 'last-ai',
@@ -108,8 +110,11 @@ describe('MessageCheckpointService', () => {
         expect(result).not.toHaveProperty('outputCheckpoint')
         expect(test.head.outputCheckpoint).toMatchObject({
             options: { knowledgebases: ['kb'] },
-            fileAssetIds: ['file-at-completion'],
-            agentRuns: [{ id: 'child-run', status: 'success' }]
+            fileAssetIds: ['file-at-completion']
+        })
+        expect(test.head.outputCheckpoint.agentRuns).toEqual({
+            version: 1,
+            runs: [{ id: 'child-run', status: 'success' }]
         })
     })
 

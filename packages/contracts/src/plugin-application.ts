@@ -1,3 +1,5 @@
+import type { JSONValue } from './core.model'
+import type { AnalyticsBinding, AnalyticsSourceSummary } from './analytics/analytics-query.model'
 import type { AiModelTypeEnum } from './agent'
 import type { ModelSelectionMetadata } from './ai/copilot-model.model'
 import type { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
@@ -91,6 +93,60 @@ export interface PluginMarketplaceAppAssistantSuite {
 }
 
 /**
+ * Declares how an application obtains its analytics bindings from a model chosen during setup.
+ * The host matches each recipe to an analytics field by key. The provider interprets the recipe.
+ */
+export interface ApplicationAnalyticsSetup {
+  kind: 'connection-model'
+  providerId: string
+  recipes: Record<string, JSONValue>
+  /** The host passes this versioned bundle only to the registered provider, never to the renderer. */
+  bootstrap?: { key: string; version: string; modes: Array<{ id: string; label: I18nObject }>; bundle: JSONValue }
+}
+
+/**
+ * Declares one choice an organization makes when configuring an application.
+ * The kind determines how the host collects and validates the value. Keep the key stable across
+ * versions so existing installations can still resolve their saved selections.
+ */
+export type ApplicationSetupField =
+  | { kind: 'members'; key: string; label: I18nObject; optional?: boolean }
+  | { kind: 'analytics'; key: string; label: I18nObject; providerId: string; requiredNumericFields?: string[] }
+
+/** An organization's saved configuration for one application, keyed by its declared setup fields. */
+export interface OrganizationApplicationSettings {
+  /** Submit the revision read from the form so concurrent edits can be detected. Zero denotes an unsaved configuration. */
+  revision: number
+  members: Record<string, string[]>
+  queries: Record<string, AnalyticsBinding>
+}
+
+/**
+ * Host response for initializing or editing an application in the current organization.
+ * It pairs saved values with the members and sources available to the caller. When model setup
+ * is offered, the client can also obtain query bindings by previewing a model.
+ */
+export interface OrganizationApplicationSetupForm {
+  modelSetup?: {
+    kind: 'connection-model'
+    bootstrap?: { modes: Array<{ id: string; label: I18nObject }>; version: string }
+  }
+  settings: OrganizationApplicationSettings
+  users: Array<{ id: string; label: string }>
+  sources: AnalyticsSourceSummary[]
+}
+
+/**
+ * Installation metadata a project plugin can use to resolve the coordinator, role Assistants
+ * and organization settings for its application. Callers still check access to each resource they use.
+ */
+export interface ProjectApplicationBindings {
+  coordinatorId: string
+  roles: Record<string, string>
+  settings: OrganizationApplicationSettings
+}
+
+/**
  * Declarative, host-owned initialization contract for a trusted plugin App.
  * The host only executes this contract from a loaded plugin contribution.
  */
@@ -103,6 +159,10 @@ export interface PluginMarketplaceAppConfig {
   scope: PluginApplicationScope | PluginApplicationScope[]
   assistantTemplateKey: string
   assistantSuite?: PluginMarketplaceAppAssistantSuite
+  /** Fields the host presents when an organization initializes or edits this application. */
+  organizationSetup?: ApplicationSetupField[]
+  /** Optional model-based setup for the analytics fields declared in organizationSetup. */
+  analyticsSetup?: ApplicationAnalyticsSetup
   workspace: {
     mode: 'dedicated'
     name: string | I18nObject
@@ -289,6 +349,8 @@ export interface PluginApplicationDetail {
  * are derived exclusively from the authenticated request context.
  */
 export interface PluginApplicationInitializeInput {
+  /** Selections from the organization's setup form, including the revision the caller edited. */
+  organizationSettings?: OrganizationApplicationSettings
   installationScope?: PluginApplicationScope
   pluginName: string
   appName: string

@@ -552,6 +552,7 @@ export class ConversationsController {
             await this.messageService.filterAuthorizedFileRelations(message, conversation.id)
         )
         await this.attachWidgets(threadId || conversation.threadId, [dto], [message])
+        await this.agentRunsService?.filterCopiedHistory([dto])
         return dto
     }
 
@@ -572,7 +573,9 @@ export class ConversationsController {
                 conversationId
             })
         )
-        return new ChatMessageDTO(message)
+        const dto = new ChatMessageDTO(message)
+        await this.agentRunsService?.filterCopiedHistory([dto])
+        return dto
     }
 
     @HttpCode(HttpStatus.ACCEPTED)
@@ -712,6 +715,7 @@ export class ConversationsController {
     }
 
     private async withAgentRuns(conversation: IChatConversation, items: ChatMessageDTO[]) {
+        await this.agentRunsService?.filterCopiedHistory(items)
         if (!this.agentRunsService || !items.some((item) => item.executionId)) return items
         const branches = this.conversationThreadService
             ? await this.conversationThreadService.listByConversation(conversation.id)

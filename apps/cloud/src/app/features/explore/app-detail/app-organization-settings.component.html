@@ -1,0 +1,66 @@
+<section class="mt-5 space-y-4">
+  <h3 class="font-semibold">{{ 'XP.Explore.Application.OrganizationSetup.Title' | translate }}</h3>
+  @if (error()) {
+    <p role="alert" class="text-sm text-destructive">{{ error() }}</p>
+    <button z-button zType="outline" type="button" (click)="load()">
+      {{ 'XP.Explore.Application.OrganizationSetup.Retry' | translate }}
+    </button>
+  } @else if (form(); as catalog) {
+    @for (f of fields(); track f.key) {
+      <div class="space-y-2">
+        <div [id]="'setup-label-' + f.key" class="text-sm font-medium">{{ f.label | i18n }}</div>
+        @if (f.kind === 'members') {
+          <z-select
+            class="w-full"
+            [attr.aria-labelledby]="'setup-label-' + f.key"
+            [zMultiple]="true"
+            [zSearchable]="true"
+            [zDisabled]="disabled()"
+            [zValue]="members()[f.key] ?? []"
+            (zSelectionChange)="selectMembers(f.key, $event)"
+          >
+            @for (user of catalog.users; track user.id) {
+              <z-select-item [zValue]="user.id">{{ user.label }}</z-select-item>
+            }
+          </z-select>
+        } @else {
+          <z-select
+            class="w-full"
+            [attr.aria-labelledby]="'setup-label-' + f.key"
+            [zDisabled]="disabled()"
+            [zPlaceholder]="'XP.Explore.Application.OrganizationSetup.Source' | translate"
+            (ngModelChange)="selectSource(f.key, $event)"
+            [ngModel]="sources()[f.key] ?? ''"
+          >
+            @for (s of sourcesFor(f.providerId); track sourceKey(s.source)) {
+              <z-select-item [zValue]="sourceKey(s.source)">{{ s.name }}</z-select-item>
+            }
+          </z-select>
+          @if (!sourcesFor(f.providerId).length) {
+            <p class="text-sm text-muted-foreground">
+              {{ 'XP.Explore.Application.OrganizationSetup.EmptySources' | translate }}
+            </p>
+          }
+          <label class="block text-sm" [for]="'binding-' + f.key">{{
+            'XP.Explore.Application.OrganizationSetup.Query' | translate
+          }}</label>
+          <textarea
+            z-input
+            class="min-h-24 w-full font-mono"
+            [id]="'binding-' + f.key"
+            [disabled]="disabled()"
+            [ngModel]="definitions()[f.key] ?? ''"
+            (ngModelChange)="editQuery(f.key, $event)"
+          ></textarea>
+          @if (invalid().includes(f.key)) {
+            <p role="alert" class="text-sm text-destructive">
+              {{ 'XP.Explore.Application.OrganizationSetup.Invalid' | translate }}
+            </p>
+          }
+        }
+      </div>
+    }
+  } @else {
+    <p role="status">{{ 'XP.Explore.Application.OrganizationSetup.Loading' | translate }}</p>
+  }
+</section>

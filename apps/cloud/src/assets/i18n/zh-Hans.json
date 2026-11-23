@@ -3487,6 +3487,18 @@
       "InstallNow": "立即安装",
       "InstallOrUpdate": "安装或更新",
       "Application": {
+        "OrganizationSetup": {
+          "EmptySources": "暂无可用的共享数据源。请先发布此提供方的分析定义，将可见性设为组织，再重新打开表单。",
+          "Title": "组织业务配置",
+          "Complete": "补全组织配置",
+          "Source": "选择已授权的数据源",
+          "Query": "只读查询定义（AnalyticsBinding JSON）",
+          "Invalid": "请填写含操作、参数和输出字段的查询定义。",
+          "Loading": "正在读取本组织资源…",
+          "Retry": "重试",
+          "Save": "保存配置",
+          "Saved": "组织配置已保存。"
+        },
         "Toolsets": {
           "Title": "必需工具集",
           "Description": "首次新增配置将准备应用工作空间。新配置直接保存在其中；选择已有配置时，会在启用应用时复制。",

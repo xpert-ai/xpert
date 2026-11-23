@@ -29,31 +29,38 @@ export function AssistantSettingsDialog({
   webUrl,
   onClose,
   onOpenConversation,
+  onDescriptionSaved,
   onSaved
 }: {
   bot: Bot
   webUrl: string
   onClose: () => void
   onOpenConversation?: (id: string, threadId: string) => void
+  onDescriptionSaved: (id: string, description: string) => void
   onSaved: (id: string) => Promise<void>
 }) {
+  const [tab, setTab] = useState('profile')
+  const sharedTab = tab === 'configuration' || tab === 'prompt'
   const [description, setDescription] = useState(bot.description)
+  const [savedDescription, setSavedDescription] = useState(bot.description)
   const [settings, setSettings] = useState<AssistantSettings | null>(null)
   const [capabilities, setCapabilities] = useState<string[] | undefined>()
   const [model, setModel] = useState('')
   const [realtimeVoice, setRealtimeVoice] = useState<import('../catalog-types').VoiceSelection>()
   const [prompt, setPrompt] = useState('')
-  const [dirty, setDirty] = useState(false)
+  const [configurationDirty, setConfigurationDirty] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [reload, setReload] = useState(0)
+  const [configurationError, setConfigurationError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [configurationRequest, setConfigurationRequest] = useState(0)
   const [customizing, setCustomizing] = useState(false)
   const initialRevision = useRef<string | null>(null)
   useEffect(() => {
+    if (!configurationRequest) return
     let active = true
     setLoading(true)
-    setError('')
+    setConfigurationError('')
     invoke('assistantConfiguration', { botId: bot.id, capabilities })
       .then((result) => {
         if (!active) return
@@ -73,7 +80,8 @@ export function AssistantSettingsDialog({
         }
       })
       .catch((error) => {
-        if (active) setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+        if (active)
+          setConfigurationError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -81,19 +89,61 @@ export function AssistantSettingsDialog({
     return () => {
       active = false
     }
-  }, [bot.id, capabilities, reload])
+  }, [bot.id, capabilities, configurationRequest])
   const disabled = saving || loading
   const studioUrl = platformCommandUrl(webUrl, { target: 'assistant.studio', assistantId: bot.assistantId || bot.id })
   const voiceConfigured =
     !(capabilities ?? (settings?.canEdit ? settings.capabilities : [])).includes('realtime-voice') ||
     !!(realtimeVoice?.modelId && realtimeVoice.voice)
+  const publish = sharedTab && configurationDirty
   const canSave =
-    !disabled &&
-    (!dirty || (settings?.canEdit && settings.preflight.canInstall && !!model && voiceConfigured && !error))
+    !saving &&
+    (publish
+      ? !loading &&
+        settings?.canEdit &&
+        settings.preflight.canInstall &&
+        !!model &&
+        voiceConfigured &&
+        !configurationError
+      : description !== savedDescription)
+  const configurationFeedback = (
+    <>
+      {settings?.canEdit === false && (
+        <p className="text-sm text-muted-foreground">
+          {t('Editing models, capabilities and instructions requires workspace edit access.')}
+        </p>
+      )}
+      {loading && (
+        <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" />
+          {t('Loading…')}
+        </p>
+      )}
+      {configurationError && (
+        <div role="alert" className="mt-3 space-y-2 text-sm text-destructive">
+          <p>{configurationError}</p>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            onClick={() => {
+              initialRevision.current = null
+              setSettings(null)
+              setCapabilities(undefined)
+              setConfigurationDirty(false)
+              setConfigurationRequest((value) => value + 1)
+            }}
+          >
+            {t('Reload saved settings')}
+          </Button>
+        </div>
+      )}
+    </>
+  )
   if (customizing)
     return (
       <AssistantAppearanceDialog
-        botId={bot.id}
+        botId={bot.assistantId || bot.id}
         onClose={() => setCustomizing(false)}
         onSaved={async () => {
           await onSaved(bot.id)
@@ -129,41 +179,57 @@ export function AssistantSettingsDialog({
             event.preventDefault()
             if (!canSave) return
             setSaving(true)
-            setError('')
+            setSaveError('')
             try {
-              if (dirty && settings?.canEdit) {
-                await invoke('saveAssistantConfiguration', {
-                  botId: bot.id,
-                  revision: settings.revision,
-                  prompt,
-                  modelId: model,
-                  realtimeVoice: (capabilities ?? settings.capabilities).includes('realtime-voice')
-                    ? realtimeVoice
-                    : undefined,
-                  capabilities: capabilities ?? settings.capabilities
-                })
-                setDirty(false)
+              if (publish && settings?.canEdit) {
+                try {
+                  await invoke('saveAssistantConfiguration', {
+                    botId: bot.id,
+                    revision: settings.revision,
+                    prompt,
+                    modelId: model,
+                    realtimeVoice: (capabilities ?? settings.capabilities).includes('realtime-voice')
+                      ? realtimeVoice
+                      : undefined,
+                    capabilities: capabilities ?? settings.capabilities
+                  })
+                } catch (error) {
+                  setConfigurationError(
+                    error instanceof Error ? error.message : t('The operation failed. Please retry.')
+                  )
+                  return
+                }
+                setConfigurationDirty(false)
               }
-              await invoke('editBot', { botId: bot.id, description })
-              await onSaved(bot.id)
-              onClose()
+              if (description !== savedDescription) {
+                const value = description.trim()
+                await invoke('editBot', { botId: bot.id, description: value })
+                setDescription(value)
+                setSavedDescription(value)
+                if (!publish) onDescriptionSaved(bot.id, value)
+              }
+              if (publish) await onSaved(bot.id)
+              if (publish || !configurationDirty) onClose()
             } catch (error) {
-              setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+              setSaveError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
             } finally {
               setSaving(false)
             }
           }}
         >
-          <Tabs defaultValue="profile" className="flex min-h-0 flex-col">
+          <Tabs
+            value={tab}
+            onValueChange={(next) => {
+              setTab(next)
+              if (!configurationRequest && (next === 'configuration' || next === 'prompt')) setConfigurationRequest(1)
+            }}
+            className="flex min-h-0 flex-col"
+          >
             <TabsList className="mx-6 mb-3 shrink-0">
               <TabsTrigger value="template">{t('Template setup')}</TabsTrigger>
               <TabsTrigger value="profile">{t('Profile')}</TabsTrigger>
-              <TabsTrigger value="configuration" disabled={!settings?.canEdit}>
-                {t('Model & capabilities')}
-              </TabsTrigger>
-              <TabsTrigger value="prompt" disabled={!settings?.canEdit}>
-                {t('Instructions')}
-              </TabsTrigger>
+              <TabsTrigger value="configuration">{t('Model & capabilities')}</TabsTrigger>
+              <TabsTrigger value="prompt">{t('Instructions')}</TabsTrigger>
             </TabsList>
             <div className="min-h-0 overflow-y-auto px-6 pb-5">
               <TabsContent value="template">
@@ -202,15 +268,10 @@ export function AssistantSettingsDialog({
                     disabled={saving}
                   />
                 </div>
-                {settings?.canEdit === false && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('Editing models, capabilities and instructions requires workspace edit access.')}
-                  </p>
-                )}
               </TabsContent>
-              {settings?.canEdit && (
-                <>
-                  <TabsContent value="configuration" className="space-y-5">
+              <TabsContent value="configuration" className="space-y-5">
+                {settings?.canEdit && (
+                  <>
                     <p className="text-sm text-muted-foreground">
                       {t('Workspace')}: {settings.workspace.name}
                     </p>
@@ -218,17 +279,17 @@ export function AssistantSettingsDialog({
                       preflight={settings.preflight}
                       capabilities={capabilities ?? settings.capabilities}
                       onCapabilities={(value) => {
-                        setDirty(true)
+                        setConfigurationDirty(true)
                         setCapabilities(value)
                       }}
                       realtimeVoice={realtimeVoice}
                       onRealtimeVoice={(value) => {
-                        setDirty(true)
+                        setConfigurationDirty(true)
                         setRealtimeVoice(value)
                       }}
                       model={model}
                       onModel={(value) => {
-                        setDirty(true)
+                        setConfigurationDirty(true)
                         setModel(value)
                       }}
                       disabled={disabled}
@@ -246,14 +307,19 @@ export function AssistantSettingsDialog({
                         </Button>
                       )}
                     </div>
-                  </TabsContent>
-                  <TabsContent value="prompt" className="space-y-3">
+                  </>
+                )}
+                {configurationFeedback}
+              </TabsContent>
+              <TabsContent value="prompt" className="space-y-3">
+                {settings?.canEdit && (
+                  <>
                     <Label htmlFor="edit-assistant-prompt">{t('Instructions')}</Label>
                     <Textarea
                       id="edit-assistant-prompt"
                       value={prompt}
                       onChange={(event) => {
-                        setDirty(true)
+                        setConfigurationDirty(true)
                         setPrompt(event.target.value)
                       }}
                       placeholder={t('Describe the assistant’s role, goals and response style.')}
@@ -264,38 +330,19 @@ export function AssistantSettingsDialog({
                     <p className="text-xs text-muted-foreground">
                       {t('Optional. Capability instructions are managed automatically.')}
                     </p>
-                  </TabsContent>
-                </>
-              )}
-              {loading && (
-                <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <LoaderCircle className="size-4 animate-spin" />
-                  {t('Checking installation settings…')}
+                  </>
+                )}
+                {configurationFeedback}
+              </TabsContent>
+              {saveError && (
+                <p role="alert" className="text-sm text-destructive">
+                  {saveError}
                 </p>
-              )}
-              {error && (
-                <div role="alert" className="mt-3 space-y-2 text-sm text-destructive">
-                  <p>{error}</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={disabled}
-                    onClick={() => {
-                      initialRevision.current = null
-                      setSettings(null)
-                      setCapabilities(undefined)
-                      setDirty(false)
-                      setReload((value) => value + 1)
-                    }}
-                  >
-                    {t('Reload saved settings')}
-                  </Button>
-                </div>
               )}
             </div>
           </Tabs>
           <div className="flex shrink-0 items-center justify-end gap-2 border-t px-6 py-4">
-            {dirty && (
+            {configurationDirty && (
               <span className="mr-auto text-xs text-muted-foreground">
                 {t('Assistant settings take effect after publishing.')}
               </span>
@@ -305,7 +352,7 @@ export function AssistantSettingsDialog({
             </Button>
             <Button type="submit" disabled={!canSave}>
               {saving && <LoaderCircle className="size-4 animate-spin" />}
-              {t(dirty ? 'Save & publish' : 'Save changes')}
+              {t(publish ? 'Save & publish' : 'Save changes')}
             </Button>
           </div>
         </form>

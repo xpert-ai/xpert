@@ -7,7 +7,10 @@ export function platformCommandUrl(webUrl, payload) {
   let path
   const query = new URLSearchParams()
   if (payload.target === 'auth.register') path = 'auth/register'
-  else if (payload.target === 'project.list') {
+  else if (payload.target === 'platform.analytics.definitions') {
+    if (Object.keys(payload).length !== 1) return null
+    path = 'settings/analytics'
+  } else if (payload.target === 'project.list') {
     if (Object.keys(payload).some((key) => key !== 'target')) return null
     path = 'project'
   } else if (

@@ -14,6 +14,7 @@ import {
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
+import { readAgentRunSnapshot } from '../../chat-message/agent-run-snapshot'
 import { messageBranching } from '../../chat-message/message-branching'
 import {
     normalizeRuntimeCapabilitiesSelection,
@@ -160,6 +161,8 @@ export class ChatMessageDTO {
     @Expose()
     inputCheckpoint?: IChatMessage['inputCheckpoint']
 
+    historicalAgentRuns?: IChatMessage['historicalAgentRuns']
+
     @Expose()
     agentRuns?: TChatAgentRunSummary[]
 
@@ -183,7 +186,7 @@ export class ChatMessageDTO {
         this.messageEnvelope = readChatMessageEnvelope(partial)
         this.branching = messageBranching(partial)
         if (partial.historicalAgentRuns) {
-            this.agentRuns = partial.historicalAgentRuns
+            this.agentRuns = readAgentRunSnapshot(partial.historicalAgentRuns)
             this.historical = true
         }
         const runtimeCapabilities = normalizeRuntimeCapabilitiesSelection(

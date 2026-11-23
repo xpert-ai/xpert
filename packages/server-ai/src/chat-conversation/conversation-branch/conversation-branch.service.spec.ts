@@ -393,6 +393,21 @@ describe('ConversationBranchService', () => {
         expect(test.transaction).toHaveBeenCalledTimes(1)
     })
 
+    it('preserves the stored snapshot format when branching again', async () => {
+        const runs = [{ id: 'business', title: '总结标题' }]
+        const snapshot = { version: 1 as const, runs }
+        const fresh = fixture()
+        fresh.a1.outputCheckpoint.agentRuns = snapshot
+        await fresh.service.branch(fresh.source.id, fresh.input)
+        expect(fresh.savedMessages[1].historicalAgentRuns).toEqual(snapshot)
+
+        const inherited = fixture()
+        inherited.a1.historicalAgentRuns = runs
+        inherited.a1.outputCheckpoint.agentRuns = snapshot
+        await inherited.service.branch(inherited.source.id, inherited.input)
+        expect(inherited.savedMessages[1].historicalAgentRuns).toEqual(runs)
+    })
+
     it('creates an independent prefix and thread while the source continues running', async () => {
         const test = fixture()
         test.a1.taskSummary = { version: 1, plan: { title: 'Plan', excerpt: 'Saved plan', messageId: test.a1.id } }

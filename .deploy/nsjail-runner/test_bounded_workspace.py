@@ -10,6 +10,41 @@ from bounded_workspace import Entry, StorageBudget, StorageBudgetError, manifest
 
 
 class BudgetContractTest(unittest.TestCase):
+    def test_missing_ownership_entry_reports_conflict_before_mounting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            with mock.patch('bounded_workspace.workspace_ownership', side_effect=FileNotFoundError), \
+                    mock.patch('bounded_workspace.subprocess.run') as mount:
+                with self.assertRaises(StorageBudgetError) as conflict:
+                    run_bounded(root, root, StorageBudget(10, 1024), lambda *_: True, bool)
+                self.assertEqual(conflict.exception.status, 409)
+                mount.assert_not_called()
+
+    def test_consumer_metadata_missing_entry_is_not_an_internal_error(self):
+        from workspace_metadata import workspace_ownership
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch('workspace_metadata.subprocess.run', return_value=subprocess.CompletedProcess([], 75, '', '')):
+                with self.assertRaises(FileNotFoundError):
+                    workspace_ownership(pathlib.Path(directory), os.geteuid() + 1, os.getegid(), ['missing'])
+
+    def test_disappearing_file_during_inspection_reports_conflict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            temporary = root / '.workspace-write-concurrent.tmp'
+            temporary.write_bytes(b'pending host write')
+            original_open = os.open
+
+            def concurrent_open(path, *args, **kwargs):
+                if path == temporary.name:
+                    temporary.unlink()
+                return original_open(path, *args, **kwargs)
+
+            with mock.patch('bounded_workspace.os.open', side_effect=concurrent_open):
+                with self.assertRaises(StorageBudgetError) as conflict:
+                    manifest(root)
+            self.assertEqual(conflict.exception.status, 409)
+            self.assertIn('inspection', str(conflict.exception))
+
     def test_strict_positive_integer_limits(self):
         for value in [{}, {'maxWorkspaceBytes': -1, 'maxTemporaryBytes': 10},
                       {'maxWorkspaceBytes': 1, 'maxTemporaryBytes': 0},
@@ -52,6 +87,33 @@ class BoundedWorkspaceMountTest(unittest.TestCase):
 
     def tearDown(self):
         self.temporary.cleanup()
+
+    def test_read_only_external_create_does_not_publish_or_reject_host_bytes(self):
+        def read(staged, scratch):
+            (self.workspace / 'new-host-file').write_bytes(b'host-owned update')
+            return (staged / 'original').read_bytes()
+        with mock.patch('bounded_workspace.publish') as commit:
+            result = run_bounded(self.workspace, self.root, StorageBudget(0, 1024 * 1024), read, bool)
+            commit.assert_not_called()
+        self.assertEqual(result, b'original')
+        self.assertEqual((self.workspace / 'new-host-file').read_bytes(), b'host-owned update')
+
+    def test_real_write_with_external_create_still_conflicts(self):
+        def write(staged, scratch):
+            (self.workspace / 'new-host-file').write_bytes(b'host-owned update')
+            (staged / 'original').write_bytes(b'command change')
+            return True
+        with self.assertRaises(StorageBudgetError) as conflict:
+            run_bounded(self.workspace, self.root, StorageBudget(1024, 1024 * 1024), write, bool)
+        self.assertEqual(conflict.exception.status, 409)
+        self.assertEqual((self.workspace / 'original').read_bytes(), b'original')
+
+    def test_overlay_whiteout_commits_deletion_without_persisting_special_files(self):
+        def remove(staged, scratch):
+            (staged / 'original').unlink()
+            return True
+        self.assertTrue(run_bounded(self.workspace, self.root, StorageBudget(0, 1024 * 1024), remove, bool))
+        self.assertEqual(list(self.workspace.iterdir()), [])
 
     def test_copy_up_preserves_consumer_ownership_without_relaxing_private_modes(self):
         (self.workspace / 'original').chmod(0o600)
@@ -223,6 +285,24 @@ except PermissionError:
             (staged / 'original').write_bytes(b'staged')
             (self.workspace / 'original').write_bytes(b'external')
             return True
-        with self.assertRaises(StorageBudgetError):
+        with self.assertRaises(StorageBudgetError) as conflict:
             run_bounded(self.workspace, self.root, StorageBudget(100, 1024 * 1024), write, bool)
+        self.assertEqual(conflict.exception.status, 409)
         self.assertEqual((self.workspace / 'original').read_bytes(), b'external')
+
+    def test_read_only_result_survives_concurrent_host_update(self):
+        def read(staged, scratch):
+            result = (staged / 'original').read_bytes()
+            (self.workspace / 'original').write_bytes(b'external update')
+            return result
+
+        result = run_bounded(self.workspace, self.root, StorageBudget(100, 1024 * 1024), read, bool)
+        self.assertEqual(result, b'original')
+        self.assertEqual((self.workspace / 'original').read_bytes(), b'external update')
+        self.assertEqual(list(self.root.iterdir()), [self.workspace])
+
+    def test_read_only_result_does_not_require_free_storage(self):
+        result = run_bounded(self.workspace, self.root, StorageBudget(0, 1024 * 1024),
+                             lambda staged, scratch: (staged / 'original').read_bytes(), bool)
+        self.assertEqual(result, b'original')
+        self.assertEqual((self.workspace / 'original').read_bytes(), b'original')

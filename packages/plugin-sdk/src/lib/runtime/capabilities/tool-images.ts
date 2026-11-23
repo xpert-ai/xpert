@@ -16,7 +16,8 @@ export interface ToolImagesApi {
   }): Promise<ToolOutputPresentation>
 
   /**
-   * Project the current complete tool round into one outbound model request. Names identify tools
+   * Project the current complete image round and up to three recent distinct images from
+   * the same user turn into one outbound model request. Names identify tools
    * whose successful result must contain an image presentation; error results remain text.
    * Never persist the returned messages. Merge requirements into the request with mergeModelRequirements.
    */

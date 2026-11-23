@@ -3,6 +3,13 @@ const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { platformCommandUrl } = require('../electron/workbench-platform.mjs')
 
+test('opens analytics definitions on the configured host and rejects extra parameters', () => {
+  const base = 'https://customer.example/platform'
+  const target = { target: 'platform.analytics.definitions' }
+  assert.equal(platformCommandUrl(base, target), base + '/settings/analytics')
+  assert.equal(platformCommandUrl(base, { ...target, url: 'https://other.example' }), null)
+})
+
 test('standalone Project entry opens only the configured platform without an Assistant or credentials', () => {
   assert.equal(
     platformCommandUrl('https://customer.example/platform/', { target: 'project.list' }),

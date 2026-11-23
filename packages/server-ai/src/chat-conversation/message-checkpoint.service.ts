@@ -122,7 +122,7 @@ export class MessageCheckpointService {
                     messageHash: branchMessageHash(saved),
                     messagePathHash: branchMessagePathHash(messageAncestorPath(ancestors, saved.id)),
                     fileAssetIds: files.map((file) => file.fileAssetId),
-                    agentRuns: runs.get(saved.id) ?? []
+                    agentRuns: { version: 1, runs: runs.get(saved.id) ?? [] }
                 }
                 await this.messages.update(saved.id, { outputCheckpoint: saved.outputCheckpoint })
                 if (carrier && carrier.id !== saved.id) await this.invalidate(carrier.id, saved.conversationId)

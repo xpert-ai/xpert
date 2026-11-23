@@ -81,6 +81,33 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       access: choice(value.accessStatus, ['owned', 'accessible', 'approved', 'requested', 'not_requested', 'rejected'])
     }
   }
+  // Renderer identity is only a stale-form guard. The session supplies request scope.
+  const organizationTarget = (service, input) => {
+    if (
+      input?.installationScope !== 'organization' ||
+      !input.organizationId ||
+      input.organizationId !== service.profile?.organizationId
+    )
+      throw new ClientError('The session changed. Please retry.', 409)
+    return {
+      pluginName: required(input.pluginName, 'Plugin name'),
+      appName: required(input.appName, 'App name'),
+      installationScope: 'organization'
+    }
+  }
+  const organizationFields = (config, locale) =>
+    list(config.organizationSetup ?? []).map((field) => {
+      const key = required(field?.key, 'Field key', 64)
+      const label = localizedText(field.label, locale) || key
+      if (field.kind === 'members') return { kind: field.kind, key, label, optional: field.optional === true }
+      return {
+        kind: choice(field.kind, ['analytics']),
+        key,
+        label,
+        providerId: required(field.providerId, 'Query provider'),
+        requiredNumericFields: strings(field.requiredNumericFields)
+      }
+    })
   const applicationIcon = (icon, webUrl) => {
     if (typeof icon?.value !== 'string') return null
     if (icon.type === 'emoji') return { type: 'emoji', value: icon.value.slice(0, 64) }
@@ -295,6 +322,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         canInitialize: check.supported === true && check.canInitialize,
         canConfigure: check.supported === true && detail.status?.initializationAccess === 'allowed',
         canDiscardConfiguration: detail.status?.canDiscardConfiguration === true,
+        organizationFields:
+          (detail.status?.installationScope ?? detail.application.scope) === 'organization'
+            ? organizationFields(detail.application.config ?? {}, this.config.locale)
+            : [],
         toolsetRequirements: applicationToolsets(check.toolsetRequirements, this.config.locale, ClientError),
         reason:
           preflightReasons[check.reason] ||
@@ -308,6 +339,74 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         defaultEmbeddingModelId: embeddingModels.find((item) => item.id === check.defaultEmbeddingModelId)?.id || '',
         defaultVisionModelId: visionModels.find((item) => item.id === check.defaultVisionModelId)?.id || ''
       }
+    },
+    async applicationOrganizationSettings(input) {
+      const target = organizationTarget(this, input)
+      const form = await this.request('/api/plugin-applications/organization-settings?' + new URLSearchParams(target), {
+        scope: 'organization',
+        includeServerMessage: true
+      })
+      const bootstrap = form?.modelSetup?.bootstrap
+      if (bootstrap) {
+        bootstrap.modes = bootstrap.modes.map(({ id, label }) => ({
+          id,
+          label: localizedText(label, this.config.locale) || id
+        }))
+      }
+      return form
+    },
+    async applicationOrganizationModelSetup(input) {
+      const target = organizationTarget(this, input)
+      const op = input.operation
+      if (
+        !op ||
+        ![
+          'connections',
+          'models',
+          'preview',
+          'confirm',
+          'bootstrap-workspaces',
+          'bootstrap-sources',
+          'bootstrap-plan',
+          'bootstrap-apply'
+        ].includes(op.step)
+      )
+        throw new ClientError('Invalid model setup operation.', 400)
+      const body = { ...target, step: op.step }
+      if (op.step !== 'connections') body.integrationId = required(op.integrationId, 'Connection ID', 128)
+      if (op.step === 'preview' || op.step === 'confirm') {
+        body.modelId = required(op.modelId, 'Model ID', 160)
+        body.revision = op.revision
+      }
+      if (['bootstrap-sources', 'bootstrap-plan', 'bootstrap-apply'].includes(op.step))
+        body.workspaceId = required(op.workspaceId, 'Workspace ID', 128)
+      if (op.step === 'bootstrap-plan' || op.step === 'bootstrap-apply') {
+        body.dataSourceId = required(op.dataSourceId, 'Data source ID', 128)
+        body.mode = required(op.mode, 'Mode', 64)
+        body.revision = op.revision
+        if (!Array.isArray(op.userIds) || !op.userIds.length || op.userIds.length > 50)
+          throw new ClientError('Select between 1 and 50 organization members.', 400)
+        body.userIds = op.userIds.map((id) => required(id, 'User ID', 128))
+      }
+      if (op.step === 'confirm' || op.step === 'bootstrap-apply')
+        body.receipt = required(op.receipt, 'Preview receipt', 64)
+      return this.request('/api/plugin-applications/organization-settings/model', {
+        method: 'POST',
+        scope: 'organization',
+        includeServerMessage: true,
+        timeout: 100000,
+        body
+      })
+    },
+    async saveApplicationOrganizationSettings(input) {
+      const target = organizationTarget(this, input)
+      return this.request('/api/plugin-applications/organization-settings', {
+        method: 'PUT',
+        scope: 'organization',
+        includeServerMessage: true,
+        timeout: 180000,
+        body: { ...target, organizationSettings: input.organizationSettings }
+      })
     },
     async initializeApplication(input) {
       const setup = await this.applicationSetup(input)
@@ -333,6 +432,11 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       }
       const toolsets = selectedApplicationToolsets(input?.toolsets, setup.toolsetRequirements, ClientError)
       if (toolsets.length || input?.toolsets !== undefined) body.toolsets = toolsets
+      if (setup.organizationFields.length) {
+        organizationTarget(this, input)
+        if (!input.organizationSettings) throw new ClientError('Complete the organization settings.', 400)
+        body.organizationSettings = input.organizationSettings
+      }
       // Only the installation choice from fresh preflight is forwarded; owner and resource IDs remain server-owned.
       const result = await this.request('/api/plugin-applications/initialize', {
         method: 'POST',
