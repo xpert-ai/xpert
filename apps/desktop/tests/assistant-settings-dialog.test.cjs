@@ -39,7 +39,7 @@ const configuration = {
   preflight: { canInstall: true, models: [{ id: 'model' }], optionalCapabilities: [] }
 }
 
-function mount(t, readConfiguration) {
+function mount(t, readConfiguration, appearanceHost) {
   const dom = new JSDOM('<div id="root"></div>', {
     url: 'http://localhost',
     runScripts: 'outside-only',
@@ -60,12 +60,21 @@ function mount(t, readConfiguration) {
   const calls = []
   const saved = []
   window.TextDecoder = TextDecoder
+  if (appearanceHost) {
+    window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} })
+    window.ResizeObserver = window.IntersectionObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  }
   window.xpertDesktop = {
     async invoke(method, input) {
       calls.push({ method, input })
       if (method === 'assistantConfiguration') return { ok: true, value: await readConfiguration() }
       if (method === 'editBot') return { ok: true, value: service.editBot(input) }
       if (method === 'saveAssistantConfiguration') return { ok: true, value: { botId: bot.id } }
+      if (appearanceHost) return { ok: true, value: await appearanceHost(method, input) }
       throw new Error('Unexpected host call: ' + method)
     }
   }
@@ -109,6 +118,53 @@ function mount(t, readConfiguration) {
   }
   return { document, service, calls, saved, tab, type, submit }
 }
+
+const image = { url: '/portrait.png', appearance: { version: 1, kind: 'image' } }
+const pet = {
+  url: '/preview.png',
+  appearance: { version: 1, kind: 'pet', id: 'pet', asset: { type: 'animated-image', url: '/animation.gif' } }
+}
+function openAppearance(t, avatar) {
+  const ui = mount(t, undefined, (method) => {
+    if (method === 'assistantAppearance') return { revision: 'initial', name: 'Assistant', canEdit: true, avatar }
+    if (method === 'assistantPetCatalog') return []
+    if (method === 'saveAssistantAppearance') return {}
+    throw new Error('Unexpected call: ' + method)
+  })
+  const button = (name) => [...ui.document.querySelectorAll('button')].find((item) => item.textContent === name)
+  button('Customize your assistant').click()
+  return { ...ui, button }
+}
+
+for (const [kind, avatar] of Object.entries({ image, pet, default: {}, emoji: { emoji: { id: 'smile' } } })) {
+  test('changing the shared color preserves the ' + kind + ' avatar without uploading media', async (t) => {
+    const ui = openAppearance(t, avatar)
+    await t.waitFor(() => assert.ok(ui.button('Save') && !ui.button('Save').disabled))
+    ui.document.querySelector('button[aria-label="#5297d8"]').click()
+    await t.waitFor(() => assert.equal(ui.document.querySelector('input[type=color]').value, '#5297d8'))
+    ui.button('Save').click()
+    await t.waitFor(() => assert.equal(ui.saved.length, 1))
+    const writes = ui.calls.filter(({ method }) => method.startsWith('save') || method.startsWith('upload'))
+    assert.equal(writes.length, 1)
+    assert.equal(writes[0].method, 'saveAssistantAppearance')
+    assert.deepEqual(JSON.parse(JSON.stringify(writes[0].input.avatar)), { ...avatar, background: '#5297d8' })
+  })
+}
+
+test('a saved character color carries through a preset to the default avatar', async (t) => {
+  const ui = openAppearance(t, { appearance: { version: 1, kind: 'character', id: 'bosi', color: '#123456' } })
+  const color = () => ui.document.querySelector('input[type=color]').value
+  await t.waitFor(() => assert.equal(color(), '#123456'))
+  ui.button('Ember').click()
+  await t.waitFor(() => assert.equal(ui.button('Ember').getAttribute('aria-pressed'), 'true'))
+  assert.equal(color(), '#123456')
+  ui.button('Default avatar').click()
+  await t.waitFor(() => assert.equal(ui.button('Default avatar').getAttribute('aria-pressed'), 'true'))
+  assert.equal(color(), '#123456')
+  ui.button('Save').click()
+  await t.waitFor(() => assert.equal(ui.saved.length, 1))
+  assert.deepEqual(JSON.parse(JSON.stringify(ui.calls.at(-1).input.avatar)), { background: '#123456' })
+})
 
 for (const first of [null, 'Instructions', 'Model & capabilities']) {
   test('profile persists locally ' + (first ? 'while loading ' + first : 'without opening shared tabs'), async (t) => {

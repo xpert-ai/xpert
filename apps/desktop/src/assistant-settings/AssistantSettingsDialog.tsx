@@ -143,7 +143,7 @@ export function AssistantSettingsDialog({
   if (customizing)
     return (
       <AssistantAppearanceDialog
-        botId={bot.id}
+        botId={bot.assistantId || bot.id}
         onClose={() => setCustomizing(false)}
         onSaved={async () => {
           await onSaved(bot.id)

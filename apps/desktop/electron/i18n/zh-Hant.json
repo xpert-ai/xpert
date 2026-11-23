@@ -1043,6 +1043,8 @@
   "Customize your assistant": "定制形象",
   "Everyone who uses this assistant can see its name and appearance.": "所有使用此助理的人都能看到名稱與形象。",
   "You can view this appearance. Workspace edit access is required to save changes.": "你可以查看此形象；保存修改需要工作空间編輯權限。",
+  "Default avatar": "預設頭像",
+  "Avatar color": "形象顏色",
   "Characters": "卡通形象",
   "Virtual pets": "虚擬寵物",
   "Upload image": "上傳圖片",

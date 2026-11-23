@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatedAssistantAvatar } from './AnimatedAssistantAvatar'
 import { avatarEmoji } from './emoji'
-import { avatarColorIndex } from './color'
+import { avatarColorIndex, defaultFaceInk } from './color'
 import type { Bot } from '../types'
 import type { AvatarConversationStatus } from './expression'
 
@@ -26,11 +26,16 @@ export function BotAvatar({
       style={{
         background:
           bot.avatar?.background || (fallback ? `var(--xui-color-avatar-${avatarColorIndex(bot)})` : undefined),
-        color: bosi?.color
+        color: fallback ? defaultFaceInk(bot.avatar?.background) : bosi?.color
       }}
     >
       {imageUrl ? (
-        <img src={imageUrl} alt="" className="size-full object-contain" onError={() => setFailedUrl(imageUrl)} />
+        <img
+          src={imageUrl}
+          alt=""
+          className={`object-contain ${bot.avatar?.background && bot.avatar.appearance?.kind !== 'character' ? 'size-[90%]' : 'size-full'}`}
+          onError={() => setFailedUrl(imageUrl)}
+        />
       ) : emoji ? (
         <span
           aria-hidden="true"

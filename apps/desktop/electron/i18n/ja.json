@@ -1032,6 +1032,8 @@
   "Customize your assistant": "外観をカスタマイズ",
   "Everyone who uses this assistant can see its name and appearance.": "このアシスタントを使う全員に名前と外観が表示されます。",
   "You can view this appearance. Workspace edit access is required to save changes.": "外観を表示できます。保存にはワークスペースの編集権限が必要です。",
+  "Default avatar": "デフォルトのアバター",
+  "Avatar color": "アバターの色",
   "Characters": "キャラクター",
   "Virtual pets": "バーチャルペット",
   "Upload image": "画像をアップロード",
