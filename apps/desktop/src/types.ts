@@ -400,6 +400,15 @@ export interface HostMethods {
   listCatalog: { input: CatalogItem['kind']; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
+  applicationOrganizationSettings: { input: OrganizationSettingsTarget; output: OrganizationSettingsForm }
+  applicationOrganizationModelSetup: {
+    input: OrganizationSettingsTarget & { operation: import('./catalog-types').OrganizationModelStep }
+    output: import('./catalog-types').OrganizationModelResult
+  }
+  saveApplicationOrganizationSettings: {
+    input: OrganizationSettingsTarget & { organizationSettings: OrganizationSettings }
+    output: { revision: number }
+  }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
   applicationToolsetSetup: {
     input: import('./catalog-types').ApplicationToolsetInput
@@ -529,6 +538,9 @@ import type {
   DiscoveryWorkspace,
   SkillCatalogItem,
   ExpertItem,
+  OrganizationSettingsTarget,
+  OrganizationSettingsForm,
+  OrganizationSettings,
   InitializeApplicationInput,
   WorkspaceOption
 } from './catalog-types'

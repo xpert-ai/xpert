@@ -63,8 +63,18 @@ export function openWorkspace(webUrl: string) {
   else window.open(webUrl, '_blank', 'noopener,noreferrer')
 }
 
-export async function openRegistration(webUrl: string) {
-  const target = { target: 'auth.register' }
+export function openRegistration(webUrl: string) {
+  return openPlatformPage(webUrl, { target: 'auth.register' })
+}
+
+export function openAnalyticsDefinitions(webUrl: string) {
+  return openPlatformPage(webUrl, { target: 'platform.analytics.definitions' })
+}
+
+async function openPlatformPage(
+  webUrl: string,
+  target: { target: 'auth.register' | 'platform.analytics.definitions' }
+) {
   if (window.xpertDesktop) return window.xpertDesktop.openPlatform(target)
   const url = platformCommandUrl(webUrl, target)
   if (!url) return false
