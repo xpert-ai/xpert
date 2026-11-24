@@ -191,6 +191,68 @@ describe('Coding delivery business boundaries', () => {
       )
     ).rejects.toMatchObject({ response: { code: 'CODING_EVIDENCE_ALREADY_SEALED' } })
   })
+  it.each(['owner', 'assistant'] as const)(
+    'does not start a %s rework round for an unfinished candidate',
+    async (role) => {
+      jest.spyOn(f.capabilities.require(ProjectAccessRuntimeCapability), 'assertEdit').mockResolvedValue({
+        ...f.access,
+        role
+      })
+      const service = new CodingDeliveryService(f.store, f.evidence)
+      await expect(
+        service.rework(f.context, f.context.work.operationId, 'Required input is missing')
+      ).rejects.toMatchObject({
+        response: { code: 'CODING_REWORK_CANDIDATE_REQUIRED' }
+      })
+      expect((await f.store.get(f.context, f.id)).revision).toBe(1)
+      expect(f.nextRound).not.toHaveBeenCalled()
+    }
+  )
+  it('permits Assistant rework of a sealed candidate and preserves a failed request replay', async () => {
+    await submit()
+    f.setCompleted()
+    jest.spyOn(f.capabilities.require(ProjectAccessRuntimeCapability), 'assertEdit').mockResolvedValue({
+      ...f.access,
+      role: 'assistant'
+    })
+    const service = new CodingDeliveryService(f.store, f.evidence)
+    f.nextRound.mockRejectedValueOnce(Error('connection lost'))
+    await expect(service.rework(f.context, f.context.work.operationId, 'Change reviewed behavior')).rejects.toThrow(
+      'connection lost'
+    )
+    await service.rework(f.context, f.context.work.operationId, 'Change reviewed behavior')
+    expect((await f.store.get(f.context, f.id)).revision).toBe(2)
+    expect(f.nextRound.mock.calls[0]).toEqual(f.nextRound.mock.calls[1])
+  })
+  it('requires valid current candidate evidence before Assistant rework of a later stage', async () => {
+    const ref = await submit()
+    const context = await f.next('deployment', ref)
+    await f.operations.prepare(context, 'deployment')
+    jest.spyOn(f.capabilities.require(ProjectAccessRuntimeCapability), 'assertEdit').mockResolvedValue({
+      ...f.access,
+      role: 'assistant'
+    })
+    const service = new CodingDeliveryService(f.store, f.evidence)
+    await service.rework(context, context.work.operationId, 'Change installed candidate behavior')
+    expect((await f.store.get(f.context, f.id)).revision).toBe(2)
+    expect(f.nextRound).toHaveBeenCalledTimes(1)
+  })
+  it('does not start a later-stage rework round from a mismatched candidate reference', async () => {
+    const ref = await submit()
+    const context = await f.next('deployment', ref)
+    await f.db.getRepository(CodingDeliveryWork).update(context.work.operationId, {
+      context: {
+        ...context,
+        inputs: { ...context.inputs, candidate: { kind: 'evidence', value: { ...ref, digest: '0'.repeat(64) } } }
+      }
+    })
+    const service = new CodingDeliveryService(f.store, f.evidence)
+    await expect(service.rework(context, context.work.operationId, 'Change reviewed behavior')).rejects.toMatchObject({
+      response: { code: 'CODING_EVIDENCE_IDENTITY_MISMATCH' }
+    })
+    expect((await f.store.get(f.context, f.id)).revision).toBe(1)
+    expect(f.nextRound).not.toHaveBeenCalled()
+  })
   it('preserves human rejection feedback and retries a failed new-Round request without a second revision', async () => {
     await submit()
     f.setCompleted()

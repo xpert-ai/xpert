@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { AIMessage } from '@langchain/core/messages'
+import { tool } from '@langchain/core/tools'
+import { z } from 'zod/v3'
 import {
   projectPipelineConfigurationSchema,
   projectPipelineContributionSchema,
@@ -121,6 +124,8 @@ it('starts with empty external configuration, pins local mode and reuses the sam
   expect(await service.preflight(f.context, f.context.executor.xpertId)).toMatchObject({
     mode: 'local',
     ready: true,
+    nextAction: 'start_delivery',
+    entryTool: 'coding_delivery_start',
     blockers: [],
     targets: [],
     repositories: []
@@ -149,6 +154,7 @@ it('does not silently turn an unauthorized release into local acceptance', async
   const { service, start } = startup()
   expect(await service.preflight(f.context, f.context.executor.xpertId, { mode: 'release' })).toMatchObject({
     ready: false,
+    nextAction: 'resolve_configuration',
     blockers: ['CODING_CONFIGURE_AUTHORIZED_TARGET_AND_REPOSITORY']
   })
   await expect(
@@ -235,6 +241,21 @@ it('accepts explicit destination choices through the Assistant tool schema', asy
   if (!preflight) throw new Error('Missing preflight tool')
   const result = await preflight.invoke({ mode: 'release', targetKey: 'test', repositoryKey: 'repo' })
   expect(JSON.parse(result)).toMatchObject({ ready: true, targetKey: 'test', repositoryKey: 'repo' })
+  const computerTools = [
+    'computer_action',
+    'computer_screenshot',
+    'computer_applications',
+    'computer_project_services'
+  ].map((name) => tool(async () => '', { name, description: name, schema: z.object({}) }))
+  const request = { tools: [...agent.tools!, ...computerTools], messages: [] }
+  const handler = jest.fn(async () => new AIMessage('ready'))
+  await agent.wrapModelCall?.(request as never, handler)
+  expect(handler).toHaveBeenCalledWith({ ...request, tools: [...agent.tools!, computerTools[3]] })
+  expect(request.tools).toHaveLength(agent.tools!.length + 4)
+  // The same middleware keeps delegation and service observation on a later invocation.
+  const next = { tools: [computerTools[0], computerTools[3], preflight], messages: [] }
+  await agent.wrapModelCall?.(next as never, handler)
+  expect(handler).toHaveBeenLastCalledWith({ ...next, tools: [computerTools[3], preflight] })
 })
 it('requires a new release round when the pinned destination policy changes', async () => {
   const { service, start } = startup(),
