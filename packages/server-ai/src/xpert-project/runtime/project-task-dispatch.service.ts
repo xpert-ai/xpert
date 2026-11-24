@@ -36,7 +36,7 @@ import {
 } from './project-task-dispatch.schema'
 import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
-import { projectTaskRuntimeError } from './project-task-runtime.errors'
+import { projectTaskRevisionConflict, projectTaskRuntimeError } from './project-task-runtime.errors'
 import { holdsProjectTaskReservation } from './project-task-reservation'
 import { XpertProjectXpertBindingService } from '../services/project-xpert-binding.service'
 import { parseProjectTaskSpecificationSnapshot } from './project-task-specification'
@@ -178,7 +178,8 @@ export class ProjectTaskDispatchService {
             }
             if (!assigneeXpertId) throw projectTaskRuntimeError('AssigneeRequired')
             await this.context.assertResponsibleAssistant(scope, assigneeXpertId)
-            if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
+            if (task.revision !== input.expectedRevision)
+                throw projectTaskRevisionConflict(input.expectedRevision, task.revision)
             const attempts = await repository.find({ where, relations: ['task'], order: { attempt: 'DESC' } })
             const previous = attempts.find((item) => item.taskId === task.id && item.purpose?.type === 'implementation')
             // Do not inherit an assignment that changed while Runtime authorization was in flight.

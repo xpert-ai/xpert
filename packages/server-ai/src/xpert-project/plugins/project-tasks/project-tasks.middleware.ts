@@ -24,6 +24,7 @@ import { createCreateTasksTool } from './tools/create'
 import { createListTasksTool } from './tools/list'
 import { createUpdateTasksTool } from './tools/update'
 import { createProjectRuntimeTools } from './tools/runtime'
+import { waitForPendingTaskReport } from './task-result-wait'
 
 const optionsSchema = z.object({}).strict()
 
@@ -151,7 +152,8 @@ export class ProjectTasksMiddleware implements IAgentMiddlewareStrategy<z.output
                         ]
                     }
                 }
-                return handler({ ...request, messages: projectTaskModelMessages(messages, projectId) })
+                const response = await handler({ ...request, messages: projectTaskModelMessages(messages, projectId) })
+                return waitForPendingTaskReport(messages, response, projectId)
             }
         }
     }

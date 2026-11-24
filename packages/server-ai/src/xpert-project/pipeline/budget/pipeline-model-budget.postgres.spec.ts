@@ -14,6 +14,7 @@ import { ProjectPipelineModelReservationEntity } from '../persistence/pipeline.e
 import { ProjectPipelineEventEntity } from '../persistence/pipeline.entity'
 import { pipelineModelBudgetDenials, readPipelineModelBudgetDenial } from './pipeline-model-budget-denial'
 import { registerBudgetDenialOrderingTests } from './pipeline-model-budget-denial.postgres.test-fixture'
+import { registerBudgetAdmissionRetryTests } from './pipeline-model-budget-retry.postgres.test-fixture'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../../agent-invocation/invocation.entity'
 import { AgentRuntimeInbox } from '../../../handoff/runtime-messaging/runtime-message.entity'
@@ -305,6 +306,7 @@ integration('native model budget across durable instances', () => {
     })
     const reserve = () => db.transaction((manager) => store.reserve(manager, context, input))
     registerBudgetDenialOrderingTests(() => ({ db, context, native }))
+    registerBudgetAdmissionRetryTests(() => ({ db, context, native }))
     async function native(maxCalls = 2, maxTokens = 100, reservationTokens = 50) {
         const operation = await reserve(),
             childId = randomUUID()

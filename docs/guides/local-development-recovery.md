@@ -43,12 +43,12 @@ start 返回 75 / pending 时，按通用启动说明继续相同的 start。没
 
 ## 覆盖范围和一致性
 
-| 内容 | 处理方式 |
-| --- | --- |
-| `postgres`、`redis`、`data`、`public`、`plugins`、`templates` | 保存和恢复整个目录；恢复前的状态另外保留 |
-| 源码、构建输出、sandbox 工作区、日志、凭据、进程身份 | 保留原位置，不从检查点覆盖 |
-| 配置、凭据、Git HEAD、依赖锁、运行时标记 | 与创建时绑定；变化后拒绝应用原检查点 |
-| 外部状态路径及特殊文件 | 拒绝复制；插件指向同一 checkout 的宿主依赖链接可保留，复制时不跟随链接 |
+| 内容                                                          | 处理方式                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `postgres`、`redis`、`data`、`public`、`plugins`、`templates` | 保存和恢复整个目录；恢复前的状态另外保留                               |
+| 源码、构建输出、sandbox 工作区、日志、凭据、进程身份          | 保留原位置，不从检查点覆盖                                             |
+| 配置、凭据、Git HEAD、依赖锁、运行时标记                      | 与创建时绑定；变化后拒绝应用原检查点                                   |
+| 外部状态路径及特殊文件                                        | 拒绝复制；插件指向同一 checkout 的宿主依赖链接可保留，复制时不跟随链接 |
 
 restore 先确认检查点内容及绑定一致，停止自有服务，检查端口及 PostgreSQL
 数据目录没有仍在运行的服务，再准备副本。它不会停止未知进程，也不会自动
@@ -62,6 +62,26 @@ restore 先确认检查点内容及绑定一致，停止自有服务，检查端
 存在 `restore-pending.json` 时，普通变更命令及服务启动入口拒绝启动部分恢复
 的实例，status 也不会报告 platform_ready。status、logs 和修复所需的 exec
 仍可使用；它们不授予跳过恢复检查的权利。
+
+## 修复依赖后的单次插件启动重试
+
+如果日志出现 `runtime.startup.recovery-required`，先修复具体插件或依赖错误。
+普通 `restart` 不会解除同一个失败候选的启动保护。执行 `status`，从
+`pluginStartup` 读取具体副本的 `snapshot`、`sha256` 和失败原因，然后：
+
+```bash
+python3 tools/local-environment/cli.py --platform "$platform_root" --state "$environment_state" \
+  --project-root "$project_root" retry-plugin-startup \
+  --snapshot <status中的文件名> --expected-sha256 <status中的摘要>
+python3 tools/local-environment/cli.py --platform "$platform_root" --state "$environment_state" \
+  --project-root "$project_root" start --service api
+```
+
+此入口仅适用于已绑定项目的独占实例。它验证自有 Supervisor，停止该实例的 API，
+确认端口释放并再次比对快照，保存权限为 0600 的原始备份后只解除一次启动尝试限制。
+数据库、插件配置、已接受版本和原失败信息保持不变；不会启动 API 或跳过下一次插件校验。
+快照变化、未知进程、链接路径或未完成的检查点恢复都会拒绝操作。备份含私有配置，
+不得导出为验收材料。执行成功不代表启动成功或业务验收通过。
 
 ## 结果和后续检查
 

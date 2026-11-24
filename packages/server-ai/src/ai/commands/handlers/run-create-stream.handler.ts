@@ -649,6 +649,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                                           ? chatRequest.target?.executionId
                                           : undefined,
                                 threadId,
+                                type: referencedExecution?.type,
                                 ...(command.resumePaused
                                     ? {
                                           metadata: {

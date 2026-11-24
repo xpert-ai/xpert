@@ -157,3 +157,18 @@ it('wires the core control module through constructor injection', async () => {
     expect(module.get(TaskControlRunner)).toBeInstanceOf(TaskControlRunner)
     await module.close()
 })
+
+it('bounds stable running observation without delaying changed control intent or skipping fresh access', async () => {
+    const f = fixture('invocation')
+    f.task.state = 'running'
+    f.tasks.desired.mockResolvedValue('running')
+    await f.service.deliver(f.task)
+    expect(f.access.withControlActor).toHaveBeenCalledTimes(1)
+    expect(f.api.inspect).toHaveBeenCalledWith('invocation')
+    expect(f.tasks.delivered).toHaveBeenLastCalledWith('target', 'delivery', null, 5000)
+    f.tasks.desired.mockResolvedValue('terminated')
+    await f.service.deliver(f.task)
+    expect(f.access.withControlActor).toHaveBeenCalledTimes(2)
+    expect(f.api.cancel).toHaveBeenCalledWith('invocation')
+    expect(f.tasks.delivered).toHaveBeenLastCalledWith('target', 'delivery', null, 1000)
+})

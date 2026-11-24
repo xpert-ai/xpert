@@ -20,6 +20,9 @@ import { deliveryModeSchema } from './schemas'
 import { PROVIDER, FEATURE, label } from './constants'
 
 const operation = z.object({ operationId: z.string().uuid() }).strict()
+// This role delegates Computer interaction to task executions, including independent review.
+// Keep service observation available; capability selection must not depend on a task's progress.
+const delegatedComputerTools = new Set(['computer_screenshot', 'computer_action', 'computer_applications'])
 const materialInput = z
   .object({
     taskId: z.string().uuid(),
@@ -72,6 +75,13 @@ export class CodingDeliveryMiddleware implements IAgentMiddlewareStrategy<Record
     }
     return {
       name: PROVIDER,
+      wrapModelCall: (request, handler) =>
+        handler({
+          ...request,
+          tools: request.tools.filter(
+            (candidate) => typeof candidate.name !== 'string' || !delegatedComputerTools.has(candidate.name)
+          )
+        }),
       afterModel: {
         canJumpTo: ['model'],
         hook: (state) =>
@@ -91,7 +101,7 @@ export class CodingDeliveryMiddleware implements IAgentMiddlewareStrategy<Record
             .strict(),
           verboseParsingErrors: true,
           description:
-            'Preflight the selected workflow before planning. Omit mode to read the Project default. local needs no external target or repository; empty lists are normal. release lists only authorized destinations and reports configuration blockers. For CODING_DESTINATION_SELECTION_REQUIRED, select targetKey/repositoryKey from the returned choices using the authorized request and preflight again; this is not missing administrator setup. ready covers workflow configuration, not CLI authentication or environment readiness. Credential references are handles, never secret values.',
+            'Preflight the selected workflow before planning. Omit mode to read the Project default. local needs no external target or repository; empty lists are normal. release lists only authorized destinations and reports configuration blockers. For CODING_DESTINATION_SELECTION_REQUIRED, select targetKey/repositoryKey from the returned choices using the authorized request and preflight again; this is not missing administrator setup. ready covers workflow configuration, not CLI authentication or environment readiness. The entry tool is coding_delivery_start; the separate stage delegates runtime readiness, implementation and browser checks through Project Tasks. Preflight itself creates no delivery or task. Credential references are handles, never secret values.',
           metadata: { toolName: label('Read delivery scope', '读取交付范围') }
         }),
         tool(

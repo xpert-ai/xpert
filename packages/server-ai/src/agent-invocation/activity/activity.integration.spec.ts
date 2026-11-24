@@ -4,7 +4,7 @@ import { DataSource, EntitySchema } from 'typeorm'
 import type { AgentInvocation } from '@xpert-ai/plugin-sdk'
 import { InvocationActivityItem, InvocationActivityState } from './activity.entity'
 import { InvocationActivityService } from './activity.service'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { access, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { VolumeClient, VolumeHandle, type VolumeScope } from '../../shared/volume'
@@ -60,6 +60,7 @@ integration('persisted execution activity', () => {
             url,
             schema,
             synchronize: true,
+            extra: { max: 1 },
             entities: [
                 new EntitySchema<InvocationActivityState>({
                     name: 'InvocationActivityState',
@@ -174,6 +175,160 @@ integration('persisted execution activity', () => {
             service.output({ ...run, scope: { ...run.scope, tenantId: randomUUID() } }, item.content.outputRef.key, 0)
         ).rejects.toThrow()
     })
+    it('commits a full batch with stable first sequences and bounded database round trips', async () => {
+        const run = { ...invocation, id: randomUUID() }
+        const queries = jest.spyOn(db.logger, 'logQuery')
+        const items = Array.from({ length: 50 }, (_, index) => [
+            {
+                id: `batch-${index}`,
+                content: {
+                    kind: 'tool' as const,
+                    status: 'running' as const,
+                    detail: { type: 'command' as const, command: `check-${index}`, outputMode: 'merged' as const }
+                }
+            },
+            { id: `batch-${index}`, content: { kind: 'tool' as const, status: 'succeeded' as const, output: 'ok' } }
+        ]).flat()
+        try {
+            await service.recorder(run).append({ items, sourceCursor: '100', expectedSourceCursor: '' })
+            const statements = queries.mock.calls.map(([sql]) => sql)
+            expect(statements.length).toBeLessThan(15)
+            const page = await service.page(run)
+            expect(page.items).toHaveLength(50)
+            expect(page.nextCursor).toBe(100)
+            page.items.forEach((item, index) => {
+                expect(item.firstSeq).toBe(index * 2 + 1)
+                expect(item.content).toMatchObject({
+                    status: 'succeeded',
+                    output: 'ok',
+                    detail: { command: `check-${index}` }
+                })
+            })
+        } finally {
+            queries.mockRestore()
+        }
+    })
+    it('does not hold a database connection during output storage or overwrite a newer cursor', async () => {
+        const run = { ...invocation, id: randomUUID() }
+        const sink = service.recorder(run)
+        let release!: () => void, entered!: () => void
+        const gate = new Promise<void>((resolve) => {
+            release = resolve
+        })
+        const writing = new Promise<void>((resolve) => {
+            entered = resolve
+        })
+        const original = VolumeHandle.prototype.writeFile
+        const write = jest.spyOn(VolumeHandle.prototype, 'writeFile').mockImplementation(async function (
+            this: VolumeHandle,
+            ...args
+        ) {
+            entered()
+            await gate
+            return original.apply(this, args)
+        })
+        const delayed = sink.append({
+            items: [{ id: 'slow', content: { kind: 'tool', status: 'succeeded', output: 'x'.repeat(70000) } }],
+            sourceCursor: 'slow',
+            expectedSourceCursor: ''
+        })
+        try {
+            await writing
+            // The pool has only one connection. This must complete while file storage is paused.
+            const fast = await sink.append({
+                items: [{ id: 'fast', content: { kind: 'message', text: 'committed' } }],
+                sourceCursor: 'fast',
+                expectedSourceCursor: ''
+            })
+            expect(fast).toEqual({ seq: 1, sourceCursor: 'fast' })
+        } finally {
+            release()
+            write.mockRestore()
+        }
+        expect(await delayed).toEqual({ seq: 1, sourceCursor: 'fast' })
+        expect((await service.page(run)).items.map((item) => item.id)).toEqual(['fast'])
+    })
+    it('leaves the checkpoint unchanged when private output storage fails', async () => {
+        const run = { ...invocation, id: randomUUID() }
+        const sink = service.recorder(run)
+        const write = jest
+            .spyOn(VolumeHandle.prototype, 'writeFile')
+            .mockRejectedValueOnce(new Error('storage unavailable'))
+        try {
+            await expect(
+                sink.append({
+                    items: [
+                        { id: 'failed', content: { kind: 'tool', status: 'succeeded', output: 'x'.repeat(70000) } }
+                    ],
+                    sourceCursor: 'new'
+                })
+            ).rejects.toThrow('storage unavailable')
+        } finally {
+            write.mockRestore()
+        }
+        expect(await sink.readCheckpoint()).toEqual({ seq: 0, sourceCursor: undefined })
+        expect((await service.page(run)).items).toEqual([])
+    })
+    it.each(['none', 'cleanup', 'write'] as const)(
+        'reclaims late output after expiry and preserves failures (%s)',
+        async (failure) => {
+            const run = { ...invocation, id: randomUUID() }
+            const sink = service.recorder(run)
+            await sink.append({ items: [{ id: 'initial', content: { kind: 'message', text: 'retained cursor' } }] })
+            let release!: () => void, entered!: () => void
+            const gate = new Promise<void>((resolve) => {
+                release = resolve
+            })
+            const writing = new Promise<void>((resolve) => {
+                entered = resolve
+            })
+            const original = VolumeHandle.prototype.writeFile
+            const storageError = new Error('original write failure')
+            const write = jest.spyOn(VolumeHandle.prototype, 'writeFile').mockImplementation(async function (
+                this: VolumeHandle,
+                ...args
+            ) {
+                entered()
+                await gate
+                const result = await original.apply(this, args)
+                if (failure === 'write') throw storageError
+                return result
+            })
+            const delayed = sink.append({
+                items: [{ id: 'late', content: { kind: 'tool', status: 'succeeded', output: 'x'.repeat(70000) } }]
+            })
+            try {
+                await writing
+                await db.getRepository(InvocationActivityState).update({ id: run.id }, { expiresAt: new Date(0) })
+                await service.purgeExpired()
+                if (failure === 'cleanup')
+                    jest.spyOn(VolumeHandle.prototype, 'destroyRuntimeJob').mockRejectedValueOnce(
+                        new Error('cleanup failed')
+                    )
+            } finally {
+                release()
+                write.mockRestore()
+            }
+            try {
+                if (failure === 'write') await expect(delayed).rejects.toBe(storageError)
+                else expect(await delayed).toEqual({ seq: 1, sourceCursor: undefined })
+            } finally {
+                jest.restoreAllMocks()
+            }
+            expect(await sink.readCheckpoint()).toEqual({ seq: 1, sourceCursor: undefined })
+            expect((await service.page(run)).state).toBe('expired')
+            if (failure === 'cleanup') {
+                expect((await db.getRepository(InvocationActivityState).findOneByOrFail({ id: run.id })).expired).toBe(
+                    false
+                )
+                await expect(access(join(directory, run.scope.tenantId, `activity-${run.id}`))).resolves.toBeUndefined()
+                await service.purgeExpired()
+            }
+            await expect(access(join(directory, run.scope.tenantId, `activity-${run.id}`))).rejects.toMatchObject({
+                code: 'ENOENT'
+            })
+        }
+    )
     it('expires only activity rows while retaining the execution result and metadata', async () => {
         await db
             .getRepository(InvocationActivityState)
@@ -182,8 +337,9 @@ integration('persisted execution activity', () => {
             .set({ expiresAt: new Date(0) })
             .execute()
         expect((await service.page(invocation)).state).toBe('expired')
+        const stateCount = await db.getRepository(InvocationActivityState).count()
         await service.purgeExpired()
         expect(await db.getRepository(InvocationActivityItem).count()).toBe(0)
-        expect(await db.getRepository(InvocationActivityState).count()).toBe(2)
+        expect(await db.getRepository(InvocationActivityState).count()).toBe(stateCount)
     })
 })

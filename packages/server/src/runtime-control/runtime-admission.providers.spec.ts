@@ -87,4 +87,40 @@ describe('admission provider lifecycle', () => {
 		await advance(1_000)
 		expect(refresh).toHaveBeenCalledTimes(2)
 	})
+
+	it('keeps plugin validation fresh while control schema verification is stalled', async () => {
+		const app = await bootstrap(false)
+		await advance(1_000)
+		const controls = app.get(ControlRuntimeAdmissionService)
+		let finish!: () => void
+		const stalled = new Promise<void>((resolve) => {
+			finish = resolve
+		})
+		const refreshControls = jest.spyOn(controls, 'refresh').mockReturnValue(stalled)
+		refreshControls.mockClear()
+		await advance(12_000)
+		expect(refreshControls).toHaveBeenCalledTimes(1)
+		expect(app.get(RuntimeLifecycleService).readiness()).toMatchObject({
+			status: 'ready',
+			admission: { reason: 'ready', validationAgeMs: 0 }
+		})
+		finish()
+		await advance(1_000)
+		expect(refreshControls).toHaveBeenCalledTimes(2)
+	})
+
+	it('does not let a control refresh failure skip current plugin validation or lease loss', async () => {
+		const app = await bootstrap(false)
+		const controls = app.get(ControlRuntimeAdmissionService)
+		jest.spyOn(controls, 'refresh').mockRejectedValue(new Error('schema temporarily unavailable'))
+		await advance(6_000)
+		const lifecycle = app.get(RuntimeLifecycleService)
+		expect(lifecycle.readiness().status).toBe('ready')
+		jest.spyOn(app.get(InstanceRegistryService), 'isLeaseValid').mockReturnValue(false)
+		await advance(1_000)
+		expect(lifecycle.readiness()).toMatchObject({
+			status: 'unready',
+			admission: { reason: 'lease-expired' }
+		})
+	})
 })

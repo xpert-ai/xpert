@@ -365,6 +365,37 @@ describe('direct child task summaries', () => {
 })
 
 describe('authorized result pages', () => {
+    it.each(['queued', 'running', 'failed', 'cancelled'])(
+        'distinguishes a %s invocation without a report from a missing task, even with a guessed revision',
+        async (status) => {
+            const f = fixture(status)
+            f.findOneBy.mockResolvedValue({ id: invocationId, invocation: { ...f.invocation, result: undefined } })
+            const input = { taskId, executionId: attemptId, expectedRevision: 999, offset: 0, limit: 6000 }
+            await expect(f.service.readResult(projectId, input)).rejects.toThrow('has no result report')
+            expect(f.inspect).not.toHaveBeenCalled()
+            expect(f.start).not.toHaveBeenCalled()
+            await expect(f.service.readResult(projectId, { ...input, source: 'prompt' })).resolves.toMatchObject({
+                text: f.invocation.request.input.prompt
+            })
+            f.assertCanRead.mockRejectedValueOnce(new Error('Revoked'))
+            await expect(f.service.readResult(projectId, input)).rejects.toThrow('Revoked')
+        }
+    )
+    it('distinguishes an authorized stage without an invocation from a missing or restricted report', async () => {
+        const f = fixture()
+        const task = await f.repository.findOne({})
+        task.executions[0].invocationId = null
+        const input = { taskId, executionId: attemptId, expectedRevision: 0, offset: 0, limit: 6000 }
+        await expect(f.service.readResult(projectId, input)).rejects.toThrow('no delegated Runtime invocation')
+        await expect(f.service.readResult(projectId, { ...input, source: 'prompt' })).rejects.toMatchObject({
+            status: 409
+        })
+        expect(f.inspect).not.toHaveBeenCalled()
+        expect(f.findOneBy).not.toHaveBeenCalled()
+        f.assertCanRead.mockRejectedValueOnce(new Error('Revoked'))
+        await expect(f.service.readResult(projectId, input)).rejects.toThrow('Revoked')
+    })
+
     it('reads the immutable authorized prompt across live observation revisions without polling', async () => {
         const f = fixture('failed')
         const input = {
@@ -420,6 +451,9 @@ describe('authorized result pages', () => {
         })
         f.invocation.revision = 5
         await expect(f.service.readResult(projectId, input)).rejects.toMatchObject({ status: 409 })
+        await expect(f.service.readResult(projectId, input)).rejects.toThrow(
+            'Do not increment or guess expectedRevision'
+        )
         expect(f.inspect).not.toHaveBeenCalled()
         expect(f.start).not.toHaveBeenCalled()
     })

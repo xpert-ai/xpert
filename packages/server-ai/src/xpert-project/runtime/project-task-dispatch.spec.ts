@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
+import i18next from 'i18next'
 import { ProjectTaskDispatchInput } from '@xpert-ai/contracts'
 import { AgentInvocation, AgentInvocationRequest, AgentInvocationScope, AgentTarget } from '@xpert-ai/plugin-sdk'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
@@ -184,6 +185,23 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en' })
+    })
+
+    it('rejects an incorrect task revision with the exact current value without reserving or starting work', async () => {
+        const f = await fixture()
+        f.task.revision = 28
+        f.input.expectedRevision = 31
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow(
+            'Dispatch expected task revision 31, but the current task revision is 28.'
+        )
+        expect(f.rows).toHaveLength(0)
+        expect(f.start).not.toHaveBeenCalled()
+        expect(f.task.revision).toBe(28)
+        expect(f.taskRepo.save).not.toHaveBeenCalled()
+    })
+
     function previousImplementation(f: Awaited<ReturnType<typeof fixture>>) {
         const reviewer = { bindingId: randomUUID(), mode: 'execution' as const }
         const previous = Object.assign(new XpertProjectTaskExecution(), {

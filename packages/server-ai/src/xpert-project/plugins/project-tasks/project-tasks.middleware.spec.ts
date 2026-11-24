@@ -21,6 +21,7 @@ import { XpertProjectService } from '../../project.service'
 import { XpertProjectTaskService } from '../../services/project-task.service'
 import { DispatchProjectTaskCommand, GetProjectRuntimeTaskCommand } from '../../runtime/project-task-dispatch.command'
 import { ProjectTasksMiddleware } from './project-tasks.middleware'
+import { ProjectTaskResultUnavailable } from '../../runtime/project-task-result-unavailable'
 import { PROJECT_TASKS_ICON, PROJECT_TASKS_MIDDLEWARE, ProjectToolEnum } from './constants'
 
 function fixture() {
@@ -560,3 +561,195 @@ describe('built-in Project Tasks Plugin', () => {
         expect(tasks.updateExecution).not.toHaveBeenCalled()
     })
 })
+
+describe('pending Runtime report coordination', () => {
+    it('returns normal pending state then stops only the repeated poll, preserving independent work and durable resumption', async () => {
+        const f = fixture(),
+            middleware = f.strategy.createMiddleware({}, f.context)
+        const input = { taskId: randomUUID(), executionId: randomUUID(), expectedRevision: 5 }
+        const tool = middleware.tools.find((entry) => entry.name === ProjectToolEnum.ReadResult)!
+        const error = new ProjectTaskResultUnavailable(
+            {
+                projectId: f.context.projectId,
+                taskId: input.taskId,
+                executionId: input.executionId,
+                invocationId: randomUUID(),
+                invocationRevision: 8,
+                invocationStatus: 'running'
+            },
+            f.context.conversationId,
+            f.context.threadId
+        )
+        f.execute.mockRejectedValueOnce(error)
+        const result = await tool.invoke(input)
+        expect(result).toMatchObject({ reportStatus: 'pending', canAwaitDelivery: true, nextAction: 'await_delivery' })
+        const messages = [
+            new AIMessage({ content: '', tool_calls: [{ id: 'read-1', name: tool.name, args: input }] }),
+            new ToolMessage({
+                name: tool.name,
+                tool_call_id: 'read-1',
+                status: 'success',
+                content: JSON.stringify(result)
+            })
+        ]
+        const request = {
+            model: new FakeStreamingChatModel({ sleep: 0 }),
+            messages,
+            tools: middleware.tools,
+            state: { messages },
+            runtime: {}
+        } as ModelRequest
+        const repeated = new AIMessage({
+            content: '',
+            tool_calls: [{ id: 'read-2', name: tool.name, args: { ...input, expectedRevision: 11 } }]
+        })
+        const handler = jest.fn(async (_request: ModelRequest) => repeated)
+        const response = await middleware.wrapModelCall(request, handler)
+        expect(response.tool_calls).toHaveLength(0)
+        expect(f.execute).toHaveBeenCalledTimes(1)
+        const independent = new AIMessage({
+            content: '',
+            tool_calls: [{ id: 'next', name: ProjectToolEnum.DispatchTask, args: { taskId: randomUUID() } }]
+        })
+        handler.mockResolvedValueOnce(independent)
+        expect(await middleware.wrapModelCall(request, handler)).toBe(independent)
+        const resumed = [...messages, new HumanMessage('Durable result delivery received.')]
+        expect(
+            await middleware.wrapModelCall({ ...request, messages: resumed, state: { messages: resumed } }, handler)
+        ).toBe(repeated)
+    })
+
+    it.each(['failed', 'cancelled', 'waiting', 'unknown'] as const)(
+        'does not turn %s into automatic waiting or acceptance',
+        async (status) => {
+            const f = fixture(),
+                middleware = f.strategy.createMiddleware({}, f.context)
+            const input = { taskId: randomUUID(), executionId: randomUUID(), expectedRevision: 999 }
+            f.execute.mockRejectedValueOnce(
+                new ProjectTaskResultUnavailable(
+                    {
+                        projectId: f.context.projectId,
+                        taskId: input.taskId,
+                        executionId: input.executionId,
+                        invocationId: randomUUID(),
+                        invocationRevision: 8,
+                        invocationStatus: status,
+                        error: 'Execution needs a decision'
+                    },
+                    f.context.conversationId,
+                    f.context.threadId
+                )
+            )
+            const result = await middleware.tools
+                .find((entry) => entry.name === ProjectToolEnum.ReadResult)!
+                .invoke(input)
+            expect(result).toMatchObject({
+                reportStatus: 'unavailable',
+                canAwaitDelivery: false,
+                nextAction: 'read_task',
+                invocationStatus: status
+            })
+            expect(f.execute).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('preserves permission failures and cannot wait on another conversation or thread', async () => {
+        const f = fixture(),
+            middleware = f.strategy.createMiddleware({}, f.context)
+        const input = { taskId: randomUUID(), executionId: randomUUID(), expectedRevision: 0 }
+        const tool = middleware.tools.find((entry) => entry.name === ProjectToolEnum.ReadResult)!
+        const unavailable = new ProjectTaskResultUnavailable(
+            {
+                projectId: f.context.projectId,
+                taskId: input.taskId,
+                executionId: input.executionId,
+                invocationId: randomUUID(),
+                invocationRevision: 8,
+                invocationStatus: 'running'
+            },
+            randomUUID(),
+            'other-thread'
+        )
+        f.execute.mockRejectedValueOnce(unavailable)
+        expect(await tool.invoke(input)).toMatchObject({
+            reportStatus: 'pending',
+            canAwaitDelivery: false,
+            nextAction: 'read_task'
+        })
+        f.permission.mockRejectedValueOnce(new ForbiddenException('Revoked'))
+        await expect(tool.invoke(input)).rejects.toThrow('Revoked')
+        expect(f.execute).toHaveBeenCalledTimes(1)
+    })
+})
+
+it.each([false, true])(
+    'retains the pending-report guard after long-context rehydration (result=%s)',
+    async (completed) => {
+        const f = fixture(),
+            middleware = f.strategy.createMiddleware({}, f.context)
+        const taskId = randomUUID(),
+            executionId = randomUUID(),
+            invocationId = randomUUID()
+        const call = {
+            id: 'read-pending',
+            name: ProjectToolEnum.ReadResult,
+            args: { taskId, executionId, expectedRevision: 21 }
+        }
+        const messages = [
+            new HumanMessage('Long actual delivery history. '.repeat(2500)),
+            new ToolMessage({
+                name: ProjectToolEnum.CreateTasks,
+                tool_call_id: 'created',
+                status: 'success',
+                content: JSON.stringify({ tasks: [{ id: taskId, projectId: f.context.projectId }] })
+            }),
+            new AIMessage({ content: '', tool_calls: [call] }),
+            new ToolMessage({
+                name: call.name,
+                tool_call_id: call.id,
+                status: 'success',
+                content: JSON.stringify({
+                    projectId: f.context.projectId,
+                    taskId,
+                    executionId,
+                    invocationId,
+                    invocationStatus: 'running',
+                    reportStatus: 'pending',
+                    canAwaitDelivery: true,
+                    nextAction: 'await_delivery'
+                })
+            })
+        ]
+        f.execute.mockImplementation(async () => ({
+            status: 'in_progress',
+            id: taskId,
+            projectId: f.context.projectId,
+            executions: [
+                {
+                    id: executionId,
+                    invocationId,
+                    invocationStatus: completed ? 'succeeded' : 'running',
+                    invocationRevision: 27,
+                    result: completed ? { text: 'Actual completed report' } : undefined
+                }
+            ]
+        }))
+        const repeated = new AIMessage({
+            content: '',
+            tool_calls: [{ ...call, id: 'read-again', args: { ...call.args, expectedRevision: 27 } }]
+        })
+        const handler = jest.fn(async (_request: ModelRequest) => repeated)
+        const request = {
+            model: new FakeStreamingChatModel({ sleep: 0 }),
+            messages,
+            tools: middleware.tools,
+            state: { messages },
+            runtime: {}
+        } as ModelRequest
+        const response = await middleware.wrapModelCall(request, handler)
+        expect(f.execute).toHaveBeenCalledWith(new GetProjectRuntimeTaskCommand(f.context.projectId, taskId))
+        expect(f.execute).toHaveBeenCalledTimes(1)
+        if (completed) expect(response).toBe(repeated)
+        else expect(response.tool_calls).toHaveLength(0)
+    }
+)

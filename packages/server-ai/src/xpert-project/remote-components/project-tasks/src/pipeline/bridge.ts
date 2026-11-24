@@ -161,11 +161,15 @@ export async function changePipelineLifecycle(graph: PipelineGraph, requestId: s
             actionKey: operationId ? 'pipeline-retry' : 'pipeline-cancel',
             input: {
                 instanceId: graph.instance.id,
-                expectedRevision: graph.instance.revision,
                 requestId,
                 ...(operationId
-                    ? { operationId, inputDigest: graph.round.inputDigest, generation: graph.round.generation }
-                    : {})
+                    ? {
+                          expectedRevision: graph.instance.revision,
+                          operationId,
+                          inputDigest: graph.round.inputDigest,
+                          generation: graph.round.generation
+                      }
+                    : { runId: graph.runId })
             }
         })
     ).data

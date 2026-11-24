@@ -4,7 +4,7 @@ import { ProjectFilesRuntimeCapability } from '@xpert-ai/plugin-sdk'
 import { deliveryFixture } from './delivery.fixture'
 import { CodingDeliveryService } from './delivery.service'
 import { CodingDeliveryWork } from './entities'
-import { manifestContextPath, prepareManifestContext } from './manifest-context'
+import { manifestContextPath, manifestSchemaPath, prepareManifestContext } from './manifest-context'
 
 let f: Awaited<ReturnType<typeof deliveryFixture>>
 beforeEach(async () => {
@@ -21,7 +21,11 @@ it.each(['development', 'deployment', 'git'] as const)(
     const first = await prepareManifestContext(f.capabilities, f.context, phase)
     expect(JSON.parse(f.projectFiles.get(first.path)!.toString())).toEqual({ version: 1, phase, work: f.context.work })
     expect(await prepareManifestContext(f.capabilities, f.context, phase)).toEqual(first)
-    expect(f.projectFiles.size).toBe(1)
+    const schema = JSON.parse(f.projectFiles.get(manifestSchemaPath(f.context.work.operationId))!.toString())
+    expect(schema.properties.phase.const).toBe(phase)
+    expect(schema.required).toContain('work')
+    expect(schema.additionalProperties).toBe(false)
+    expect(f.projectFiles.size).toBe(2)
   }
 )
 
@@ -40,6 +44,7 @@ it('loads a persisted stage and keeps the legacy identity file and its digest', 
     sha256: createHash('sha256').update(bytes).digest('hex')
   })
   expect(f.projectFiles.get(path)).toBe(bytes)
+  expect(JSON.parse(f.projectFiles.get(result.manifestSchemaPath)!.toString())).toEqual(result.manifestSchema)
 })
 
 it.each(['inputDigest', 'operationId'] as const)('rejects a different %s in a legacy file', async (field) => {
@@ -69,6 +74,7 @@ it('gives a retry a distinct file while preserving the original attempt identity
   const next = await prepareManifestContext(f.capabilities, retry, 'development')
   expect(next.path).not.toBe(first.path)
   expect(f.projectFiles.get(first.path)).toEqual(original)
+  expect(f.projectFiles.has(manifestSchemaPath(retry.work.operationId))).toBe(true)
   expect(JSON.parse(f.projectFiles.get(next.path)!.toString()).work).toEqual(retry.work)
 })
 
@@ -113,7 +119,31 @@ it('prepares the identity file before returning the stage brief without creating
   const path = manifestContextPath(f.context.work.operationId)
   expect(f.projectFiles.has(path)).toBe(true)
   expect(result.prompt).toContain(path)
+  expect(result.prompt).toContain(manifestSchemaPath(f.context.work.operationId))
   expect(result.prompt).not.toContain(f.context.work.roundId)
   expect(await f.operations.prepare(f.context, 'development')).toEqual(result)
   expect(await f.db.getRepository(CodingDeliveryWork).count()).toBe(1)
+})
+
+it('preserves a conflicting schema and refuses to hand off an invalid contract', async () => {
+  const path = manifestSchemaPath(f.context.work.operationId)
+  const bytes = Buffer.from('{"additionalProperties":true}')
+  f.projectFiles.set(path, bytes)
+  await expect(prepareManifestContext(f.capabilities, f.context, 'development')).rejects.toMatchObject({
+    response: { code: 'CODING_MANIFEST_SCHEMA_MISMATCH' }
+  })
+  expect(f.projectFiles.get(path)).toBe(bytes)
+})
+
+it('does not return the stage brief when the schema file cannot be written', async () => {
+  const files = f.capabilities.require(ProjectFilesRuntimeCapability)
+  const write = files.write.bind(files)
+  const error = new ForbiddenException('Schema write access revoked')
+  jest
+    .spyOn(files, 'write')
+    .mockImplementation((input) =>
+      input.path === manifestSchemaPath(f.context.work.operationId) ? Promise.reject(error) : write(input)
+    )
+  await expect(f.operations.prepare(f.context, 'development')).rejects.toBe(error)
+  expect(f.projectFiles.has(manifestSchemaPath(f.context.work.operationId))).toBe(false)
 })

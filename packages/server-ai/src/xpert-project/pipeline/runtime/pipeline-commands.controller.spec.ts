@@ -37,6 +37,7 @@ describe('managed pipeline command HTTP boundary', () => {
         evidence: []
     }
     const nextRound = { instanceId: randomUUID(), requestId: randomUUID(), expectedRevision: 2 }
+    const cancel = { instanceId: randomUUID(), requestId: randomUUID(), runId: randomUUID() }
     const retry = { ...nextRound, operationId: randomUUID(), inputDigest: 'a'.repeat(64), generation: 1 }
     const post = (path: string, body: unknown) =>
         fetch(`${url}/project/pipelines/${path}`, {
@@ -80,12 +81,12 @@ describe('managed pipeline command HTTP boundary', () => {
         expect((await post('start', start)).status).toBe(202)
         expect((await post('decisions', decision)).status).toBe(200)
         expect((await post('next-round', nextRound)).status).toBe(202)
-        expect((await post('cancel', nextRound)).status).toBe(202)
+        expect((await post('cancel', cancel)).status).toBe(202)
         expect((await post('retry', retry)).status).toBe(202)
         expect(commands.start).toHaveBeenCalledWith({ projectId: 'project', actor }, start)
         expect(commands.decide).toHaveBeenCalledWith({ projectId: 'project', actor }, decision)
         expect(commands.nextRound).toHaveBeenCalledWith({ projectId: 'project', actor }, nextRound)
-        expect(commands.cancel).toHaveBeenCalledWith({ projectId: 'project', actor }, nextRound)
+        expect(commands.cancel).toHaveBeenCalledWith({ projectId: 'project', actor }, cancel)
         expect(commands.retry).toHaveBeenCalledWith({ projectId: 'project', actor }, retry)
         expect(access.assertCanEdit).toHaveBeenCalledTimes(5)
     })
@@ -98,8 +99,10 @@ describe('managed pipeline command HTTP boundary', () => {
         ['configure', { requestId: randomUUID(), configuration: {} }],
         ['next-round', { ...nextRound, expectedRevision: 0 }],
         ['next-round', { ...nextRound, actor }],
-        ['cancel', { ...nextRound, expectedRevision: 0 }],
-        ['cancel', { ...nextRound, actor }],
+        ['cancel', nextRound],
+        ['cancel', { ...cancel, runId: 'invalid-run' }],
+        ['cancel', { ...cancel, expectedRevision: 2 }],
+        ['cancel', { ...cancel, actor }],
         ['retry', { ...retry, inputDigest: 'invalid' }],
         ['retry', { ...retry, generation: 0 }],
         ['retry', { ...retry, actor }]

@@ -4,7 +4,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
-import { IsNull, Repository } from 'typeorm'
+import { In, IsNull, Repository } from 'typeorm'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectMembership } from '../entities/project-membership.entity'
 import { XpertProjectXpertBindingService } from './project-xpert-binding.service'
@@ -33,6 +33,44 @@ export class XpertProjectAccessService {
 
     async assertCanRead(projectId: string): Promise<XpertProjectAccess> {
         return this.resolveAccess(projectId)
+    }
+
+    /** Fresh catalog authorization in bounded batches; no identity or membership cache survives this call. */
+    async readableProjects(projectIds: readonly string[]): Promise<XpertProjectAccess[]> {
+        if (!projectIds.length) return []
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        const userId = RequestContext.currentUserId()
+        if (!tenantId || !userId) throw new ForbiddenException(t('server-ai:Error.ProjectNotAvailable'))
+        const actor = { tenantId, organizationId, userId }
+        const principal = await this.principals.isPrincipal(actor)
+        const result: XpertProjectAccess[] = []
+        const ids = [...new Set(projectIds)]
+        for (let offset = 0; offset < ids.length; offset += 100) {
+            const projects = await this.projectRepository.find({
+                where: { id: In(ids.slice(offset, offset + 100)), tenantId, organizationId: organizationId ?? IsNull() }
+            })
+            if (principal) {
+                if (!organizationId) continue
+                for (const project of projects) {
+                    if (await this.principals.find({ ...actor, organizationId }, { projectId: project.id }))
+                        result.push({ project, role: 'assistant' })
+                }
+                continue
+            }
+            const memberIds = projects.filter((project) => project.ownerId !== userId).map(({ id }) => id)
+            const memberships = memberIds.length
+                ? await this.membershipRepository.find({
+                      where: { projectId: In(memberIds), userId, tenantId, organizationId: organizationId ?? IsNull() }
+                  })
+                : []
+            const roles = new Map(memberships.map((membership) => [membership.projectId, membership.role]))
+            for (const project of projects) {
+                const role = project.ownerId === userId ? 'owner' : roles.get(project.id)
+                if (role) result.push({ project, role })
+            }
+        }
+        return result
     }
 
     async assertCanPurge(projectId: string): Promise<XpertProjectAccess> {

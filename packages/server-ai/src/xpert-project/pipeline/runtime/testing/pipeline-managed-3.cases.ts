@@ -128,15 +128,7 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
         const launched = await fixture.launchRuntime()
         const [operation] = await fixture.operations()
         await fixture.request(() => fixture.runner.run(fixture.context, operation.id))
-        await fixture.lifecycle.cancel(fixture.context, {
-            instanceId: launched.instanceId,
-            requestId: randomUUID(),
-            expectedRevision: (
-                await fixture.db
-                    .getRepository(ProjectPipelineInstanceEntity)
-                    .findOneByOrFail({ id: launched.instanceId })
-            ).revision
-        })
+        await fixture.lifecycle.cancel(fixture.context, await fixture.cancelInput(launched.instanceId))
         await fixture.readyAgain(operation.id)
         await fixture.request(() => fixture.runner.run(fixture.context, operation.id))
         expect(fixture.runtimeFixture.start).toHaveBeenCalledTimes(1)
@@ -269,7 +261,7 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
             operation = (await fixture.operations())[0],
             workerId = randomUUID()
         const claim = await fixture.store.claim(fixture.context, operation.id, workerId)
-        const input = await fixture.commandInput(launched.instanceId)
+        const input = await fixture.cancelInput(launched.instanceId)
         const cancelled = await fixture.lifecycle.cancel(fixture.context, input)
         expect(await fixture.lifecycle.cancel(fixture.context, input)).toEqual(cancelled)
         expect(await fixture.store.beginDispatch(fixture.context, operation.id, workerId, claim!.fence)).toBe(false)
@@ -289,7 +281,7 @@ export function registerManagedCases3(fixture: ReturnType<typeof managedPipeline
         expect(fixture.execute).not.toHaveBeenCalled()
         expect(fixture.cancel).not.toHaveBeenCalled()
         await expect(
-            fixture.lifecycle.cancel(fixture.context, { ...input, expectedRevision: 99 })
+            fixture.lifecycle.cancel(fixture.context, { ...input, runId: randomUUID() })
         ).rejects.toMatchObject({
             response: { code: 'COMMAND_INPUT_IMMUTABLE' }
         })

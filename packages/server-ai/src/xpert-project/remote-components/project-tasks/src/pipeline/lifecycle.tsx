@@ -26,17 +26,22 @@ export function PipelineLifecycle({
     const [open, setOpen] = useState(false),
         [busy, setBusy] = useState(false),
         [error, setError] = useState(false)
+    const target = useRef<{ graph: PipelineGraph; operationId?: string } | null>(null)
     const request = useRef<{ key: string; id: string } | null>(null)
     const operation = nodeId ? graph.actions.retries.find((item) => item.nodeInstanceId === nodeId) : undefined
     if (!graph.permissions.canEdit || (nodeId ? !operation : !graph.actions.cancel)) return null
     const title = nodeId ? t.retryNode : t.cancelRun
     const submit = async () => {
-        const key = `${graph.instance.id}:${graph.instance.revision}:${operation?.operationId ?? 'cancel'}`
+        const selected = target.current
+        if (!selected) return
+        const key = selected.operationId
+            ? `${selected.graph.instance.id}:${selected.graph.instance.revision}:${selected.operationId}`
+            : `${selected.graph.instance.id}:${selected.graph.runId}:cancel`
         if (request.current?.key !== key) request.current = { key, id: crypto.randomUUID() }
         setBusy(true)
         setError(false)
         try {
-            await changePipelineLifecycle(graph, request.current.id, operation?.operationId)
+            await changePipelineLifecycle(selected.graph, request.current.id, selected.operationId)
             setOpen(false)
             await reload()
         } catch {
@@ -45,15 +50,16 @@ export function PipelineLifecycle({
             setBusy(false)
         }
     }
+    const changeOpen = (value: boolean) => {
+        if (busy) return
+        // Freeze the visible run when confirmation opens; polling must not retarget a user's stop request.
+        if (value) target.current = { graph, operationId: operation?.operationId }
+        setOpen(value)
+    }
     return (
-        <Dialog
-            open={open}
-            onOpenChange={(value) => {
-                if (!busy) setOpen(value)
-            }}
-        >
+        <Dialog open={open} onOpenChange={changeOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+                <Button variant="outline" size="sm" onClick={() => changeOpen(true)}>
                     {title}
                 </Button>
             </DialogTrigger>

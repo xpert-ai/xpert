@@ -335,6 +335,39 @@ describe('Project task decision inspection boundaries', () => {
         ).rejects.toThrow()
     })
 
+    it('stops offering another decision after acceptance while preserving the original replay', async () => {
+        executionReview()
+        const input = await referenceInput()
+        const accepted = await f.service.decideReference(f.scope.projectId, input, f.caller)
+        const repository = f.module.get<Repository<XpertProjectTask>>(getRepositoryToken(XpertProjectTask))
+        const options = await taskDecisionOptions(repository.manager, f.scope, f.task)
+        expect(options[0]).toMatchObject({ diagnostic: { code: 'TaskNotDecidable', taskId: f.task.id } })
+        expect(options[0].decisionRef).toBeUndefined()
+        await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).resolves.toEqual(accepted)
+        await expect(
+            f.service.decideReference(
+                f.scope.projectId,
+                { ...input, requestId: randomUUID(), outcome: 'rework' },
+                f.caller
+            )
+        ).rejects.toThrow('TaskNotDecidable')
+        expect(f.task.decisions).toHaveLength(1)
+        expect(f.task.status).toBe('done')
+    })
+
+    it.each(['cancelled', 'todo'] as const)('does not offer or execute a decision on a %s task', async (status) => {
+        executionReview()
+        const input = await referenceInput()
+        f.task.status = status
+        const repository = f.module.get<Repository<XpertProjectTask>>(getRepositoryToken(XpertProjectTask))
+        const options = await taskDecisionOptions(repository.manager, f.scope, f.task)
+        expect(options[0]).toMatchObject({ diagnostic: { code: 'TaskNotDecidable' } })
+        expect(options[0].decisionRef).toBeUndefined()
+        await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).rejects.toThrow('TaskNotDecidable')
+        expect(f.task.decisions).toEqual([])
+        expect(f.transaction).not.toHaveBeenCalled()
+    })
+
     it.each(['task', 'review-version', 'review-content', 'candidate'] as const)(
         'rejects changed %s instead of accepting latest data',
         async (change) => {

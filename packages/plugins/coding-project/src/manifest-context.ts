@@ -2,29 +2,65 @@
 // relying on a coordinating model to transcribe IDs into a second prompt.
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 import { canonical } from './constants'
 import {
   ProjectFilesRuntimeCapability,
+  type ProjectFilesApi,
   type ProjectPipelineAssistantContext,
   type RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import { conflict } from './store'
-import type { Phase } from './schemas'
+import { developmentManifestSchema, deploymentManifestSchema, gitManifestSchema, type Phase } from './schemas'
 
 export const manifestContextPath = (operationId: string) =>
   `.coding-delivery/stages/${operationId}/manifest-context.json`
+
+export const manifestSchemaPath = (operationId: string) => `.coding-delivery/stages/${operationId}/manifest-schema.json`
+
+export const manifestJsonSchema = (phase: Phase) =>
+  zodToJsonSchema(
+    phase === 'development'
+      ? developmentManifestSchema
+      : phase === 'deployment'
+        ? deploymentManifestSchema
+        : gitManifestSchema
+  )
 
 export async function prepareManifestContext(
   capabilities: RuntimeCapabilityRegistry,
   context: ProjectPipelineAssistantContext,
   phase: Phase
 ) {
-  const files = capabilities.require(ProjectFilesRuntimeCapability)
   const path = manifestContextPath(context.work.operationId)
   const identity = { version: 1, phase, work: context.work }
-  const buffer = Buffer.from(canonical(identity) + '\n')
-  const sha256 = createHash('sha256').update(buffer).digest('hex')
+  const files = capabilities.require(ProjectFilesRuntimeCapability)
   await files.mkdir({ ...context, path: `.coding-delivery/stages/${context.work.operationId}` })
+  const receipt = await writePinnedJson(
+    files,
+    context,
+    path,
+    Buffer.from(canonical(identity) + '\n'),
+    'CODING_MANIFEST_WORK_MISMATCH'
+  )
+  await writePinnedJson(
+    files,
+    context,
+    manifestSchemaPath(context.work.operationId),
+    Buffer.from(JSON.stringify(manifestJsonSchema(phase)) + '\n'),
+    'CODING_MANIFEST_SCHEMA_MISMATCH'
+  )
+  return receipt
+}
+
+async function writePinnedJson(
+  files: ProjectFilesApi,
+  context: ProjectPipelineAssistantContext,
+  path: string,
+  buffer: Buffer,
+  mismatchCode: string
+) {
+  const sha256 = createHash('sha256').update(buffer).digest('hex')
   try {
     await files.write({ ...context, path, buffer, expectedHash: null })
   } catch (error) {
@@ -45,9 +81,10 @@ export async function prepareManifestContext(
     try {
       stored = JSON.parse(existing.buffer.toString('utf8'))
     } catch {
-      throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+      throw conflict(mismatchCode)
     }
-    if (!isDeepStrictEqual(stored, identity)) throw conflict('CODING_MANIFEST_WORK_MISMATCH')
+    const expected: unknown = JSON.parse(buffer.toString('utf8'))
+    if (!isDeepStrictEqual(stored, expected)) throw conflict(mismatchCode)
     return { path, sha256: existing.sha256 }
   }
   return { path, sha256 }
