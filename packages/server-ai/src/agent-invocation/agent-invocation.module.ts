@@ -17,7 +17,13 @@ import { RequestRuntimeResultCheckHandler } from '../handoff/runtime-messaging/r
 import { CancelTaskWaitsHandler, CheckTaskWaitClaimHandler } from './task-wait-control'
 import { InvocationResultsProvider } from './invocation-results.provider'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
-import { User, UserOrganization, TaskControlModule, TaskControlStore } from '@xpert-ai/server-core'
+import {
+    User,
+    UserOrganization,
+    TaskControlModule,
+    TaskControlStore,
+    RuntimeControlModule
+} from '@xpert-ai/server-core'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { AgentInvocationWaitStore } from './invocation-wait.store'
 import { InvocationContinuationDispatcher } from './invocation-continuation-dispatcher.service'
@@ -52,6 +58,7 @@ import { ReadTrailActivityHandler } from './execution-view/read-trail-activity.h
 @Module({
     imports: [
         TaskControlModule,
+        RuntimeControlModule,
         ArtifactsModule,
         DiscoveryModule,
         CqrsModule,

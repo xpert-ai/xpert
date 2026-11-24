@@ -819,6 +819,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             execution = await this.commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
                     ...(execution ?? {}),
+                    ...(request.action === 'retry' ? { type: sourceModelExecution.type } : {}),
                     xpert: { id: xpert.id } as IXpert,
                     agentKey: runtimeAgentKey,
                     inputs: input,

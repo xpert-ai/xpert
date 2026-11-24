@@ -3512,6 +3512,7 @@ describe('XpertChatHandler', () => {
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-2',
                     metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-2', xpert),
+                    type: 'agent',
                     inputs: {
                         input: 'Original prompt'
                     }
@@ -3565,6 +3566,7 @@ describe('XpertChatHandler', () => {
                     command.execution.status === XpertAgentExecutionStatusEnum.RUNNING &&
                     command.execution.inputs?.input === 'Original prompt' &&
                     command.execution.metadata?.retriedFromExecutionId === 'execution-old' &&
+                    command.execution.type === 'agent' &&
                     !command.execution.parentId
             )
         ).toBe(true)

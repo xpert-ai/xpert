@@ -1,7 +1,7 @@
 import { ExecutionUserLoader } from '../../../../server/src/user/execution-identity/execution-user-loader'
 import { ResolveExecutionIdentityHandler } from '../../../../server/src/user/execution-identity/resolve-execution-identity.handler'
 import { ResolveUserOrganizationAccessHandler } from '../../../../server/src/user-organization/commands/handlers/resolve-user-organization-access.handler'
-import { ResolveExecutionIdentityCommand } from '@xpert-ai/server-core'
+import { ResolveExecutionIdentityCommand, RuntimeLifecycleService } from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import { randomUUID } from 'node:crypto'
 import { QueryBus } from '@nestjs/cqrs'
@@ -288,7 +288,13 @@ async function fixture(intent: TaskControlIntent = 'terminated') {
         delivered
     })
     const coordinator = new TaskControlCoordinator(tasks, database, runtime, factory, access, undefined)
-    const continuation = new RuntimeMessageContinuationService(database, access, undefined, tasks)
+    const continuation = new RuntimeMessageContinuationService(
+        database,
+        access,
+        undefined,
+        tasks,
+        new RuntimeLifecycleService()
+    )
     return {
         scope,
         grant,

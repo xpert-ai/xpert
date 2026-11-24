@@ -45,7 +45,9 @@ export function executionError(code: keyof typeof messages) {
     const message = executionErrorMessage(code)
     if (code === 'AuthenticationRequired' || code === 'AuthenticationUnknown')
         return new CliAuthenticationRequiredError(code)
-    if (code === 'SandboxUnavailable') return new ServiceUnavailableException(message)
+    // An unconfirmed transport outcome is not evidence that permission was revoked.
+    // Callers classify 403 as authorization loss; keep uncertainty on the service path.
+    if (code === 'SandboxUnavailable' || code === 'Unknown') return new ServiceUnavailableException(message)
     return code === 'Budget' || code === 'RateLimit'
         ? new HttpException(message, HttpStatus.TOO_MANY_REQUESTS)
         : [
