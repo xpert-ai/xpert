@@ -18,10 +18,6 @@ exports.projectTemplateOverview = (value, ClientError) => {
     publisher: text(value.publisher),
     version: optional(value.version),
     instructions: text(value.instructions),
-    memories: list(value.memories).map((entry) => {
-      object(entry)
-      return { title: text(entry.title), content: optional(entry.content) }
-    }),
     skills: list(value.skills).map((entry) => {
       object(entry)
       return {

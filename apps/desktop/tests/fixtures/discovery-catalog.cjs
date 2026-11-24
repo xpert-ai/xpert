@@ -71,7 +71,6 @@ const templateResult = (method, input) => {
       publisher: 'Author',
       description: 'Work',
       instructions: 'Prepare drafts',
-      memories: [],
       skills: [],
       agents: [],
       routines: [],
