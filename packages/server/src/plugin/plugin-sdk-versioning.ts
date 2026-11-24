@@ -20,7 +20,7 @@ const HOSTED_CONTRACTS_PACKAGE = '@xpert-ai/contracts'
 
 type HostRuntimePackageConfig = {
 	packageName: string
-	workspaceRelativePath: string[]
+	workspaceRelativePath?: string[]
 }
 
 const HOST_RUNTIME_PACKAGES: Record<string, HostRuntimePackageConfig> = {
@@ -31,7 +31,10 @@ const HOST_RUNTIME_PACKAGES: Record<string, HostRuntimePackageConfig> = {
 	[HOSTED_CONTRACTS_PACKAGE]: {
 		packageName: HOSTED_CONTRACTS_PACKAGE,
 		workspaceRelativePath: ['packages', 'contracts']
-	}
+	},
+	// These must share constructors AND Nest's entity registration storage with the host.
+	typeorm: { packageName: 'typeorm' },
+	'@nestjs/typeorm': { packageName: '@nestjs/typeorm' }
 }
 
 type PluginPackageManifest = {
@@ -39,6 +42,7 @@ type PluginPackageManifest = {
 	version?: string
 	artifactNamespace?: unknown
 	dependencies?: Record<string, string>
+	optionalDependencies?: Record<string, string>
 	peerDependencies?: Record<string, string>
 	xpert?: {
 		plugin?: {
@@ -195,8 +199,10 @@ function resolveHostRuntimePackageJsonPath(packageName: string) {
 
 	for (const startPath of [process.cwd(), __dirname]) {
 		for (const dir of collectAncestorDirs(startPath)) {
-			candidates.add(resolve(dir, ...config.workspaceRelativePath, 'dist', 'package.json'))
-			candidates.add(resolve(dir, ...config.workspaceRelativePath, 'package.json'))
+			if (config.workspaceRelativePath) {
+				candidates.add(resolve(dir, ...config.workspaceRelativePath, 'dist', 'package.json'))
+				candidates.add(resolve(dir, ...config.workspaceRelativePath, 'package.json'))
+			}
 			candidates.add(resolve(dir, 'node_modules', ...packageName.split('/'), 'package.json'))
 		}
 	}
@@ -385,6 +391,7 @@ export function assertPluginSdkCompatibility(
 	const rawPeerRange = manifest.peerDependencies?.[HOSTED_PLUGIN_SDK_PACKAGE]
 	const peerRange = normalizePeerRange(rawPeerRange, hostVersion)
 	const warnings: PluginSdkCompatibilityWarning[] = []
+	assertPluginOrmCompatibility(manifest, pluginName)
 
 	if (expectedPackageName && manifest.name && manifest.name !== expectedPackageName) {
 		throw new PluginSdkValidationError(
@@ -567,6 +574,59 @@ export function ensureHostContractsLink(basedir?: string) {
 	return ensureHostRuntimePackageLink(HOSTED_CONTRACTS_PACKAGE, basedir)
 }
 
+function assertPluginOrmCompatibility(manifest: PluginPackageManifest, pluginName: string) {
+	const packages = ['typeorm', '@nestjs/typeorm'] as const
+	const declaredPeers: string[] = []
+	for (const packageName of packages) {
+		if (manifest.dependencies?.[packageName] || manifest.optionalDependencies?.[packageName]) {
+			throw new PluginSdkValidationError(
+				pluginName,
+				`${packageName} must be a peerDependency supplied by the host, not a private runtime dependency. Rebuild the plugin without bundled ORM packages.`
+			)
+		}
+		const rawRange = manifest.peerDependencies?.[packageName]
+		if (!rawRange) continue
+		const hostManifest = readJsonFile<{ version?: string }>(
+			resolveHostRuntimePackageJsonPath(packageName),
+			pluginName
+		)
+		const hostVersion = hostManifest.version
+		const range = hostVersion && normalizePeerRange(rawRange, hostVersion)
+		if (
+			!hostVersion ||
+			!range ||
+			!validRange(range) ||
+			!satisfies(hostVersion, range, { includePrerelease: true })
+		) {
+			throw new PluginSdkValidationError(
+				pluginName,
+				`${packageName} peer range "${rawRange}" is incompatible with host version "${hostVersion ?? 'unknown'}".`
+			)
+		}
+		declaredPeers.push(packageName)
+	}
+	if (declaredPeers.includes('@nestjs/typeorm') && !declaredPeers.includes('typeorm')) {
+		throw new PluginSdkValidationError(pluginName, '@nestjs/typeorm requires an explicit typeorm peerDependency.')
+	}
+	return declaredPeers
+}
+
+/** Bind declared ORM peers before importing a staged plugin, including nested npm dependencies. */
+export function ensureHostPluginOrmLinks(pluginName: string, basedir?: string) {
+	const declaredPeers = assertPluginOrmCompatibility(readInstalledPluginManifest(pluginName, basedir), pluginName)
+	if (!basedir) return
+
+	// Staged source/archive dependencies live inside the package; a link only at the
+	// staging root would lose to that nearer node_modules directory during resolution.
+	const packageDir = resolve(basedir, 'node_modules', normalizePluginName(pluginName))
+	for (const packageName of declaredPeers) {
+		ensureHostRuntimePackageLink(packageName, basedir)
+		if (existsSync(join(packageDir, 'package.json'))) {
+			ensureHostRuntimePackageLink(packageName, packageDir)
+		}
+	}
+}
+
 function readWorkspacePluginManifest(pluginName: string, workspacePath: string) {
 	if (!workspacePath) {
 		throw new PluginSdkValidationError(pluginName, 'workspacePath is required for code plugins')
@@ -617,6 +677,7 @@ async function fetchRegistryPluginManifest(
 		'version',
 		'artifactNamespace',
 		'dependencies',
+		'optionalDependencies',
 		'peerDependencies',
 		'xpert',
 		'--json'
