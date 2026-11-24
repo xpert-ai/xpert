@@ -37,3 +37,20 @@ describe('XpertMarketplaceController', () => {
         )
     })
 })
+
+it('uses the paged card query only for the unfiltered updated catalog', async () => {
+    const service = { findCards: jest.fn(), findMarketplace: jest.fn() }
+    const controller = new XpertMarketplaceController(service as never)
+    await controller.findMarketplace(LanguagesEnum.English, {
+        view: 'cards',
+        sort: 'updated',
+        skip: '100',
+        take: '120'
+    })
+    expect(service.findCards).toHaveBeenCalledWith(100, 100)
+    await controller.findMarketplace(LanguagesEnum.English, { view: 'cards', sort: 'updated', status: 'accessible' })
+    expect(service.findMarketplace).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'accessible' }),
+        LanguagesEnum.English
+    )
+})

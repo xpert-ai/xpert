@@ -1,3 +1,5 @@
+import { useCardImages } from './use-card-images'
+import type { CatalogCache } from './catalog-cache'
 import { useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { ArrowUpRight, Layers } from 'lucide-react'
@@ -40,23 +42,29 @@ function ApplicationCardFallback({ icon }: { icon: ApplicationItem['icon'] }) {
 
 export function ApplicationCard({
   item,
+  cache,
   busy,
   onDetails,
   onUse
 }: {
+  cache: CatalogCache
   item: ApplicationItem
   busy: boolean
   onDetails: () => void
   onUse: () => void
 }) {
+  const { element, images } = useCardImages(item, cache)
+  const screenshots = images?.cover ? [images.cover] : item.screenshots
+  const icon = images?.icon ? { type: 'image' as const, value: images.icon } : item.icon
   return (
     <article
+      ref={element}
       tabIndex={0}
       aria-label={item.name}
       className="group/app relative isolate aspect-video min-h-[calc(2*var(--app-card-padding)+7.75rem+3px)] min-w-0 overflow-hidden rounded-xl border bg-muted outline-none transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring [--app-card-fade:0.75rem] [--app-card-glass:var(--background)] [--app-card-ink:var(--foreground)] [--app-card-padding:calc(var(--desktop-row-padding,10px)+0.25rem)] [--app-card-peek:calc(2*var(--app-card-padding)+2.5rem+1px)] [container-type:size] motion-reduce:transition-none"
     >
-      <ApplicationCardBackground screenshots={item.screenshots}>
-        <ApplicationCardFallback icon={item.icon} />
+      <ApplicationCardBackground screenshots={screenshots}>
+        <ApplicationCardFallback icon={icon} />
       </ApplicationCardBackground>
       <div className="absolute inset-x-0 bottom-0 isolate translate-y-[calc(100%-var(--app-card-peek))] p-[var(--app-card-padding)] text-(--app-card-ink) transition-transform duration-200 will-change-transform group-hover/app:translate-y-0 group-focus-within/app:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none">
         {/* Keep the filtered image aligned with the cover while details slide. */}
@@ -65,8 +73,8 @@ export function ApplicationCard({
           className="pointer-events-none absolute inset-x-0 -top-[var(--app-card-fade)] bottom-0 -z-10 opacity-25 [mask-image:linear-gradient(to_bottom,transparent,var(--app-card-ink))]"
         >
           <div className="absolute inset-x-0 bottom-0 h-[calc(100%-var(--app-card-fade))] translate-y-[calc(var(--app-card-peek)-100%)] transition-transform duration-200 will-change-transform group-hover/app:translate-y-0 group-focus-within/app:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none">
-            <ApplicationCardBackground screenshots={item.screenshots} blurred>
-              <ApplicationCardFallback icon={item.icon} />
+            <ApplicationCardBackground screenshots={screenshots} blurred>
+              <ApplicationCardFallback icon={icon} />
             </ApplicationCardBackground>
           </div>
         </div>
@@ -79,7 +87,7 @@ export function ApplicationCard({
           className="pointer-events-none absolute inset-x-0 -top-[var(--app-card-fade)] bottom-0 -z-10 bg-linear-to-t from-(--app-card-glass)/90 via-(--app-card-glass)/75 via-[85%] to-transparent opacity-0 dark:from-(--app-card-glass)/95 dark:via-(--app-card-glass)/90 transition-opacity duration-200 group-hover/app:opacity-100 group-focus-within/app:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
         />
         <div className="flex h-10 items-center gap-[var(--desktop-avatar-gap,10px)]">
-          <ApplicationLogo icon={item.icon} />
+          <ApplicationLogo icon={icon} />
           <div className="min-w-0 flex-1">
             <h3 className="translate-y-2 text-base leading-5 font-semibold transition-transform duration-200 group-hover/app:translate-y-0 group-focus-within/app:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none">
               <button

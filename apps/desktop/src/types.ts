@@ -396,6 +396,14 @@ export interface HostMethods {
     output: { base64: string; sha256: string; size: number; mimeType: string; name: string }
   }
   templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
+  expertCatalogPage: {
+    input: { offset: number }
+    output: { items: CatalogItem[]; total: number; nextOffset: number | null }
+  }
+  cardImages: {
+    input: { kind: 'experts'; id: string } | { kind: 'applications'; pluginName: string; appName: string }
+    output: { avatar?: string | null; cover?: string; icon?: string }
+  }
   catalogAvatar: { input: string; output: string | null }
   listCatalog: { input: CatalogItem['kind']; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }

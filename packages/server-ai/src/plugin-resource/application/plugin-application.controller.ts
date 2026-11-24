@@ -76,6 +76,19 @@ export class PluginApplicationController {
         return this.applications.getCatalog(query.installationScope)
     }
 
+    @Get('catalog/cards')
+    getCards() {
+        return this.applications.getCards()
+    }
+
+    @Get('catalog/images')
+    getCardImages(
+        @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationDetailQuery
+    ) {
+        return this.applications.getCardImages(query.pluginName, query.appName)
+    }
+
     @Get('detail')
     getDetail(
         @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))

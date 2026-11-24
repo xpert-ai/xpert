@@ -29,7 +29,7 @@ import type { CatalogItem, CatalogKind, DiscoveryWorkspace } from './catalog-typ
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 import { blankAssistant } from './catalog/blank-assistant'
 import { subscribeAppActivation } from './app-activation'
-import { createCatalogCache, isCatalogDataKind } from './catalog/catalog-cache'
+import { createCatalogCache, isCatalogDataKind, type CatalogCache } from './catalog/catalog-cache'
 import {
   templateSource,
   templateSourceGroups,
@@ -48,6 +48,7 @@ const tabs: { id: CatalogKind; label: string }[] = [
 ]
 
 export function CatalogDialog({
+  sessionCache,
   templateId,
   workspace,
   workspaces,
@@ -63,6 +64,7 @@ export function CatalogDialog({
   onClose,
   onUse
 }: {
+  sessionCache?: CatalogCache
   workspace?: DiscoveryWorkspace
   workspaces: DiscoveryWorkspace[]
   workspacesLoading: boolean
@@ -109,7 +111,7 @@ export function CatalogDialog({
     if (kind === 'plugins' && !canInstall) setKind('experts')
   }, [kind, canInstall])
   const locale = useLocale()
-  const cache = useMemo(
+  const dialogCache = useMemo(
     () =>
       createCatalogCache(
         (kind) => invoke('listCatalog', kind),
@@ -117,7 +119,9 @@ export function CatalogDialog({
       ),
     [locale, organizationId, installationScope]
   )
+  const cache = sessionCache && (kind === 'experts' || kind === 'applications') ? sessionCache : dialogCache
   const {
+    total,
     items,
     loading,
     loadingMore,
@@ -343,7 +347,8 @@ export function CatalogDialog({
               setNotice(t('Request submitted. Check its approval status in the experts list.'))
             }}
             onInstalled={() => {
-              cache.invalidate('experts')
+              const expertsCache = sessionCache ?? cache
+              expertsCache.invalidate('experts')
               if (selected.kind === 'templates') onTemplateCreated()
               if (selected.kind === 'applications') cache.invalidate('applications')
               setPluginRevision((value) => value + 1)
@@ -379,7 +384,7 @@ export function CatalogDialog({
                   >
                     {t(tab.label)}
                     {kind === tab.id && isCatalogDataKind(kind) && !loading && (
-                      <span className="ml-1 text-sm font-normal text-muted-foreground">{items.length}</span>
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">{total ?? items.length}</span>
                     )}
                   </TabsTrigger>
                 ))}
@@ -563,7 +568,9 @@ export function CatalogDialog({
               {loadingMore && (
                 <div role="status" className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <LoaderCircle className="size-4 animate-spin" />
-                  {t('Loading {{section}}…', { section: t('Agent templates') })}
+                  {t('Loading {{section}}…', {
+                    section: t(kind === 'experts' ? 'Digital experts' : 'Agent templates')
+                  })}
                 </div>
               )}
               {(error || loadError) && (
@@ -608,6 +615,7 @@ export function CatalogDialog({
                   {filtered.map((item) =>
                     item.kind === 'applications' ? (
                       <ApplicationCard
+                        cache={cache}
                         key={item.id}
                         item={item}
                         busy={busy}
@@ -622,7 +630,7 @@ export function CatalogDialog({
                         className="group/catalog relative isolate flex h-44 flex-col overflow-hidden rounded-xl border bg-background p-4 outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <div className="mb-2 flex shrink-0 items-start gap-3">
-                          <CatalogAvatar item={item} />
+                          <CatalogAvatar item={item} cache={cache} />
                           <div className="min-w-0 flex-1">
                             <h3 className="line-clamp-2 text-base leading-5 font-semibold" title={item.name}>
                               {item.name}

@@ -11,13 +11,14 @@ import {
     XpertMarketplaceCollaborationModes,
     XpertMarketplaceTechnicalCategories
 } from '@xpert-ai/contracts'
-import { BadRequestException, Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common'
 import { t } from 'i18next'
 import { I18nLang } from 'nestjs-i18n'
 import { isUUID } from 'class-validator'
 import { XpertMarketplaceService } from './xpert-marketplace.service'
 
 type XpertMarketplaceQueryParams = {
+    view?: string
     search?: string
     businessAreaIds?: string | string[]
     businessCategories?: string | string[]
@@ -46,7 +47,23 @@ export class XpertMarketplaceController {
 
     @Get('xpert-marketplace')
     async findMarketplace(@I18nLang() language: LanguagesEnum, @Query() query: XpertMarketplaceQueryParams) {
-        return this.service.findMarketplace(this.parseQuery(query), LanguagesMap[language] ?? language)
+        const parsed = this.parseQuery(query)
+        if (
+            query.view === 'cards' &&
+            parsed.sort === 'updated' &&
+            Object.keys(query).every((key) => ['view', 'sort', 'skip', 'take'].includes(key))
+        ) {
+            return this.service.findCards(
+                Math.max(0, Math.floor(parsed.skip ?? 0)),
+                Math.min(100, Math.max(1, Math.floor(parsed.take ?? 100)))
+            )
+        }
+        return this.service.findMarketplace(parsed, LanguagesMap[language] ?? language)
+    }
+
+    @Get('xpert-marketplace/:id/card-avatar')
+    cardAvatar(@Param('id', new ParseUUIDPipe()) id: string) {
+        return this.service.cardAvatar(id)
     }
 
     @Get('xpert-marketplace/:id')

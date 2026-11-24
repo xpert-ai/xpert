@@ -5,7 +5,7 @@ import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
 import type { ConversationNotice, DesktopLastSession } from './assistant-list-types'
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { Bot as BotIcon } from 'lucide-react'
 import { PersonalEventInbox } from './profile/PersonalEventInbox'
@@ -16,6 +16,7 @@ import { ComputerPermissions } from './computer-use/ComputerPermissions'
 import { FirstRunLanguage } from './FirstRunLanguage'
 import { Sidebar } from './Sidebar'
 import type { DiscoveryWorkspace } from './catalog-types'
+import { createCatalogCache } from './catalog/catalog-cache'
 import { CatalogDialog } from './CatalogDialog'
 import { HostError, invoke } from './host'
 import type { AppState, Bot, ConnectionConfig } from './types'
@@ -125,6 +126,16 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     state?.profile?.user.id ?? null,
     state?.profile?.organizationId ?? null
   ])
+
+  const catalogCache = useMemo(
+    () =>
+      createCatalogCache(
+        (kind) => invoke('listCatalog', kind),
+        undefined,
+        (offset) => invoke('expertCatalogPage', { offset })
+      ),
+    [binding, locale]
+  )
 
   useEffect(() => {
     let active = true
@@ -636,6 +647,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       )}
       {catalog && state.profile && (
         <CatalogDialog
+          sessionCache={catalogCache}
           key={binding}
           workspace={workspace}
           workspaces={workspaceOptions}

@@ -109,6 +109,8 @@ const methods = new Set([
   'listCatalog',
   'templateCatalogPage',
   'catalogAvatar',
+  'expertCatalogPage',
+  'cardImages',
   'pluginConnection',
   'preparePluginConnection',
   'startPluginConnection',

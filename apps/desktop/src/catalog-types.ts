@@ -11,16 +11,19 @@ import type {
 
 export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'connectors' | 'skills' | 'templates'
 interface CatalogBase extends Bot {
+  imageRevision?: string
   publisher: string
   categories: string[]
   tags: string[]
 }
 export interface ExpertItem extends CatalogBase {
   kind: 'experts'
+  hasCardAvatar?: boolean
   access: 'owned' | 'accessible' | 'approved' | 'requested' | 'not_requested' | 'rejected'
 }
 export interface ApplicationItem extends CatalogBase {
   kind: 'applications'
+  hasCardImages?: boolean
   installationScopes?: PluginApplicationScope[]
   icon: { type: 'image' | 'emoji'; value: string } | null
   pluginName: string
