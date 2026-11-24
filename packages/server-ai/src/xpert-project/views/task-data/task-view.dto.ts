@@ -29,6 +29,7 @@ export class ProjectTaskIndexItemDto {
     @Expose() assigneeAvatar: ProjectTaskNode['assigneeAvatar']
     @Expose() controlKind: ProjectTaskNode['controlKind']
     @Expose() pipelineInstanceId: ProjectTaskNode['pipelineInstanceId']
+    @Expose() pipelineInstanceTitle: ProjectTaskNode['pipelineInstanceTitle']
     @Expose() pipelineDisposition: ProjectTaskNode['pipelineDisposition']
     @Expose() executionCount: number
     @Expose() executionVersion: string

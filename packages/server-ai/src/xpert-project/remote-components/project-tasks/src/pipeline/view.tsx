@@ -268,7 +268,9 @@ export function PipelineView({
                     hasMore={!!next}
                     busy={busy}
                     locale={locale}
-                    onSelect={(id) => {
+                    onSelect={(item) => {
+                        if (item.id === instanceId) return
+                        setItems((items) => (items.some(({ id }) => id === item.id) ? items : [...items, item]))
                         setGraph(null)
                         setSelected(null)
                         setSelectedLane('')
@@ -276,7 +278,7 @@ export function PipelineView({
                         setRoundId('')
                         setRounds([])
                         historyFirst.current = null
-                        setInstanceId(id)
+                        setInstanceId(item.id)
                     }}
                     onMore={() => void more()}
                 />

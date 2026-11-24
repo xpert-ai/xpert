@@ -21,12 +21,22 @@ export function pipelineTaskDisposition(
 }
 
 /** Older stored tasks may lack selection metadata. Read the exact current projection without rewriting history. */
-export async function pipelineTaskDispositions(
+export async function readTaskPipelineInfo(
     manager: EntityManager,
     context: ProjectTaskContext,
     tasks: readonly XpertProjectTask[]
 ) {
-    const result = new Map<string, XpertProjectTask['pipelineDisposition']>()
+    const instancesById = new Map<string, Pick<ProjectPipelineInstanceEntity, 'title' | 'currentRoundId'>>()
+    const dispositions = new Map<string, XpertProjectTask['pipelineDisposition']>()
+    const result = { instancesById, dispositions }
+    const ids = new Set(tasks.flatMap((task) => (task.pipelineInstanceId ? [task.pipelineInstanceId] : [])))
+    if (!ids.size) return result
+    const scope = projectionScope(context)
+    const instances = await manager.find(ProjectPipelineInstanceEntity, {
+        where: { ...scope, id: In([...ids]) },
+        select: { id: true, title: true, currentRoundId: true }
+    })
+    for (const instance of instances) instancesById.set(instance.id, instance)
     const candidates = tasks.filter(
         (task) =>
             task.pipelineInstanceId &&
@@ -34,11 +44,9 @@ export async function pipelineTaskDispositions(
             task.pipelineDisposition !== 'superseded'
     )
     if (!candidates.length) return result
-    const scope = projectionScope(context)
-    const instances = await manager.find(ProjectPipelineInstanceEntity, {
-        where: { ...scope, id: In([...new Set(candidates.map((task) => task.pipelineInstanceId))]) }
-    })
-    const roundIds = instances.flatMap((instance) => (instance.currentRoundId ? [instance.currentRoundId] : []))
+    const roundIds = [
+        ...new Set(candidates.map((task) => instancesById.get(task.pipelineInstanceId)?.currentRoundId).filter(Boolean))
+    ]
     if (!roundIds.length) return result
     const nodes = await manager.find(ProjectPipelineNodeEntity, {
         where: { ...scope, roundId: In(roundIds), disposition: 'active' }
@@ -56,14 +64,15 @@ export async function pipelineTaskDispositions(
         nodes.map((node) => [node.id, projectPipelineProjectionNodeSchema.parse(node.projection)])
     )
     for (const task of candidates) {
-        const instance = instances.find((instance) => instance.id === task.pipelineInstanceId)
+        const instance = instancesById.get(task.pipelineInstanceId)
         const owners = nodes.filter(
             (node) =>
                 node.roundId === instance?.currentRoundId &&
                 node.taskIds.includes(task.id) &&
                 links.some((link) => link.taskId === task.id && link.nodeInstanceId === node.id)
         )
-        if (owners.length) result.set(task.id, pipelineTaskDisposition(owners.map((node) => projections.get(node.id)!)))
+        if (owners.length)
+            dispositions.set(task.id, pipelineTaskDisposition(owners.map((node) => projections.get(node.id)!)))
     }
     return result
 }
