@@ -4,6 +4,7 @@ import { managedPipelineFixture } from './testing/pipeline-managed.fixture'
 import { registerManagedCases1 } from './testing/pipeline-managed-1.cases'
 import { registerManagedCases2 } from './testing/pipeline-managed-2.cases'
 import { registerManagedCases3 } from './testing/pipeline-managed-3.cases'
+import { registerCancellationTargetCases } from './testing/pipeline-cancellation-target.cases'
 
 const integration = process.env.XPERT_PIPELINE_TEST_DATABASE_URL ? describe : describe.skip
 integration('managed pipeline launch and adapter execution', () => {
@@ -11,5 +12,6 @@ integration('managed pipeline launch and adapter execution', () => {
     registerManagedCases1(fixture)
     registerManagedCases2(fixture)
     registerManagedCases3(fixture)
+    registerCancellationTargetCases(fixture)
     registerCoordinationReviewCases(fixture)
 })

@@ -6,6 +6,7 @@ import {
     projectPipelineCancelSchema,
     projectPipelineRetrySchema,
     type ProjectPipelineCancel,
+    type ProjectPipelineCancelReceipt,
     type ProjectPipelineRetry
 } from '@xpert-ai/contracts'
 import { ProjectPipelineContributionRegistry, type ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
@@ -30,7 +31,7 @@ import { lockManagedProject, managedAudit } from './pipeline-transaction'
 import { pipelineRetryReason } from './pipeline-retry'
 import { sealPipelineHumanWaitSnapshot } from '../persistence/pipeline-human-wait-snapshot'
 
-/** Version-bound user commands. They only write intents; workers own all external effects. */
+/** Cancellation targets a stable run; retry remains version-bound. Workers own external effects. */
 @Injectable()
 export class ProjectPipelineLifecycleService {
     constructor(
@@ -41,13 +42,16 @@ export class ProjectPipelineLifecycleService {
         private readonly coordinator: ProjectPipelineCoordinatorService
     ) {}
 
-    async cancel(context: ProjectPipelineContext, request: ProjectPipelineCancel) {
+    async cancel(
+        context: ProjectPipelineContext,
+        request: ProjectPipelineCancel
+    ): Promise<ProjectPipelineCancelReceipt> {
         const input = projectPipelineCancelSchema.parse(request)
         await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
         return this.instances.manager.transaction(async (manager) => {
             await lockManagedProject(manager, context)
-            const { instance, run, round, replay } = await this.command(manager, context, 'cancel', input)
-            if (replay) return this.receipt(instance)
+            const { instance, run, round, replay } = await this.command(manager, context, { kind: 'cancel', input })
+            if (replay) return { ...this.receipt(instance), runId: run.id, roundId: round.id, state: run.state }
             if (!['active', 'pending', 'waiting', 'cancelling'].includes(run.state))
                 throw pipelineProjectionConflict('RUN_STATE_CONFLICT')
             run.state = 'cancelling'
@@ -116,9 +120,9 @@ export class ProjectPipelineLifecycleService {
             )
             await sealPipelineHumanWaitSnapshot(manager, context, pipelineIdentity(context, 'command', input.requestId))
             await finishPipelineCancellation(manager, context, run.id)
-            return this.receipt(
-                await manager.findOneByOrFail(ProjectPipelineInstanceEntity, { ...scope, id: instance.id })
-            )
+            const current = await manager.findOneByOrFail(ProjectPipelineInstanceEntity, { ...scope, id: instance.id })
+            const cancelled = await manager.findOneByOrFail(ProjectPipelineRunEntity, { ...scope, id: run.id })
+            return { ...this.receipt(current), runId: run.id, roundId: round.id, state: cancelled.state }
         })
     }
 
@@ -127,7 +131,7 @@ export class ProjectPipelineLifecycleService {
         await this.access.assertEdit({ actor: context.actor, projectId: context.projectId })
         return this.instances.manager.transaction(async (manager) => {
             await lockManagedProject(manager, context)
-            const { instance, run, round, replay } = await this.command(manager, context, 'retry', input)
+            const { instance, run, round, replay } = await this.command(manager, context, { kind: 'retry', input })
             if (replay) return this.receipt(instance)
             assertPipelineDispatchEnabled()
             const scope = projectionScope(context)
@@ -178,9 +182,9 @@ export class ProjectPipelineLifecycleService {
     private async command(
         manager: EntityManager,
         context: ProjectPipelineContext,
-        kind: 'cancel' | 'retry',
-        input: ProjectPipelineCancel | ProjectPipelineRetry
+        command: { kind: 'cancel'; input: ProjectPipelineCancel } | { kind: 'retry'; input: ProjectPipelineRetry }
     ) {
+        const { kind, input } = command
         const scope = projectionScope(context)
         const instance = await manager.findOneByOrFail(ProjectPipelineInstanceEntity, {
             ...scope,
@@ -195,13 +199,23 @@ export class ProjectPipelineLifecycleService {
         const event = await manager.findOneBy(ProjectPipelineEventEntity, { ...scope, id })
         if (event && (event.instanceId !== instance.id || event.payload.digest !== digest))
             throw pipelineProjectionConflict('COMMAND_INPUT_IMMUTABLE')
-        const run = await manager.findOneByOrFail(ProjectPipelineRunEntity, { ...scope, id: instance.currentRunId })
-        const round = await manager.findOneByOrFail(ProjectPipelineRoundEntity, {
+        const run = await manager.findOneByOrFail(ProjectPipelineRunEntity, {
             ...scope,
-            id: instance.currentRoundId
+            instanceId: instance.id,
+            id: kind === 'cancel' ? input.runId : instance.currentRunId
         })
+        const round = await manager.findOneOrFail(ProjectPipelineRoundEntity, {
+            where: { ...scope, runId: run.id, ...(kind === 'retry' ? { id: instance.currentRoundId } : {}) },
+            order: { sequence: 'DESC' }
+        })
+        // A late cancellation observes its original terminal run, without touching a newer run or its revision.
+        if (kind === 'cancel' && ['completed', 'failed', 'cancelled', 'superseded'].includes(run.state))
+            return { instance, run, round, replay: true }
+        if (kind === 'cancel' && run.id !== instance.currentRunId)
+            throw pipelineProjectionConflict('RUN_STATE_CONFLICT')
         if (!event) {
-            if (instance.revision !== input.expectedRevision) throw pipelineProjectionConflict('RUN_REVISION_CONFLICT')
+            if (kind === 'retry' && instance.revision !== input.expectedRevision)
+                throw pipelineProjectionConflict('RUN_REVISION_CONFLICT')
             instance.revision += 1
             await manager.save(instance)
             await manager.insert(ProjectPipelineEventEntity, {

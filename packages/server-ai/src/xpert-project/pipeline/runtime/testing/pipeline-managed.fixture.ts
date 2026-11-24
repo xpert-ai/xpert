@@ -642,6 +642,11 @@ export function managedPipelineFixture() {
         expectedRevision: (await db.getRepository(ProjectPipelineInstanceEntity).findOneByOrFail({ id: instanceId }))
             .revision
     })
+    const cancelInput = async (instanceId: string) => ({
+        instanceId,
+        requestId: randomUUID(),
+        runId: (await db.getRepository(ProjectPipelineInstanceEntity).findOneByOrFail({ id: instanceId })).currentRunId!
+    })
     const launchAssistant = () =>
         request(async () => {
             const config = projectPipelineConfigurationSchema.parse({
@@ -672,7 +677,7 @@ export function managedPipelineFixture() {
             const launched = await launchAssistant(),
                 operation = (await operations())[0]
             await request(() => runner.run(context, operation.id))
-            await lifecycle.cancel(context, await commandInput(launched.instanceId))
+            await lifecycle.cancel(context, await cancelInput(launched.instanceId))
             nativeCancel.mockResolvedValueOnce({ canceledExecutionIds: [operation.id] })
             nativeStatus.mockResolvedValueOnce({
                 status: 'interrupted',
@@ -750,7 +755,7 @@ export function managedPipelineFixture() {
                 .getRepository(ProjectPipelineInstanceEntity)
                 .findOneByOrFail({ id: launched.instanceId })
             const input = { instanceId: instance.id, expectedRevision: instance.revision, requestId: randomUUID() }
-            if (mode === 'cancel') await lifecycle.cancel(context, input)
+            if (mode === 'cancel') await lifecycle.cancel(context, await cancelInput(instance.id))
             else {
                 subjectVersion = '2'
                 await rounds.next(context, input)
@@ -936,6 +941,9 @@ export function managedPipelineFixture() {
         },
         get commandInput() {
             return commandInput
+        },
+        get cancelInput() {
+            return cancelInput
         },
         get launchAssistant() {
             return launchAssistant

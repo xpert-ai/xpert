@@ -11,6 +11,7 @@ import type {
   ProjectPipelineEvidenceRef,
   ProjectPipelineJsonValue,
   ProjectPipelineCancel,
+  ProjectPipelineCancelReceipt,
   ProjectPipelineRetry,
   ProjectPipelineRoundSummary,
   ProjectPipelineCatalog,
@@ -152,7 +153,7 @@ export interface ProjectPipelineCommandsApi {
   start(context: ProjectPipelineContext, request: ProjectPipelineStart): Promise<ProjectPipelineStartReceipt>
   decide(context: ProjectPipelineContext, request: ProjectPipelineDecision): Promise<{ decisionId: string }>
   nextRound(context: ProjectPipelineContext, request: ProjectPipelineNextRound): Promise<ProjectPipelineStartReceipt>
-  cancel(context: ProjectPipelineContext, request: ProjectPipelineCancel): Promise<ProjectPipelineStartReceipt>
+  cancel(context: ProjectPipelineContext, request: ProjectPipelineCancel): Promise<ProjectPipelineCancelReceipt>
   retry(context: ProjectPipelineContext, request: ProjectPipelineRetry): Promise<ProjectPipelineStartReceipt>
 }
 export const ProjectPipelineCommandsRuntimeCapability = createRuntimeCapability<ProjectPipelineCommandsApi>(
