@@ -1,4 +1,4 @@
-/** Admission refresh has its own serial loop: slow rollout bookkeeping must not expire business admission. */
+/** Business and execution-control checks have independent serial loops and expiry fences. */
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { Logger, OnApplicationBootstrap, OnModuleDestroy } from '@nestjs/common'
 import { RuntimePluginAdmission } from './runtime-plugin-admission'
@@ -10,6 +10,7 @@ export class RuntimeAdmissionMonitor implements OnApplicationBootstrap, OnModule
 	private readonly eventLoopDelay = monitorEventLoopDelay({ resolution: 20 })
 	private timer?: ReturnType<typeof setInterval>
 	private pending?: ReturnType<RuntimePluginAdmission['refresh']>
+	private controlsPending?: Promise<void>
 	constructor(
 		private readonly admission: RuntimePluginAdmission,
 		private readonly generations: PluginRuntimeGenerationStore,
@@ -38,10 +39,11 @@ export class RuntimeAdmissionMonitor implements OnApplicationBootstrap, OnModule
 		this.eventLoopDelay.disable()
 	}
 	refresh(): ReturnType<RuntimePluginAdmission['refresh']> {
+		this.refreshControlCapabilities()
 		if (this.pending) return this.pending
 		const startedAt = Date.now()
-		this.pending = this.refreshControls()
-			.then(() => this.admission.refresh(this.generations, this.readRollout))
+		this.pending = this.admission
+			.refresh(this.generations, this.readRollout)
 			.catch((error: unknown) => {
 				this.logger.warn(
 					JSON.stringify({
@@ -59,5 +61,28 @@ export class RuntimeAdmissionMonitor implements OnApplicationBootstrap, OnModule
 				this.pending = undefined
 			})
 		return this.pending
+	}
+	private refreshControlCapabilities(): void {
+		if (this.controlsPending) return
+		const startedAt = Date.now()
+		// Control capabilities keep their own short validity. A slow/failed schema read
+		// must fence controlled launches without expiring independently verified business traffic.
+		this.controlsPending = Promise.resolve()
+			.then(() => this.refreshControls())
+			.catch((error: unknown) => {
+				this.logger.warn(
+					JSON.stringify({
+						event: 'runtime.control-admission.check-failed',
+						durationMs: Date.now() - startedAt,
+						error: error instanceof Error ? error.message : String(error)
+					})
+				)
+			})
+			.finally(() => {
+				const durationMs = Date.now() - startedAt
+				if (durationMs >= 1_000)
+					this.logger.warn(JSON.stringify({ event: 'runtime.control-admission.check-slow', durationMs }))
+				this.controlsPending = undefined
+			})
 	}
 }
