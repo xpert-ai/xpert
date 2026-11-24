@@ -49,6 +49,9 @@ def arguments():
     logs = sub.add_parser('logs')
     logs.add_argument('--service', choices=(*SERVICES, 'bootstrap', 'supervisor', 'initdb', 'terminal'), default='api')
     logs.add_argument('--lines', type=int, default=60)
+    retry = sub.add_parser('retry-plugin-startup', help='After repairing a bootstrap failure, prepare one explicit API retry')
+    retry.add_argument('--snapshot', required=True, help='Replica snapshot filename reported by status')
+    retry.add_argument('--expected-sha256', required=True, help='Exact snapshot digest reported by status')
     init = sub.add_parser('initialize')
     init.add_argument('--email', default='developer@xpert.local')
     init.add_argument('--name', default='Xpert Development', help='Development organization display name')
@@ -64,6 +67,7 @@ def arguments():
 
 
 def status(config):
+    from plugin_recovery import inspect_snapshots
     services = {name: {'pid': service_pid(config, name), 'port': config['ports'][name],
                        'healthy': healthy(config, name), 'progress': read_progress(config, name)} for name in SERVICES}
     state = Path(config['state'])
@@ -87,7 +91,8 @@ def status(config):
         'recovery': {'pending': restore_pending,
             'nextAction': 'Resume the original checkpoint restore command' if restore_pending else None},
         'administratorLastVerification': json.loads((state / 'administrator.json').read_text()) if (state / 'administrator.json').exists() else None,
-        'pluginAcceptance': 'requires_separate_runtime_test'}
+        'pluginAcceptance': 'requires_separate_runtime_test',
+        'pluginStartup': inspect_snapshots(config) if config.get('identity', {}).get('XPERT_PLUGIN_PATH') else []}
     atomic_json(state / 'status.json', result)
     return result
 
@@ -146,6 +151,12 @@ def main():
             return int(result['status'] in ('not_ready', 'identity_mismatch'))
         if (state / 'restore-pending.json').exists() and args.action != 'stop':
             raise RuntimeError('Restore is incomplete; resume checkpoint restore before changing this environment')
+        if args.action == 'retry-plugin-startup':
+            from plugin_recovery import retry_startup
+            if not args.project_root:
+                raise RuntimeError('Offline retry requires the explicit --project-root binding')
+            print(json.dumps(retry_startup(config, args.snapshot, args.expected_sha256), indent=2))
+            return 0
         if args.action == 'bootstrap':
             bootstrap_source(config)
         elif args.action == 'build':
