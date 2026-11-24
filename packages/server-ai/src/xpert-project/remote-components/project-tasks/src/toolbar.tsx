@@ -32,6 +32,8 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import type { Node } from './bridge'
 import type { Texts } from './i18n'
+import { PipelineInstanceSelect } from './pipeline/instance-select'
+import { pipelineTexts } from './pipeline/i18n'
 import { type Filters, type Grouping, type Sort, type View, statuses, owner } from './model'
 import { Choice, IconButton } from './ui'
 import { TimelineControls, TimelineMenuItems, type TimelineControlsProps } from './timeline-controls'
@@ -39,6 +41,7 @@ import { TimelineControls, TimelineMenuItems, type TimelineControlsProps } from 
 export type Fields = { status: boolean; assignee: boolean; attempts: boolean; dates: boolean }
 export function Toolbar({
     t,
+    locale,
     tasks,
     view,
     filters,
@@ -54,6 +57,7 @@ export function Toolbar({
     timeline
 }: {
     t: Texts
+    locale: string
     tasks: Node[]
     view: View
     filters: Filters
@@ -117,7 +121,9 @@ export function Toolbar({
         filters.statuses.length +
         Number(!!filters.assignee) +
         Number(!!filters.kind) +
+        Number(!!filters.pipelineInstance) +
         Number(!!filters.includeInactive)
+    const pipeline = pipelineTexts(locale)
     const owners = new Map(
         tasks.map((task) => [task.assigneeXpertId ?? 'unassigned', owner(task, t.unassigned, t.unnamedAssistant)])
     )
@@ -151,6 +157,22 @@ export function Toolbar({
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-72 space-y-4">
                     <p className="font-semibold">{t.filter}</p>
+                    {(filters.pipelineInstance || tasks.some((task) => task.pipelineInstanceId)) && (
+                        <div className="space-y-1">
+                            <Label>{pipeline.instanceFilter}</Label>
+                            <PipelineInstanceSelect
+                                label={pipeline.instanceFilter}
+                                currentTitle={filters.pipelineInstance?.title ?? pipeline.allInstances}
+                                instanceId={filters.pipelineInstance?.id ?? null}
+                                locale={locale}
+                                className="w-full"
+                                onSelect={({ id, title }) =>
+                                    setFilters({ ...filters, pipelineInstance: { id, title } })
+                                }
+                                onClear={() => setFilters({ ...filters, pipelineInstance: undefined })}
+                            />
+                        </div>
+                    )}
                     {tasks.some((task) => task.pipelineDisposition && task.pipelineDisposition !== 'active') && (
                         <Label className="gap-2">
                             <Checkbox

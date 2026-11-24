@@ -9,7 +9,7 @@ import { pipelineExecutionOwners } from './pipeline-execution-owners'
 import { pipelineDispatchEnabled } from '../runtime/pipeline-dispatch-policy'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { MoreThan, Repository } from 'typeorm'
+import { ILike, MoreThan, Repository } from 'typeorm'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
 import {
@@ -71,11 +71,17 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
         return readable[0]
     }
 
-    async list(context: ProjectPipelineContext, input: { after?: string; limit?: number } = {}) {
+    async list(context: ProjectPipelineContext, input: { after?: string; limit?: number; search?: string } = {}) {
         await this.assertRead(context)
         const limit = Math.min(100, Math.max(1, input.limit ?? 30))
+        const search = input.search?.trim()
         const rows = await this.instances.find({
-            where: { ...projectionScope(context), ...(input.after ? { id: MoreThan(input.after) } : {}) },
+            where: {
+                ...projectionScope(context),
+                ...(input.after ? { id: MoreThan(input.after) } : {}),
+                ...(search ? { title: ILike(`%${search.replace(/[\\%_]/g, '\\$&')}%`) } : {})
+            },
+            select: ['id', 'title', 'authority', 'ownerRef', 'sourceKey', 'revision', 'updatedAt'],
             order: { id: 'ASC' },
             take: limit + 1
         })

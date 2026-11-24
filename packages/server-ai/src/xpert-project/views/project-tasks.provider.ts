@@ -280,7 +280,10 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                 )
             }
         if (actionKey === 'pipeline-list') {
-            const input = z.object({ after: z.string().uuid().optional() }).strict().parse(request.input)
+            const input = z
+                .object({ after: z.string().uuid().optional(), search: z.string().trim().max(200).optional() })
+                .strict()
+                .parse(request.input)
             return { success: true, data: await this.pipelines.list(this.context(context), input) }
         }
         if (actionKey === 'pipeline-rounds') {

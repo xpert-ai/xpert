@@ -10,6 +10,7 @@ export interface Filters {
     statuses: string[]
     assignee: string
     kind: string
+    pipelineInstance?: { id: string; title: string }
     includeInactive?: boolean
 }
 export interface TaskRow {
@@ -27,17 +28,19 @@ export interface GroupRow {
 }
 export type Row = TaskRow | GroupRow
 export const initialFilters: Filters = { search: '', statuses: [], assignee: '', kind: '' }
-export function matches(task: Node, filters: Filters) {
-    return (
-        (filters.includeInactive || !task.pipelineDisposition || task.pipelineDisposition === 'active') &&
-        (!filters.search || task.title.toLocaleLowerCase().includes(filters.search.trim().toLocaleLowerCase())) &&
-        (!filters.statuses.length || filters.statuses.includes(task.status)) &&
-        (!filters.assignee || (task.assigneeXpertId ?? 'unassigned') === filters.assignee) &&
-        (!filters.kind || task.kind === filters.kind)
-    )
-}
 export function filteredTasks(tasks: Node[], filters: Filters, sort: Sort): Node[] {
-    const result = tasks.filter((task) => matches(task, filters))
+    const search = filters.search.trim().toLocaleLowerCase()
+    const result = tasks.filter(
+        (task) =>
+            (filters.includeInactive || !task.pipelineDisposition || task.pipelineDisposition === 'active') &&
+            (!filters.pipelineInstance || task.pipelineInstanceId === filters.pipelineInstance.id) &&
+            (!search ||
+                task.title.toLocaleLowerCase().includes(search) ||
+                task.pipelineInstanceTitle?.toLocaleLowerCase().includes(search)) &&
+            (!filters.statuses.length || filters.statuses.includes(task.status)) &&
+            (!filters.assignee || (task.assigneeXpertId ?? 'unassigned') === filters.assignee) &&
+            (!filters.kind || task.kind === filters.kind)
+    )
     if (sort === 'title') result.sort((a, b) => a.title.localeCompare(b.title))
     if (sort === 'start')
         result.sort(
@@ -56,13 +59,17 @@ export function buildRows(
     sort: Sort
 ): Row[] {
     const matches = filteredTasks(tasks, filters, sort)
-    const children = new Map<string | null, Node[]>()
-    const byId = new Map(tasks.map((task) => [task.id, task]))
-    tasks.forEach((task) => {
-        const key = task.parentTaskId && byId.has(task.parentTaskId) ? task.parentTaskId : null
-        children.set(key, [...(children.get(key) ?? []), task])
-    })
     if (grouping === 'hierarchy') {
+        const instanceId = filters.pipelineInstance?.id
+        const scoped = instanceId ? tasks.filter((task) => task.pipelineInstanceId === instanceId) : tasks
+        const byId = new Map(scoped.map((task) => [task.id, task]))
+        const children = new Map<string | null, Node[]>()
+        for (const task of scoped) {
+            const parent = task.parentTaskId && byId.has(task.parentTaskId) ? task.parentTaskId : null
+            const siblings = children.get(parent)
+            if (siblings) siblings.push(task)
+            else children.set(parent, [task])
+        }
         const included = new Set(matches.map((task) => task.id))
         matches.forEach((task) => {
             let parent = task.parentTaskId
@@ -73,7 +80,12 @@ export function buildRows(
                 parent = byId.get(parent)?.parentTaskId ?? null
             }
         })
-        const filtering = !!filters.search.trim() || !!filters.statuses.length || !!filters.kind || !!filters.assignee
+        const filtering =
+            !!filters.pipelineInstance ||
+            !!filters.search.trim() ||
+            !!filters.statuses.length ||
+            !!filters.kind ||
+            !!filters.assignee
         const result: Row[] = [],
             visited = new Set<string>(),
             matched = new Set(matches.map((task) => task.id))

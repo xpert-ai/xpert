@@ -146,4 +146,19 @@ describe('generic project task views', () => {
         expect(isRunning({ ...attempt, invocationStatus: 'running' })).toBe(true)
         expect(isRunning({ ...attempt, invocationStatus: 'waiting' })).toBe(false)
     })
+    it('matches instance names and filters instances with identical names by identity', () => {
+        const instance = { id: 'first', title: 'Inspection 104' }
+        const entries = [
+            task('a', { title: 'Prepare', pipelineInstanceId: instance.id, pipelineInstanceTitle: instance.title }),
+            task('b', { title: 'Prepare', pipelineInstanceId: 'second', pipelineInstanceTitle: instance.title }),
+            task('c', { title: 'Prepare' })
+        ]
+        expect(filteredTasks(entries, { ...initialFilters, search: 'INSPECTION 10' }, 'source')).toEqual(
+            entries.slice(0, 2)
+        )
+        const filters = { ...initialFilters, search: 'prepare', pipelineInstance: instance }
+        expect(filteredTasks(entries, filters, 'source')).toEqual([entries[0]])
+        expect(filteredTasks(entries, { ...filters, statuses: ['done'] }, 'source')).toEqual([])
+        expect(buildRows(entries, filters, 'hierarchy', new Set(), 'source')).toHaveLength(1)
+    })
 })
