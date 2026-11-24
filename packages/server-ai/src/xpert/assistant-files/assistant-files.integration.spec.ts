@@ -161,7 +161,7 @@ describe('Assistant file authority integration', () => {
                 AssertAppPlatformUploadHandler,
                 {
                     provide: DataSource,
-                    useValue: { manager: { getRepository: () => ({ findOneBy: async () => null }) } }
+                    useValue: { manager: { getRepository: () => ({ find: async () => [] }) } }
                 },
                 { provide: PublishedXpertAccessService, useValue: published },
                 { provide: XpertService, useValue: xperts }
