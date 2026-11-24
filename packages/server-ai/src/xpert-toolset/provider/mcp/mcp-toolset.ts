@@ -34,6 +34,7 @@ import { _BaseToolset } from '../../../shared/tools/toolset'
 import {
     buildMcpAppComponentMessage,
     detachMcpAppInstancesForClient,
+    getMcpToolAppMeta,
     registerMcpAppInstance,
     waitForMcpAppInstancePersistence
 } from './app-support'
@@ -103,7 +104,9 @@ function wrapMCPTool(
         responseFormat: tool.responseFormat,
         defaultConfig: tool.defaultConfig,
         verboseParsingErrors: tool.verboseParsingErrors,
-        metadata: tool.metadata,
+        metadata: getMcpToolAppMeta(tool)?.ui?.resourceUri
+            ? { ...tool.metadata, publicToolPresentation: tool.metadata?.publicToolPresentation ?? { tool: tool.name } }
+            : tool.metadata,
         func: async (input, runManager, config) => {
             const runnableConfig = config
             mcpStdioRuntimeManager.touchClient(client)

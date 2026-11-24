@@ -1,3 +1,4 @@
+import { toolErrorEvent } from '../../xpert-agent/tool-presentation'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { BaseMessage, ToolMessage, AIMessage, isBaseMessage } from '@langchain/core/messages'
 import { RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'
@@ -203,10 +204,10 @@ export class ToolNode<T = any> extends RunnableCallable<T, T> {
                         throw e
                     }
 
-                    await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_ERROR, {
-                        toolCall: call,
-                        error: getErrorMessage(e)
-                    })
+                    await dispatchCustomEvent(
+                        ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+                        toolErrorEvent(call, getErrorMessage(e), tool)
+                    )
 
                     return new ToolMessage({
                         status: 'error',

@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common'
 import { ToolMessage } from '@langchain/core/messages'
+import { Command } from '@langchain/langgraph'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { z } from 'zod/v3'
@@ -12,7 +13,8 @@ import {
 } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { createMapStreamEvents } from './agent'
-import { runtimeMessageContent } from '../ai/runtime-presentation'
+import { runtimeMessageContent, runtimeStreamPayload } from '../ai/runtime-presentation'
+import { toolErrorEvent } from './tool-presentation'
 
 jest.mock('../shared', () => {
     const streamText = jest.requireActual('../shared/agent/stream-text')
@@ -174,7 +176,7 @@ describe('createMapStreamEvents', () => {
             { unmutes: [] }
         )
         const call = { tags: [], run_id: 'run', metadata: { tool_call_id: 'call' } }
-        map({ ...call, event: 'on_tool_start', name: 'inspect', data: { input: 'private arguments' } })
+        map({ ...call, event: 'on_tool_start', name: 'inspect', data: { input: { query: 'evidence' } } })
         map({
             ...call,
             event: 'on_custom_event',
@@ -187,10 +189,133 @@ describe('createMapStreamEvents', () => {
                 data: { token: 'private token' }
             }
         })
-        map({ ...call, event: 'on_tool_end', name: 'inspect', data: { output: 'private result' } })
+        map({ ...call, event: 'on_tool_end', name: 'inspect', data: { output: 'evidence found' } })
         const published = runtimeMessageContent(history.content)
-        expect(published).toMatchObject([{ id: 'call', data: { tool: 'inspect', status: 'success' } }])
+        expect(published).toMatchObject([
+            {
+                id: 'call',
+                data: { tool: 'inspect', status: 'success', input: { query: 'evidence' }, output: 'evidence found' }
+            }
+        ])
         expect(JSON.stringify(published)).not.toContain('private')
+    })
+
+    it('shows ordinary tool details in live and reopened conversations, including empty input and falsy results', () => {
+        const history = { id: 'reply', role: 'ai', content: '' } as CopilotChatMessage
+        const next = jest.fn(({ data }) => {
+            expect(runtimeStreamPayload(data)).toEqual(data)
+            appendMessageContent(history, data.data)
+        })
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const event = { name: 'order_aftercare_read', metadata: { tool_call_id: 'call' }, tags: [] }
+        map({ ...event, event: 'on_tool_start', data: { input: { input: '{}' } } })
+        map({
+            ...event,
+            event: 'on_tool_end',
+            data: {
+                output: new ToolMessage({
+                    tool_call_id: 'call',
+                    content: '{"records":2,"accessToken":"private token"}',
+                    artifact: { secret: 'private artifact' }
+                })
+            }
+        })
+        const update = { id: 'call', category: 'Tool', tool: 'order_aftercare_read', status: 'success' }
+        for (const output of [false, 0, '', null]) {
+            map({
+                ...event,
+                event: 'on_custom_event',
+                name: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+                data: { ...update, output }
+            })
+            expect(runtimeMessageContent(history.content)).toMatchObject([{ data: { input: {}, output } }])
+        }
+        expect(next.mock.calls[1][0].data.data.data.output).toEqual('{"records":2,"accessToken":"[REDACTED]"}')
+        expect(JSON.stringify(next.mock.calls)).not.toContain('private')
+    })
+
+    it.each([
+        { tool: 'lookup' },
+        { tool: 'lookup', output: 'misconfigured' },
+        { tool: 'lookup', output: () => undefined },
+        { tool: 'lookup', output: () => 'x'.repeat(32_769) }
+    ])('keeps a filtered call closed across late updates and calls sharing its ID', (declaration) => {
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const event = { name: 'lookup', metadata: { tool_call_id: 'call' }, tags: [] }
+        map({
+            ...event,
+            event: 'on_tool_start',
+            metadata: { ...event.metadata, publicToolPresentation: declaration },
+            data: { input: 'private' }
+        })
+        map({ ...event, event: 'on_tool_end', data: { output: 'private' } })
+        for (const tool of ['lookup', 'nested', undefined]) {
+            map({
+                ...event,
+                event: 'on_custom_event',
+                name: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+                data: {
+                    id: 'call',
+                    tool,
+                    category: 'Tool',
+                    status: 'success',
+                    output: 'private'
+                }
+            })
+        }
+        expect(next).toHaveBeenCalledTimes(5)
+        expect(JSON.stringify(next.mock.calls)).not.toContain('private')
+    })
+
+    it('displays a validation failure under the registered tool policy before a start event', () => {
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const error = (id: string, registered: { name: string; metadata?: Record<string, unknown> }) => {
+            map({
+                event: 'on_custom_event',
+                name: ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+                metadata: {},
+                tags: [],
+                data: toolErrorEvent({ name: registered.name, args: {}, id }, 'order not found', registered)
+            })
+            return next.mock.lastCall[0].data.data.data
+        }
+        expect(error('1', { name: 'read' })).toMatchObject({ status: 'fail', error: 'order not found' })
+        expect(error('2', { name: 'read', metadata: { publicToolPresentation: { tool: 'read' } } })).not.toHaveProperty(
+            'error'
+        )
+        expect(
+            error('3', { name: 'read', metadata: { publicToolPresentation: { tool: 'read', error: () => 'retry' } } })
+        ).toMatchObject({ error: 'retry' })
+    })
+
+    it('keeps graph state out of default tool results and preserves the display input without modifying model arguments', () => {
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const event = { name: 'lookup', metadata: { tool_call_id: 'call' }, tags: [] }
+        const input = { nested: [{ changeSummary: 'private', token: 'private', count: 0 }] }
+        map({ ...event, event: 'on_tool_start', data: { input } })
+        expect(next.mock.lastCall[0].data.data.data.input).toEqual({ nested: [{ token: '[REDACTED]', count: 0 }] })
+        expect(input.nested[0]).toEqual({ changeSummary: 'private', token: 'private', count: 0 })
+        map({ ...event, event: 'on_tool_end', data: { output: new Command({ update: { state: 'private' } }) } })
+        expect(next.mock.lastCall[0].data.data.data).not.toHaveProperty('output')
     })
 
     it('does not publish raw custom tool output or fall back when a declaration fails', () => {
@@ -526,7 +651,7 @@ describe('createMapStreamEvents', () => {
             id: 'tool-call-1',
             data: { tool: 'query_data_xpert', toolPresentation: 'redacted' }
         })
-        expect(publicRow.data).not.toHaveProperty('output')
+        expect(publicRow.data.output).toBe('{"ok":true}')
         expect(publicRow.data).not.toHaveProperty('artifact')
         expect(subscriber.next).toHaveBeenCalledWith(
             expect.objectContaining({

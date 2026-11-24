@@ -7,9 +7,9 @@ import { TAvatar } from '../types'
 import { IXpertToolset } from './xpert-toolset.model'
 
 /**
- * Set metadata.publicToolPresentation on the registered server-side tool.
- * Callbacks return only JSON safe for conversation participants. An omitted
- * phase or undefined return publishes no details. No callback is serialized.
+ * Optional allowlist for tool details visible to conversation participants.
+ * Without a declaration, ordinary tool inputs, results and errors are visible.
+ * A declaration exposes only the phases and values it explicitly projects.
  */
 export interface PublicToolPresentation {
   tool: string
