@@ -7,7 +7,7 @@ Changesets versions the private `@xpert-ai/desktop` app; it is never published t
 
 | Platform | Architecture          | GitHub runner      | Installers       |
 | -------- | --------------------- | ------------------ | ---------------- |
-| macOS    | Apple Silicon / arm64 | `macos-15`         | DMG, ZIP         |
+| macOS    | Apple Silicon / arm64 | `macos-26`         | DMG, ZIP         |
 | macOS    | Intel / x64           | `macos-15-intel`   | DMG, ZIP         |
 | Windows  | x64                   | `windows-2025`     | NSIS EXE, ZIP    |
 | Windows  | arm64                 | `windows-11-arm`   | NSIS EXE, ZIP    |

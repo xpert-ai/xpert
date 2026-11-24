@@ -65,8 +65,8 @@ function fixture(textResultPolicy?: ToolImageTextResultPolicy) {
         listArtifactVersions: jest.fn(async () => [version])
     }
     const images = new ToolImageArtifacts(artifacts, files, scope, source, textResultPolicy)
-    const save = async () => {
-        const png = await sharp({ create: { width: 8, height: 6, channels: 3, background: '#336699' } })
+    const save = async (background = '#336699') => {
+        const png = await sharp({ create: { width: 8, height: 6, channels: 3, background } })
             .png()
             .toBuffer()
         const presentation = await images.save({ buffer: png, mimeType: 'image/png', title: 'Screenshot' })
@@ -96,6 +96,78 @@ function fixture(textResultPolicy?: ToolImageTextResultPolicy) {
 describe('Tool image artifacts', () => {
     beforeAll(async () => {
         await i18next.init({ lng: 'en', resources: {} })
+    })
+    it('sends both sequential comparison images, rechecks historical access, and leaves checkpoints unchanged', async () => {
+        const first = fixture(),
+            second = fixture()
+        const a = await first.save(),
+            b = await second.save('#ff3300')
+        const firstArtifact = await first.artifacts.getArtifact()
+        const otherArtifact = { ...(await second.artifacts.getArtifact()), id: 'other' }
+        const [v] = await second.artifacts.listArtifactVersions()
+        const otherVersion = {
+            ...v,
+            id: 'other-version',
+            artifactId: 'other',
+            workspaceFileRef: { ...v.workspaceFileRef!, filePath: 'other.png' }
+        }
+        const api = new ToolImageArtifacts(
+            {
+                ...first.artifacts,
+                getArtifact: async (id) => (id === 'other' ? otherArtifact : firstArtifact),
+                listArtifactVersions: async (input) =>
+                    input.artifactId === 'other' ? [otherVersion] : first.artifacts.listArtifactVersions()
+            },
+            {
+                ...first.files,
+                readRuntimeBuffer: async (reference) => ({
+                    ...(await first.files.readRuntimeBuffer()),
+                    buffer: typeof reference !== 'string' && reference.filePath === 'other.png' ? b.png : a.png
+                })
+            },
+            scope,
+            source
+        )
+        const messages = [
+            ...a.messages,
+            new AIMessage({ content: '', tool_calls: [{ name: toolName, id: 'other-call', args: {} }] }),
+            new ToolMessage({
+                name: toolName,
+                tool_call_id: 'other-call',
+                content: 'Other document',
+                artifact: {
+                    ...b.presentation,
+                    attachments: b.presentation.attachments.map((image) => ({
+                        ...image,
+                        artifactId: 'other',
+                        artifactVersionId: 'other-version'
+                    }))
+                }
+            })
+        ]
+        const original = JSON.stringify(messages)
+        const result = await api.prepareModelInput(messages, [toolName])
+        expect(JSON.stringify(result.messages.at(-1)?.content).match(/data:image\/png;base64/g)).toHaveLength(2)
+        expect(JSON.stringify(messages)).toBe(original)
+        const calls = ['b1', 'b2', 'b3'].map((id) => ({ id, name: toolName, args: {} }))
+        const current = messages.at(-1) as ToolMessage
+        const fullRound = [
+            ...a.messages,
+            new AIMessage({ content: '', tool_calls: calls }),
+            ...calls.map(
+                (call) =>
+                    new ToolMessage({
+                        name: toolName,
+                        tool_call_id: call.id,
+                        content: current.content,
+                        artifact: current.artifact
+                    })
+            )
+        ]
+        const bounded = await api.prepareModelInput(fullRound, [toolName])
+        expect(JSON.stringify(bounded.messages.at(-1)?.content).match(/data:image\/png;base64/g)).toHaveLength(3)
+        firstArtifact.status = 'archived'
+        await expect(api.prepareModelInput(messages, [toolName])).rejects.toThrow()
     })
     it('hydrates images from multiple action tools while allowing non-image results in the same family', async () => {
         const f = fixture()
