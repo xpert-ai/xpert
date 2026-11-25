@@ -113,7 +113,6 @@ export class AssistantsController {
     }
 
     @Get(':id/models')
-    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     async getModels(@Param('id') id: string) {
         const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
@@ -123,7 +122,6 @@ export class AssistantsController {
     }
 
     @Put(':id/model-preference')
-    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     async setModelPreference(@Param('id') id: string, @Body() input: TAssistantModelPreferenceInput) {
         if (!input || !Object.prototype.hasOwnProperty.call(input, 'model_id')) {
             throw new BadRequestException(

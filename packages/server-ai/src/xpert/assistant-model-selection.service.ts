@@ -1,8 +1,6 @@
-import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import {
     IXpert,
     ModelAccessUnavailableReasonEnum,
-    SecretTokenBindingType,
     TAssistantModelsResponse,
     TAssistantModelSelectionError,
     TAssistantPrimaryModelSelection,
@@ -22,6 +20,7 @@ import {
     sanitizeAssistantCopilotModel,
     ValidAssistantCopilotModel
 } from './assistant-model-selection.util'
+import { isAssistantUserSession } from '../shared/assistant-user-session'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
 import { platformFailure } from '../plugin-resource/app-platform/platform-error'
 
@@ -59,13 +58,13 @@ export class AssistantModelSelectionService {
 
     async getModels(xpert: AssistantModelXpert): Promise<TAssistantModelsResponse> {
         const assistantId = this.requireAssistantId(xpert)
-        const candidates = this.getCandidates(xpert)
+        const preferencePersistable = isAssistantUserSession()
+        const candidates = this.getCandidates(xpert).filter((candidate) => preferencePersistable || candidate.default)
         const accessInput = this.getAccessInput(xpert, candidates)
         const [availableIds, labels] = await Promise.all([
             this.getAvailableIds(xpert, candidates, accessInput),
             accessInput ? this.modelAccessService.getCatalogModelLabels(accessInput) : Promise.resolve([])
         ])
-        const preferencePersistable = this.isPreferencePersistable()
         let preference = preferencePersistable
             ? await this.userPreferenceService.getDomain(assistantId, 'modelSelection')
             : null
@@ -80,19 +79,21 @@ export class AssistantModelSelectionService {
         const selectedModelId =
             preference?.selectedModelId ?? (primary && availableIds.has(primary.id) ? primary.id : null)
 
+        const language = RequestContext.getLanguageCode()
         return {
-            models: candidates.map((candidate, index) => ({
-                id: candidate.id,
-                label:
-                    resolveI18nText(labels[index]?.modelLabel, RequestContext.getLanguageCode()) ??
-                    candidate.model.model,
-                description:
-                    resolveI18nText(labels[index]?.providerLabel, RequestContext.getLanguageCode()) ??
-                    candidate.model.copilotId,
-                ...(this.getProviderAvatar(labels[index], accessInput?.organizationId) ?? {}),
-                ...(candidate.default && availableIds.has(candidate.id) ? { default: true } : {}),
-                ...(!availableIds.has(candidate.id) ? { disabled: true } : {})
-            })),
+            models: candidates.flatMap((candidate, index) => {
+                if (!availableIds.has(candidate.id)) return []
+                const label = labels[index]
+                return [
+                    {
+                        id: candidate.id,
+                        label: resolveI18nText(label?.modelLabel, language) ?? candidate.model.model,
+                        description: resolveI18nText(label?.providerLabel, language),
+                        ...this.getProviderAvatar(label, accessInput?.organizationId),
+                        ...(candidate.default ? { default: true } : {})
+                    }
+                ]
+            }),
             selected_model_id: selectedModelId,
             preference_persistable: preferencePersistable
         }
@@ -100,7 +101,7 @@ export class AssistantModelSelectionService {
 
     async setPreference(xpert: AssistantModelXpert, modelId: string | null): Promise<TAssistantModelsResponse> {
         const assistantId = this.requireAssistantId(xpert)
-        if (!this.isPreferencePersistable()) {
+        if (!isAssistantUserSession()) {
             throw new ForbiddenException(
                 t('server-ai:Error.AssistantModelPreferenceForbidden', {
                     defaultValue: 'This authentication principal cannot persist an Assistant model preference.'
@@ -112,7 +113,7 @@ export class AssistantModelSelectionService {
         const candidates = this.getCandidates(xpert)
         const primary = candidates.find((candidate) => candidate.default) ?? null
 
-        if (!normalizedModelId || normalizedModelId === primary?.id) {
+        if (!normalizedModelId) {
             await this.userPreferenceService.clearDomain(assistantId, 'modelSelection')
             return this.getModels(xpert)
         }
@@ -127,9 +128,11 @@ export class AssistantModelSelectionService {
             throw this.selectionError(candidate.id, 'ASSISTANT_MODEL_UNAVAILABLE')
         }
 
-        await this.userPreferenceService.setDomain(assistantId, 'modelSelection', {
-            selectedModelId: candidate.id
-        })
+        if (candidate.id === primary?.id) {
+            await this.userPreferenceService.clearDomain(assistantId, 'modelSelection')
+        } else {
+            await this.userPreferenceService.setDomain(assistantId, 'modelSelection', { selectedModelId: candidate.id })
+        }
         return this.getModels(xpert)
     }
 
@@ -148,43 +151,39 @@ export class AssistantModelSelectionService {
             )
         }
 
-        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT)) {
+        const resolvePrimary = async (
+            source: 'default' | 'explicit' | 'fallback'
+        ): Promise<TAssistantPrimaryModelSelection> => {
+            await this.assertPrimaryAvailable(xpert, primary)
+            return { id: primary.id, model: primary.model, source }
+        }
+        if (!isAssistantUserSession()) {
             if (options.explicitModelId && options.explicitModelId !== primary.id) {
                 throw this.selectionError(options.explicitModelId, 'ASSISTANT_MODEL_NOT_ALLOWED')
             }
-            const input = this.getAccessInput(xpert, [primary])
-            if (!input) throw platformFailure('application_primary_model_unavailable', 403)
-            const { models, ...scope } = input
-            const access = await this.modelAccessService.resolveModelAccess({ ...scope, ...models[0] })
-            if (access.unavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted)
-                throw platformFailure('application_credit_limit', 402)
-            if (access.unavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired)
-                throw platformFailure('application_trial_unavailable', 403)
-            if (!access.allowed) throw platformFailure('application_primary_model_unavailable', 403)
-            return { id: primary.id, model: primary.model, source: 'default' }
+            return resolvePrimary('default')
         }
 
         const continuationModelId = options.continuationModelId?.trim()
+        const availableIds = await this.getAvailableIds(xpert, candidates)
         if (continuationModelId) {
-            const snapshot = sanitizeAssistantCopilotModel(options.continuationModelSnapshot)
-            const configured = candidates.find((candidate) => candidate.id === continuationModelId)
-            const continuationModel = snapshot ?? configured?.model
-            if (continuationModel) {
+            const continued = candidates.find((candidate) => candidate.id === continuationModelId)
+            if (continued && availableIds.has(continued.id)) {
                 return {
-                    id: continuationModelId,
-                    model: continuationModel,
+                    id: continued.id,
+                    model: this.restoreModel(continued, options.continuationModelSnapshot),
                     source: options.continuationSource ?? 'default'
                 }
             }
+            return resolvePrimary('fallback')
         }
-
-        const availableIds = await this.getAvailableIds(xpert, candidates)
         const explicitModelId = options.explicitModelId?.trim()
         if (explicitModelId) {
             const explicit = candidates.find((candidate) => candidate.id === explicitModelId)
             if (!explicit) {
                 throw this.selectionError(explicitModelId, 'ASSISTANT_MODEL_NOT_ALLOWED')
             }
+            if (explicit.id === primary.id) return resolvePrimary('explicit')
             if (!availableIds.has(explicit.id)) {
                 throw this.selectionError(explicitModelId, 'ASSISTANT_MODEL_UNAVAILABLE')
             }
@@ -197,16 +196,14 @@ export class AssistantModelSelectionService {
             if (retry && availableIds.has(retry.id)) {
                 return {
                     id: retry.id,
-                    model: options.retryModelSnapshot
-                        ? (sanitizeAssistantCopilotModel(options.retryModelSnapshot) ?? retry.model)
-                        : retry.model,
+                    model: this.restoreModel(retry, options.retryModelSnapshot),
                     source: 'retry'
                 }
             }
-            return { id: primary.id, model: primary.model, source: 'fallback' }
+            return resolvePrimary('fallback')
         }
 
-        if (!options.ignorePreference && this.isPreferencePersistable()) {
+        if (!options.ignorePreference) {
             const preference = await this.userPreferenceService.getDomain(assistantId, 'modelSelection')
             if (preference) {
                 const preferred = candidates.find((candidate) => candidate.id === preference.selectedModelId)
@@ -215,11 +212,28 @@ export class AssistantModelSelectionService {
                 }
                 await this.userPreferenceService.clearDomain(assistantId, 'modelSelection', preference)
                 applicationMetrics.recordInvalidAssistantModelPreference('unavailable')
-                return { id: primary.id, model: primary.model, source: 'fallback' }
+                return resolvePrimary('fallback')
             }
         }
 
-        return { id: primary.id, model: primary.model, source: 'default' }
+        return resolvePrimary('default')
+    }
+
+    private restoreModel(candidate: AssistantModelCandidate, snapshot?: TCopilotModel | null) {
+        const model = sanitizeAssistantCopilotModel(snapshot)
+        return model && getAssistantModelId(model) === candidate.id ? model : candidate.model
+    }
+
+    private async assertPrimaryAvailable(xpert: AssistantModelXpert, primary: AssistantModelCandidate) {
+        const input = this.getAccessInput(xpert, [primary])
+        if (!input) throw platformFailure('application_primary_model_unavailable', 403)
+        const { models, ...scope } = input
+        const access = await this.modelAccessService.resolveModelAccess({ ...scope, ...models[0] })
+        if (access.unavailableReason === ModelAccessUnavailableReasonEnum.QuotaExhausted)
+            throw platformFailure('application_credit_limit', 402)
+        if (access.unavailableReason === ModelAccessUnavailableReasonEnum.MembershipRequired)
+            throw platformFailure('application_trial_unavailable', 403)
+        if (!access.allowed) throw platformFailure('application_primary_model_unavailable', 403)
     }
 
     private selectionError(modelId: string, code: TAssistantModelSelectionError['code']) {
@@ -250,20 +264,6 @@ export class AssistantModelSelectionService {
             )
         }
         return getAssistantModelId(normalized)
-    }
-
-    isPreferencePersistable(): boolean {
-        if (!RequestContext.hasPermission(AIPermissionsEnum.XPERT_EDIT)) return false
-        const principal =
-            typeof RequestContext.currentApiPrincipal === 'function' ? RequestContext.currentApiPrincipal() : null
-        if (!principal) {
-            return Boolean(RequestContext.currentUserId())
-        }
-        return (
-            principal.principalType === 'client_secret' &&
-            (principal.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT ||
-                principal.clientSecretBindingType === SecretTokenBindingType.ENTERPRISE_XPERT)
-        )
     }
 
     private getCandidates(xpert: AssistantModelXpert): AssistantModelCandidate[] {

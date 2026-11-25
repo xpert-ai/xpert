@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, LanguagesEnum, ModelAccessUnavailableReasonEnum, RolesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    LanguagesEnum,
+    ModelAccessUnavailableReasonEnum,
+    RolesEnum,
+    SecretTokenBindingType,
+    UserType
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
@@ -27,7 +34,11 @@ describe('AssistantModelSelectionService', () => {
         setDomain: jest.Mock
         clearDomain: jest.Mock
     }
-    let modelAccessService: { canUseCatalogModels: jest.Mock; getCatalogModelLabels: jest.Mock; resolveModelAccess: jest.Mock }
+    let modelAccessService: {
+        canUseCatalogModels: jest.Mock
+        getCatalogModelLabels: jest.Mock
+        resolveModelAccess: jest.Mock
+    }
     let configService: { get: jest.Mock }
     let service: AssistantModelSelectionService
 
@@ -36,6 +47,7 @@ describe('AssistantModelSelectionService', () => {
         jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', type: UserType.USER })
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization-1')
         userPreferenceService = {
@@ -60,13 +72,73 @@ describe('AssistantModelSelectionService', () => {
         [ModelAccessUnavailableReasonEnum.MembershipRequired, 'application_trial_unavailable', 403],
         [ModelAccessUnavailableReasonEnum.QuotaExhausted, 'application_credit_limit', 402],
         [ModelAccessUnavailableReasonEnum.ModelDisabled, 'application_primary_model_unavailable', 403]
-    ])('returns an application business error for %s without exposing model configuration', async (reason, code, status) => {
-        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
-        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.APP_USER } })
-        modelAccessService.resolveModelAccess.mockResolvedValue({ allowed: false, unavailableReason: reason })
-        await expect(service.resolveSelection(xpert)).rejects.toMatchObject({ status, response: { code } })
-        expect(userPreferenceService.getDomain).not.toHaveBeenCalled()
-    })
+    ])(
+        'returns an application business error for %s without exposing model configuration',
+        async (reason, code, status) => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+                id: 'user-1',
+                type: UserType.USER,
+                role: { name: RolesEnum.APP_USER }
+            } as ReturnType<typeof RequestContext.currentUser>)
+            modelAccessService.resolveModelAccess.mockResolvedValue({ allowed: false, unavailableReason: reason })
+            await expect(service.resolveSelection(xpert)).rejects.toMatchObject({ status, response: { code } })
+        }
+    )
+
+    it.each([null, SecretTokenBindingType.USER_XPERT, SecretTokenBindingType.ENTERPRISE_XPERT])(
+        'uses only the member’s published, available choices and personal preference via %s',
+        async (auth) => {
+            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+                id: 'user-1',
+                type: UserType.USER,
+                role: { name: RolesEnum.APP_USER }
+            } as ReturnType<typeof RequestContext.currentUser>)
+            if (auth) {
+                ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+                    principalType: 'client_secret',
+                    clientSecretBindingType: auth,
+                    requestedUserId: 'user-1'
+                })
+            }
+            const fastId = service.getModelId(fast)
+            await service.setPreference(xpert, fastId)
+            expect(userPreferenceService.setDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
+                selectedModelId: fastId
+            })
+            userPreferenceService.getDomain.mockResolvedValue({ selectedModelId: fastId })
+            await expect(service.getModels(xpert)).resolves.toMatchObject({
+                selected_model_id: fastId,
+                preference_persistable: true
+            })
+            await expect(service.resolveSelection(xpert)).resolves.toMatchObject({ id: fastId, source: 'preference' })
+            await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).resolves.toMatchObject({
+                id: fastId,
+                source: 'explicit'
+            })
+            modelAccessService.canUseCatalogModels.mockImplementation(async ({ models }) =>
+                models.map((model) => model.copilotModelId === primary.model)
+            )
+            await expect(service.setPreference(xpert, fastId)).rejects.toMatchObject({
+                response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
+            })
+            await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).rejects.toMatchObject({
+                response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
+            })
+            const catalog = await service.getModels(xpert)
+            expect(catalog.models.map((model) => model.id)).toEqual([service.getModelId(primary)])
+            expect(userPreferenceService.clearDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
+                selectedModelId: fastId
+            })
+            await expect(
+                service.resolveSelection(xpert, { continuationModelId: fastId, continuationModelSnapshot: fast })
+            ).resolves.toMatchObject({ model: primary, source: 'fallback' })
+            await expect(service.setPreference(xpert, 'unpublished')).rejects.toMatchObject({
+                response: { code: 'ASSISTANT_MODEL_NOT_ALLOWED' }
+            })
+        }
+    )
 
     it('returns Primary first and a saved available preference', async () => {
         const fastId = service.getModelId(fast)
@@ -126,7 +198,7 @@ describe('AssistantModelSelectionService', () => {
 
         expect(userPreferenceService.clearDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', preference)
         expect(result.selected_model_id).toBe(service.getModelId(primary))
-        expect(result.models[1]?.disabled).toBe(true)
+        expect(result.models.map((model) => model.id)).toEqual([service.getModelId(primary)])
     })
 
     it('uses explicit selection ahead of preference and rejects invalid ids', async () => {
@@ -152,7 +224,11 @@ describe('AssistantModelSelectionService', () => {
                 continuationModelSnapshot: { ...fast, options: { temperature: 0.7 } },
                 continuationSource: 'explicit'
             })
-        ).resolves.toMatchObject({ id: sourceId, source: 'explicit' })
+        ).resolves.toMatchObject({
+            id: sourceId,
+            source: 'explicit',
+            model: { ...fast, options: { temperature: 0.7 } }
+        })
 
         await expect(service.resolveSelection(xpert as never, { retryModelId: 'mdl_removed' })).resolves.toMatchObject({
             id: service.getModelId(primary),
@@ -200,30 +276,18 @@ describe('AssistantModelSelectionService', () => {
             principalType: 'api_key'
         } as never)
 
-        expect(service.isPreferencePersistable()).toBe(false)
+        expect((await service.getModels(xpert)).preference_persistable).toBe(false)
         await expect(service.setPreference(xpert as never, service.getModelId(fast))).rejects.toBeInstanceOf(
             ForbiddenException
         )
     })
 
-    it.each([SecretTokenBindingType.PUBLIC_XPERT, SecretTokenBindingType.ENTERPRISE_XPERT])(
-        'allows stable client-secret users to persist preferences (%s)',
-        (bindingType) => {
-            ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
-                principalType: 'client_secret',
-                clientSecretBindingType: bindingType
-            })
-
-            expect(service.isPreferencePersistable()).toBe(true)
-        }
-    )
-
-    it('does not persist preferences for other client-secret bindings', () => {
+    it('does not persist a user session preference without a matching acting member', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT
         })
 
-        expect(service.isPreferencePersistable()).toBe(false)
+        expect((await service.getModels(xpert)).preference_persistable).toBe(false)
     })
 })
