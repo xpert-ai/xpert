@@ -11,6 +11,7 @@ import {
     TAssistantModelPreferenceInput
 } from '@xpert-ai/contracts'
 import {
+    PublicVisitorChatGuard,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -87,6 +88,7 @@ export class AssistantsController {
     }
 
     @Get(':id')
+    @UseGuards(PublicVisitorChatGuard)
     async getOne(@Param('id') id: string) {
         const item = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
@@ -95,6 +97,7 @@ export class AssistantsController {
     }
 
     @Get(':id/runtime-capabilities')
+    @UseGuards(PublicVisitorChatGuard)
     @ApiQuery({ name: 'isDraft', required: false, type: Boolean })
     @ApiQuery({ name: 'projectId', required: false, type: String })
     async getRuntimeCapabilities(
@@ -113,6 +116,7 @@ export class AssistantsController {
     }
 
     @Get(':id/models')
+    @UseGuards(PublicVisitorChatGuard)
     async getModels(@Param('id') id: string) {
         const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
             relations: ASSISTANT_RELATIONS
@@ -122,6 +126,7 @@ export class AssistantsController {
     }
 
     @Put(':id/model-preference')
+    @UseGuards(PublicVisitorChatGuard)
     async setModelPreference(@Param('id') id: string, @Body() input: TAssistantModelPreferenceInput) {
         if (!input || !Object.prototype.hasOwnProperty.call(input, 'model_id')) {
             throw new BadRequestException(

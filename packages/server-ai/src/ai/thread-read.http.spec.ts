@@ -5,6 +5,7 @@ jest.mock('../chat-conversation/thread-run-control.service', () => ({ ThreadRunC
 jest.mock('@xpert-ai/server-core', () => ({
     Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
+    ...jest.requireActual('../../../server/src/shared/guards/public-visitor-chat.guard'),
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,
     Public: () => () => undefined,

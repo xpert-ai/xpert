@@ -39,7 +39,13 @@ jest.mock('./types', () => ({
     }
 }))
 
-import { DEFAULT_XPERT_WORKSPACE_DATA_SCOPE, TagCategoryEnum, UserType } from '@xpert-ai/contracts'
+import {
+    DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
+    type IApiPrincipal,
+    SecretTokenBindingType,
+    TagCategoryEnum,
+    UserType
+} from '@xpert-ai/contracts'
 import { RequestContext as RuntimeRequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveAssistantPrincipalCommand } from './assistant-principal/resolve-assistant-principal.command'
 import { GetAccessiblePublishedXpertQuery } from './published-agent/get-accessible-published-xpert.query'
@@ -165,6 +171,25 @@ describe('XpertService command facade', () => {
                 new GetAccessiblePublishedXpertQuery('assistant', ['agent'])
             )
             expect(f.repository.findOne).not.toHaveBeenCalled()
+            expect(f.workspaceAccessService.assertCanAuthor).not.toHaveBeenCalled()
+        })
+        it('uses the public visitor’s published Assistant grant without requiring workspace membership', async () => {
+            const f = createService()
+            const principal: IApiPrincipal = {
+                id: 'visitor',
+                tenantId: 'tenant-1',
+                type: UserType.COMMUNICATION,
+                principalType: 'client_secret',
+                clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+                resourceScope: { kind: 'assistant', xpertId: 'assistant' }
+            }
+            jest.spyOn(RuntimeRequestContext, 'currentUser').mockReturnValue(principal)
+            jest.spyOn(RuntimeRequestContext, 'currentApiPrincipal').mockReturnValue(principal)
+            f.queryBus.execute
+                .mockResolvedValueOnce({ id: 'assistant' })
+                .mockRejectedValueOnce(new ForbiddenException())
+            await expect(f.service.findOneForRuntime('assistant')).resolves.toMatchObject({ id: 'assistant' })
+            await expect(f.service.findOneForRuntime('other')).rejects.toMatchObject({ status: 403 })
             expect(f.workspaceAccessService.assertCanAuthor).not.toHaveBeenCalled()
         })
         it('does not fall back to workspace access for a revoked grant or an ungranted Assistant', async () => {

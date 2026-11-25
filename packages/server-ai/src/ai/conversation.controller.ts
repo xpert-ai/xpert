@@ -25,6 +25,7 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
+    PublicVisitorChatGuard,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     OperatorValue,
@@ -146,6 +147,7 @@ export class ConversationsController {
     ) {}
 
     @Post()
+    @UseGuards(PublicVisitorChatGuard)
     async createConversation(@Body() body: ConversationCreateRequest) {
         const publicScope = getPublicXpertSessionConversationScope()
         const xpertId = publicScope?.xpertId ?? this.normalizeString(body.xpertId)
@@ -249,6 +251,7 @@ export class ConversationsController {
 
     @HttpCode(HttpStatus.OK)
     @Post('search')
+    @UseGuards(PublicVisitorChatGuard)
     async searchConversations(@Body() body: ConversationSearchRequest) {
         const where = transformWhere(body.where ?? {})
         where['purpose'] = 'private'
@@ -333,12 +336,14 @@ export class ConversationsController {
     }
 
     @Get(':conversation_id')
+    @UseGuards(PublicVisitorChatGuard)
     async getConversation(@Param('conversation_id', UUIDValidationPipe) id: string) {
         const conversation = await this.ensureConversationAccess(id)
         return new ConversationDTO(conversation)
     }
 
     @Patch(':conversation_id')
+    @UseGuards(PublicVisitorChatGuard)
     async updateConversation(
         @Param('conversation_id', UUIDValidationPipe) id: string,
         @Body() body: ConversationUpdateRequest
@@ -393,6 +398,7 @@ export class ConversationsController {
     }
 
     @Get(':conversation_id/threads')
+    @UseGuards(PublicVisitorChatGuard)
     async listConversationThreads(@Param('conversation_id', UUIDValidationPipe) conversationId: string) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
         if (!this.conversationThreadService) return []
@@ -428,6 +434,7 @@ export class ConversationsController {
     }
 
     @Get(':conversation_id/messages')
+    @UseGuards(PublicVisitorChatGuard)
     async listMessages(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Query('limit') limit?: number,
@@ -453,6 +460,7 @@ export class ConversationsController {
 
     @HttpCode(HttpStatus.OK)
     @Post(':conversation_id/messages/search')
+    @UseGuards(PublicVisitorChatGuard)
     async searchMessages(
         @Param('conversation_id', UUIDValidationPipe) conversationId: string,
         @Body() body: MessageSearchRequest

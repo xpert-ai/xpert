@@ -6,6 +6,7 @@ jest.mock('@xpert-ai/server-core', () => {
     return {
         assistantRuntimeCredential: () => null,
         AllowClientSecretBindings: () => () => undefined,
+        ...jest.requireActual('../../../server/src/shared/guards/public-visitor-chat.guard'),
         ApiKeyOrClientSecretAuthGuard: class {},
         Public: () => () => undefined,
         Permissions: () => () => undefined,
@@ -127,10 +128,18 @@ jest.mock('./public-xpert-principal', () => ({
     getPublicXpertSessionConversationScope: jest.fn()
 }))
 
+import { GUARDS_METADATA } from '@nestjs/common/constants'
+import { PublicVisitorChatGuard } from '@xpert-ai/server-core'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
 import { ConversationsController } from './conversation.controller'
+
+it('admits a public visitor when ChatKit searches the messages in their conversation', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, ConversationsController.prototype.searchMessages)).toContain(
+        PublicVisitorChatGuard
+    )
+})
 
 describe('ConversationsController searchConversations', () => {
     it('matches title fragments without case sensitivity and retains actor scope', async () => {

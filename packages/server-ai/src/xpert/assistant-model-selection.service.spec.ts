@@ -86,59 +86,61 @@ describe('AssistantModelSelectionService', () => {
         }
     )
 
-    it.each([null, SecretTokenBindingType.USER_XPERT, SecretTokenBindingType.ENTERPRISE_XPERT])(
-        'uses only the member’s published, available choices and personal preference via %s',
-        async (auth) => {
-            jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
-            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
-                id: 'user-1',
-                type: UserType.USER,
-                role: { name: RolesEnum.APP_USER }
-            } as ReturnType<typeof RequestContext.currentUser>)
-            if (auth) {
-                ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
-                    principalType: 'client_secret',
-                    clientSecretBindingType: auth,
-                    requestedUserId: 'user-1'
-                })
-            }
-            const fastId = service.getModelId(fast)
-            await service.setPreference(xpert, fastId)
-            expect(userPreferenceService.setDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
-                selectedModelId: fastId
-            })
-            userPreferenceService.getDomain.mockResolvedValue({ selectedModelId: fastId })
-            await expect(service.getModels(xpert)).resolves.toMatchObject({
-                selected_model_id: fastId,
-                preference_persistable: true
-            })
-            await expect(service.resolveSelection(xpert)).resolves.toMatchObject({ id: fastId, source: 'preference' })
-            await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).resolves.toMatchObject({
-                id: fastId,
-                source: 'explicit'
-            })
-            modelAccessService.canUseCatalogModels.mockImplementation(async ({ models }) =>
-                models.map((model) => model.copilotModelId === primary.model)
-            )
-            await expect(service.setPreference(xpert, fastId)).rejects.toMatchObject({
-                response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
-            })
-            await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).rejects.toMatchObject({
-                response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
-            })
-            const catalog = await service.getModels(xpert)
-            expect(catalog.models.map((model) => model.id)).toEqual([service.getModelId(primary)])
-            expect(userPreferenceService.clearDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
-                selectedModelId: fastId
-            })
-            await expect(
-                service.resolveSelection(xpert, { continuationModelId: fastId, continuationModelSnapshot: fast })
-            ).resolves.toMatchObject({ model: primary, source: 'fallback' })
-            await expect(service.setPreference(xpert, 'unpublished')).rejects.toMatchObject({
-                response: { code: 'ASSISTANT_MODEL_NOT_ALLOWED' }
+    it.each([
+        null,
+        SecretTokenBindingType.USER_XPERT,
+        SecretTokenBindingType.ENTERPRISE_XPERT,
+        SecretTokenBindingType.PUBLIC_XPERT
+    ])('uses only the member’s published, available choices and personal preference via %s', async (auth) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+            id: 'user-1',
+            type: UserType.USER,
+            role: { name: RolesEnum.APP_USER }
+        } as ReturnType<typeof RequestContext.currentUser>)
+        if (auth) {
+            ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+                principalType: 'client_secret',
+                clientSecretBindingType: auth,
+                requestedUserId: auth === SecretTokenBindingType.PUBLIC_XPERT ? null : 'user-1'
             })
         }
-    )
+        const fastId = service.getModelId(fast)
+        await service.setPreference(xpert, fastId)
+        expect(userPreferenceService.setDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
+            selectedModelId: fastId
+        })
+        userPreferenceService.getDomain.mockResolvedValue({ selectedModelId: fastId })
+        await expect(service.getModels(xpert)).resolves.toMatchObject({
+            selected_model_id: fastId,
+            preference_persistable: true
+        })
+        await expect(service.resolveSelection(xpert)).resolves.toMatchObject({ id: fastId, source: 'preference' })
+        await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).resolves.toMatchObject({
+            id: fastId,
+            source: 'explicit'
+        })
+        modelAccessService.canUseCatalogModels.mockImplementation(async ({ models }) =>
+            models.map((model) => model.copilotModelId === primary.model)
+        )
+        await expect(service.setPreference(xpert, fastId)).rejects.toMatchObject({
+            response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
+        })
+        await expect(service.resolveSelection(xpert, { explicitModelId: fastId })).rejects.toMatchObject({
+            response: { code: 'ASSISTANT_MODEL_UNAVAILABLE' }
+        })
+        const catalog = await service.getModels(xpert)
+        expect(catalog.models.map((model) => model.id)).toEqual([service.getModelId(primary)])
+        expect(userPreferenceService.clearDomain).toHaveBeenCalledWith('assistant-1', 'modelSelection', {
+            selectedModelId: fastId
+        })
+        await expect(
+            service.resolveSelection(xpert, { continuationModelId: fastId, continuationModelSnapshot: fast })
+        ).resolves.toMatchObject({ model: primary, source: 'fallback' })
+        await expect(service.setPreference(xpert, 'unpublished')).rejects.toMatchObject({
+            response: { code: 'ASSISTANT_MODEL_NOT_ALLOWED' }
+        })
+    })
 
     it('returns Primary first and a saved available preference', async () => {
         const fastId = service.getModelId(fast)

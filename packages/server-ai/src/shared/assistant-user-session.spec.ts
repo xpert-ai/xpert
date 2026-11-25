@@ -43,6 +43,16 @@ describe('isAssistantUserSession', () => {
         expect(isAssistantUserSession()).toBe(false)
     })
 
+    it('accepts the public visitor identity without a delegated platform account', () => {
+        const visitor: IApiPrincipal = {
+            id: 'visitor',
+            type: UserType.COMMUNICATION,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT
+        }
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue(visitor)
+        expect(isAssistantUserSession()).toBe(true)
+    })
     it.each([SecretTokenBindingType.API_KEY, SecretTokenBindingType.USER_CONVERSATION])(
         'rejects the %s binding even when its user ID matches',
         (clientSecretBindingType) => {
