@@ -115,6 +115,22 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         throw new NotFoundException(`Thread "${threadId}" not found`)
     }
 
+    /** Caller authorizes manage access; update only the label without clobbering runtime metadata. */
+    async renameThread(threadId: string, title: string): Promise<ChatConversationThread> {
+        const thread = await this.requireByThreadId(threadId)
+        await this.repository
+            .createQueryBuilder()
+            .update()
+            .set({
+                metadata: () => `jsonb_set(COALESCE(metadata, '{}'::jsonb), '{title}', to_jsonb(CAST(:title AS text)))`
+            })
+            .where({ id: thread.id, conversationId: thread.conversationId })
+            .setParameter('title', title)
+            .execute()
+        thread.metadata = { ...thread.metadata, title }
+        return thread
+    }
+
     async listByConversation(conversationId: string): Promise<ChatConversationThread[]> {
         const result = await this.findAllInOrganizationOrTenant({
             where: { conversationId },

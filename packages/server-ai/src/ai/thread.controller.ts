@@ -1,3 +1,4 @@
+import { threadTitlePatchSchema, ThreadTitlePatch } from '../chat-conversation/thread-title.schema'
 import { MessageWidgets } from '../chat-message/widgets/message-widgets'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
@@ -184,8 +185,25 @@ export class ThreadsController {
     }
 
     @Patch(':thread_id')
-    async patchThread(@Param('thread_id') thread_id: string, @Body() thread: components['schemas']['ThreadPatch']) {
-        throw new UnimplementedException()
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    async patchThread(
+        @Param('thread_id') threadId: string,
+        @Body(
+            new ZodValidationPipe(
+                threadTitlePatchSchema,
+                () =>
+                    new BadRequestException(
+                        'A thread title must contain 1–200 characters; other metadata cannot be patched.'
+                    )
+            )
+        )
+        body: ThreadTitlePatch
+    ) {
+        await this.ensureThreadAccess(threadId, 'manage')
+        if (!this.conversationThreadService) throw new UnimplementedException()
+        const thread = await this.conversationThreadService.renameThread(threadId, body.metadata.title)
+        const { ThreadDTO } = await import('./dto/thread.dto')
+        return new ThreadDTO(thread.conversation, {}, thread)
     }
 
     @HttpCode(HttpStatus.ACCEPTED)
