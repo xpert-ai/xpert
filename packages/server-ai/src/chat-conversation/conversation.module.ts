@@ -1,3 +1,4 @@
+import { ReadSideChatTitleHandler, SaveSideChatTitleHandler } from './side-chat-title/handlers'
 import { ExecutionContextLifecycleModule } from '@xpert-ai/server-core'
 import { ThreadControlProjection } from './control-view/thread-control-projection.entity'
 import { ThreadControlViewService } from './control-view/thread-control-view.service'
@@ -92,6 +93,8 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
         ChatConversationSidebarService,
         ChatConversationThreadService,
         SideChatForkService,
+        ReadSideChatTitleHandler,
+        SaveSideChatTitleHandler,
         ThreadRunControlService,
         ThreadRecoveryService,
         ChatConversationGoalService,
@@ -102,6 +105,7 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
         ...QueryHandlers
     ],
     exports: [
+        ChatConversationSidebarService,
         ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadReferenceService,

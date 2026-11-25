@@ -96,3 +96,26 @@ The **Edit profile** dialog separates personal display overrides from shared aut
 - Concurrent edits are checked with a revision. A failed publish is reported as a saved draft, and an uncertain request is never automatically retried.
 
 For shared group projects, member assignment, dependencies and batch execution, see [Group Project Tasks](/en/guides/group-project-tasks). The capability enables task tools; group project setup separately binds the selected Assistants and retains normal Project authorization.
+
+## Workspace toolset dependencies
+
+A capability may declare existing MCP connections through `IAssistantCapabilityProvider.toolsets`:
+
+```ts
+readonly toolsets = [{
+  bindingKey: 'vendor.documents',
+  category: 'mcp' as const,
+  requiredTools: ['find_documents', 'read_document'],
+  // targetAgentKey: 'Researcher' // Omit to bind the primary Agent.
+}]
+```
+
+The connection owner prepares a toolset in the authoring workspace with `options.capabilityBindingKey = 'vendor.documents'`. The platform treats that identity as opaque. Endpoint URLs, credentials, domain resource permissions and business Assistant identity belong to the connection owner and its MCP service. A capability does not create a connection or grant access.
+
+Pass `workspaceId` to template setup. The host authorizes that workspace, resolves exactly one matching connection within its tenant and workspace, checks the MCP category and all required **enabled** tool names, and returns an explicit unavailable reason for a missing, ambiguous or incomplete binding. Display names and endpoint URLs never select a connection. Resolution returns no credentials or raw MCP schema.
+
+`apply()` still composes only the draft. After composition the host adds toolset nodes and Agent-to-toolset connections, and records those graph changes together with middleware and instructions in capability provenance. Publishing derives the Agent's toolset references from the connections. Multi-Agent bindings require an explicit `targetAgentKey`; there is no implicit fan-out.
+
+Creation, existing-Assistant previews and save/publish use the same resolver. Preview does not persist a draft or create external resources. Installation and save revalidate the live connection; failures stop before publishing. Disabling removes only owned contributions, preserving manually authored bindings and the shared MCP connection. Changes to owned nodes or edges cause a conflict. Capability state never owns external resource authorization or conversation history.
+
+When an installed Assistant's base DSL is replaced, the import flow validates existing ownership and recomposes its saved capability selection on the new base before saving. An explicitly empty selection stays empty. Missing dependencies and edited contributions stop the import; they do not silently drop or re-enable capabilities.

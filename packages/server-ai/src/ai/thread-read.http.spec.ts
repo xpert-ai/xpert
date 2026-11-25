@@ -26,7 +26,7 @@ jest.mock('../chat-conversation', () => ({
     ChatConversationThreadService: class {},
     AssertChatConversationAccessQuery: class {
         constructor(
-            public readonly input: { id?: string; threadId?: string },
+            public readonly where: { id?: string; threadId?: string },
             public readonly operation?: string
         ) {}
     },
@@ -79,6 +79,8 @@ describe('thread metadata and explicit state HTTP routes', () => {
     })
     const checkpointRead = jest.fn<Promise<CheckpointTuple | undefined>, [CopilotCheckpointGetTupleQuery]>()
     const copyThread = jest.fn()
+    const renameThread = jest.fn()
+    const access = jest.fn()
     const tuple: CheckpointTuple = {
         config: { configurable: { thread_id: 'branch', checkpoint_ns: '', checkpoint_id: 'checkpoint' } },
         checkpoint: {
@@ -103,6 +105,10 @@ describe('thread metadata and explicit state HTTP routes', () => {
 
     beforeEach(async () => {
         await i18next.changeLanguage('en')
+        renameThread
+            .mockReset()
+            .mockImplementation(async (_id, title) => ({ ...thread, metadata: { title }, conversation }))
+        access.mockClear()
         authenticated = true
         allowed = true
         exists = true
@@ -119,6 +125,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
                     provide: ChatConversationThreadService,
                     useValue: {
                         copyThread,
+                        renameThread,
                         requireByThreadId: async () => {
                             if (!exists) throw new NotFoundException()
                             return thread
@@ -143,6 +150,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
             if (query instanceof ReadThreadControlViewQuery) return { thread, controlView: undefined }
             if (query instanceof CopilotCheckpointGetTupleQuery) return checkpointRead(query)
             if (query instanceof AssertChatConversationAccessQuery) {
+                access(query.where, query.operation)
                 if (!exists) throw new NotFoundException()
                 if (!allowed) throw new ForbiddenException()
                 return conversation
@@ -159,6 +167,41 @@ describe('thread metadata and explicit state HTTP routes', () => {
     afterEach(async () => {
         await app?.close()
         jest.restoreAllMocks()
+    })
+
+    it('renames the exact authorized thread using a trimmed title', async () => {
+        const response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metadata: { title: '  Second discussion  ' } })
+        })
+        expect(response.status).toBe(200)
+        expect(renameThread).toHaveBeenCalledWith('branch', 'Second discussion')
+        expect(access).toHaveBeenCalledWith({ threadId: 'branch' }, 'manage')
+        expect(await response.json()).toMatchObject({ thread_id: 'branch', metadata: { title: 'Second discussion' } })
+    })
+    it.each([
+        { metadata: { title: '' } },
+        { metadata: { title: 'x', primary: true } },
+        { metadata: { title: 'x' }, ttl: 1 }
+    ])('rejects unsupported thread metadata patch %j', async (body) => {
+        const response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        expect(response.status).toBe(400)
+        expect(renameThread).not.toHaveBeenCalled()
+    })
+    it('denies renaming when conversation management access is revoked', async () => {
+        allowed = false
+        const response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metadata: { title: 'x' } })
+        })
+        expect(response.status).toBe(403)
+        expect(renameThread).not.toHaveBeenCalled()
     })
 
     it('validates sealed copy requests through HTTP and preserves the retry identity', async () => {

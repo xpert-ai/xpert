@@ -118,6 +118,14 @@
     "Error": {
         "WorkbenchEntryInputInvalid": "Invalid Workbench navigation target.",
         "WorkbenchEntryUnavailable": "This Workbench view is unavailable. Check current access and View configuration.",
+        "CapabilityWorkspaceRequired": "Select an authoring workspace before enabling this capability.",
+        "CapabilityBindingMissing": "Workspace connection {{binding}} is not prepared.",
+        "CapabilityBindingAmbiguous": "Multiple workspace connections declare {{binding}}. Resolve the duplicate binding.",
+        "CapabilityBindingCategory": "Workspace connection {{binding}} has an incompatible category.",
+        "CapabilityBindingTools": "Workspace connection {{binding}} is missing enabled tools: {{tools}}.",
+        "CapabilityTargetMissing": "The target Agent for this capability is missing from the draft.",
+
+        "ThreadHasChildBranches": "A thread with child branches cannot be deleted",
         "ApplicationModelBootstrapAccess": "Select a private workspace you manage in this organization and check access to the dedicated area and reader.",
         "ApplicationModelReaderTitle": "{{model}} · Read-only access",
         "ApplicationModelSetupUnavailable": "This application or authorized connection is unavailable.",
@@ -897,6 +905,7 @@
         "AssistantModelSelectionInvalidList": "Assistant selectable models must be an array.",
         "AssistantModelSelectionInvalidModel": "Selectable model at position {{position}} must identify an available LLM model and contain valid options.",
         "AssistantModelPreferenceForbidden": "This authentication principal cannot persist an Assistant model preference.",
+        "InvalidConversationSidebarRequest": "Invalid conversation sidebar request.",
         "InvalidConversationSidebarState": "Conversation pin and archive values must be booleans.",
         "ConversationSidebarOwnerRequired": "Only your own conversations can be managed in the sidebar.",
         "AssistantUserPreferenceUserRequired": "A user context is required to persist Assistant preferences.",

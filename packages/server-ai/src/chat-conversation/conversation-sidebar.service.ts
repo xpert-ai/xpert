@@ -6,7 +6,7 @@ import {
     TChatConversationSidebarState
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { IsNull, Repository } from 'typeorm'
+import { In, IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
 import { ChatConversationService } from './conversation.service'
@@ -21,10 +21,25 @@ export class ChatConversationSidebarService {
         private readonly preferences: Repository<AssistantUserPreference>
     ) {}
 
-    async list(xpertId: string, take = 10, skip = 0, archived = false, search = '') {
+    async list(
+        xpertId: string | string[],
+        take = 10,
+        skip = 0,
+        archived = false,
+        search = '',
+        projectId?: string | null,
+        technicalUserId?: string
+    ) {
         const scope = this.scope()
-        const preference = await this.preferences.findOne({ where: this.preferenceWhere(scope, xpertId) })
-        const states = preference?.preferences.conversationSidebar ?? {}
+        // Published Assistant versions share a history, while each preference
+        // remains stored against the conversation's original Assistant.
+        const preferences = Array.isArray(xpertId)
+            ? await this.preferences.find({ where: { ...this.preferenceWhere(scope, ''), assistantId: In(xpertId) } })
+            : [await this.preferences.findOne({ where: this.preferenceWhere(scope, xpertId) })]
+        const states: Record<string, TChatConversationSidebarState> = Object.assign(
+            {},
+            ...preferences.map((preference) => preference?.preferences.conversationSidebar ?? {})
+        )
         const archivedIds = Object.keys(states).filter((id) => states[id].archived)
         const pinnedIds = Object.keys(states).filter((id) => states[id].pinned)
         const query = this.conversations.repository
@@ -33,6 +48,8 @@ export class ChatConversationSidebarService {
                 'conversation.id',
                 'conversation.threadId',
                 'conversation.title',
+                'conversation.status',
+                'conversation.error',
                 'conversation.updatedAt',
                 'conversation.xpertId',
                 'conversation.projectId',
@@ -41,8 +58,9 @@ export class ChatConversationSidebarService {
             .where({
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId ?? IsNull(),
-                createdById: scope.userId,
-                xpertId
+                createdById: technicalUserId ? In([scope.userId, technicalUserId]) : scope.userId,
+                xpertId: Array.isArray(xpertId) ? In(xpertId) : xpertId,
+                ...(projectId === undefined ? {} : { projectId: projectId ?? IsNull() })
             })
             .andWhere('conversation.threadId IS NOT NULL')
             .andWhere("conversation.purpose = 'private'")
@@ -78,6 +96,13 @@ export class ChatConversationSidebarService {
         }
     }
 
+    async read(id: string): Promise<TChatConversationSidebarState> {
+        const scope = this.scope()
+        const conversation = await this.ownedConversation(id, scope)
+        const preference = await this.preferences.findOne({ where: this.preferenceWhere(scope, conversation.xpertId) })
+        return { ...EMPTY_STATE, ...preference?.preferences.conversationSidebar?.[id] }
+    }
+
     async update(id: string, patch: Partial<TChatConversationSidebarState>) {
         if (
             !patch ||
@@ -94,19 +119,7 @@ export class ChatConversationSidebarService {
             )
         }
         const scope = this.scope()
-        const conversation = await this.conversations.assertAccess(id)
-        if (
-            conversation.createdById !== scope.userId ||
-            !conversation.xpertId ||
-            conversation.tenantId !== scope.tenantId ||
-            (conversation.organizationId ?? null) !== scope.organizationId
-        ) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ConversationSidebarOwnerRequired', {
-                    defaultValue: 'Only your own conversations can be managed in the sidebar.'
-                })
-            )
-        }
+        const conversation = await this.ownedConversation(id, scope)
         const where = this.preferenceWhere(scope, conversation.xpertId)
         await this.preferences
             .createQueryBuilder()
@@ -135,6 +148,24 @@ export class ChatConversationSidebarService {
             .execute()
         const preference = await this.preferences.findOne({ where })
         return { ...EMPTY_STATE, ...preference?.preferences.conversationSidebar?.[id] }
+    }
+
+    private async ownedConversation(id: string, scope: ReturnType<ChatConversationSidebarService['scope']>) {
+        const conversation = await this.conversations.assertAccess(id)
+        if (
+            conversation.purpose !== 'private' ||
+            conversation.createdById !== scope.userId ||
+            !conversation.xpertId ||
+            conversation.tenantId !== scope.tenantId ||
+            (conversation.organizationId ?? null) !== scope.organizationId
+        ) {
+            throw new ForbiddenException(
+                t('server-ai:Error.ConversationSidebarOwnerRequired', {
+                    defaultValue: 'Only your own conversations can be managed in the sidebar.'
+                })
+            )
+        }
+        return conversation
     }
 
     private scope() {

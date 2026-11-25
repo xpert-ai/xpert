@@ -148,7 +148,10 @@ export class XpertTemplateController {
         const setup = await this.capabilities.setup(
             template,
             locale,
-            parseTemplateCapabilities(capabilities ? capabilities.split(',') : undefined)
+            parseTemplateCapabilities(capabilities ? capabilities.split(',') : undefined),
+            undefined,
+            undefined,
+            workspaceId
         )
         return {
             ...setup,

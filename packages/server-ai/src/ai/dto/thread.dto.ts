@@ -3,7 +3,7 @@ import { publicRunControl, PublicRunControl } from '../../chat-conversation/cont
 import type { ThreadControlView } from '@xpert-ai/contracts'
 import { RUN_LEASE_KEY } from '../../chat-conversation/thread-run-lease'
 import { DISPLAY_PAUSE_KEY } from '../../chat-conversation/thread-display-pause'
-import { IUser, TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
+import { ChatThreadPurpose, IUser, TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
@@ -91,6 +91,7 @@ export class ThreadDTO {
             conversation_id: conversation.id,
             assistant_id: conversation.xpertId,
             ...publicMetadata,
+            ...(thread?.metadata?.purpose === ChatThreadPurpose.SideChat ? { title: thread.metadata.title ?? '' } : {}),
             ...(thread?.parentThreadId ? { parent_thread_id: thread.parentThreadId } : {}),
             ...(thread?.forkedFromMessageId ? { forked_from_message_id: thread.forkedFromMessageId } : {})
         }

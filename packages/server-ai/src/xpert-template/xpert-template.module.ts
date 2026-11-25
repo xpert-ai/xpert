@@ -1,3 +1,4 @@
+import { RecomposeAssistantCapabilitiesHandler } from './capabilities/recompose-capabilities.handler'
 import { TemplatePublicationStore } from './lifecycle/template-publication.store'
 import { TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
@@ -42,6 +43,7 @@ import { CommandHandlers } from './commands/handlers'
         ...CommandHandlers,
         TemplateSkillSyncService,
         AssistantCapabilityService,
+        RecomposeAssistantCapabilitiesHandler,
         AssistantCapabilityProviderRegistry,
         DesktopComputerCapabilityProvider,
         DesktopShellCapabilityProvider,

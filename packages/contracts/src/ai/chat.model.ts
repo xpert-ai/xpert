@@ -165,6 +165,8 @@ export type TChatThreadMetadata = {
   editAdmission?: import('./chat-recovery.model').TMessageEditAdmission
   /** User-editable branch label, independent of the conversation title. */
   title?: string
+  /** Server-owned provenance; manual names always win over in-flight generation. */
+  titleSource?: 'default' | 'generated' | 'manual'
   primary?: boolean
   purpose?: TChatThreadPurpose
   /** Graph revision captured for a fork; cleared after the first successful run. */

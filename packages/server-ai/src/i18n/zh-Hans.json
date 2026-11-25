@@ -118,6 +118,14 @@
     "Error": {
         "WorkbenchEntryInputInvalid": "工作台导航目标无效。",
         "WorkbenchEntryUnavailable": "无法打开此工作台视图，请检查当前访问权限和视图配置。",
+        "CapabilityWorkspaceRequired": "请先选择编辑工作空间，再启用此能力。",
+        "CapabilityBindingMissing": "工作空间连接 {{binding}} 尚未准备完成。",
+        "CapabilityBindingAmbiguous": "多个工作空间连接声明了 {{binding}}，请先处理重复绑定。",
+        "CapabilityBindingCategory": "工作空间连接 {{binding}} 的类型不符合能力要求。",
+        "CapabilityBindingTools": "工作空间连接 {{binding}} 缺少已启用工具：{{tools}}。",
+        "CapabilityTargetMissing": "草稿中不存在此能力指定的目标 Agent。",
+
+        "ThreadHasChildBranches": "无法删除含有子分支的线程",
         "ApplicationModelBootstrapAccess": "请选择本组织内您有管理权限的专用私有工作空间，并确认可管理业务区域及只读身份。",
         "ApplicationModelReaderTitle": "{{model}} · 只读访问",
         "ApplicationModelSetupUnavailable": "当前应用或已授权连接不可用。",
@@ -897,6 +905,7 @@
         "AssistantModelSelectionInvalidList": "Assistant 的用户可切换模型必须是数组。",
         "AssistantModelSelectionInvalidModel": "第 {{position}} 个可切换模型必须是可用的 LLM 模型，并包含有效的参数配置。",
         "AssistantModelPreferenceForbidden": "当前认证主体不能保存 Assistant 模型偏好。",
+        "InvalidConversationSidebarRequest": "会话置顶或归档请求无效。",
         "InvalidConversationSidebarState": "会话置顶和归档状态必须为布尔值。",
         "ConversationSidebarOwnerRequired": "只能管理自己的侧栏会话。",
         "AssistantUserPreferenceUserRequired": "保存 Assistant 用户偏好需要用户上下文。",

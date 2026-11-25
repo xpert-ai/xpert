@@ -4,23 +4,26 @@ import { Exclude, Expose, Transform } from 'class-transformer'
 
 @Expose()
 export class ToolsetPublicDTO implements IXpertToolset {
-	name: string
-	
-	@Exclude()
-	declare options: TXpertToolsetOptions
+    name: string
 
-	@Exclude()
-	declare credentials?: TToolCredentials
+    @Expose()
+    @Transform(({ value }: { value?: TXpertToolsetOptions }) =>
+        value?.capabilityBindingKey ? { capabilityBindingKey: value.capabilityBindingKey } : undefined
+    )
+    declare options: TXpertToolsetOptions
 
-	@Transform(({ value }) => (value ? new UserPublicDTO(value) : null))
-	@Expose()
-	createdBy?: IUser
+    @Exclude()
+    declare credentials?: TToolCredentials
 
-	@Transform(({ value }) => (value ? new UserPublicDTO(value) : null))
-	@Expose()
-	updatedBy?: IUser
+    @Transform(({ value }) => (value ? new UserPublicDTO(value) : null))
+    @Expose()
+    createdBy?: IUser
 
-	constructor(partial: Partial<ToolsetPublicDTO>) {
-		Object.assign(this, partial)
-	}
+    @Transform(({ value }) => (value ? new UserPublicDTO(value) : null))
+    @Expose()
+    updatedBy?: IUser
+
+    constructor(partial: Partial<ToolsetPublicDTO>) {
+        Object.assign(this, partial)
+    }
 }
