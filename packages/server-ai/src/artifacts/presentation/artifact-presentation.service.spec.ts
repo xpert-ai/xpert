@@ -1,6 +1,11 @@
 import { ForbiddenException, GoneException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { ArtifactPresentationRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    ArtifactPresentationRegistry,
+    artifactPresentationKey,
+    artifactTypeKey,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
 import type { ArtifactPresentationContext, IArtifactPresentationProvider } from '@xpert-ai/plugin-sdk'
 import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { Artifact, ArtifactLink, ArtifactVersion } from '../entities'
@@ -8,17 +13,16 @@ import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import { ArtifactPresentationService } from './artifact-presentation.service'
 import { ArtifactTypesService } from '../types/artifact-types.service'
 import { configuredArtifactPolicies } from '../testing/source-policies'
-import { artifactTypeKey } from '@xpert-ai/plugin-sdk'
 
 describe('Authenticated Artifact presentations', () => {
-    async function fixture() {
+    async function fixture(pluginName = 'example-plugin', resourceType = 'report') {
         const artifact = Object.assign(new Artifact(), {
             id: 'artifact',
             tenantId: 'tenant',
             organizationId: 'team',
             userId: 'owner',
-            pluginName: 'example-plugin',
-            resourceType: 'report',
+            pluginName,
+            resourceType,
             resourceId: 'report-1',
             status: 'active',
             title: 'PRIVATE DRAFT TITLE'
@@ -77,8 +81,8 @@ describe('Authenticated Artifact presentations', () => {
         const registrations = jest.fn(
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
                 {
-                    type: 'example-plugin:report',
-                    source: { kind: 'plugin', pluginName: 'example-plugin', scopeKey: 'team' },
+                    type: artifactPresentationKey(artifact),
+                    source: { kind: 'plugin', pluginName, scopeKey: 'team' },
                     strategy: provider
                 }
             ]
@@ -138,6 +142,17 @@ describe('Authenticated Artifact presentations', () => {
             await f.run(() => f.service.query('team-link', { target: f.target, operation: 'dataset', input: {} }))
         ).toEqual({ result: 42 })
         expect(f.describe).toHaveBeenCalledTimes(2)
+    })
+    it.each([
+        ['@xpert-ai/plugin-live-dashboard', 'live-dashboard', true],
+        ['@xpert-ai/plugin-live-dashboard', 'report', false],
+        ['example-plugin', 'live-dashboard', false]
+    ] as const)('sets viewer download permission for %s / %s to %s', async (pluginName, resourceType, expected) => {
+        const f = await fixture(pluginName, resourceType)
+        f.link.allowDownload = false
+        const page = await f.run(() => f.service.read('team-link'))
+        expect(page.allowViewerDownloads).toBe(expected)
+        expect(f.link.allowDownload).toBe(false)
     })
     it.each(['save', 'publish', 'revoke-share', 'arbitrary-sql'])(
         'rejects undeclared operation %s',

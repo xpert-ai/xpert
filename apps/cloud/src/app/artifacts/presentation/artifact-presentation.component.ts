@@ -18,6 +18,7 @@ import { isolatePresentationHtml, presentationMessage } from './presentation-bri
   imports: [TranslateModule, RouterLink],
   host: { class: 'block h-full w-full min-h-0' },
   template: `
+    @let viewer = entry();
     @if (signIn()) {
       <section class="flex h-full items-center justify-center p-6">
         <a routerLink="/auth/login" [queryParams]="{ returnUrl: '/artifacts/snapshot/' + slug() }" class="underline">
@@ -45,13 +46,21 @@ import { isolatePresentationHtml, presentationMessage } from './presentation-bri
           {{ 'ArtifactPresentation.Reopen' | translate: { Default: 'Reopen shared page' } }}
         </button>
       </section>
-    } @else if (entry()) {
+    } @else if (viewer?.allowDownloads) {
+      <iframe
+        #frame
+        class="block h-full w-full border-0"
+        sandbox="allow-scripts allow-downloads"
+        [title]="title()"
+        [srcdoc]="viewer.html"
+      ></iframe>
+    } @else if (viewer) {
       <iframe
         #frame
         class="block h-full w-full border-0"
         sandbox="allow-scripts"
         [title]="title()"
-        [srcdoc]="entry()"
+        [srcdoc]="viewer.html"
       ></iframe>
     } @else {
       <div role="status" class="flex h-full items-center justify-center gap-3 text-text-secondary">
@@ -67,7 +76,7 @@ export class ArtifactPresentationComponent {
   readonly signIn = signal(false)
   readonly slug = input.required<string>()
   readonly frame = viewChild<ElementRef<HTMLIFrameElement>>('frame')
-  readonly entry = signal<SafeHtml | null>(null)
+  readonly entry = signal<{ html: SafeHtml; allowDownloads: boolean } | null>(null)
   readonly supportUnavailable = signal(false)
   readonly error = signal(false)
   readonly title = signal('')
@@ -153,7 +162,10 @@ export class ArtifactPresentationComponent {
       if (sequence !== this.sequence) return
       this.presentation = presentation
       this.title.set(presentation.title)
-      this.entry.set(this.sanitizer.bypassSecurityTrustHtml(isolatePresentationHtml(presentation.entry.html)))
+      this.entry.set({
+        html: this.sanitizer.bypassSecurityTrustHtml(isolatePresentationHtml(presentation.entry.html)),
+        allowDownloads: !this.library() && !this.snapshot() && presentation.allowViewerDownloads === true
+      })
       if (this.snapshot() || this.library()) this.scheduleSnapshotCheck(presentation, sequence)
     } catch (error) {
       if (sequence === this.sequence) {

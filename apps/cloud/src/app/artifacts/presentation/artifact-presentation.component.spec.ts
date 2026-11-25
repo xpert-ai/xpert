@@ -87,7 +87,24 @@ describe('Artifact presentation page boundary', () => {
     return { fixture, source, post, instanceId: init.instanceId }
   }
 
+  it('sets the sandbox on the outer frame and removes download permission on the next share', async () => {
+    read.mockReturnValueOnce(of({ ...presentation(), allowViewerDownloads: true }))
+    const fixture = TestBed.createComponent(ArtifactPresentationComponent)
+    fixture.componentRef.setInput('slug', 'dashboard')
+    await settle(fixture)
+    const dashboardFrame = fixture.nativeElement.querySelector('iframe')
+    expect(dashboardFrame.getAttribute('sandbox')).toBe('allow-scripts allow-downloads')
+    expect(fixture.componentInstance.frame()?.nativeElement).toBe(dashboardFrame)
+
+    read.mockReturnValueOnce(of({ ...presentation('report'), data: { allowViewerDownloads: true } }))
+    fixture.componentRef.setInput('slug', 'report')
+    await settle(fixture)
+    expect(fixture.nativeElement.querySelector('iframe')).not.toBe(dashboardFrame)
+    frameWindow(fixture)
+  })
+
   it('opens a private reference and dispatches queries through its authenticated library endpoints', async () => {
+    readLibraryPresentation.mockReturnValueOnce(of({ ...presentation(), allowViewerDownloads: true }))
     const { fixture, source, instanceId } = await open(false, true)
     expect(readLibraryPresentation).toHaveBeenCalledWith('shared-one')
     expect(read).not.toHaveBeenCalled()
@@ -99,6 +116,7 @@ describe('Artifact presentation page boundary', () => {
   })
 
   it('renders snapshots through the public endpoint and never dispatches query actions', async () => {
+    readSnapshot.mockReturnValueOnce(of({ ...presentation(), allowViewerDownloads: true }))
     const { fixture, source, post, instanceId } = await open(true)
     expect(readSnapshot).toHaveBeenCalledWith('shared-one')
     expect(read).not.toHaveBeenCalled()

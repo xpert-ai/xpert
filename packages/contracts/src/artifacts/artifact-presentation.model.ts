@@ -17,6 +17,8 @@ export interface ArtifactPresentation {
   title: string
   versionNumber: number
   readOnly: true
+  /** Allows the viewer to download generated files. Raw artifact downloads use the link's separate policy. */
+  allowViewerDownloads?: boolean
   entry: { html: string }
   data: object
   operations: string[]
