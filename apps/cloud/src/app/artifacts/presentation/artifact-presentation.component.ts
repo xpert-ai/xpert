@@ -164,7 +164,7 @@ export class ArtifactPresentationComponent {
       this.title.set(presentation.title)
       this.entry.set({
         html: this.sanitizer.bypassSecurityTrustHtml(isolatePresentationHtml(presentation.entry.html)),
-        allowDownloads: !this.library() && !this.snapshot() && presentation.allowViewerDownloads === true
+        allowDownloads: !this.library() && !this.snapshot() && presentation.allowDownloads === true
       })
       if (this.snapshot() || this.library()) this.scheduleSnapshotCheck(presentation, sequence)
     } catch (error) {

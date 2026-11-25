@@ -15,7 +15,7 @@ import { ArtifactTypesService } from '../types/artifact-types.service'
 import { configuredArtifactPolicies } from '../testing/source-policies'
 
 describe('Authenticated Artifact presentations', () => {
-    async function fixture(allowViewerDownloads?: boolean) {
+    async function fixture(allowDownloads?: boolean) {
         const artifact = Object.assign(new Artifact(), {
             id: 'artifact',
             tenantId: 'tenant',
@@ -74,9 +74,9 @@ describe('Authenticated Artifact presentations', () => {
                 definition: {
                     kinds: ['file'],
                     presentation:
-                        allowViewerDownloads === undefined
+                        allowDownloads === undefined
                             ? { mode: 'authenticated' }
-                            : { mode: 'authenticated', allowViewerDownloads }
+                            : { mode: 'authenticated', allowDownloads }
                 },
                 authorize: async () => {},
                 validateContent: () => {}
@@ -159,7 +159,7 @@ describe('Authenticated Artifact presentations', () => {
             const f = await fixture(optIn)
             f.link.allowDownload = rawDownload
             const page = await f.run(() => f.service.read('team-link'))
-            expect(page.allowViewerDownloads).toBe(expected)
+            expect(page.allowDownloads).toBe(expected)
             expect(f.link.allowDownload).toBe(rawDownload)
         }
     )

@@ -132,7 +132,7 @@ export class ArtifactTypesService {
     }
     allowsViewerDownloads(source: TypedArtifactSource) {
         const { presentation } = this.provider(source).definition
-        return presentation.mode === 'authenticated' && presentation.allowViewerDownloads === true
+        return presentation.mode === 'authenticated' && presentation.allowDownloads === true
     }
     allowsProjectLinkAudience(source: TypedArtifactSource, link: ArtifactTypeLink) {
         const definition = this.provider(source).definition

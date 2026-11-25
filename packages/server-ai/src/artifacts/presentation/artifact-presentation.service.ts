@@ -86,7 +86,7 @@ export class ArtifactPresentationService {
                 title: context.version.title ?? context.version.fileName ?? '',
                 versionNumber: context.version.versionNumber,
                 readOnly: true,
-                allowViewerDownloads: this.types.allowsViewerDownloads(context.artifact),
+                allowDownloads: this.types.allowsViewerDownloads(context.artifact),
                 entry,
                 data,
                 operations: [...provider.operations]

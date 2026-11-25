@@ -32,7 +32,7 @@ The Cloud application opts in through `provideArtifactPresentationCommands()` in
 
 ## Browser protocol
 
-The generic component hosts the entry in an opaque iframe with no-network CSP. Its sandbox defaults to `allow-scripts`. On authenticated share links, a type can declare `presentation: { mode: 'authenticated', allowViewerDownloads: true }` to add `allow-downloads` for viewer-generated files. A plugin that also supports older hosts can use the host SDK's `AUTHENTICATED_PRESENTATION_WITH_VIEWER_DOWNLOADS` preset and fall back to `{ mode: 'authenticated' }` when the export is absent. Raw artifact file access follows `sharing.allowDownload`.
+The generic component hosts the entry in an opaque iframe with no-network CSP. Its sandbox defaults to `allow-scripts`. For authenticated shares, pass the same trusted `{ allowDownloads }` policy to `authenticatedArtifactPresentation(policy)` and to the document mount. When enabled, the outer iframe and the embedded document both receive `allow-downloads`. Plugins supporting older host SDKs can fall back to `{ mode: 'authenticated' }` when the helper is unavailable. Raw artifact file access follows `sharing.allowDownload`.
 
 The viewer accepts remote-component protocol v1 `ready`, `requestData` and `executeAction` messages only. The host validates the exact source window and instance ID, and relays only declared read operations with the server-resolved target. It exposes no file, navigation, client-command or authoring channels and never sends credentials to the iframe. Theme and locale changes resend `init` for the same instance; providers must handle it without resetting the selected resource or reloading unchanged data. Changing the share route cancels in-flight requests and creates a new instance.
 

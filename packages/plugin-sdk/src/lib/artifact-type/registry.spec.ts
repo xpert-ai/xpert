@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import {
-  AUTHENTICATED_PRESENTATION_WITH_VIEWER_DOWNLOADS,
+  authenticatedArtifactPresentation,
   ArtifactTypeProvider,
   ArtifactTypeRegistry,
   artifactTypeKey,
@@ -41,15 +41,17 @@ const registry = () =>
 describe('Artifact type extension protocol', () => {
   it('accepts a viewer download policy only on authenticated presentations', () => {
     const { definition } = provider()
-    const presentation = AUTHENTICATED_PRESENTATION_WITH_VIEWER_DOWNLOADS
-    expect(artifactTypeDefinitionSchema.parse({ ...definition, presentation }).presentation).toEqual({
-      mode: 'authenticated',
-      allowViewerDownloads: true
-    })
+    for (const allowDownloads of [true, false, undefined]) {
+      const presentation = authenticatedArtifactPresentation({ allowDownloads })
+      expect(artifactTypeDefinitionSchema.parse({ ...definition, presentation }).presentation).toEqual({
+        mode: 'authenticated',
+        allowDownloads: allowDownloads === true
+      })
+    }
     for (const invalid of [
-      { mode: 'authenticated', allowViewerDownloads: 'true' },
-      { mode: 'file', allowViewerDownloads: true },
-      { mode: 'snapshot', allowViewerDownloads: true }
+      { mode: 'authenticated', allowDownloads: 'true' },
+      { mode: 'file', allowDownloads: true },
+      { mode: 'snapshot', allowDownloads: true }
     ]) {
       expect(artifactTypeDefinitionSchema.safeParse({ ...definition, presentation: invalid }).success).toBe(false)
     }

@@ -59,7 +59,7 @@ export const artifactTypeDefinitionSchema = z
     presentation: z.discriminatedUnion('mode', [
       z.object({ mode: z.literal('file') }).strict(),
       z.object({ mode: z.literal('snapshot') }).strict(),
-      z.object({ mode: z.literal('authenticated'), allowViewerDownloads: z.boolean().optional() }).strict()
+      z.object({ mode: z.literal('authenticated'), allowDownloads: z.boolean().optional() }).strict()
     ])
   })
   .strict()

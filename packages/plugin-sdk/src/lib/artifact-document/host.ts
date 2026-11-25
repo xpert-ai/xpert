@@ -1,4 +1,5 @@
 import { createArtifactQueryScheduler, type ArtifactQueryState } from './scheduler'
+import type { ArtifactDownloadPolicy } from '@xpert-ai/contracts'
 // Invariants: a frame WindowProxy survives navigation, so source checks alone
 // cannot identify a document generation. Each mount owns one handshake nonce,
 // one MessagePort and a snapshot of the declared binding IDs.
@@ -28,15 +29,13 @@ const diagnosticSchema = z
   .strict()
 
 /** Trusted integration callbacks. T is the plugin's cloneable result shape, independent of any chart library. */
-export interface ArtifactDocumentHostOptions<T> {
+export interface ArtifactDocumentHostOptions<T> extends ArtifactDownloadPolicy {
   /** Complete untrusted HTML; scripts run only inside the isolated frame. */
   html: string
   /** Exact packaged bytes pinned to this Artifact version, never URLs or library names from the document. */
   dependencies?: ArtifactDocumentDependencyAsset[]
   /** Trusted resource policy; unrestricted mode permits networking. Omit to block external resources. */
   networkPolicy?: ArtifactDocumentNetworkPolicy
-  /** Allow this document to initiate file downloads. Only a trusted host may opt in. */
-  allowDownloads?: boolean
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext
   /** Resolve against saved Bindings on the server with the current user's access; never execute a query definition from HTML. */
