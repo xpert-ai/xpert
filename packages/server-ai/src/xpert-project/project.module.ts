@@ -134,6 +134,10 @@ import {
     PIPELINE_OPERATION_ACTIONS,
     ProjectPipelineOperationActionsService
 } from './pipeline/operation-actions/operation-actions.service'
+import { ProjectPipelineRecoveryService } from './pipeline/recovery/pipeline-recovery.service'
+import { ProjectPipelineRecoveryStore } from './pipeline/recovery/pipeline-recovery.store'
+import { ProjectPipelineRecoveryNotificationSource } from './pipeline/recovery/pipeline-recovery-notification.source'
+import { ProjectPipelineRecoveryNotificationWorker } from './pipeline/recovery/pipeline-recovery-notification.worker'
 
 import { ProjectPluginDeploymentAdapters } from './pipeline/plugin-deployment/plugin-deployment.adapters'
 import { ProjectPluginTestAccessService } from './pipeline/plugin-deployment/plugin-test-access.service'
@@ -298,6 +302,10 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
         ProjectPipelineOperationActionsService,
+        ProjectPipelineRecoveryService,
+        ProjectPipelineRecoveryStore,
+        ProjectPipelineRecoveryNotificationSource,
+        ProjectPipelineRecoveryNotificationWorker,
         {
             provide: PIPELINE_OPERATION_ACTIONS,
             useFactory: (authorization: ProjectPluginInstallationAuthorizationService) => [authorization],

@@ -90,6 +90,8 @@ export interface ProjectPipelineAssistantOperation {
   /** Called after native execution and delegated result delivery settle. Return null only when the
    * assigned assistant definitively ended without the required outputs. Throw on an uncertain read. */
   collect(context: ProjectPipelineAssistantContext): Promise<Record<string, ProjectPipelineEvidenceRef> | null>
+  /** Reconcile completed domain evidence for authorized recovery, without new execution or business approvals. */
+  reconcile?(context: ProjectPipelineAssistantContext): Promise<Record<string, ProjectPipelineEvidenceRef> | null>
 }
 
 export interface ProjectPipelineRuntimeContext extends ProjectPipelineOperationContext {

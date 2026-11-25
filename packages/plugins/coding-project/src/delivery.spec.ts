@@ -347,6 +347,8 @@ describe('Coding delivery business boundaries', () => {
     expect((await f.evidence.read(f.context, ref)).requirementVersion).toBe(1)
   })
   it('requires a human manager and preserves a version-bound approval input', async () => {
+    expect(f.policy.decisionRecipientRoles('coding_project.project_managers')).toEqual(['owner', 'manager'])
+    expect(f.policy.decisionRecipientRoles('unrecognized_selection')).toEqual([])
     const ref = await submit(),
       context = { ...f.context, inputs: { candidate: { kind: 'evidence' as const, value: ref } } }
     const principal = jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(null)

@@ -129,6 +129,11 @@ export class CodingOperations {
     if (phase !== 'development') await this.approved(c)
     return row.evidence ? { result: evidenceRef(row.evidence) } : null
   }
+  async reconcile(c: ProjectPipelineAssistantContext, phase: Phase) {
+    await this.collect(c, phase)
+    const reference = await this.evidence.reconcile(c)
+    return { result: reference }
+  }
 }
 
 @Injectable()
@@ -142,6 +147,9 @@ export class CodingDevelopmentOperation {
   }
   collect(c: ProjectPipelineAssistantContext) {
     return this.operations.collect(c, 'development')
+  }
+  reconcile(c: ProjectPipelineAssistantContext) {
+    return this.operations.reconcile(c, 'development')
   }
 }
 @Injectable()
@@ -160,6 +168,10 @@ export class CodingCurrentDevelopmentOperation {
     const result = await this.operations.collect(c, 'development')
     return result ? { ...result, request: deploymentRequestRef(await this.evidence.read(c, result.result)) } : null
   }
+  async reconcile(c: ProjectPipelineAssistantContext) {
+    const result = await this.operations.reconcile(c, 'development')
+    return { ...result, request: deploymentRequestRef(await this.evidence.read(c, result.result)) }
+  }
 }
 @Injectable()
 @Adapter('assistant_operation', refs.deployment)
@@ -172,6 +184,9 @@ export class CodingDeploymentOperation {
   }
   collect(c: ProjectPipelineAssistantContext) {
     return this.operations.collect(c, 'deployment')
+  }
+  reconcile(c: ProjectPipelineAssistantContext) {
+    return this.operations.reconcile(c, 'deployment')
   }
 }
 @Injectable()
@@ -190,6 +205,9 @@ export class CodingGitOperation {
   }
   collect(c: ProjectPipelineAssistantContext) {
     return this.operations.collect(c, 'git')
+  }
+  reconcile(c: ProjectPipelineAssistantContext) {
+    return this.operations.reconcile(c, 'git')
   }
 }
 

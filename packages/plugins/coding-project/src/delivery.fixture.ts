@@ -17,7 +17,12 @@ import {
   type ProjectTaskContext,
   type ArtifactsApi
 } from '@xpert-ai/plugin-sdk'
-import type { ProjectPipelineGraph, ProjectPipelineEvidenceRef } from '@xpert-ai/contracts'
+import type {
+  ProjectPipelineGraph,
+  ProjectPipelineEvidenceRef,
+  ProjectPluginDeploymentReceipt
+} from '@xpert-ai/contracts'
+import { deploymentRequest } from './deployment-request'
 import { CodingDelivery, CodingDeliveryWork } from './entities'
 import { CodingDeliveryStore } from './store'
 import { CodingEvidenceService } from './evidence'
@@ -154,6 +159,7 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   let currentContext = context
   let active = true
   let completed = false
+  let failed = false
   const graph = () =>
     Object.assign({} as ProjectPipelineGraph, {
       projectId,
@@ -165,7 +171,9 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
       nodes: [
         {
           id: currentContext.work.nodeInstanceId,
-          projection: { state: { freshness: 'current', lifecycle: completed ? 'completed' : 'active' } }
+          projection: {
+            state: { freshness: 'current', lifecycle: failed ? 'failed' : completed ? 'completed' : 'active' }
+          }
         }
       ]
     })
@@ -304,7 +312,13 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
   }
   const manifestFile = addFile('delivery-manifest.json', JSON.stringify(manifest))
   task([manifestFile, packageFile, sourceFile, reportFile])
-  async function next(phase: Phase, candidate: ProjectPipelineEvidenceRef, deployment?: ProjectPipelineEvidenceRef) {
+  let installationReceipt: ProjectPluginDeploymentReceipt | undefined
+  async function next(
+    phase: Phase,
+    candidate: ProjectPipelineEvidenceRef,
+    deployment?: ProjectPipelineEvidenceRef,
+    installed = false
+  ) {
     currentContext = {
       ...context,
       work: { ...context.work, nodeInstanceId: randomUUID(), operationId: randomUUID() },
@@ -324,16 +338,41 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
         ...(deployment ? { deployment: { kind: 'evidence' as const, value: deployment } } : {})
       }
     }
+    const approval = {
+      kind: 'human',
+      policyRef: refs.approval,
+      outcome: 'approve',
+      actorId: actor.userId,
+      roundId: context.work.roundId,
+      inputDigest: context.work.inputDigest,
+      generation: 1
+    }
+    if (phase === 'deployment' && installed && requirement.target.deployment === 'current-instance') {
+      const approvalInput = currentContext.inputs.approval
+      if (approvalInput.kind !== 'evidence') throw Error('Expected approval evidence')
+      installationReceipt = {
+        operationId: randomUUID(),
+        request: deploymentRequest(await evidence.read(context, candidate)),
+        approval: approvalInput.value,
+        scopeKey: 'tenant:fixture',
+        runtimeRevision: '1',
+        installed: true,
+        loaded: true
+      }
+      currentContext.inputs.installation = {
+        kind: 'evidence',
+        value: {
+          resolverRef: 'platform.plugin-deployment-evidence@1',
+          schemaRef: 'platform.plugin-deployment-receipt@1',
+          objectKey: installationReceipt.operationId,
+          version: '1',
+          digest: 'd'.repeat(64)
+        }
+      }
+    }
     capabilities.register(ProjectPipelineEvidenceRuntimeCapability, {
-      read: async () => ({
-        kind: 'human',
-        policyRef: refs.approval,
-        outcome: 'approve',
-        actorId: actor.userId,
-        roundId: context.work.roundId,
-        inputDigest: context.work.inputDigest,
-        generation: 1
-      })
+      read: async (_c, ref) =>
+        ref.resolverRef === 'platform.plugin-deployment-evidence@1' ? installationReceipt! : approval
     })
     await operations.prepare(currentContext, phase)
     return currentContext
@@ -370,6 +409,10 @@ export async function deliveryFixture(deployment: 'cli' | 'current-instance' = '
       serviceLifecycle = value
     },
     accepted: () => accepted,
+    installationReceipt: () => installationReceipt,
+    setFailed: () => {
+      failed = true
+    },
     next,
     nextRound,
     setActive: (value: boolean) => {

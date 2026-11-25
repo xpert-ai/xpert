@@ -9,6 +9,7 @@ import {
 import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
 import { projectionScope } from '../../services/task-projection/project-task-projection.writer'
 import { ProjectPipelineOperationEntity } from '../persistence/pipeline.entity'
+import { ProjectPipelineRecoveryService } from '../recovery/pipeline-recovery.service'
 
 export const PIPELINE_OPERATION_ACTIONS = Symbol('PIPELINE_OPERATION_ACTIONS')
 export interface PipelineOperationActionProvider {
@@ -30,7 +31,8 @@ export class ProjectPipelineOperationActionsService {
     constructor(
         private readonly db: DataSource,
         private readonly access: ProjectAccessRuntimeService,
-        @Inject(PIPELINE_OPERATION_ACTIONS) private readonly providers: PipelineOperationActionProvider[]
+        @Inject(PIPELINE_OPERATION_ACTIONS) private readonly providers: PipelineOperationActionProvider[],
+        private readonly recovery: ProjectPipelineRecoveryService
     ) {}
 
     async list(c: ProjectPipelineContext, input: { instanceId: string; nodeInstanceId: string }) {
@@ -43,7 +45,12 @@ export class ProjectPipelineOperationActionsService {
         const provider = row && this.providers.find((item) => item.operationRef === row.handlerRef)
         if (!row) return { operationId: null, messages: [], items: [] }
         const owned = provider ? await provider.describe(c, row) : { operationId: row.id, messages: [], items: [] }
-        return owned
+        const recovery = await this.recovery.describe(c, row)
+        return {
+            operationId: row.id,
+            messages: [...owned.messages, ...recovery.messages],
+            items: [...owned.items, ...recovery.items]
+        }
     }
 
     async submit(c: ProjectPipelineContext, value: ProjectPipelineOperationAction) {
@@ -59,6 +66,10 @@ export class ProjectPipelineOperationActionsService {
             ...projectionScope(c),
             id: input.operationId
         })
+        if (this.recovery.handles(input.key)) {
+            await this.recovery.submit(c, row, input)
+            return { accepted: true }
+        }
         const provider = this.providers.find((item) => item.operationRef === row.handlerRef)
         if (!provider || row.kind !== 'operation') throw new ForbiddenException()
         await provider.submit(c, row, input)

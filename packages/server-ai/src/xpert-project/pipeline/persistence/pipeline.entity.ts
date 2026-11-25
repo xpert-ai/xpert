@@ -111,6 +111,8 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         | 'projection.applied'
         | 'round.advanced'
         | 'operation.observed'
+        | 'operation.recovery_requested'
+        | 'operation.recovered'
         | 'decision.recorded'
         | 'run.cancel_requested'
         | 'run.retry_requested'
@@ -134,6 +136,7 @@ export class ProjectPipelineEventEntity extends ProjectPipelineBaseEntity {
         pluginInstallationAuthorization?: import('../plugin-deployment/plugin-installation-authorization.schema').ProjectPluginInstallationAuthorization
         pluginInstallationReceiptAuthorization?: import('../plugin-deployment/plugin-installation-authorization.schema').InstallationAuthorizationRef
         pluginInstallationDispatch?: { authorizationId: string; authorizationDigest: string }
+        recovery?: import('../recovery/pipeline-recovery-record').PipelineRecoveryRecord
     }
 }
 

@@ -68,7 +68,9 @@ const messages: Record<string, string> = {
   CODING_REWORK_CANDIDATE_REQUIRED:
     'Starting a new delivery round requires a sealed candidate. Continue unfinished implementation in its existing task, or record a blocker and wait for the missing input.',
   CODING_REWORK_STALE: 'This rework request no longer matches the current delivery revision.',
-  CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.'
+  CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.',
+  CODING_RECOVERY_ACCEPTANCE_REQUIRED:
+    'Recovery requires one current formally accepted task from this stage conversation.'
 }
 
 export function codingError(code: string) {
