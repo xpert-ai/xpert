@@ -32,7 +32,9 @@ The Cloud application opts in through `provideArtifactPresentationCommands()` in
 
 ## Browser protocol
 
-The generic component hosts the entry in an opaque `sandbox="allow-scripts"` iframe with no-network CSP. It accepts remote-component protocol v1 `ready`, `requestData` and `executeAction` messages only. The host validates the exact source window and instance ID, and relays only declared read operations with the server-resolved target. It exposes no file, navigation, client-command or authoring channels and never sends credentials to the iframe. Theme and locale changes resend `init` for the same instance; providers must handle it without resetting the selected resource or reloading unchanged data. Changing the share route cancels in-flight requests and creates a new instance.
+The generic component hosts the entry in an opaque iframe with no-network CSP. Its sandbox defaults to `allow-scripts`. For authenticated shares, pass the same trusted `{ allowDownloads }` policy to `authenticatedArtifactPresentation(policy)` and to the document mount. When enabled, the outer iframe and the embedded document both receive `allow-downloads`. Plugins supporting older host SDKs can fall back to `{ mode: 'authenticated' }` when the helper is unavailable. Raw artifact file access follows `sharing.allowDownload`.
+
+The viewer accepts remote-component protocol v1 `ready`, `requestData` and `executeAction` messages only. The host validates the exact source window and instance ID, and relays only declared read operations with the server-resolved target. It exposes no file, navigation, client-command or authoring channels and never sends credentials to the iframe. Theme and locale changes resend `init` for the same instance; providers must handle it without resetting the selected resource or reloading unchanged data. Changing the share route cancels in-flight requests and creates a new instance.
 
 Bundle assets into the entry or immutable application package. External scripts, network fetches, forms, frames to network URLs and direct parent access are unavailable. Reuse Artifact document dependency snapshots for version-pinned HTML libraries.
 

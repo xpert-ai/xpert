@@ -56,7 +56,11 @@ export const artifactTypeDefinitionSchema = z
       })
       .strict()
       .optional(),
-    presentation: z.object({ mode: z.enum(['file', 'snapshot', 'authenticated']) }).strict()
+    presentation: z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('file') }).strict(),
+      z.object({ mode: z.literal('snapshot') }).strict(),
+      z.object({ mode: z.literal('authenticated'), allowDownloads: z.boolean().optional() }).strict()
+    ])
   })
   .strict()
   .refine(

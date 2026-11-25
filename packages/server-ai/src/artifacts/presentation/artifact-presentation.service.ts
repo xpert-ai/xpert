@@ -10,7 +10,7 @@ import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import type { ArtifactManagementResolvedVersion } from '../artifact-service.types'
 import { serializeArtifact, serializeArtifactVersion } from '../artifact-records'
 import { ArtifactTypesService } from '../types/artifact-types.service'
-import { artifactPresentationProvider } from './artifact-presentation-provider'
+import { resolveArtifactPresentation } from './artifact-presentation-provider'
 
 @Injectable()
 export class ArtifactPresentationService {
@@ -22,13 +22,13 @@ export class ArtifactPresentationService {
 
     async readVersion(resolved: ArtifactManagementResolvedVersion): Promise<ArtifactPresentation> {
         const context = this.managementContext(resolved)
-        const provider = this.provider(context)
+        const { provider } = this.resolvePresentation(context)
         const [entry, data] = await Promise.all([provider.getEntry(), provider.read(context)])
         await this.artifacts.resolveForManagementAccess({
             artifactId: context.artifact.id,
             artifactVersionId: context.version.id
         })
-        if (this.provider(context) !== provider) throw new ConflictException()
+        if (this.resolvePresentation(context).provider !== provider) throw new ConflictException()
         return {
             schemaVersion: 1,
             target: { artifactId: context.artifact.id, versionId: context.version.id },
@@ -43,7 +43,7 @@ export class ArtifactPresentationService {
     async queryVersion(resolved: ArtifactManagementResolvedVersion, request: ArtifactPresentationQuery) {
         this.assertTarget(resolved, request.target)
         const context = this.managementContext(resolved)
-        const provider = this.provider(context)
+        const { provider } = this.resolvePresentation(context)
         if (!provider.operations.includes(request.operation))
             throw new ForbiddenException(t('server-ai:Error.ArtifactPresentationOperationDenied'))
         const result = await provider.query(context, request)
@@ -51,7 +51,7 @@ export class ArtifactPresentationService {
             artifactId: context.artifact.id,
             artifactVersionId: context.version.id
         })
-        if (this.provider(context) !== provider) throw new ConflictException()
+        if (this.resolvePresentation(context).provider !== provider) throw new ConflictException()
         return result
     }
     private managementContext(resolved: ArtifactManagementResolvedVersion): ArtifactPresentationContext {
@@ -76,16 +76,18 @@ export class ArtifactPresentationService {
     async read(slug: string): Promise<ArtifactPresentation> {
         const resolved = await this.artifacts.resolveForAuthenticatedAccess({ slug })
         return this.withViewer(resolved, async (context) => {
-            const provider = this.provider(context)
+            const { provider } = this.resolvePresentation(context)
             const [entry, data] = await Promise.all([provider.getEntry(), provider.read(context)])
             await this.assertCurrent(slug, { artifactId: context.artifact.id, versionId: context.version.id })
-            if (this.provider(context) !== provider) throw new ConflictException()
+            const current = this.resolvePresentation(context)
+            if (current.provider !== provider) throw new ConflictException()
             return {
                 schemaVersion: 1,
                 target: { artifactId: context.artifact.id, versionId: context.version.id },
                 title: context.version.title ?? context.version.fileName ?? '',
                 versionNumber: context.version.versionNumber,
                 readOnly: true,
+                allowDownloads: current.presentation.allowDownloads === true,
                 entry,
                 data,
                 operations: [...provider.operations]
@@ -97,7 +99,7 @@ export class ArtifactPresentationService {
         const resolved = await this.artifacts.resolveForAuthenticatedAccess({ slug })
         this.assertTarget(resolved, request.target)
         return this.withViewer(resolved, async (context) => {
-            const provider = this.provider(context)
+            const { provider } = this.resolvePresentation(context)
             if (!provider.operations.includes(request.operation)) {
                 throw new ForbiddenException(
                     t('server-ai:Error.ArtifactPresentationOperationDenied', {
@@ -108,7 +110,7 @@ export class ArtifactPresentationService {
             const result = await provider.query(context, request)
             // Do not release an in-flight result after revocation or a latest-version change.
             await this.assertCurrent(slug, request.target)
-            if (this.provider(context) !== provider) throw new ConflictException()
+            if (this.resolvePresentation(context).provider !== provider) throw new ConflictException()
             return result
         })
     }
@@ -130,8 +132,8 @@ export class ArtifactPresentationService {
         }
     }
 
-    private provider(context: ArtifactPresentationContext) {
-        return artifactPresentationProvider(this.registry, this.types, context)
+    private resolvePresentation(context: ArtifactPresentationContext) {
+        return resolveArtifactPresentation(this.registry, this.types, context)
     }
 
     private withViewer<T>(

@@ -1,6 +1,12 @@
 import 'reflect-metadata'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { ArtifactTypeProvider, ArtifactTypeRegistry, artifactTypeKey, type IArtifactTypeProvider } from './index'
+import {
+  authenticatedArtifactPresentation,
+  ArtifactTypeProvider,
+  ArtifactTypeRegistry,
+  artifactTypeKey,
+  type IArtifactTypeProvider
+} from './index'
 import {
   BUILTIN_GLOBAL_SCOPE,
   PLUGIN_METADATA_KEY,
@@ -33,6 +39,23 @@ const registry = () =>
   new ArtifactTypeRegistry({ getProviders: () => [] } as unknown as DiscoveryService, new Reflector())
 
 describe('Artifact type extension protocol', () => {
+  it('accepts a viewer download policy only on authenticated presentations', () => {
+    const { definition } = provider()
+    for (const allowDownloads of [true, false, undefined]) {
+      const presentation = authenticatedArtifactPresentation({ allowDownloads })
+      expect(artifactTypeDefinitionSchema.parse({ ...definition, presentation }).presentation).toEqual({
+        mode: 'authenticated',
+        allowDownloads: allowDownloads === true
+      })
+    }
+    for (const invalid of [
+      { mode: 'authenticated', allowDownloads: 'true' },
+      { mode: 'file', allowDownloads: true },
+      { mode: 'snapshot', allowDownloads: true }
+    ]) {
+      expect(artifactTypeDefinitionSchema.safeParse({ ...definition, presentation: invalid }).success).toBe(false)
+    }
+  })
   it('registers optional analytics on the existing type without requiring a presentation provider', () => {
     const r = registry()
     const analytics = { resolveBindings: async () => [] }

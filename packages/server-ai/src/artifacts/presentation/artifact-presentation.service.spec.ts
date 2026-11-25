@@ -1,6 +1,11 @@
 import { ForbiddenException, GoneException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { ArtifactPresentationRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    ArtifactPresentationRegistry,
+    artifactPresentationKey,
+    artifactTypeKey,
+    RequestContext
+} from '@xpert-ai/plugin-sdk'
 import type { ArtifactPresentationContext, IArtifactPresentationProvider } from '@xpert-ai/plugin-sdk'
 import { captureRequestContext, runWithCapturedRequestContext } from '../../shared/request-context'
 import { Artifact, ArtifactLink, ArtifactVersion } from '../entities'
@@ -8,10 +13,9 @@ import { ArtifactsService, ArtifactResolvedVersion } from '../artifacts.service'
 import { ArtifactPresentationService } from './artifact-presentation.service'
 import { ArtifactTypesService } from '../types/artifact-types.service'
 import { configuredArtifactPolicies } from '../testing/source-policies'
-import { artifactTypeKey } from '@xpert-ai/plugin-sdk'
 
 describe('Authenticated Artifact presentations', () => {
-    async function fixture() {
+    async function fixture(allowDownloads?: boolean) {
         const artifact = Object.assign(new Artifact(), {
             id: 'artifact',
             tenantId: 'tenant',
@@ -64,21 +68,29 @@ describe('Authenticated Artifact presentations', () => {
             query
         }
         const types = configuredArtifactPolicies()
-        types.registry.register(
-            artifactTypeKey(artifact),
-            {
-                definition: { kinds: ['file'], presentation: { mode: 'authenticated' } },
-                authorize: async () => {},
-                validateContent: () => {}
-            },
-            { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
-        )
+        const registerType = (allowDownloads?: boolean) =>
+            types.registry.register(
+                artifactTypeKey(artifact),
+                {
+                    definition: {
+                        kinds: ['file'],
+                        presentation:
+                            allowDownloads === undefined
+                                ? { mode: 'authenticated' }
+                                : { mode: 'authenticated', allowDownloads }
+                    },
+                    authorize: async () => {},
+                    validateContent: () => {}
+                },
+                { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
+            )
+        registerType(allowDownloads)
         artifact.typeBinding = types.bind(artifact, artifact, 'file')
         const registrations = jest.fn(
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
                 {
-                    type: 'example-plugin:report',
-                    source: { kind: 'plugin', pluginName: 'example-plugin', scopeKey: 'team' },
+                    type: artifactPresentationKey(artifact),
+                    source: { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' },
                     strategy: provider
                 }
             ]
@@ -115,6 +127,7 @@ describe('Authenticated Artifact presentations', () => {
             describe,
             query,
             providerRead,
+            registerType,
             registrations,
             deny: () => {
                 allowed = false
@@ -138,6 +151,29 @@ describe('Authenticated Artifact presentations', () => {
             await f.run(() => f.service.query('team-link', { target: f.target, operation: 'dataset', input: {} }))
         ).toEqual({ result: 42 })
         expect(f.describe).toHaveBeenCalledTimes(2)
+    })
+    it.each([
+        [true, false, true],
+        [false, true, false],
+        [undefined, true, false]
+    ] as const)(
+        'resolves the type opt-in %s independently of raw download permission %s',
+        async (optIn, rawDownload, expected) => {
+            const f = await fixture(optIn)
+            f.link.allowDownload = rawDownload
+            const page = await f.run(() => f.service.read('team-link'))
+            expect(page.allowDownloads).toBe(expected)
+            expect(f.link.allowDownload).toBe(rawDownload)
+        }
+    )
+    it('uses the current download policy if the type registration changes during rendering', async () => {
+        const f = await fixture(true)
+        f.providerRead.mockImplementationOnce(async () => {
+            f.registerType(false)
+            return { text: 'published' }
+        })
+        const page = await f.run(() => f.service.read('team-link'))
+        expect(page.allowDownloads).toBe(false)
     })
     it.each(['save', 'publish', 'revoke-share', 'arbitrary-sql'])(
         'rejects undeclared operation %s',

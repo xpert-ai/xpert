@@ -1,6 +1,7 @@
 import { applyDecorators, SetMetadata } from '@nestjs/common'
 import type {
   ArtifactAccessMode,
+  ArtifactDownloadPolicy,
   ArtifactKind,
   ArtifactLinkVersionMode,
   ArtifactTypeReference,
@@ -86,8 +87,14 @@ export interface ArtifactTypeDefinition {
     shareKey?: string
   }
   /** Built-in surfaces are resolved by host composition; plugins use the platform viewer. */
-  presentation: { mode: 'file' } | { mode: 'snapshot' } | { mode: 'authenticated' }
+  presentation: { mode: 'file' } | { mode: 'snapshot' } | ({ mode: 'authenticated' } & ArtifactDownloadPolicy)
 }
+
+/** Use the same trusted download policy for the share and its embedded document. */
+export function authenticatedArtifactPresentation({ allowDownloads }: ArtifactDownloadPolicy) {
+  return { mode: 'authenticated', allowDownloads: allowDownloads === true } as const
+}
+
 export interface ArtifactSnapshotContext {
   /** This is the export's scope, not an authenticated principal. */
   source: ArtifactTypeSource
