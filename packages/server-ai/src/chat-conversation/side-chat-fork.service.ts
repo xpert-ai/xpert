@@ -85,6 +85,10 @@ export class SideChatForkService {
                     operation: null,
                     metadata: {
                         ...(input.metadata ?? {}),
+                        titleSource:
+                            typeof input.metadata?.title === 'string' && input.metadata.title.trim()
+                                ? 'manual'
+                                : 'default',
                         primary: false,
                         purpose: ChatThreadPurpose.SideChat,
                         forkMode: 'latest-sealed-reply',

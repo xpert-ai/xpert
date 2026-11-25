@@ -1,13 +1,15 @@
+import { saveSideChatTitle } from './side-chat-title/save-title'
 import { omit } from 'lodash'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
 import {
     ChatThreadPurpose,
+    filterMessageText,
     isRuntimeChatMessage,
     TChatConversationStatus,
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
@@ -122,12 +124,13 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             .createQueryBuilder()
             .update()
             .set({
-                metadata: () => `jsonb_set(COALESCE(metadata, '{}'::jsonb), '{title}', to_jsonb(CAST(:title AS text)))`
+                metadata: () =>
+                    `COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('title', CAST(:title AS text), 'titleSource', 'manual')`
             })
             .where({ id: thread.id, conversationId: thread.conversationId })
             .setParameter('title', title)
             .execute()
-        thread.metadata = { ...thread.metadata, title }
+        thread.metadata = { ...thread.metadata, title, titleSource: 'manual' }
         return thread
     }
 
@@ -445,10 +448,32 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         const thread = await this.requireByThreadId(threadId)
         const message = await this.messageRepository.findOne({
             where: { id: messageId, conversationId: thread.conversationId },
-            select: { id: true }
+            select: { id: true, role: true, content: true, createdInThreadId: true }
         })
         if (!message) throw new NotFoundException(`Message "${messageId}" not found in thread conversation`)
         await this.repository.update(thread.id, { headMessageId: message.id })
+        if (
+            message.role === 'ai' &&
+            message.createdInThreadId === threadId &&
+            thread.metadata.purpose === ChatThreadPurpose.SideChat &&
+            thread.metadata.titleSource === 'default'
+        ) {
+            // A useful label is available even when model title generation is disabled.
+            await this.saveFirstQuestionTitle(thread).catch(() =>
+                Logger.warn('Could not save side-chat title; retaining the current label.', 'SideChatTitle')
+            )
+        }
+    }
+
+    private async saveFirstQuestionTitle(thread: ChatConversationThread) {
+        const { items } = await this.findVisibleMessages(thread.threadId, {
+            where: { createdInThreadId: thread.threadId, role: 'human' },
+            order: { createdAt: 'ASC' },
+            take: 1
+        })
+        const content = items[0]?.content
+        const text = typeof content === 'string' ? content : content ? filterMessageText(content) : ''
+        return saveSideChatTitle(this.repository, thread, text.replace(/\s+/g, ' ').trim().slice(0, 80), 'default')
     }
 
     async findVisibleMessages(

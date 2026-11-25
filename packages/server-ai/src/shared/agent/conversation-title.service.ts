@@ -1,6 +1,11 @@
+import {
+    ReadSideChatTitleQuery,
+    SaveSideChatTitleCommand,
+    SideChatTitleContext
+} from '../../chat-conversation/side-chat-title/operations'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { HumanMessage } from '@langchain/core/messages'
+import { HumanMessage, isAIMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import {
     ChatMessageEventTypeEnum,
@@ -46,6 +51,38 @@ export class ConversationTitleService {
         private readonly queryBus: QueryBus,
         private readonly i18nService: I18nService
     ) {}
+
+    /** Side chats get their own label; never write their title into shared graph/conversation state. */
+    async generateThreadStatePatch(options: GenerateConversationTitleOptions) {
+        const threadId = options.config?.configurable?.thread_id
+        let side: SideChatTitleContext | null = null
+        try {
+            if (typeof threadId === 'string') side = await this.queryBus.execute(new ReadSideChatTitleQuery(threadId))
+        } catch (error) {
+            this.#logger.warn(getErrorMessage(error))
+            return null
+        }
+        if (!side) return options.state.title ? null : this.generateStatePatch(options)
+        if (!side.pending || !side.input.trim() || options.config?.signal?.aborted) return null
+        const messages = options.channel
+            ? (options.state[options.channel] as TMessageChannel | undefined)?.messages
+            : options.state.messages
+        const answer = messages?.at(-1)
+        if (!answer || !isAIMessage(answer) || answer.tool_calls?.length || !answer.content?.length) return null
+        try {
+            const result = await this.generateStatePatch({
+                ...options,
+                channel: null,
+                state: { ...options.state, title: '', messages: [new HumanMessage(side.input), answer] }
+            })
+            if (result?.title && !options.config?.signal?.aborted)
+                await this.commandBus.execute(new SaveSideChatTitleCommand(threadId, result.title))
+        } catch (error) {
+            // Naming is best-effort and must not turn a successful side reply into a failed run.
+            this.#logger.warn(getErrorMessage(error))
+        }
+        return null
+    }
 
     async generateStatePatch(
         options: GenerateConversationTitleOptions
