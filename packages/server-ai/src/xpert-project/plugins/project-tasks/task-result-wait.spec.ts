@@ -83,6 +83,7 @@ it.each(['running', 'queued', 'succeeded', 'changed-invocation', 'available-resu
             id: mode === 'other-task' ? randomUUID() : f.call.args.taskId,
             projectId: f.projectId,
             executions: [
+                { id: randomUUID(), invocationId: null },
                 {
                     id: f.call.args.executionId,
                     invocationId: mode === 'changed-invocation' ? randomUUID() : f.observation.invocationId,
@@ -105,3 +106,49 @@ it.each(['running', 'queued', 'succeeded', 'changed-invocation', 'available-resu
         else expect(result).toBe(f.repeat)
     }
 )
+
+it('matches a pending read in a parallel tool batch by its own call ID', () => {
+    const f = fixture()
+    const other = { id: 'list', name: ProjectToolEnum.ListTasks, args: {} }
+    const messages = [
+        new AIMessage({ content: '', tool_calls: [other, f.call] }),
+        new ToolMessage({ name: other.name, tool_call_id: other.id, content: '[]', status: 'success' }),
+        f.pair()[1]
+    ]
+    expect(waitForPendingTaskReport(messages, f.repeat, f.projectId).tool_calls).toHaveLength(0)
+})
+
+it('uses the host dispatch receipt when the coordinator tries to dispatch the same live work again', () => {
+    const f = fixture()
+    const call = {
+        id: 'first',
+        name: ProjectToolEnum.DispatchTask,
+        args: { taskId: f.call.args.taskId, bindingId: randomUUID(), expectedRevision: 2 }
+    }
+    const messages = [
+        new AIMessage({ content: '', tool_calls: [call] }),
+        new ToolMessage({
+            name: call.name,
+            tool_call_id: call.id,
+            status: 'success',
+            content: JSON.stringify({
+                projectId: f.projectId,
+                projectTaskId: call.args.taskId,
+                taskExecutionId: f.call.args.executionId,
+                invocationId: f.observation.invocationId,
+                status: 'running'
+            })
+        })
+    ]
+    const again = new AIMessage({
+        content: '',
+        tool_calls: [{ ...call, id: 'another-call', args: { ...call.args, expectedRevision: 3 } }]
+    })
+    expect(waitForPendingTaskReport(messages, again, f.projectId).tool_calls).toHaveLength(0)
+    expect(waitForPendingTaskReport([...messages, new HumanMessage('Child returned')], again, f.projectId)).toBe(again)
+    const other = new AIMessage({
+        content: '',
+        tool_calls: [{ ...call, args: { ...call.args, taskId: randomUUID() } }]
+    })
+    expect(waitForPendingTaskReport(messages, other, f.projectId)).toBe(other)
+})

@@ -5,7 +5,7 @@ import { AgentInvocationAuthorizationError } from '../../agent-invocation/invoca
 // Invariants: commit the attempt and pinned intent before invoking an adapter.
 // Project-row serialization is conservative until adapters can prove checkout isolation.
 // Replays keep the original scope; unknown or missing receipts never permit another launch.
-import { Injectable, Logger } from '@nestjs/common'
+import { ConflictException, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { In, Repository } from 'typeorm'
@@ -78,6 +78,10 @@ export class ProjectTaskDispatchService {
         if (input.reviewAsSubtask && purpose.type !== 'review') throw projectTaskRuntimeError('Invalid')
         if (purpose.type === 'implementation' && purpose.coordination) throw projectTaskRuntimeError('Owned')
         const inheritReviewer = purpose.type === 'implementation' && !purpose.reviewer
+        const nativeImplementation =
+            purpose.type === 'implementation' &&
+            ['codex-computer', 'qwen-computer', 'opencode'].includes(target.provider)
+        let checkProjectSkills = nativeImplementation && !inheritReviewer
         let observedImplementationId: string | undefined
         if (inheritReviewer && purpose.type === 'implementation') {
             // Reuse the task's assignment, but reauthorize it before entering the Project transaction.
@@ -95,6 +99,7 @@ export class ProjectTaskDispatchService {
                 history.find(
                     (attempt) => attempt.dispatchRequestId === input.requestId && attempt.createdById === scope.userId
                 ) ?? history.find((attempt) => attempt.purpose?.type === 'implementation')
+            checkProjectSkills = nativeImplementation && !!previous && previous.dispatchRequestId !== input.requestId
             observedImplementationId = previous?.id
             if (previous?.purpose?.type === 'implementation' && previous.purpose.reviewer)
                 purpose = { ...purpose, reviewer: previous.purpose.reviewer }
@@ -134,6 +139,8 @@ export class ProjectTaskDispatchService {
                     .revision
             }
         }
+        // The skill registry uses the Project volume. Read it before acquiring the database lock.
+        const enabledSkills = checkProjectSkills ? await this.context.enabledProjectSkillNames(projectId) : []
         const execution = await this.executions.manager.transaction(async (manager) => {
             const where = { projectId, tenantId: scope.tenantId, organizationId: scope.organizationId }
             const project = await manager.getRepository(XpertProject).findOne({
@@ -297,6 +304,48 @@ export class ProjectTaskDispatchService {
                 })
             )
                 throw projectTaskRuntimeError('Busy')
+            // A new tool-call ID may arrive after the previous result but before its durable wake.
+            // Compare the actual pinned work under the project lock; explicit rework and changed inputs remain eligible.
+            const priorRun = previous?.invocationId ? invocationById.get(previous.invocationId) : undefined
+            const priorTask = priorRun?.request.dispatch?.projectTask
+            const decision = task.decisions?.at(-1)
+            const sameImplementation =
+                purpose.type === 'implementation' &&
+                previous &&
+                priorTask &&
+                priorRun.status === 'succeeded' &&
+                priorTask.taskExecutionId === previous.id &&
+                priorTask.projectTaskId === task.id &&
+                sameCaller(priorRun.scope, scope) &&
+                priorRun.request.dispatch?.replyTo.threadId === caller.threadId &&
+                priorTask.specification?.digest === specificationSnapshot.digest &&
+                sameInvocationData(priorRun.request.target, target)
+            const rework = decision?.outcome === 'rework' && decision.implementationExecutionId === previous?.id
+            if (sameImplementation) {
+                const required = nativeImplementation
+                    ? reportedProjectSkills(priorRun.result?.text, rework ? decision.rationale : undefined)
+                    : []
+                const missing = required.filter((name) => !enabledSkills.includes(name))
+                if (missing.length) {
+                    throw new ConflictException(
+                        'Project skills are still missing or disabled: ' +
+                            missing.join(', ') +
+                            '. Search each exact name, install its returned indexId with install_skills, ' +
+                            'and verify all are enabled with list_skills before retrying this task.'
+                    )
+                }
+                if (
+                    !required.length &&
+                    !rework &&
+                    sameInvocationData(priorTask.purpose, purpose) &&
+                    sameInvocationData(priorRun.request.input, {
+                        prompt,
+                        ...(input.delivery ? { delivery: input.delivery } : {})
+                    })
+                ) {
+                    throw projectTaskRuntimeError('UnchangedImplementation')
+                }
+            }
             if (task.reviewSubject && task.status === 'done') {
                 task.status = 'review'
                 task.revision += 1
@@ -561,4 +610,26 @@ function implementationPrompt(
     ]
         .filter(Boolean)
         .join('\n\n')
+}
+
+// Only a leading worker declaration or an explicitly named prerequisite in its pinned rework decision is actionable.
+function reportedProjectSkills(report: string | undefined, rationale: string | undefined): string[] {
+    const firstLine = report?.trimStart().split('\n', 1)[0].trim()
+    const prefix = 'PROJECT_SKILLS_REQUIRED='
+    if (firstLine?.startsWith(prefix) && firstLine.length <= 2048) {
+        try {
+            const names: unknown = JSON.parse(firstLine.slice(prefix.length))
+            if (
+                Array.isArray(names) &&
+                names.length <= 16 &&
+                names.every((name) => typeof name === 'string' && /^[a-z0-9][a-z0-9._-]{0,100}$/i.test(name))
+            ) {
+                return [...new Set<string>(names)]
+            }
+        } catch {
+            // A malformed marker cannot create a new prerequisite.
+        }
+    }
+    const pinned = rationale?.match(/\bblocked due to missing ['"`]([a-z0-9][a-z0-9._-]{0,100})['"`] skill\b/i)
+    return pinned ? [pinned[1]] : []
 }

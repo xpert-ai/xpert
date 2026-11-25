@@ -12,7 +12,7 @@ const messages: Record<string, string> = {
   CODING_LOCAL_RELEASE_FORBIDDEN:
     'Local acceptance does not authorize release approval, host installation or Git delivery.',
   CODING_EXECUTION_REVIEW_REQUIRED:
-    'Coding delivery requires a passing independent execution review of this accepted task.',
+    'Coding delivery requires an independent execution review bound to the accepted task. Create and independently review a corrective candidate, record its task acceptance, then submit that acceptance.',
   CODING_SOURCE_ACCEPTANCE_CHANGED:
     'The source task acceptance changed. Start a new delivery from its current accepted result.',
   CODING_GIT_HOST_NOT_ALLOWED: 'This stage is not authorized for fixed GitHub delivery.',

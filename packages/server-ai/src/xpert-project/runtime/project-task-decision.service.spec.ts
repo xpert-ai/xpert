@@ -320,6 +320,29 @@ describe('Project task decision inspection boundaries', () => {
         expect(f.transaction).not.toHaveBeenCalled()
     })
 
+    it('accepts an ordinary task without a delivery-specific review requirement', async () => {
+        const input = await referenceInput()
+        await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).resolves.toMatchObject({
+            outcome: 'accept'
+        })
+        expect(f.task.status).toBe('done')
+    })
+
+    it.each(['ReviewPending', 'ReportMissing', 'ContextChanged'])(
+        'rejects the old reference when a newer review yields %s',
+        async (reason) => {
+            executionReview()
+            const input = await referenceInput()
+            const latest = executionReview()
+            latest.review.attempt++
+            if (reason === 'ReviewPending') latest.invocation.status = 'running'
+            if (reason === 'ReportMissing') latest.invocation.result.text = ''
+            await expect(f.service.decideReference(f.scope.projectId, input, f.caller)).rejects.toThrow(reason)
+            expect(f.transaction).not.toHaveBeenCalled()
+            expect(f.task.decisions).toEqual([])
+        }
+    )
+
     it('accepts a reference with no model-assembled versions/evidence and replays after a lost response', async () => {
         executionReview()
         const input = await referenceInput()

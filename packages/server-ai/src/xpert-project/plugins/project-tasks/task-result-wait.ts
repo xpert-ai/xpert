@@ -1,6 +1,8 @@
 // End only a repeated report poll with a host-confirmed wake in this conversation/thread.
 // Independent coordination and business decisions remain with the model.
 import { AIMessage, isAIMessage, isToolMessage, type BaseMessage } from '@langchain/core/messages'
+import { isDeepStrictEqual } from 'node:util'
+import { projectTaskDispatchReceiptSchema } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
 import { ProjectToolEnum } from './constants'
@@ -22,16 +24,23 @@ const taskObservationSchema = z.object({
     executions: z.array(
         z.object({
             id: z.string().uuid(),
-            invocationId: z.string().uuid().optional(),
-            invocationStatus: z.string().optional(),
+            invocationId: z.string().uuid().nullish(),
+            invocationStatus: z.string().nullish(),
             result: z.unknown().optional()
         })
     )
 })
 
+type DelegationCall = NonNullable<AIMessage['tool_calls']>[number]
+
+function dispatchIntent(call: DelegationCall) {
+    const { expectedRevision: _revision, ...intent } = call.args
+    return intent
+}
+
 export function waitForPendingTaskReport(messages: BaseMessage[], response: AIMessage, projectId: string) {
     if (!response.tool_calls?.length) return response
-    const pending = new Map<string, string>()
+    const pending = new Map<string, { invocationId: string; dispatch?: DelegationCall }>()
     for (let index = 0; index < messages.length; index++) {
         const message = messages[index]
         if (message.getType() === 'human') pending.clear()
@@ -44,14 +53,14 @@ export function waitForPendingTaskReport(messages: BaseMessage[], response: AIMe
                 const fresh = taskObservationSchema.safeParse(
                     typeof message.content === 'string' ? JSON.parse(message.content) : null
                 )
-                if (!fresh.success || message.status !== 'success') pending.clear()
+                if (!fresh.success || message.status === 'error') pending.clear()
                 else if (fresh.data.projectId === projectId) {
-                    for (const [key, invocationId] of pending) {
+                    for (const [key, observation] of pending) {
                         if (!key.startsWith(`${fresh.data.id}/`)) continue
                         const execution = fresh.data.executions.find((entry) => key === `${fresh.data.id}/${entry.id}`)
                         if (
                             !execution ||
-                            execution.invocationId !== invocationId ||
+                            execution.invocationId !== observation.invocationId ||
                             execution.result != null ||
                             !['queued', 'running'].includes(execution.invocationStatus ?? '')
                         )
@@ -63,43 +72,65 @@ export function waitForPendingTaskReport(messages: BaseMessage[], response: AIMe
             }
         }
         if (
-            message.name !== ProjectToolEnum.ReadResult ||
-            message.status !== 'success' ||
+            (message.name !== ProjectToolEnum.ReadResult && message.name !== ProjectToolEnum.DispatchTask) ||
+            message.status === 'error' ||
             typeof message.content !== 'string'
         )
             continue
-        const callMessage = messages[index - 1]
-        if (!callMessage || !isAIMessage(callMessage) || callMessage.tool_calls?.length !== 1) continue
-        const call = callMessage.tool_calls[0]
-        if (
-            call.name !== ProjectToolEnum.ReadResult ||
-            call.id !== message.tool_call_id ||
-            call.args.source === 'prompt'
+        // A parallel batch has one AI message followed by several tool results in any order.
+        let prior = index - 1
+        while (prior >= 0 && isToolMessage(messages[prior])) prior--
+        const owner = messages[prior]
+        if (!owner || !isAIMessage(owner)) continue
+        const call = owner.tool_calls?.find(
+            (candidate) => candidate.id && candidate.id === message.tool_call_id && candidate.name === message.name
         )
-            continue
+        if (!call) continue
         try {
-            const observation = pendingSchema.safeParse(JSON.parse(message.content))
+            const value: unknown = JSON.parse(message.content)
+            if (call.name === ProjectToolEnum.DispatchTask) {
+                const receipt = projectTaskDispatchReceiptSchema.safeParse(value)
+                if (
+                    receipt.success &&
+                    receipt.data.projectId === projectId &&
+                    ['queued', 'running'].includes(receipt.data.status) &&
+                    (receipt.data.projectTaskId === call.args.taskId || call.args.reviewAsSubtask === true)
+                ) {
+                    pending.set(receipt.data.projectTaskId + '/' + receipt.data.taskExecutionId, {
+                        invocationId: receipt.data.invocationId,
+                        dispatch: call
+                    })
+                }
+                continue
+            }
+            if (call.args.source === 'prompt') continue
+            const key = call.args.taskId + '/' + call.args.executionId
+            const observation = pendingSchema.safeParse(value)
             if (
                 observation.success &&
                 observation.data.projectId === projectId &&
                 observation.data.taskId === call.args.taskId &&
                 observation.data.executionId === call.args.executionId
-            )
-                pending.set(`${call.args.taskId}/${call.args.executionId}`, observation.data.invocationId)
-            else pending.delete(`${call.args.taskId}/${call.args.executionId}`)
+            ) {
+                const earlier = pending.get(key)
+                pending.set(key, {
+                    invocationId: observation.data.invocationId,
+                    dispatch: earlier?.invocationId === observation.data.invocationId ? earlier.dispatch : undefined
+                })
+            } else pending.delete(key)
         } catch {
-            /* Unknown or signed payloads never establish a wake. */
+            // Only a structured, correlated host receipt can establish a pending result.
         }
     }
-    if (
-        !response.tool_calls.every(
-            (call) =>
-                call.name === ProjectToolEnum.ReadResult &&
-                call.args.source !== 'prompt' &&
-                pending.has(`${call.args.taskId}/${call.args.executionId}`)
+    const repeatsPending = (call: DelegationCall) => {
+        if (call.name === ProjectToolEnum.ReadResult)
+            return call.args.source !== 'prompt' && pending.has(call.args.taskId + '/' + call.args.executionId)
+        if (call.name !== ProjectToolEnum.DispatchTask) return false
+        return [...pending.values()].some(
+            ({ dispatch }) => dispatch && isDeepStrictEqual(dispatchIntent(dispatch), dispatchIntent(call))
         )
-    )
-        return response
+    }
+    if (!response.tool_calls.every(repeatsPending)) return response
     return new AIMessage({
         id: response.id,
         content: t('server-ai:ProjectTask.WaitingForResult', {

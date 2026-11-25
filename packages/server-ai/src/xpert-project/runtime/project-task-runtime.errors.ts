@@ -20,6 +20,7 @@ export type ProjectTaskRuntimeErrorCode =
     | 'Scope'
     | 'Conflict'
     | 'Busy'
+    | 'UnchangedImplementation'
     | 'Dependencies'
     | 'NotFound'
     | 'NoInvocation'
@@ -40,6 +41,8 @@ export function projectTaskRuntimeError(
 ) {
     const status = code === 'Scope' ? 403 : code === 'NotFound' ? 404 : code === 'Invalid' ? 400 : 409
     const fallback: Partial<Record<ProjectTaskRuntimeErrorCode, string>> = {
+        UnchangedImplementation:
+            'The same implementation already returned successfully. Read its result and continue with material recovery, review or a decision. To retry incomplete work, identify what changed or record rework against this result.',
         ResultUnavailable:
             'This authorized Runtime invocation has no result report. Read its status and error in project_get_task. Do not retry report reads or guess revisions. If execution is still active, end the turn and await durable delivery; if it failed or was cancelled, decide recovery from that execution error before delegating again.',
         ResultRevisionChanged:
