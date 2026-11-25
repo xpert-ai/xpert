@@ -1,3 +1,4 @@
+import type { ExecutionControlCapabilities } from '@xpert-ai/contracts'
 import { InstanceRegistryService } from './instance-registry.service'
 
 class FakeRedis {
@@ -119,6 +120,37 @@ describe('InstanceRegistryService', () => {
 		resume()
 		await Promise.all([ready, draining])
 		expect(await registry.getReadyInstances()).toEqual([])
+		await registry.onModuleDestroy()
+	})
+
+	it('expires controlled worker admission even while business readiness remains fresh', async () => {
+		jest.useFakeTimers()
+		const registry = new InstanceRegistryService(new FakeRedis())
+		await registry.onModuleInit()
+		const handler = {
+			scopeKey: null,
+			pluginName: 'test-plugin',
+			queueName: 'test-queue',
+			jobName: 'test-job',
+			controlContract: 'test-control-v1'
+		}
+		const capabilities: ExecutionControlCapabilities = {
+			version: 1,
+			validUntil: Date.now() + 5_000,
+			protocols: { taskControl: 2, managedQueue: 3 },
+			queuePrefix: 'test',
+			queuePools: ['default'],
+			handlers: [handler]
+		}
+		await registry.setReady(true, Date.now() + 30_000)
+		await registry.reportExecutionControl(capabilities)
+		expect(await registry.findControlledQueueWorkers(handler, 'default', 'test')).toHaveLength(1)
+		await jest.advanceTimersByTimeAsync(5_001)
+		expect(await registry.getReadyInstances()).toHaveLength(1)
+		expect(await registry.findControlledQueueWorkers(handler, 'default', 'test')).toEqual([])
+		expect(await registry.findControlledQueueWorkers(handler, 'default', 'test', true)).toEqual([])
+		await registry.reportExecutionControl({ ...capabilities, validUntil: Date.now() + 5_000 })
+		expect(await registry.findControlledQueueWorkers(handler, 'default', 'test')).toHaveLength(1)
 		await registry.onModuleDestroy()
 	})
 

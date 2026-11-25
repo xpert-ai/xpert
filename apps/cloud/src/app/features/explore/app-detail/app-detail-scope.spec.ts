@@ -23,6 +23,7 @@ jest.mock('@xpert-ai/headless-ui', () => ({
   ZardAlertDialogService: class ZardAlertDialogService {},
   ZardButtonComponent: class ZardButtonComponent {},
   ZardIconComponent: class ZardIconComponent {},
+  ZardInputDirective: class ZardInputDirective {},
   ZardSelectImports: []
 }))
 jest.mock('../../setting/plugins/marketplace/marketplace-mcp-provider.component', () => ({
@@ -71,8 +72,23 @@ const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
 
 describe('ApplicationDetail scope transitions', () => {
   const scope = { key: signal('tenant'), choose: jest.fn() }
-  const applications = { getDetail: jest.fn(), initialize: jest.fn(), discardConfiguration: jest.fn() }
+  const applications = {
+    getDetail: jest.fn(),
+    initialize: jest.fn(),
+    discardConfiguration: jest.fn(),
+    completeOrganizationSettings: jest.fn()
+  }
   const router = { navigate: jest.fn().mockResolvedValue(true) }
+  const settingsDetail: PluginApplicationDetail = {
+    ...organizationDetail,
+    application: {
+      ...organizationDetail.application,
+      config: {
+        ...organizationDetail.application.config,
+        organizationSetup: [{ kind: 'members', key: 'reviewers', label: { en_US: 'Reviewers' } }]
+      }
+    }
+  }
 
   beforeEach(async () => {
     jest.clearAllMocks()
@@ -107,6 +123,51 @@ describe('ApplicationDetail scope transitions', () => {
     await settle()
     return fixture
   }
+
+  it('requires organization settings before initialization and clears them on an organization switch', async () => {
+    applications.getDetail.mockReturnValue(of(settingsDetail))
+    applications.initialize.mockReturnValue(of({ appId: 'plugin:app', status: 'initializing' }))
+    const fixture = await create()
+    const component = fixture.componentInstance
+    expect(component.canSubmit()).toBe(false)
+    await component.initialize()
+    expect(applications.initialize).not.toHaveBeenCalled()
+
+    const settings = { revision: 0, members: { reviewers: ['org-user'] }, queries: {} }
+    component.organizationSettings.set(settings)
+    expect(component.canSubmit()).toBe(true)
+    await component.initialize()
+    expect(applications.initialize).toHaveBeenCalledWith(expect.objectContaining({ organizationSettings: settings }))
+
+    scope.key.set('other-organization')
+    fixture.detectChanges()
+    await settle()
+    expect(component.organizationSettings()).toBeNull()
+    expect(component.canSubmit()).toBe(false)
+  })
+
+  it('saves an existing installation at its current revision and reloads its recovered status', async () => {
+    const status = { ...settingsDetail.status, xpertId: 'existing-assistant' }
+    applications.getDetail.mockReturnValueOnce(of({ ...settingsDetail, status: { ...status, status: 'degraded' } }))
+    const component = (await create()).componentInstance
+    expect(component.status()).toBe('degraded')
+    component.setupOpen.set(true)
+    component.settingsOnly.set(true)
+    const settings = { revision: 3, members: { reviewers: ['org-user'] }, queries: {} }
+    component.organizationSettings.set(settings)
+    applications.completeOrganizationSettings.mockReturnValue(of({ revision: 4 }))
+    applications.getDetail.mockReturnValue(of({ ...settingsDetail, status: { ...status, status: 'ready' } }))
+
+    await component.completeOrganizationSettings()
+    expect(applications.completeOrganizationSettings).toHaveBeenCalledWith(
+      { pluginName: 'plugin', appName: 'app', installationScope: 'organization' },
+      settings
+    )
+    expect(applications.initialize).not.toHaveBeenCalled()
+    expect(component.status()).toBe('ready')
+    expect(component.detail()?.status.xpertId).toBe(status.xpertId)
+    expect(component.setupOpen()).toBe(false)
+  })
 
   it('requires a speech selection, submits its authorized ID, and clears it on an organization switch', async () => {
     const speechDetail: PluginApplicationDetail = {

@@ -1,4 +1,5 @@
-import { AIPermissionsEnum, type IUser } from '@xpert-ai/contracts'
+import { isPublicVisitorSession } from './public-visitor-chat.guard'
+import { AIPermissionsEnum, type IApiPrincipal, type IUser } from '@xpert-ai/contracts'
 import { assistantRuntimeCredential } from '../../api-key/assistant-runtime-compatibility'
 
 export type PermissionDecision =
@@ -15,10 +16,18 @@ export type PermissionDecision =
 /** Do not reload role grants here. Assistant runtime compatibility still requires domain audience/ACL checks. */
 export function evaluatePermissions(
 	user: IUser | null | undefined,
-	permissions: readonly string[] | undefined
+	permissions: readonly string[] | undefined,
+	verifiedPublicVisitor?: IApiPrincipal
 ): PermissionDecision {
 	if (permissions === undefined) return { allowed: true }
 	if (!permissions.length) return { allowed: false, reason: 'permission_declaration_empty' }
+	if (isPublicVisitorSession(user)) {
+		return user === verifiedPublicVisitor &&
+			permissions.length === 1 &&
+			permissions[0] === AIPermissionsEnum.CHAT_VIEW
+			? { allowed: true }
+			: { allowed: false, reason: 'permission_missing' }
+	}
 	const credential = assistantRuntimeCredential(user)
 	if (credential)
 		return credential.allowed && permissions.length === 1 && permissions[0] === AIPermissionsEnum.CHAT_VIEW

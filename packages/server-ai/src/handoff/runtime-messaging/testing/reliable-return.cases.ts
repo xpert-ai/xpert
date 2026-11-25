@@ -1,8 +1,9 @@
 import { ExecutionControlStore } from '../../../execution-control/execution-control.store'
 import { ChatExecutionAdmissionService } from '../../../chat-conversation/chat-execution-admission.service'
 import { ThreadRunControlService } from '../../../chat-conversation/thread-run-control.service'
-import { CommandBus } from '@nestjs/cqrs'
-import { User, TaskControlStore } from '@xpert-ai/server-core'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { AssertProjectConversationAdmissionQuery } from '../../../xpert-project/queries/assert-project-conversation-admission.query'
+import { User, TaskControlStore, RuntimeLifecycleService } from '@xpert-ai/server-core'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { AgentInvocation, HandoffMessage, AGENT_RUNTIME_EVENT_MESSAGE_TYPE } from '@xpert-ai/plugin-sdk'
 import { lastValueFrom, of } from 'rxjs'
@@ -66,6 +67,7 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
         let access: RuntimeMessageAccessService
         let inbox: RuntimeMessageInboxService
         let conversation: ChatConversation
+        let lifecycle: RuntimeLifecycleService
         let continuation: RuntimeMessageContinuationService
         let run: jest.Mock
         let bus: CommandBus
@@ -136,7 +138,14 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 return of(undefined)
             })
             bus = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute: run })
-            continuation = new RuntimeMessageContinuationService(database, access, bus, new TaskControlStore(database))
+            lifecycle = new RuntimeLifecycleService()
+            continuation = new RuntimeMessageContinuationService(
+                database,
+                access,
+                bus,
+                new TaskControlStore(database),
+                lifecycle
+            )
         })
         afterEach(() => jest.restoreAllMocks())
 
@@ -199,6 +208,85 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 row: await database.getRepository(AgentRuntimeInbox).findOneBy({ invocationId: result_.invocationId })
             }
         }
+        it('leaves pending results for a replacement consumer after module destruction', async () => {
+            const { row } = await receive()
+            continuation.onModuleDestroy()
+            await continuation.reconcile()
+            await continuation.consume(row)
+            expect(await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })).toMatchObject({
+                state: 'pending',
+                phase: null,
+                claim: null,
+                leaseToken: null
+            })
+            expect(run).not.toHaveBeenCalled()
+            const replacement = new RuntimeMessageContinuationService(
+                database,
+                access,
+                bus,
+                new TaskControlStore(database),
+                new RuntimeLifecycleService()
+            )
+            await replacement.consume(row)
+            expect(run).toHaveBeenCalledTimes(1)
+            expect(await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })).toMatchObject({
+                state: 'processed'
+            })
+        })
+        it('keeps a completed result pending while process drain rejects new continuations', async () => {
+            const { row } = await receive()
+            lifecycle.beginDrain({ restartId: 'test-drain', requestedAt: new Date().toISOString() })
+            await continuation.reconcile()
+            await continuation.consume(row)
+            const pending = await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })
+            expect(pending).toMatchObject({ state: 'pending', phase: null, claim: null, leaseToken: null })
+            expect(run).not.toHaveBeenCalled()
+            lifecycle.cancelDrain('test-drain')
+            await continuation.consume(pending)
+            expect(run).toHaveBeenCalledTimes(1)
+        })
+        it('defers a continuation if shutdown begins while current access is checked', async () => {
+            const { row } = await receive()
+            const original = access.withReply.bind(access)
+            jest.spyOn(access, 'withReply').mockImplementationOnce((id, owner, work) =>
+                original(id, owner, async (reply) => {
+                    lifecycle.beginDrain({ restartId: 'test-drain', requestedAt: new Date().toISOString() })
+                    return work(reply)
+                })
+            )
+            await continuation.consume(row)
+            const pending = await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })
+            expect(pending).toMatchObject({ state: 'pending', phase: null, claim: null, leaseToken: null })
+            expect(run).not.toHaveBeenCalled()
+            lifecycle.cancelDrain('test-drain')
+            await continuation.consume(pending)
+            expect(run).toHaveBeenCalledTimes(1)
+        })
+        it('preserves the same unstarted claim if shutdown races the started-phase write', async () => {
+            const { row } = await receive()
+            const repo = database.getRepository(AgentRuntimeInbox)
+            const original = repo.update.bind(repo)
+            jest.spyOn(repo, 'update').mockImplementation(async (criteria, patch) => {
+                const result = await original(criteria, patch)
+                if (patch.phase === 'started')
+                    lifecycle.beginDrain({ restartId: 'test-drain', requestedAt: new Date().toISOString() })
+                return result
+            })
+            await continuation.consume(row)
+            const pending = await repo.findOneByOrFail({ id: row.id })
+            expect(pending).toMatchObject({ state: 'processing', phase: 'reserved', leaseToken: null })
+            const executionId = pending.claim.consumer.executionId
+            expect(
+                await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })
+            ).toMatchObject({ status: XpertAgentExecutionStatusEnum.PENDING })
+            expect(run).not.toHaveBeenCalled()
+            jest.restoreAllMocks()
+            lifecycle.cancelDrain('test-drain')
+            await continuation.consume(pending)
+            const finished = await repo.findOneByOrFail({ id: row.id })
+            expect(finished).toMatchObject({ state: 'processed', claim: pending.claim })
+            expect(run).toHaveBeenCalledTimes(1)
+        })
         it('binds a durable return to the original logical task before starting the new turn', async () => {
             const tasks = new TaskControlStore(database)
             const parent = await tasks.register({
@@ -226,13 +314,25 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             expect(run).toHaveBeenCalledTimes(1)
         })
         it('serializes real root admissions on the thread row', async () => {
+            // This case exercises the writer lock; project-move policy is a separate query boundary.
+            const authorize = jest.fn(async (query: AssertProjectConversationAdmissionQuery) => {
+                expect(query).toBeInstanceOf(AssertProjectConversationAdmissionQuery)
+                expect(query.scope).toMatchObject({
+                    conversationId: conversation.id,
+                    threadId: caller.threadId,
+                    projectId: scope.projectId
+                })
+                expect(query.manager.queryRunner.isTransactionActive).toBe(true)
+            })
+            const queries = Object.assign(Object.create(QueryBus.prototype) as QueryBus, { execute: authorize })
             const admission = new ChatExecutionAdmissionService(
                 database,
                 new ThreadRunControlService(
                     database.getRepository(ChatConversationThread),
                     database,
                     new ExecutionControlStore(database, new TaskControlStore(database))
-                )
+                ),
+                queries
             )
             const execute = jest.fn(async (id: string) => {
                 await database
@@ -250,6 +350,7 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 admission.run(request, {}, execute)
             ])
             expect(results.filter((item) => item.status === 'fulfilled')).toHaveLength(1)
+            expect(authorize).toHaveBeenCalledTimes(2)
             expect(execute).toHaveBeenCalledTimes(1)
             for (const result of results) if (result.status === 'fulfilled') await lastValueFrom(result.value)
             expect(
@@ -433,7 +534,8 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 {
                     execute: deliver
                 } as unknown as CommandBus,
-                new TaskControlStore(database)
+                new TaskControlStore(database),
+                lifecycle
             )
             await Promise.allSettled([
                 inbox.claimWait(new ClaimAgentRuntimeResultsCommand(scope, 'group-wait', [invocationId])),
@@ -459,7 +561,8 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
                 {
                     execute: deliver
                 } as unknown as CommandBus,
-                new TaskControlStore(database)
+                new TaskControlStore(database),
+                lifecycle
             )
             await groupContinuation.consume(row)
             await groupContinuation.consume(row)

@@ -1,7 +1,7 @@
 import { z } from 'zod/v3'
 import { projectPipelineConfigurationSchema } from './configuration.schema'
 import { projectPipelineKeySchema } from './primitives.schema'
-import { projectPipelineEvidenceRefSchema } from './runtime.schema'
+import { type ProjectPipelineRun, projectPipelineEvidenceRefSchema } from './runtime.schema'
 
 export const projectPipelineConfigureSchema = z
   .object({
@@ -43,7 +43,8 @@ export const projectPipelineCancelSchema = z
   .object({
     instanceId: z.string().uuid(),
     requestId: z.string().uuid(),
-    expectedRevision: z.number().int().positive()
+    /** The run shown when cancellation was requested; ordinary progress does not change this target. */
+    runId: z.string().uuid()
   })
   .strict()
 export type ProjectPipelineCancel = z.output<typeof projectPipelineCancelSchema>
@@ -63,4 +64,9 @@ export interface ProjectPipelineStartReceipt {
   runId: string
   roundId: string
   revision: number
+}
+
+/** Cancellation reports the requested run, including an already terminal historical run. */
+export interface ProjectPipelineCancelReceipt extends ProjectPipelineStartReceipt {
+  state: ProjectPipelineRun['state']
 }

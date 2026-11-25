@@ -1,3 +1,4 @@
+import { catalogThumbnail } from '../shared/catalog-thumbnail'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { CommandBus } from '@nestjs/cqrs'
 import { GrantAssistantAccessCommand } from '../xpert/sharing/grant-assistant-access.command'
@@ -23,7 +24,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundEx
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { Brackets, Repository } from 'typeorm'
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
@@ -34,6 +35,25 @@ const DEFAULT_TAKE = 60
 const MAX_TAKE = 200
 const MAX_REASON_LENGTH = 500
 const MAX_RESPONSE_LENGTH = 500
+
+interface ExpertCardRow {
+    updatedAt: Date
+    id: string
+    name: string
+    title: string | null
+    titleCN: string | null
+    description: IXpert['description']
+    owner: string | null
+    firstName: string | null
+    lastName: string | null
+    username: string | null
+    areaId: string | null
+    areaName: string | null
+    marketplace: TXpertMarketplaceProfile | null
+    emoji: NonNullable<IXpert['avatar']>['emoji']
+    url: string | null
+    hasAvatar: boolean | null
+}
 
 @Injectable()
 export class XpertMarketplaceService {
@@ -93,6 +113,87 @@ export class XpertMarketplaceService {
             total,
             reviewableCount
         }
+    }
+
+    async findCards(skip: number, take: number) {
+        const userId = this.currentUserId()
+        const base = this.restrictDiscovery(
+            this.xpertRepository.createQueryBuilder('xpert').leftJoin('xpert.workspace', 'workspace')
+        )
+        const page = base
+            .clone()
+            .leftJoin('xpert.createdBy', 'creator')
+            .leftJoin('xpert.businessArea', 'area')
+            .select('xpert.id', 'id')
+            .addSelect('xpert.updatedAt', 'updatedAt')
+            .addSelect('xpert.name', 'name')
+            .addSelect('xpert.title', 'title')
+            .addSelect('xpert.titleCN', 'titleCN')
+            .addSelect('xpert.description', 'description')
+            .addSelect('xpert.createdById', 'owner')
+            .addSelect('creator.firstName', 'firstName')
+            .addSelect('creator.lastName', 'lastName')
+            .addSelect('creator.username', 'username')
+            .addSelect('area.id', 'areaId')
+            .addSelect('area.name', 'areaName')
+            .addSelect('xpert.marketplace', 'marketplace')
+            .addSelect("xpert.avatar -> 'emoji'", 'emoji')
+            .addSelect("CASE WHEN xpert.avatar ->> 'url' NOT ILIKE 'data:%' THEN xpert.avatar ->> 'url' END", 'url')
+            .addSelect("xpert.avatar ->> 'url' ILIKE 'data:%'", 'hasAvatar')
+            .orderBy("date_trunc('milliseconds', xpert.updatedAt)", 'DESC')
+            .addOrderBy('xpert.publishAt', 'DESC')
+            .addOrderBy('xpert.id', 'ASC')
+            .offset(skip)
+            .limit(take)
+        const [total, rows] = await Promise.all([base.getCount(), page.getRawMany<ExpertCardRow>()])
+        const otherIds = rows.filter((row) => row.owner !== userId).map((row) => row.id)
+        const [accessible, requests] = await Promise.all([
+            RequestContext.getOrganizationId()
+                ? this.publishedAccess.accessiblePublishedIds(otherIds)
+                : new Set(otherIds),
+            this.findCurrentUserRequests(otherIds)
+        ])
+        const statuses = new Map(requests.map((request) => [request.xpertId, request.status]))
+        return {
+            total,
+            items: rows.map((row) => ({
+                xpert: {
+                    id: row.id,
+                    updatedAt: row.updatedAt,
+                    name: row.name,
+                    title: row.title,
+                    titleCN: row.titleCN,
+                    description: row.description,
+                    createdBy: { firstName: row.firstName, lastName: row.lastName, username: row.username },
+                    businessArea: row.areaId ? { id: row.areaId, name: row.areaName } : null,
+                    avatar: { url: row.url, emoji: row.emoji }
+                },
+                hasCardAvatar: row.hasAvatar === true,
+                marketplace: {
+                    summary: row.marketplace?.summary,
+                    featured: row.marketplace?.featured,
+                    businessCategories: row.marketplace?.businessCategories,
+                    technical: { categories: row.marketplace?.technical?.categories }
+                },
+                accessStatus:
+                    row.owner === userId
+                        ? 'owned'
+                        : accessible.has(row.id)
+                          ? 'accessible'
+                          : (statuses.get(row.id) ?? 'not_requested')
+            }))
+        }
+    }
+
+    async cardAvatar(id: string) {
+        this.currentUserId()
+        const row = await this.restrictDiscovery(
+            this.xpertRepository.createQueryBuilder('xpert').leftJoin('xpert.workspace', 'workspace')
+        )
+            .andWhere('xpert.id = :id', { id })
+            .select("xpert.avatar ->> 'url'", 'url')
+            .getRawOne<{ url: string | null }>()
+        return { url: row?.url ? await catalogThumbnail(row.url, 96) : null }
     }
 
     async getMarketplaceItem(id: string): Promise<IXpertMarketplaceItem> {
@@ -256,9 +357,7 @@ export class XpertMarketplaceService {
     }
 
     private buildDiscoverableXpertQuery() {
-        const tenantId = this.currentTenantId()
-        const organizationId = RequestContext.getOrganizationId()
-        return this.xpertRepository
+        const qb = this.xpertRepository
             .createQueryBuilder('xpert')
             .leftJoinAndSelect('xpert.workspace', 'workspace')
             .leftJoinAndSelect('xpert.businessArea', 'businessArea')
@@ -266,6 +365,13 @@ export class XpertMarketplaceService {
             .leftJoinAndSelect('xpert.createdBy', 'createdBy')
             .leftJoinAndSelect('xpert.userGroups', 'userGroups')
             .leftJoinAndSelect('userGroups.members', 'userGroupMember')
+        return this.restrictDiscovery(qb)
+    }
+
+    private restrictDiscovery(qb: SelectQueryBuilder<Xpert>) {
+        const tenantId = this.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        return qb
             .where('xpert.tenantId = :tenantId', { tenantId })
             .andWhere('xpert.publishAt IS NOT NULL')
             .andWhere('xpert.latest = true')

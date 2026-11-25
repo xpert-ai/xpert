@@ -280,7 +280,9 @@ export async function preBootstrapPlugins(options: { failOnPluginGroupError?: bo
   for (const plugin of persistedSystemGroup?.plugins ?? []) {
     const normalized = normalizePluginName(plugin.name)
     const current = mergedSystemPluginMap.get(normalized)
-    if (current?.source === 'code') {
+    // A published immutable installation pins the revision that runtime admission requires.
+    const pinnedInstallation = plugin.source === 'code' && plugin.restore && plugin.runtimeName
+    if (current?.source === 'code' && !pinnedInstallation) {
       continue
     }
     mergedSystemPluginMap.set(normalized, {

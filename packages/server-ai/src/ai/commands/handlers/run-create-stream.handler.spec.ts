@@ -1860,7 +1860,7 @@ describe('RunCreateStreamHandler execute', () => {
             const queries = {
                 execute: jest.fn(async (query) => {
                     if (query instanceof AssertXpertAgentExecutionAccessQuery)
-                        return { id: 'old-run', threadId: 'branch', agentKey: 'agent' }
+                        return { id: 'old-run', threadId: 'branch', agentKey: 'agent', type: 'agent' }
                     if (query.constructor.name === 'GetXpertWorkflowQuery')
                         return { graph: { nodes: [], connections: [] } }
                     return null
@@ -1900,6 +1900,7 @@ describe('RunCreateStreamHandler execute', () => {
             )?.[0]
             expect(upsert.execution.id).toBeUndefined()
             expect(upsert.execution.metadata).toMatchObject({ resumedFromExecutionId: 'old-run' })
+            expect(upsert.execution.type).toBe('agent')
             const chat = commands.execute.mock.calls.find(([command]) => command instanceof XpertChatCommand)?.[0]
             expect(chat.options).toMatchObject({
                 threadId: 'branch',

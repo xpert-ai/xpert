@@ -53,7 +53,7 @@ export function resolvePluginApplicationConfigAssets(
  * eligible only when both the requested path and the manifest declaration
  * resolve to the same file inside the loaded plugin bundle root.
  */
-function resolvePluginScreenshot(plugin: LoadedPluginRecord, screenshot: string): string {
+export function resolvePluginScreenshot(plugin: LoadedPluginRecord, screenshot: string): string {
     const value = screenshot?.trim()
     if (!value || /^(?:data:|https?:\/\/|\/)/i.test(value)) {
         return value

@@ -7,6 +7,7 @@ import { join, resolve } from 'path'
 import {
 	assertInstalledPluginSdkCompatibility,
 	ensureHostContractsLink,
+	ensureHostPluginOrmLinks,
 	ensureHostPluginSdkLink,
 	warnPluginSdkCompatibility
 } from './plugin-sdk-versioning'
@@ -145,6 +146,7 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 	ensureHostPluginSdkLink(opts.basedir)
 	ensureHostContractsLink(opts.basedir)
 	const sdkCompatibility = assertInstalledPluginSdkCompatibility(modName, opts.basedir)
+	ensureHostPluginOrmLinks(modName, opts.basedir)
 	warnPluginSdkCompatibility(sdkCompatibility)
 	if (sdkCompatibility?.warnings.length) {
 		opts.onCompatibilityWarnings?.(sdkCompatibility.warnings)

@@ -1,5 +1,5 @@
-// Only complete current tool rounds can introduce visual input. Historical bytes
-// are removed from outbound clones, never from durable messages or checkpoints.
+// Complete current image rounds introduce visual input; a bounded set of recent
+// verified references can accompany them for comparison. Bytes never enter state.
 import { isAIMessage, isToolMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
 import type { ToolCall } from '@langchain/core/messages/tool'
 import { BadRequestException } from '@nestjs/common'
@@ -79,6 +79,28 @@ export function readyImageMessages(messages: readonly BaseMessage[], toolNames: 
         )
     }
     return trailing.filter((message) => names.has(message.name ?? '') && message.status !== 'error')
+}
+
+/** Compare sequential image calls without replaying another user's turn or an incomplete round. */
+export function recentImageMessages(messages: readonly BaseMessage[], toolNames: readonly string[]): ToolMessage[] {
+    let end = messages.length - 1
+    while (end >= 0 && isToolMessage(messages[end])) end--
+    const recent: ToolMessage[] = []
+    const lower = Math.max(0, end - 12)
+    for (let index = end - 1; index >= lower; index--) {
+        const message = messages[index]
+        if (message.getType() === 'human') break
+        if (!isToolMessage(message)) continue
+        const roundEnd = index + 1
+        while (index >= lower && isToolMessage(messages[index])) index--
+        if (index < lower || !isAIMessage(messages[index])) break
+        try {
+            recent.push(...readyImageMessages(messages.slice(index, roundEnd), toolNames).reverse())
+        } catch {
+            /* Malformed historical rounds cannot supply comparison pixels. */
+        }
+    }
+    return recent
 }
 
 /** Explicit fields avoid copying lc_kwargs, which can retain legacy Base64 despite replacing content. */

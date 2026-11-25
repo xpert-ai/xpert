@@ -69,6 +69,7 @@ export class ConversationTitleService {
             threadId,
             xpert
         })
+        execution.metadata = { ...execution.metadata, presentation: 'runtime' }
 
         const runId = typeof config?.metadata?.run_id === 'string' ? config.metadata.run_id : undefined
         await dispatchCustomEvent(

@@ -49,11 +49,24 @@ describe('message branching capability', () => {
         expect(visible.agentRuns).toEqual([])
     })
 
+    it('reads unversioned copies that already contain presentation markers', () => {
+        const visible = publicChatMessage({
+            ...sealed(),
+            historicalAgentRuns: [
+                { id: 'business', title: '总结标题', presentation: 'event' },
+                { id: 'maintenance', presentation: 'runtime' }
+            ]
+        })
+        expect(visible.agentRuns?.map((run) => run.id)).toEqual(['business'])
+        expect(visible.historical).toBe(true)
+    })
+
     it('exposes sealed execution timing without exposing checkpoint state', () => {
         const message = sealed()
-        message.outputCheckpoint.agentRuns = [{ id: 'root', isRoot: true, elapsedTime: 479000 }]
+        const runs = [{ id: 'root', isRoot: true, elapsedTime: 479000 }]
+        message.outputCheckpoint.agentRuns = { version: 1, runs }
         const visible = publicChatMessage(message)
-        expect(visible.agentRuns).toEqual(message.outputCheckpoint.agentRuns)
+        expect(visible.agentRuns).toEqual(runs)
         expect(visible).not.toHaveProperty('outputCheckpoint')
         expect(visible.historical).not.toBe(true)
     })

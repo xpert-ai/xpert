@@ -11,7 +11,8 @@ import {
 import { InstanceRegistryService } from '../managed-connection/instance-registry.service'
 import {
 	controlAdmissionUnavailable,
-	controlSchemaReady,
+	hasControlSchemaColumns,
+	readControlSchemaColumns,
 	requireControlSchema,
 	taskControlSchema,
 	type ControlSchemaRequirement
@@ -43,13 +44,15 @@ export class ControlRuntimeAdmissionService {
 	async refresh() {
 		const started = Date.now()
 		const protocols: ExecutionControlCapabilities['protocols'] = {}
-		for (const [capability, requirements] of this.requirements) {
-			try {
-				if (await controlSchemaReady(this.database.manager, requirements))
+		try {
+			// One fresh catalog snapshot covers all capabilities, including overlapping tables.
+			const rows = await readControlSchemaColumns(this.database.manager, [...this.requirements.values()].flat())
+			for (const [capability, requirements] of this.requirements) {
+				if (hasControlSchemaColumns(rows, requirements))
 					Object.assign(protocols, { [capability]: executionControlProtocols[capability] })
-			} catch {
-				/* Keep this capability absent until the schema can be verified again. */
 			}
+		} catch {
+			/* No capability is advertised when its schema cannot be freshly verified. */
 		}
 		await this.instances.reportExecutionControl({
 			version: 1,

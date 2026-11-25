@@ -20,6 +20,44 @@ Agent middleware lets you inject cross-cutting logic into the Agent lifecycle wi
 | `wrapModelCall` | Around model call        | Retry, cache, guardrails                      |
 | `wrapToolCall`  | Around tool call         | Auth, rate limit, post-processing             |
 
+## ChatKit tool call details and field allowlists
+
+Ordinary tools show their inputs, results, and errors in Bosi and ChatKit conversations by default. To select the fields participants can see, set `metadata.publicToolPresentation` in the server-side registration options for `@XpertTool` or LangChain's `tool()`. The declaration's `tool` must exactly match the registered `name`.
+
+For example, add `metadata: { publicToolPresentation: aftercarePresentation }` to the existing `@XpertTool({ ... })` declaration for `order_aftercare_finalize`. This allowlist shows the evidence IDs from the input, the status and stage of a successful result, and a participant-facing error message.
+
+```ts
+import type { PublicToolPresentation } from '@xpert-ai/contracts'
+import { z } from 'zod/v3'
+
+const visibleInput = z.object({ evidenceIds: z.array(z.string()) })
+const visibleResult = z.object({ status: z.literal('business_accepted'), step: z.literal('aftercare') })
+
+const aftercarePresentation = {
+  tool: 'order_aftercare_finalize',
+  input(args) {
+    const parsed = visibleInput.safeParse(args)
+    return parsed.success ? parsed.data : undefined
+  },
+  output(content) {
+    const value = typeof content === 'string' ? JSON.parse(content) : content
+    const parsed = visibleResult.safeParse(value)
+    return parsed.success ? parsed.data : undefined
+  },
+  error: () => 'The aftercare assessment could not be submitted.'
+} satisfies PublicToolPresentation
+```
+
+With both `assessment` and `evidenceIds` in the input, the expanded row shows only `{"evidenceIds":["INS-1201"]}`. The tool receives the full input and the model receives the full result. Ordinary objects returned by decorated tools reach the output callback as JSON strings, so the example parses `content` before selecting fields.
+
+| Configuration                                   | Conversation behavior                                                                                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Omit `publicToolPresentation`                   | Ordinary tools show details by default, with common credential fields masked.                                                                      |
+| Declare some callbacks                          | Only the declared phases publish values. Return participant-visible JSON from `input` and `output`, and a participant-visible string from `error`. |
+| Set only `{ tool: 'order_aftercare_finalize' }` | The tool row remains visible with all input, output, and error details hidden.                                                                     |
+
+Callbacks run synchronously on the server. Returning `undefined`, throwing, or producing an oversized preview omits that phase's details. Once the updated tool is loaded, both live chat and history show the values recorded for new calls. Previously saved messages retain their original details.
+
 ## MCP App View Tools
 
 Configure `McpAppToolsMiddleware` (“Tools in open Apps”) when an Assistant needs to operate a live MCP App in the current chat. It exposes `mcp_app_tools_list` and `mcp_app_tool_call`, reusing `ClientToolMiddleware` for client execution and resumption. ChatKit identifies the view, obtains approval, and invokes tools inside its iframe.

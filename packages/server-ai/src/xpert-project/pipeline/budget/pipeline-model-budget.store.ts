@@ -1,3 +1,4 @@
+import { retryPipelineModelAdmission } from './pipeline-model-budget-retry'
 // Invariants: admission locks the Project; every round and Run consumes the same instance budget with audited human increases.
 // Only persisted native ancestry associates a call. Unknown usage retains its reservation indefinitely.
 import { ConflictException, Injectable } from '@nestjs/common'
@@ -66,50 +67,62 @@ export class ProjectPipelineModelBudgetStore {
     async admit(input: PipelineModelBudgetCall): Promise<boolean> {
         callSchema.parse(input)
         const call = input
-        const result = await this.db.transaction(async (manager) => {
-            const work = await resolvePipelineModelWork(manager, call)
-            if (!work) return false
-            const context = { projectId: work.record.projectId, actor: call.actor }
-            await lockManagedProject(manager, context)
-            const scope = projectionScope(context)
-            const instance = await manager.findOneByOrFail(ProjectPipelineInstanceEntity, {
-                ...scope,
-                id: work.record.instanceId
-            })
-            if (!instance.nativeModelBudget) return false
-            const { policy: budget } = await pipelineModelBudgetPolicy(manager, instance)
-            await assertPipelineModelWorkOpen(manager, instance, work)
-            if (call.estimatedTokens === undefined)
-                throw new ConflictException({
-                    message: t('server-ai:Error.ProjectPipelineModelEstimateUnavailable'),
-                    code: 'MODEL_BUDGET_ESTIMATE_UNAVAILABLE'
+        const result = await retryPipelineModelAdmission(call, () =>
+            this.db.transaction(async (manager) => {
+                const work = await resolvePipelineModelWork(manager, call)
+                if (!work) return false
+                const context = { projectId: work.record.projectId, actor: call.actor }
+                await lockManagedProject(manager, context)
+                const scope = projectionScope(context)
+                const instance = await manager.findOneByOrFail(ProjectPipelineInstanceEntity, {
+                    ...scope,
+                    id: work.record.instanceId
                 })
-            const reservationTokens = Math.max(budget.reservationTokens, call.estimatedTokens)
-            const origin = pipelineModelReservationOrigin(work)
-            const previous = await manager.findOne(ProjectPipelineModelReservationEntity, {
-                withDeleted: true,
-                where: { ...scope, operationId: origin.operationId, requestId: call.requestId }
+                if (!instance.nativeModelBudget) return false
+                const { policy: budget } = await pipelineModelBudgetPolicy(manager, instance)
+                await assertPipelineModelWorkOpen(manager, instance, work)
+                if (call.estimatedTokens === undefined)
+                    throw new ConflictException({
+                        message: t('server-ai:Error.ProjectPipelineModelEstimateUnavailable'),
+                        code: 'MODEL_BUDGET_ESTIMATE_UNAVAILABLE'
+                    })
+                const reservationTokens = Math.max(budget.reservationTokens, call.estimatedTokens)
+                const origin = pipelineModelReservationOrigin(work)
+                const previous = await manager.findOne(ProjectPipelineModelReservationEntity, {
+                    withDeleted: true,
+                    where: { ...scope, operationId: origin.operationId, requestId: call.requestId }
+                })
+                // Repeated callback delivery must never authorize a second inference with a reused request ID.
+                if (previous) throw pipelineProjectionConflict('MODEL_BUDGET_REQUEST_REPLAY')
+                const totals = await pipelineModelBudgetTotals(manager, instance)
+                if (totals.calls >= budget.maxCalls || reservationTokens > budget.maxTokens - totals.tokens) {
+                    await recordPipelineModelBudgetDenial(
+                        manager,
+                        context,
+                        instance,
+                        pipelineModelDenialOperation(work)
+                    )
+                    return 'budget_exceeded' as const
+                }
+                await manager.save(ProjectPipelineModelReservationEntity, {
+                    ...managedAudit(context),
+                    instanceId: instance.id,
+                    ...origin,
+                    executionId: call.executionId,
+                    requestId: call.requestId,
+                    state: 'held',
+                    reservedTokens: String(reservationTokens),
+                    actualTokens: null
+                })
+                await recordPipelineModelBudgetResumption(
+                    manager,
+                    context,
+                    instance,
+                    pipelineModelDenialOperation(work)
+                )
+                return true
             })
-            // Repeated callback delivery must never authorize a second inference with a reused request ID.
-            if (previous) throw pipelineProjectionConflict('MODEL_BUDGET_REQUEST_REPLAY')
-            const totals = await pipelineModelBudgetTotals(manager, instance)
-            if (totals.calls >= budget.maxCalls || reservationTokens > budget.maxTokens - totals.tokens) {
-                await recordPipelineModelBudgetDenial(manager, context, instance, pipelineModelDenialOperation(work))
-                return 'budget_exceeded' as const
-            }
-            await manager.save(ProjectPipelineModelReservationEntity, {
-                ...managedAudit(context),
-                instanceId: instance.id,
-                ...origin,
-                executionId: call.executionId,
-                requestId: call.requestId,
-                state: 'held',
-                reservedTokens: String(reservationTokens),
-                actualTokens: null
-            })
-            await recordPipelineModelBudgetResumption(manager, context, instance, pipelineModelDenialOperation(work))
-            return true
-        })
+        )
         if (result === 'budget_exceeded')
             throw new ConflictException({
                 message: t('server-ai:Error.ProjectPipelineNativeModelBudgetExceeded'),

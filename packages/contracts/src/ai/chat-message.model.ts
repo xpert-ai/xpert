@@ -90,7 +90,7 @@ export interface IChatMessage
   /** Copied execution history is display-only and must not restore live tool sessions. */
   historical?: boolean
   /** Owned snapshot for a branch whose original execution may later be deleted. */
-  historicalAgentRuns?: import('./xpert-agent-execution.model').TChatAgentRunSummary[]
+  historicalAgentRuns?: import('./chat.model').TStoredChatAgentRuns | null
 
   /**
    * @deprecated Chat attachments now use `fileAssets`. This field is kept only

@@ -30,19 +30,27 @@ type Reason =
     | 'CandidatePending'
     | 'ReviewPending'
     | 'ReportMissing'
+    | 'TaskNotDecidable'
     | 'Restricted'
 const messages: Record<Reason, string> = {
     InvalidReference: 'Invalid decision reference. Read project_get_task and copy a returned decisionRef unchanged.',
     ContextChanged:
-        'The task, candidate or review has changed. Read project_get_task again, reassess its evidence and use the new decisionRef.',
+        'The task, candidate or review has changed. Read project_get_task again and copy a current decisionRef unchanged. If decisionOptions contains a diagnostic without a decisionRef, no decision is available; resolve that diagnostic first.',
     CandidatePending:
         'The implementation is still executing or its stop is unconfirmed. Wait for its result before deciding.',
     ReviewPending:
         'The selected independent review has not completed successfully. Inspect the review task; do not restart implementation for report delivery alone.',
     ReportMissing:
         'The independent review has no readable report. Inspect the review task and recover its report delivery before deciding.',
+    TaskNotDecidable:
+        'This task is not awaiting a decision. Inspect its status and recorded decisions. Do not repeat acceptance or rework on a completed or cancelled task; report any unresolved delivery requirement instead.',
     Restricted:
         'The current actor cannot access this execution result. Use an authorized task owner; the reference grants no access.'
+}
+
+/** Match the transactional decision guard; a read must not offer an impossible action. */
+export function taskCanReceiveDecision(task: Pick<XpertProjectTask, 'kind' | 'status'>) {
+    return ['review', 'blocked', 'in_progress', ...(task.kind === 'summary' ? ['todo'] : [])].includes(task.status)
 }
 export class ProjectTaskDecisionReferenceError extends HttpException {
     readonly diagnostic: { code: Reason; message: string; taskId?: string }
@@ -97,6 +105,7 @@ export async function decisionBinding(
     task: XpertProjectTask,
     executionId: string
 ) {
+    if (!taskCanReceiveDecision(task)) throw new ProjectTaskDecisionReferenceError('TaskNotDecidable', task.id)
     const where = { tenantId: actor.tenantId, organizationId: actor.organizationId, projectId: task.projectId }
     const implementation = await decisionImplementationTask(manager, task, actor, executionId, false).catch((error) => {
         // Changed hierarchy/specification must not make task reads fail or invite guessed metadata.

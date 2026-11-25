@@ -299,7 +299,7 @@ export function registerManagedCases2(fixture: ReturnType<typeof managedPipeline
             operation = (await fixture.operations())[0]
         fixture.execute.mockResolvedValueOnce({ status: 'pending', receiptKey: 'receipt-1' })
         await fixture.runner.run(fixture.context, operation.id)
-        await fixture.lifecycle.cancel(fixture.context, await fixture.commandInput(launched.instanceId))
+        await fixture.lifecycle.cancel(fixture.context, await fixture.cancelInput(launched.instanceId))
         fixture.cancel.mockRejectedValueOnce(new Error('Cancellation response lost'))
         await fixture.runner.run(fixture.context, operation.id)
         expect(

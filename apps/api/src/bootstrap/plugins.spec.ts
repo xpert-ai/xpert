@@ -76,26 +76,21 @@ describe('preBootstrapPlugins built-in plugins', () => {
     ['@xpert-ai/plugin-github-integration', '@xpert-ai/plugin-coding-project'].flatMap((name) =>
       [undefined, `${name},${name}@0.1.0`].map((plugins) => ({ name, plugins }))
     )
-  )(
-    'registers $name automatically once in system scope with PLUGINS=$plugins',
-    async ({ name, plugins }) => {
-      if (plugins) process.env.PLUGINS = plugins
-      await preBootstrapPlugins()
-      const registrations = register.mock.calls.flatMap(([group]) =>
-        group.plugins
-          .filter((plugin) => plugin.name === name)
-          .map((plugin) => ({ scopeKey: group.scopeKey, ...plugin }))
-      )
-      expect(registrations).toEqual([
-        {
-          scopeKey: SYSTEM_GLOBAL_SCOPE,
-          name,
-          source: 'code',
-          level: 'system'
-        }
-      ])
-    }
-  )
+  )('registers $name automatically once in system scope with PLUGINS=$plugins', async ({ name, plugins }) => {
+    if (plugins) process.env.PLUGINS = plugins
+    await preBootstrapPlugins()
+    const registrations = register.mock.calls.flatMap(([group]) =>
+      group.plugins.filter((plugin) => plugin.name === name).map((plugin) => ({ scopeKey: group.scopeKey, ...plugin }))
+    )
+    expect(registrations).toEqual([
+      {
+        scopeKey: SYSTEM_GLOBAL_SCOPE,
+        name,
+        source: 'code',
+        level: 'system'
+      }
+    ])
+  })
 
   it.each([undefined, '', 'false', '1'])('does not enable host shell implicitly for %s', async (value) => {
     if (value !== undefined) process.env.XPERT_LOCAL_SANDBOX_ENABLED = value
@@ -118,6 +113,25 @@ describe('preBootstrapPlugins built-in plugins', () => {
       { scopeKey: SYSTEM_GLOBAL_SCOPE, name: pluginName, source: 'code', level: 'system' }
     ])
     expect(setConfig).toHaveBeenCalled()
+  })
+
+  it('restores the exact published immutable revision of a built-in system plugin', async () => {
+    const name = '@xpert-ai/plugin-coding-project'
+    const runtimeName = name + '@runtime__' + '83e40385-48c2-4e5e-8954-34a1c132bbae'
+    const installed = {
+      name,
+      runtimeName,
+      source: 'code',
+      level: 'system' as const,
+      restore: true,
+      sourceConfig: { runtimeName, immutableRuntime: true }
+    }
+    loadConfigs.mockResolvedValue([
+      { organizationId: GLOBAL_ORGANIZATION_SCOPE, scopeKey: SYSTEM_GLOBAL_SCOPE, plugins: [installed], configs: {} }
+    ])
+    await preBootstrapPlugins()
+    const system = register.mock.calls.find(([group]) => group.scopeKey === SYSTEM_GLOBAL_SCOPE)![0]
+    expect(system.plugins.filter((plugin) => plugin.name === name)).toEqual([installed])
   })
 
   it('preserves the installed system package and its saved configuration', async () => {

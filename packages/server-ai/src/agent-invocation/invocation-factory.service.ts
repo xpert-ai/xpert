@@ -13,6 +13,7 @@ import {
 import {
     agentRuntimeModelSourceSchema,
     assistantTaskGroupContext,
+    type ProjectTaskRuntimeCapabilities,
     type ProjectPipelineCatalog
 } from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
@@ -212,7 +213,10 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         return target
     }
 
-    async listProjectBindings(scope: AgentInvocationScope) {
+    async listProjectBindings(
+        scope: AgentInvocationScope,
+        describe?: (target: AgentTarget) => ProjectTaskRuntimeCapabilities
+    ) {
         const api = this.createCapturedApi(scope)
         // New workspaces have no bindings yet. Resolve permitted presets before the query
         // so the first catalog read can return their stable, workspace-scoped binding IDs.
@@ -229,7 +233,13 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         })
         const candidates = bindings.filter((binding) => binding.workspaceIds.includes(scope.workspaceId))
         const items: Array<
-            { bindingId: string; title: string; provider: string; revision: string } | GroupTaskTargetItem
+            | ({
+                  bindingId: string
+                  title: string
+                  provider: string
+                  revision: string
+              } & Partial<ProjectTaskRuntimeCapabilities>)
+            | GroupTaskTargetItem
         > = this.commands ? await this.commands.execute(new ListGroupTaskTargetsCommand(scope)) : []
         for (const binding of candidates) {
             const target = await api.resolve(binding.id)
@@ -237,7 +247,8 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 bindingId: binding.id,
                 title: binding.title,
                 provider: target.provider,
-                revision: target.revision
+                revision: target.revision,
+                ...(describe ? describe(target) : {})
             })
         }
         return items

@@ -66,7 +66,14 @@ export class TaskControlCoordinator {
             } else if (task.kind === 'handoff') {
                 await this.tasks.settleHandoffReceipt(task.id)
             }
-            await this.tasks.delivered(task.id, token, null)
+            // Stable running invocations already have independent observation and authorization
+            // renewal. Match their five-second cadence; changed intent still uses the fast path.
+            await this.tasks.delivered(
+                task.id,
+                token,
+                null,
+                task.kind === 'invocation' && task.state === 'running' && desired === 'running' ? 5000 : 1000
+            )
         } catch (error) {
             const reason = invocationFailureReason(error)
             await this.tasks.delivered(

@@ -10,7 +10,6 @@ const overview = {
   description: 'Office work',
   publisher: 'Author',
   instructions: 'Prepare drafts.',
-  memories: [{ title: 'Output', content: 'Draft', secret: 'never-expose' }],
   skills: [{ pluginName: '@test/office', componentKey: 'setup', secret: 'never-expose' }],
   agents: [],
   onboarding: {
@@ -70,10 +69,18 @@ test('overview is a scoped read-only IPC call and strips non-catalog data recurs
   assert.equal(calls[0].headers['organization-id'], 'org')
   assert.equal(calls[0].method, 'GET')
 })
+test('current catalog needs no memories and legacy memories never cross IPC', () => {
+  const current = projectTemplateOverview(overview, Error)
+  assert.equal(Object.hasOwn(current, 'memories'), false)
+  assert.deepEqual(
+    projectTemplateOverview({ ...overview, memories: [{ title: 'Private', content: 'never-expose' }] }, Error),
+    current
+  )
+})
 test('overview rejects malformed shapes and active routine claims', () => {
   for (const bad of [
     null,
-    { ...overview, memories: [null] },
+    { ...overview, skills: [null] },
     { ...overview, routines: [{ ...overview.routines[0], enabled: true }] },
     { ...overview, integrations: [{ ...overview.integrations[0], kind: 'other' }] }
   ]) {

@@ -9,6 +9,7 @@ import { z } from 'zod/v3'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { XpertProjectAccessService } from '../services/project-access.service'
+import { ListProjectSkillsCommand } from '../commands/project-skills.command'
 import { ProjectTaskCaller, projectTaskCallerSchema } from './project-task-dispatch.schema'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 
@@ -20,6 +21,11 @@ export class ProjectTaskRuntimeContextService {
         @InjectRepository(XpertAgentExecution) private readonly executions: Repository<XpertAgentExecution>,
         private readonly commands: CommandBus
     ) {}
+
+    async enabledProjectSkillNames(projectId: string): Promise<string[]> {
+        const skills = await this.commands.execute(new ListProjectSkillsCommand(projectId))
+        return skills.items.filter((skill) => skill.enabled).map((skill) => skill.name)
+    }
 
     async resolve(projectId: string, caller: ProjectTaskCaller): Promise<AgentInvocationScope> {
         const parsed = projectTaskCallerSchema.safeParse(caller)

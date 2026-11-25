@@ -20,6 +20,7 @@ import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-m
 import { CommandBus } from '@nestjs/cqrs'
 import { RequestRuntimeResultCheckCommand } from '../../handoff/runtime-messaging/runtime-result-check.handler'
 import { taskDecisionOptions } from './project-task-decision-reference'
+import { ProjectTaskResultUnavailable } from './project-task-result-unavailable'
 
 @Injectable()
 export class ProjectTaskRuntimeReadService {
@@ -227,9 +228,29 @@ export class ProjectTaskRuntimeReadService {
         // Delegation prompts are immutable for an execution; live progress cannot invalidate them.
         const detail = await this.get(projectId, input.taskId, false, { executionId: input.executionId })
         const attempt = detail.executions.find((execution) => execution.id === input.executionId)
-        if (!attempt || !('invocationRevision' in attempt)) throw projectTaskRuntimeError('NotFound')
-        if (input.source !== 'prompt' && attempt.invocationRevision !== input.expectedRevision)
-            throw projectTaskRuntimeError('Conflict')
+        if (!attempt) throw projectTaskRuntimeError('NotFound')
+        if (!attempt.invocationId) throw projectTaskRuntimeError('NoInvocation')
+        if (!('invocationRevision' in attempt)) throw projectTaskRuntimeError('NotFound')
+        if (input.source !== 'prompt') {
+            // An authorized failed or unfinished invocation can exist without a report.
+            // Guessing newer revisions cannot produce one; retain absence as distinct from 404.
+            if (!('result' in attempt) || !attempt.result)
+                throw new ProjectTaskResultUnavailable(
+                    {
+                        projectId,
+                        taskId: input.taskId,
+                        executionId: attempt.id,
+                        invocationId: attempt.invocationId,
+                        invocationRevision: attempt.invocationRevision,
+                        invocationStatus: attempt.invocationStatus,
+                        error: attempt.error
+                    },
+                    attempt.conversationId,
+                    attempt.threadId
+                )
+            if (attempt.invocationRevision !== input.expectedRevision)
+                throw projectTaskRuntimeError('ResultRevisionChanged')
+        }
         let text: string
         if (input.source === 'prompt') {
             const actor = this.context.actor()
@@ -250,7 +271,7 @@ export class ProjectTaskRuntimeReadService {
             if (!parsed.success) throw projectTaskRuntimeError('NotFound')
             text = parsed.data.prompt
         } else {
-            if (!('result' in attempt) || !attempt.result) throw projectTaskRuntimeError('NotFound')
+            if (!('result' in attempt) || !attempt.result) throw projectTaskRuntimeError('ResultUnavailable')
             text = attempt.result.text ?? ''
         }
         if (input.offset > text.length) throw projectTaskRuntimeError('Invalid')

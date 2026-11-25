@@ -234,6 +234,7 @@ function App() {
     const icons = { all: Table2, tree: GitBranch, gantt: ChartNoAxesGantt, board: Columns3 }
     const toolbar = (timeline?: TimelineControlsProps) => (
         <Toolbar
+            locale={locale}
             t={t}
             tasks={graph?.tasks ?? []}
             view={view}

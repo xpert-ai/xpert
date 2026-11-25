@@ -1,7 +1,4 @@
-import {
-  CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY,
-  createConversationTitleSummaryEvent
-} from './chat-event.model'
+import { CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY, createConversationTitleSummaryEvent } from './chat-event.model'
 
 describe('chat event model helpers', () => {
   it('creates typed conversation title summary events', () => {
@@ -14,6 +11,7 @@ describe('chat event model helpers', () => {
     ).toEqual({
       id: 'run-1',
       type: CHAT_EVENT_TYPE_CONVERSATION_TITLE_SUMMARY,
+      presentation: 'runtime',
       title: 'Summarizing title...',
       status: 'running'
     })

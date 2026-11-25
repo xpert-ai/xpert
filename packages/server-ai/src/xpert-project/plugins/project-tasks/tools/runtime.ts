@@ -30,6 +30,7 @@ import {
 import { ProjectTaskCaller, projectTaskCallerSchema } from '../../../runtime/project-task-dispatch.schema'
 import { projectTaskRuntimeError } from '../../../runtime/project-task-runtime.errors'
 import { ProjectToolEnum } from '../constants'
+import { ProjectTaskResultUnavailable } from '../../../runtime/project-task-result-unavailable'
 
 // Checkpoint replay can use a new Agent run. Keep identity tied to the persisted tool call,
 // not the current executionId or mutable arguments; changed arguments must still conflict.
@@ -157,13 +158,26 @@ export function createProjectRuntimeTools(
             async (input, config) => {
                 await assertPermission('edit')
                 const actor = caller(config)
-                const receipt: Awaited<ReturnType<ProjectTaskDispatchService['dispatch']>> = await commandBus.execute(
-                    new DispatchProjectTaskCommand(
-                        context.projectId,
-                        { ...input, requestId: requestId(context.projectId, ProjectToolEnum.DispatchTask, actor) },
-                        actor
+                let receipt: Awaited<ReturnType<ProjectTaskDispatchService['dispatch']>>
+                try {
+                    receipt = await commandBus.execute(
+                        new DispatchProjectTaskCommand(
+                            context.projectId,
+                            { ...input, requestId: requestId(context.projectId, ProjectToolEnum.DispatchTask, actor) },
+                            actor
+                        )
                     )
-                )
+                } catch (error) {
+                    // An unsupported mode is a correctable selection, not a revoked authorization.
+                    if (error instanceof AgentInvocationError && error.code === 'Unsupported')
+                        return {
+                            error: 'Unsupported',
+                            message: error.message,
+                            recovery:
+                                'Read project_get_task and project_list_task_runtimes. Select an authorized binding whose reviewModes includes the requested mode; reuse the same task. Do not infer support from its name or create another task.'
+                        }
+                    throw error
+                }
                 if (receipt.card)
                     await emitResourceCard(receipt.card, config).catch(() => {
                         Logger.warn('Committed task delegation card could not be emitted', 'ProjectTasks')
@@ -173,9 +187,17 @@ export function createProjectRuntimeTools(
             },
             {
                 name: ProjectToolEnum.DispatchTask,
-                schema: projectTaskDispatchToolInputSchema,
+                verboseParsingErrors: true,
+                schema: projectTaskDispatchToolInputSchema.refine(
+                    (input) => !input.reviewAsSubtask || input.purpose?.type === 'review',
+                    {
+                        path: ['reviewAsSubtask'],
+                        message:
+                            'reviewAsSubtask=true is only valid for purpose.type=review. Omit it when dispatching implementation; assigning a reviewer does not start a review.'
+                    }
+                ),
                 description:
-                    'Delegate a task using current revision and requirements from project_get_task. Choose exactly one authorized bindingId or group-member target from project_list_task_runtimes. Group targets become responsible; external Runtimes preserve the owner or default to the current Assistant. A Project general agent must assign an owner. After dispatch, finish independent coordination and end the turn when waiting for results; durable result delivery resumes coordination. Do not poll unchanged status, sleep, or redispatch merely to wait. Assign independent execution review with purpose={type:"implementation",reviewer:{bindingId,mode:"execution"}}. Later implementation attempts inherit that reviewer when omitted, with fresh authorization. After a recorded rework decision use purpose={type:"implementation",rework:{reviewExecutionId,feedback:"specific changes from the review"}}; feedback and reviewExecutionId belong inside rework, not directly inside purpose. The new candidate needs fresh review. Dispatch review with purpose={type:"review",mode:"execution",candidatePaths:["candidate"],implementationExecutionId,implementationInvocationId,specificationDigest,evidence} using exact references from project_get_task. candidatePaths are exact Project-relative source/artifact paths. Omitting review mode retains evidence-only review. Set reviewAsSubtask=true with the implementation taskId to create or resume its pinned review task; later attempts use the returned projectTaskId without reviewAsSubtask. A new implementation gets a new review task. Ordinary tasks need no report or artifact export. Optional delivery={mode:"files",paths:["relative/file"]} (no wildcards) or {mode:"files",reportPath:"output/report.md"}; recover additional files once exact paths are known. Review delivery paths are relative to its review workspace. Group targets do not support review or file delivery. Host-managed identities deduplicate replays; inspect uncertain outcomes before new attempts. Returns task/attempt/invocation IDs. Read independent review Markdown and use project_decide_task; the host verifies candidate identity, not business correctness. Judge a scoped testing task by its verified findings, including failures; completing that task does not accept the tested product.'
+                    'Delegate a task using current revision and requirements from project_get_task. Choose exactly one authorized bindingId or group-member target from project_list_task_runtimes. Group targets become responsible; external Runtimes preserve the owner or default to the current Assistant. A Project general agent must assign an owner. After dispatch, finish independent coordination and end the turn when waiting for results; durable result delivery resumes coordination. Do not poll unchanged status, sleep, or redispatch merely to wait. Choose a reviewer with "execution" in project_list_task_runtimes.reviewModes; independence comes from the separate task/session, not a different provider. Assign independent execution review with purpose={type:"implementation",reviewer:{bindingId,mode:"execution"}}. Later implementation attempts inherit that reviewer when omitted, with fresh authorization. Only when the latest recorded rework decision references an independent review, use purpose={type:"implementation",rework:{reviewExecutionId,feedback:"specific changes from the review"}} with that exact review execution ID. Never substitute a coordinator Assistant execution ID. feedback and reviewExecutionId belong inside rework, not directly inside purpose. If the rework decision has no independent review, omit rework, use purpose={type:"implementation"}, and put concrete recovery instructions in the top-level instructions field. Reuse the existing task with its current revision. A new candidate still needs any required independent review. Dispatch review with purpose={type:"review",mode:"execution",candidatePaths:["candidate"],implementationExecutionId,implementationInvocationId,specificationDigest,evidence} using exact references from project_get_task. candidatePaths are exact Project-relative source/artifact paths. Omitting review mode retains evidence-only review. Set reviewAsSubtask=true with the implementation taskId to create or resume its pinned review task; later attempts use the returned projectTaskId without reviewAsSubtask. A new implementation gets a new review task. Ordinary tasks need no report or artifact export. Optional delivery={mode:"files",paths:["relative/file"]} (no wildcards) or {mode:"files",reportPath:"output/report.md"}; recover additional files once exact paths are known. Review delivery paths are relative to its review workspace. Group targets do not support review or file delivery. Host-managed identities deduplicate replays; inspect uncertain outcomes before new attempts. Returns task/attempt/invocation IDs. Read independent review Markdown and use project_decide_task; the host verifies candidate identity, not business correctness. Judge a scoped testing task by its verified findings, including failures; completing that task does not accept the tested product.'
             }
         ),
         tool(
@@ -193,15 +215,24 @@ export function createProjectRuntimeTools(
             }
         ),
         tool(
-            async (input) => {
+            async (input, config) => {
                 await assertPermission('view')
-                return commandBus.execute(new ReadProjectTaskResultCommand(context.projectId, input))
+                try {
+                    return await commandBus.execute(new ReadProjectTaskResultCommand(context.projectId, input))
+                } catch (error) {
+                    if (error instanceof ProjectTaskResultUnavailable)
+                        return error.forCoordinator(
+                            context.conversationId,
+                            config?.configurable?.thread_id ?? context.threadId
+                        )
+                    throw error
+                }
             },
             {
                 name: ProjectToolEnum.ReadResult,
                 schema: taskResultReadSchema,
                 description:
-                    'Read an exact page after project_get_task. source="report" (default) reads result evidence; copy taskId, executionId and expectedRevision from its result paging reference or invocationRevision, never the task revision. source="prompt" reads the immutable archived delegation prompt and needs no expectedRevision. Reading a page does not poll or refresh the executor. Offset and limit count UTF-16 characters; follow nextOffset. A changed report revision requires rereading the task. Read needed evidence before deciding; omitted text is not evidence of success.'
+                    'Read an exact page only when project_get_task provides an invocationId and result paging reference. Pipeline stage executions without invocationId have no Runtime report; do not guess revisions or read them with this tool. source="report" (default) reads result evidence; copy taskId, executionId and expectedRevision from its result paging reference or invocationRevision, never the task revision. source="prompt" reads the immutable archived delegation prompt and needs no expectedRevision. Reading a page does not poll or refresh the executor. Offset and limit count UTF-16 characters; follow nextOffset. A changed report revision requires rereading the task; never increment expectedRevision. A failed or cancelled invocation can have no report: read its error from project_get_task and decide recovery instead of repeating this read. Read needed evidence before deciding; omitted text is not evidence of success.'
             }
         ),
         tool(
@@ -213,7 +244,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.ListRuntimes,
                 schema: z.object({}).strict(),
                 description:
-                    'List authorized Runtime bindings and Project-bound group members. For a group member, dispatch using its target object; the selected Assistant is automatically assigned responsibility. For a Runtime binding use bindingId; existing responsibility is preserved, otherwise the current Assistant becomes responsible. Supply exactly one of target or bindingId.'
+                    'List authorized Runtime bindings and Project-bound group members. For a group member, dispatch using its target object; the selected Assistant is automatically assigned responsibility. For a Runtime binding use bindingId and its host-verified reviewModes when assigning a reviewer. Execution review requires reviewModes to include "execution". An empty list cannot review; a distinct binding is not required for an independent review session. Existing responsibility is preserved, otherwise the current Assistant becomes responsible. Supply exactly one of target or bindingId.'
             }
         )
     ]

@@ -75,6 +75,7 @@ test('local computer discovery reads settings without connecting, approving or e
 
 test('presentation and Assistant/group navigation reuse the frame with isolated options and listeners', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
+  const timeouts = t.mock.method(dom.window, 'setTimeout')
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
   global.window = dom.window
   global.document = dom.window.document
@@ -206,11 +207,19 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  const frameTimeout = timeouts.mock.calls.find(({ arguments: [, delay] }) => delay === 30000)
+  assert.ok(frameTimeout)
+  await React.act(() => frameTimeout.arguments[0]())
+  assert.match(document.querySelector('[role="alert"]').textContent, /took too long/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
+  assert.equal(document.querySelector('[role="alert"]'), null)
   // A recovered session clears its failure without waiting for another iframe ready event.
   sessionFailure = new Error('Xpert is restarting. Please reconnect shortly.')
   await React.act(async () => {
     await assert.rejects(received[0].api.getClientSecret(), /restarting/)
   })
+  assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
   assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
   sessionFailure = undefined
   await React.act(async () => {
@@ -224,10 +233,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       })
     )
   )
-  await React.act(async () => {
-    await received[0].api.getClientSecret()
-  })
-  assert.match(document.querySelector('[role="alert"]').textContent, /unrelated tool/)
+  assert.equal(document.querySelector('[role="alert"]'), null, 'tool errors do not offer to reconnect')
   await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
   sessionRequests.length = 0
   assert.equal(workbenchConnection.assistantId(), 'test-bot')
@@ -359,7 +365,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
     assert.equal(received.at(-1).api.xpertId, id ? undefined : 'second-bot')
     assert.equal(received.at(-1).theme.color.accent.primary, id ? '#f59e0b' : '#16a34a')
     assert.equal(voiceBindings.at(-1).enabled, !id, 'group mode leaves call controls with the app voice provider')
-    await received.at(-1).api.getClientSecret(null)
+    await React.act(async () => {
+      await received.at(-1).api.getClientSecret(null)
+    })
     assert.deepEqual(
       JSON.parse(JSON.stringify(sessionRequests.at(-1))),
       id ? ['chatSession', { scope: { kind: 'conversation', conversationId: id } }] : ['chatSession', 'second-bot']

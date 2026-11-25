@@ -109,6 +109,13 @@ there are no model-generated finding IDs. The host validates the exact review
 subject and pins its result revision and digest. Rework receives that report and
 coordinator feedback, while a fresh review checks the repaired candidate.
 
+A coordinator may also request rework before an independent review exists, such as
+recovery from an execution failure. In that case, omit `purpose.rework`, reuse the
+existing task with `purpose: {type: "implementation"}`, and provide concrete recovery
+directions in the top-level `instructions` field. A coordinator Assistant execution
+ID is not a review execution ID. Any assigned independent review remains required
+for the new candidate.
+
 If execution succeeded but report/artifact delivery failed, use
 `project_recover_task_delivery` with the current invocation revision. Recovery
 re-reads the original report path and/or selected files without another execution.
@@ -207,3 +214,11 @@ business verdict from the report. The explicit task decision owns acceptance.
 Creation and updates use ordinary tool steps, without a second Computer component or a creation resource card. Only a committed delegation emits an execution card; implementation and independent review retain separate identities. ChatKit displays execution cards during streaming and updates the original card on background results. `ProjectTaskCardProvider.createCard()` owns resource identity, labels, icons and navigation for both the initial dispatch receipt and subsequent `resolveMany()` refreshes; tools only emit the returned card.
 
 Review cards show report delivery after validating their host associations. Runtime success without a valid review report is not displayed as approval. Coding execution cards open the independent viewer by `invocationId`; timeline execution dots and the task Dialog resolve to that same invocation. Task titles open a centered task Dialog. Legacy task cards and executions without a Coding target retain the timeline fallback. Viewing an execution remains separate from opening its responsible Agent conversation. Public replies summarize task names and outcomes, keeping technical identifiers in tool records unless diagnostics are requested. Previously saved creation cards remain readable; no history migration is performed.
+
+### Pending report reads
+
+`project_read_task_result` returns a normal pending observation when an authorized execution has no report yet. It does not refresh the executor or make a guessed revision valid. Failed, cancelled, waiting and unknown executions remain visible for a coordinator decision. HTTP report readers retain the existing 409 response.
+
+For a running or queued execution delegated by this exact conversation and thread, repeated reads of the same missing report end the current model turn and rely on durable result delivery. Other tasks, parallel coordination and archived-prompt reads remain available. A new user/result message or a newer task observation invalidates that waiting observation. This does not accept a task, start a review or change task state.
+
+Long-context task rehydration preserves a pending report wake while a fresh observation still identifies the same running invocation. A completed result, a changed invocation or an unavailable observation invalidates that wake; reading an unrelated task does not discard it.

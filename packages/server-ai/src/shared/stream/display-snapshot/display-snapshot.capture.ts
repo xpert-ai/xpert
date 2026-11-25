@@ -4,6 +4,7 @@ import {
     appendMessageContent,
     createMessageAppendContextTracker,
     IChatMessage,
+    isRuntimeAgentExecution,
     TChatAgentRunSummary,
     TChatMessageStep,
     TMessageContentComplex,
@@ -32,7 +33,7 @@ const agentSchema = z.object({
 const agentEventSchema = z.object({
     type: z.literal('event'),
     event: z.enum(['on_agent_start', 'on_agent_end']),
-    data: agentSchema
+    data: z.preprocess((value) => (isRuntimeAgentExecution(value) ? undefined : value), agentSchema)
 })
 const lifecycleSchema = z.object({
     type: z.literal('event'),

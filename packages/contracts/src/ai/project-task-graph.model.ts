@@ -6,6 +6,8 @@ import type { ProjectTaskTypePresentation } from './project-task-type.model'
 export interface ProjectTaskNode {
   controlKind?: 'ordinary' | 'provider' | 'pipeline'
   pipelineInstanceId?: string | null
+  /** Display title of the owning pipeline instance. Multiple instances may share a title. */
+  pipelineInstanceTitle?: string
   pipelineDisposition?: 'active' | 'removed' | 'excluded' | 'superseded' | null
   id: string
   title: string

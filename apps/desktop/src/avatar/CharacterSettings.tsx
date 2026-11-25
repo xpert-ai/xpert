@@ -80,12 +80,10 @@ export function CharacterSettings({ value, onChange }: { value: Character; onCha
               title={preset.label}
               aria-label={t('Apply preset {{name}}', { name: preset.label })}
               className="rounded-lg hover:bg-muted focus-visible:outline-primary"
-              onClick={() =>
-                onChange({ ...value, color: preset.color, config: { ...defaultCharacterConfig, ...preset.patch } })
-              }
+              onClick={() => onChange({ ...value, config: { ...defaultCharacterConfig, ...preset.patch } })}
             >
               <CharacterThumbnail
-                value={{ ...value, color: preset.color, config: { ...defaultCharacterConfig, ...preset.patch } }}
+                value={{ ...value, config: { ...defaultCharacterConfig, ...preset.patch } }}
                 size={40}
               />
             </button>

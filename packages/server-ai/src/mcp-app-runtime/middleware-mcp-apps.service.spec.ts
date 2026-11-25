@@ -247,7 +247,10 @@ describe('middleware MCP Apps boundary', () => {
         const f = fixture()
         const bound = f.service.bind(f.middleware, f.context, { interruptAfter: ['configure'] })
         expect(bound.tools.map((item) => item.name)).toEqual(['configure'])
-        expect(bound.tools[0].metadata.middlewareMcpApp).toBe(true)
+        expect(bound.tools[0].metadata).toMatchObject({
+            middlewareMcpApp: true,
+            publicToolPresentation: { tool: 'configure' }
+        })
         expect(f.submit).not.toHaveBeenCalled()
     })
     it('keeps the invoking execution on a new App callback before snapshot restoration', async () => {

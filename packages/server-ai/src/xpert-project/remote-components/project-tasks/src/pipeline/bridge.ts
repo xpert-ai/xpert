@@ -112,13 +112,13 @@ export async function submitProviderAction(input: ProjectPipelineProviderActionC
         .object({ success: z.literal(true), data: projectPipelineProviderActionViewSchema })
         .parse(await request('executeAction', { actionKey: 'pipeline-provider-action', input })).data
 }
-export async function listPipelines(after?: string) {
+export async function listPipelines(after?: string, search?: string) {
     return z
         .object({
             success: z.literal(true),
             data: z.object({ items: z.array(summarySchema), next: z.string().nullable() })
         })
-        .parse(await request('executeAction', { actionKey: 'pipeline-list', input: after ? { after } : {} })).data
+        .parse(await request('executeAction', { actionKey: 'pipeline-list', input: { after, search } })).data
 }
 export async function readPipeline(instanceId: string, roundId?: string) {
     return z.object({ success: z.literal(true), data: pipelineGraphSchema }).parse(
@@ -161,11 +161,15 @@ export async function changePipelineLifecycle(graph: PipelineGraph, requestId: s
             actionKey: operationId ? 'pipeline-retry' : 'pipeline-cancel',
             input: {
                 instanceId: graph.instance.id,
-                expectedRevision: graph.instance.revision,
                 requestId,
                 ...(operationId
-                    ? { operationId, inputDigest: graph.round.inputDigest, generation: graph.round.generation }
-                    : {})
+                    ? {
+                          expectedRevision: graph.instance.revision,
+                          operationId,
+                          inputDigest: graph.round.inputDigest,
+                          generation: graph.round.generation
+                      }
+                    : { runId: graph.runId })
             }
         })
     ).data

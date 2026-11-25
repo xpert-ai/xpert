@@ -11,7 +11,7 @@ const semver = require('semver')
 export const packageName = '@xpert-ai/desktop'
 const manifestPath = 'apps/desktop/package.json'
 export const platforms = [
-  { id: 'mac-arm64', runner: 'macos-15', platform: 'mac', arch: 'arm64' },
+  { id: 'mac-arm64', runner: 'macos-26', platform: 'mac', arch: 'arm64' },
   { id: 'mac-x64', runner: 'macos-15-intel', platform: 'mac', arch: 'x64' },
   { id: 'win-x64', runner: 'windows-2025', platform: 'win', arch: 'x64' },
   { id: 'win-arm64', runner: 'windows-11-arm', platform: 'win', arch: 'arm64' },

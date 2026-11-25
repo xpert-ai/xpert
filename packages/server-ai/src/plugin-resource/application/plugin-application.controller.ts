@@ -8,7 +8,10 @@ import {
     ApplicationScopeQuery
 } from './application-scope.schema'
 import { TransformInterceptor, ZodValidationPipe } from '@xpert-ai/server-core'
-import { Body, Controller, Get, Post, Query, UseInterceptors } from '@nestjs/common'
+import { OrganizationSettingsService } from '../application-setup/organization-settings.service'
+import { saveOrganizationSettingsSchema } from '../application-setup/organization-settings.schema'
+import type { OrganizationApplicationSettings } from '@xpert-ai/contracts'
+import { Body, Controller, Put, Get, Post, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { PluginApplicationService } from './plugin-application.service'
 import {
@@ -30,7 +33,32 @@ import {
 @Controller('plugin-applications')
 @Permissions(AIPermissionsEnum.APPLICATION_INSTALL)
 export class PluginApplicationController {
-    constructor(private readonly applications: PluginApplicationService) {}
+    constructor(
+        private readonly applications: PluginApplicationService,
+        private readonly organizationSettings: OrganizationSettingsService
+    ) {}
+
+    @Get('organization-settings')
+    settings(
+        @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationDetailQuery
+    ) {
+        return this.organizationSettings.form(
+            this.applications.getDefinition(query.pluginName, query.appName, query.installationScope ?? 'organization')
+        )
+    }
+
+    @Put('organization-settings')
+    completeSettings(
+        @Body(new ZodValidationPipe(saveOrganizationSettingsSchema, invalidApplicationInitializeRequest))
+        input: ApplicationSetupInput & { organizationSettings: OrganizationApplicationSettings }
+    ) {
+        return this.organizationSettings.complete(
+            this.applications.getDefinition(input.pluginName, input.appName, input.installationScope ?? 'organization'),
+            input.organizationSettings,
+            (row) => this.applications.existingResourcesHealthy(row)
+        )
+    }
 
     @Get('status')
     getStatuses(
@@ -46,6 +74,19 @@ export class PluginApplicationController {
         query: ApplicationScopeQuery
     ) {
         return this.applications.getCatalog(query.installationScope)
+    }
+
+    @Get('catalog/cards')
+    getCards() {
+        return this.applications.getCards()
+    }
+
+    @Get('catalog/images')
+    getCardImages(
+        @Query(new ZodValidationPipe(applicationDetailQuerySchema, invalidApplicationInitializeRequest))
+        query: ApplicationDetailQuery
+    ) {
+        return this.applications.getCardImages(query.pluginName, query.appName)
     }
 
     @Get('detail')

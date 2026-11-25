@@ -34,6 +34,8 @@ import {
   runtimeMcpProviderToolCount
 } from '../../setting/plugins/marketplace/runtime-mcp-provider.util'
 import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
+import type { OrganizationApplicationSettings } from '@xpert-ai/contracts'
+import { AppOrganizationSettingsComponent } from './app-organization-settings.component'
 import { ApplicationToolsetsComponent } from './app-toolsets.component'
 import { ExploreScopeService } from '../explore-scope.service'
 import { ExploreScopeComponent } from '../explore-scope.component'
@@ -45,6 +47,7 @@ import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app
   selector: 'xp-application-detail',
   imports: [
     ApplicationUpdateComponent,
+    AppOrganizationSettingsComponent,
     CommonModule,
     FormsModule,
     RouterLink,
@@ -108,8 +111,12 @@ export class ApplicationDetailComponent {
   readonly embeddingModelId = computed(() => pluginApplicationModelId(this.embeddingModel()))
   readonly visionModelId = computed(() => pluginApplicationModelId(this.visionModel()))
   readonly speechToTextModelId = computed(() => pluginApplicationModelId(this.speechToTextModel()))
+  readonly settingsOnly = signal(false)
+  readonly organizationSettings = signal<OrganizationApplicationSettings | null>(null)
+  readonly needsSettings = computed(() => !!this.application()?.config.organizationSetup?.length)
   readonly canSubmit = computed(
     () =>
+      (!this.needsSettings() || !!this.organizationSettings()) &&
       !!this.detail()?.preflight.canInitialize &&
       (!this.modelRequirements().embedding || !!this.embeddingModelId()) &&
       (!this.modelRequirements().vision || !!this.visionModelId()) &&
@@ -128,6 +135,8 @@ export class ApplicationDetailComponent {
       untracked(() => {
         if (this.#loadedScopeKey !== null) this.setupOpen.set(false)
         this.#loadedScopeKey = key
+        this.organizationSettings.set(null)
+        this.settingsOnly.set(false)
         this.detail.set(null)
         this.mcpProviders.set([])
         this.toolsetSelections.set([])
@@ -200,7 +209,7 @@ export class ApplicationDetailComponent {
         this.#resumeSetupFromScope = null
         this.setupOpen.set(true)
       }
-      if (this.setupOpen() && this.isReady()) this.openApplication(detail.status)
+      if (this.setupOpen() && this.isReady() && !this.needsSettings()) this.openApplication(detail.status)
     } catch (error) {
       if (version !== this.#loadVersion) return
       this.#resumeSetupFromScope = null
@@ -311,6 +320,8 @@ export class ApplicationDetailComponent {
   async closeSetup(): Promise<void> {
     if (this.configuringToolsets() || this.discarding() || this.initializing()) return
     this.setupOpen.set(false)
+    this.settingsOnly.set(false)
+    this.organizationSettings.set(null)
     await this.#router.navigate([], {
       relativeTo: this.#route,
       queryParams: { setup: null },
@@ -360,6 +371,26 @@ export class ApplicationDetailComponent {
     }
   }
 
+  /** Saves configuration on the existing installation, then reloads its server-assessed health. */
+  async completeOrganizationSettings() {
+    const settings = this.organizationSettings()
+    if (!settings || this.initializing()) return
+    const version = this.#loadVersion
+    this.initializing.set(true)
+    try {
+      await firstValueFrom(this.#applications.completeOrganizationSettings(this.applicationInput(), settings))
+      if (version !== this.#loadVersion) return
+      this.initializing.set(false)
+      this.#toastr.success(this.#translate.instant('XP.Explore.Application.OrganizationSetup.Saved'))
+      await this.closeSetup()
+      if (version === this.#loadVersion) await this.load()
+    } catch (error) {
+      if (version === this.#loadVersion) this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (version === this.#loadVersion) this.initializing.set(false)
+    }
+  }
+
   /** Submits authorized configuration IDs; credentials and target scope remain server-owned. */
   async initialize() {
     const app = this.application()
@@ -379,6 +410,7 @@ export class ApplicationDetailComponent {
           visionModelId: this.visionModelId() ?? undefined,
           speechToTextModelId: this.speechToTextModelId() ?? undefined,
           toolsets: this.toolsetSelections(),
+          ...(this.organizationSettings() ? { organizationSettings: this.organizationSettings()! } : {}),
           operationId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
         })
       )

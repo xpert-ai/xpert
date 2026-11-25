@@ -4,10 +4,10 @@ import { BadRequestException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
+import { isAssistantUserSession } from '../shared/assistant-user-session'
 import { runtimeCommandSourceSchema } from './runtime-command-source.schema'
 
-// Managed execution accepts Project scope;
-// environment and model configuration always come from the published installation.
+// Project scope and personal model selection are validated before managed execution.
 // ChatKit represents a conversation without a Project as null after history restoration.
 const projectIdSchema = z
     .string()
@@ -22,6 +22,11 @@ const contextSchema = z
 const humanSchema = z
     .object({
         input: z.string().optional(),
+        model: z
+            .string()
+            .regex(/^mdl_[A-Za-z0-9_-]{43}$/)
+            .refine(isAssistantUserSession)
+            .optional(),
         files: z.array(z.unknown()).optional(),
         references: z.array(z.unknown()).optional(),
         referenceComposition: z.enum(['compose', 'preserve']).optional(),

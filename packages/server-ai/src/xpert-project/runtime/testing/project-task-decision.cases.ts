@@ -398,23 +398,37 @@ export function projectTaskDecisionCases(fixture: () => Fixture) {
             ).resolves.toMatchObject({ outcome: 'accept' })
         })
         it('requires the assigned reviewer and preserves that assignment across retries', async () => {
-            await assignExecutionReviewer()
+            const binding = await assignExecutionReviewer()
             const input = await implemented()
             await expect(decisions.decide(f.scope.projectId, input, f.caller)).rejects.toThrow()
             await decisions.decide(f.scope.projectId, { ...input, outcome: 'rework' }, f.caller)
             const task = await f.database.getRepository(XpertProjectTask).findOneBy({ id: input.taskId })
+            f.input = {
+                ...f.input,
+                requestId: randomUUID(),
+                expectedRevision: task.revision,
+                purpose: { type: 'implementation' }
+            }
+            const retry = await implemented()
+            const attempt = await f.database.getRepository(XpertProjectTaskExecution).findOneByOrFail({
+                id: retry.implementationExecutionId
+            })
+            expect(attempt.purpose).toMatchObject({
+                type: 'implementation',
+                reviewer: { bindingId: binding, mode: 'execution' }
+            })
+            await expect(decisions.decide(f.scope.projectId, retry, f.caller)).rejects.toThrow()
+            const review = await executeReview(retry, binding, 'pass', true)
             await expect(
-                f.service.dispatch(
+                decisions.decide(
                     f.scope.projectId,
                     {
-                        ...f.input,
-                        requestId: randomUUID(),
-                        expectedRevision: task.revision,
-                        purpose: { type: 'implementation' }
+                        ...retry,
+                        reviewExecutionId: review.taskExecutionId
                     },
                     f.caller
                 )
-            ).rejects.toThrow()
+            ).resolves.toMatchObject({ outcome: 'accept' })
         })
         for (const verdict of ['pass', 'changes_required', 'indeterminate'] as const) {
             it(`uses executable review ${verdict} without accepting failed or blocked checks`, async () => {

@@ -5,6 +5,21 @@ description: Develop and independently accept a Coding Project inside the cloud 
 
 # Coding Project delivery
 
+Identify your role before applying the entry workflow below. An invocation whose
+message says it executes an already-started stage **is the assigned stage Assistant**.
+Call `coding_delivery_context`, then create or resume ordinary summary and
+implementation tasks and dispatch the implementation child. A `pipeline.work`
+task or execution whose `sourceKey` is your operation ID represents your own
+coordination; it is not a Coding CLI invocation. Do not dispatch that provider-managed
+task or finish because it is running. Confirm a returned `invocationId` for the
+ordinary child before reporting delegated work. If dispatch rejects a provider-managed
+task, create or select the ordinary implementation child and continue. The initial
+conversation's `finish_coordination_turn` rule does not apply to the assigned stage.
+
+The entry preflight/start workflow is for a new software delivery request. When
+the user explicitly requests an ordinary diagnostic or maintenance task, use
+ordinary Project task creation and dispatch without starting a delivery Pipeline.
+
 Preflight a new request with `coding_delivery_targets` before planning or reading implementation manuals.
 Use its machine-readable `mode`, `ready` and `blockers`. The Project configuration
 `deliveryMode` defaults to `local`. The user can explicitly request `release`.
@@ -75,9 +90,11 @@ catalog entries report the concrete missing knowledge, not an invented path. On 
 tasks and evidence before creating another task. Do not mistake a Pipeline coordinator
 execution for a Computer task holding the workspace.
 The stage context supplies `manifestContextPath`, a Project-relative file containing
-the host-prepared version, phase and exact work identity. Pass this path to the CLI;
-it reads those fields directly instead of transcribing IDs from task instructions.
-A retry supplies a new file. Update the unfinished task's brief to reference that
+the host-prepared version, phase and exact work identity. It also supplies
+`manifestSchemaPath`, a separate Project file containing the complete JSON Schema.
+Pass both paths to the CLI; it preserves the identity fields and validates the
+complete manifest against the schema without copying schema fields into it.
+A retry supplies new files. Update the unfinished task's brief to reference that
 file and the remaining work, reuse its checkout and use the latest task revision.
 
 The main Assistant coordinates; Coding CLI tasks perform implementation, environment
@@ -95,17 +112,18 @@ scope stable across versions; a new version uses the update path without first
 uninstalling the previous version. Different packages sharing a tool name are a
 registration conflict, not evidence that one supersedes the other.
 
-Development-service operations also belong to the Coding CLI. For Xpert, use the
-repository's `tools/local-environment/cli.py start/status/logs/restart/stop` and the
-`xpert-platform-local-environment` skill. Prepare with `--supervisor-mode detached`
-for locally started Supervisor processes. The CLI may use its own shell/session
-facilities, and services may stop when the task completes or is cancelled. Give the
-reviewer the exact checkout, state and startup commands; it checks and starts the
-same instance again before testing the unchanged candidate. Keep project data and
-credentials across attempts. The platform retains isolation, resource limits and
-task cleanup; the coordinator need not relay service operations.
-`sandbox_service_start` is a host Assistant tool, not a CLI command or required
-prerequisite. Record logs and test evidence, and stop services when finished.
+Development-service operations also belong to the Coding CLI. Follow the current
+`xpert-platform-local-environment` process-mode guide and inspect the checkout's
+supported commands. When `computer-service` is available and serviceLifecycle is
+`coordinator`, register the environment's foreground `supervise` command with that
+manager. Use finite `start/status/logs` commands for dependency order and readiness;
+do not register finite `start` as the persistent process. A detached supervisor is
+only the fallback for task-local operation without the manager and may be cleaned
+up with the Coding task. Preserve registered services and data across development,
+review and rework; stop only when the coordinator explicitly decides they are no
+longer required. Host Assistant tools such as `sandbox_service_start` are not CLI
+commands. Return service identity, startup commands, URLs and evidence paths to the
+coordinator and independent reviewer.
 
 For new stage work, create one `kind: summary` delivery task, then create its
 implementation child with `parentTaskId`. Only dispatch the implementation child.

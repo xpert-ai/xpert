@@ -1,6 +1,6 @@
 import type { TAssistantAppearance } from '@xpert-ai/contracts'
 import { t } from '../i18n'
-import { characterSvg } from './character-presets'
+import { characterColors, characterSvg } from './character-presets'
 import { defaultCharacterConfig } from './custom-character'
 import { studioPresets, type Character, type CharacterConfig } from './character-options'
 import { CharacterThumbnail } from './CharacterThumbnail'
@@ -11,10 +11,10 @@ export function CharacterPresetPicker({
   onSelect
 }: {
   value: TAssistantAppearance | undefined
-  color: string
+  color?: string
   onSelect: (value: Character) => void
 }) {
-  const bosi: Character = { version: 1, kind: 'character', id: 'bosi', color }
+  const bosi: Character = { version: 1, kind: 'character', id: 'bosi', color: color ?? characterColors[0] }
   const choices = [
     { label: 'Bosi', appearance: bosi },
     ...studioPresets.map((preset) => ({
@@ -23,7 +23,7 @@ export function CharacterPresetPicker({
         version: 1,
         kind: 'character',
         id: 'custom',
-        color: preset.color,
+        color: color ?? preset.color,
         config: { ...defaultCharacterConfig, ...preset.patch }
       } satisfies Character
     }))
@@ -37,7 +37,6 @@ export function CharacterPresetPicker({
             value?.kind === 'character' &&
             (appearance.config
               ? !!value.config &&
-                value.color === appearance.color &&
                 Object.entries(appearance.config).every(
                   ([key, expected]) =>
                     ({ ...defaultCharacterConfig, ...value.config })[key as keyof CharacterConfig] === expected

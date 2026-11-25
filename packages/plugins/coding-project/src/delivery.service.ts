@@ -1,9 +1,8 @@
 import { ConflictException, Injectable } from '@nestjs/common'
 import { t } from 'i18next'
 import { deliveryGraphSummary } from './context-summary'
-import { prepareManifestContext } from './manifest-context'
+import { manifestJsonSchema, manifestSchemaPath, prepareManifestContext } from './manifest-context'
 import { createHash } from 'node:crypto'
-import { zodToJsonSchema } from 'zod-to-json-schema'
 import {
   ArtifactsRuntimeCapability,
   ProjectFilesRuntimeCapability,
@@ -16,13 +15,7 @@ import { CodingDeliveryStore, audit, scopeWhere, conflict } from './store'
 import { CodingEvidenceService } from './evidence'
 import { configuration as cliConfiguration, currentInstanceConfiguration, localConfiguration } from './pipeline'
 import { digest, identity, TYPE, deliveryBranch } from './constants'
-import {
-  developmentManifestSchema,
-  deploymentManifestSchema,
-  gitManifestSchema,
-  requirementSchema,
-  type DeliveryMode
-} from './schemas'
+import { requirementSchema, type DeliveryMode } from './schemas'
 
 const pipelineHandoff = {
   nextAction: 'finish_coordination_turn' as const,
@@ -219,6 +212,13 @@ export class CodingDeliveryService {
     return {
       mode,
       ready: blockers.length === 0,
+      nextAction: blockers.length === 0 ? 'start_delivery' : 'resolve_configuration',
+      entryTool: 'coding_delivery_start',
+      execution: {
+        coordinator: 'project_tasks',
+        implementation: 'cloud_coding_cli',
+        review: 'independent_execution'
+      },
       blockers,
       ...allowed,
       targetKey: target?.key,
@@ -230,16 +230,10 @@ export class CodingDeliveryService {
   async context(c: ProjectPipelineContext, operationId: string) {
     const work = await this.store.operation(c, operationId)
     const delivery = await this.store.get(c, work.deliveryId)
-    const schema =
-      work.phase === 'development'
-        ? developmentManifestSchema
-        : work.phase === 'deployment'
-          ? deploymentManifestSchema
-          : gitManifestSchema
     const candidate =
       work.phase === 'development' ? null : await this.evidence.input({ ...work.context, actor: c.actor }, 'candidate')
-    // Older or resumed operations may predate file preparation. Recreate only
-    // the pinned identity, using the current caller's Project authorization.
+    // Older or resumed operations may predate file preparation. Prepare the pinned
+    // identity and schema using current Project authorization; preserve matching files.
     const manifestContext = await prepareManifestContext(
       this.store.capabilities,
       { ...work.context, actor: c.actor },
@@ -255,7 +249,8 @@ export class CodingDeliveryService {
       deliveryBranch: deliveryBranch(delivery.id, work.requirementVersion),
       candidate,
       candidateDigest: candidate ? digest(candidate) : null,
-      manifestSchema: zodToJsonSchema(schema),
+      manifestSchema: manifestJsonSchema(work.phase),
+      manifestSchemaPath: manifestSchemaPath(operationId),
       manifestContextPath: manifestContext.path,
       serviceLifecycle: await this.store.serviceLifecycle(c, work.context.executor.xpertId),
       graph: delivery.instanceId
@@ -311,6 +306,13 @@ export class CodingDeliveryService {
         const repository = allowed.repositories.find((item) => item.key === previousRepository.key)
         if (!target || !repository) throw conflict('CODING_DESTINATION_NOT_AUTHORIZED')
         requirement = { ...requirement, target, repository }
+      }
+      // Tool calls can run as the ordinary owner, so access.role is not a human/Agent
+      // discriminator. Feedback alone cannot restart unfinished work; a changed
+      // authorized destination is independently verifiable and needs a fresh round.
+      if (!work.evidence && digest(requirement) === digest(row.requirement)) {
+        if (work.context.inputs.candidate?.kind !== 'evidence') throw conflict('CODING_REWORK_CANDIDATE_REQUIRED')
+        await this.evidence.input({ ...work.context, actor: c.actor }, 'candidate')
       }
       const result = await this.store.deliveries.update(
         { ...scopeWhere(c), id: row.id, revision: row.revision },

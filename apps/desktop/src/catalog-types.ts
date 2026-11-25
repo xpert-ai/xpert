@@ -1,6 +1,8 @@
 import type { Bot } from './types'
 import type { ModelOption } from './catalog/model-options'
 import type {
+  AnalyticsBinding,
+  AnalyticsSourceSummary,
   PluginApplicationScope,
   PluginApplicationStatusSummary,
   PluginApplicationToolsetRequirement,
@@ -9,16 +11,19 @@ import type {
 
 export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'connectors' | 'skills' | 'templates'
 interface CatalogBase extends Bot {
+  imageRevision?: string
   publisher: string
   categories: string[]
   tags: string[]
 }
 export interface ExpertItem extends CatalogBase {
   kind: 'experts'
+  hasCardAvatar?: boolean
   access: 'owned' | 'accessible' | 'approved' | 'requested' | 'not_requested' | 'rejected'
 }
 export interface ApplicationItem extends CatalogBase {
   kind: 'applications'
+  hasCardImages?: boolean
   installationScopes?: PluginApplicationScope[]
   icon: { type: 'image' | 'emoji'; value: string } | null
   pluginName: string
@@ -52,6 +57,7 @@ export interface ApplicationSetup {
   defaultVisionModelId: string
   canConfigure: boolean
   canDiscardConfiguration: boolean
+  organizationFields?: OrganizationSetupField[]
   toolsetRequirements: ApplicationToolsetRequirement[]
 }
 export type ApplicationToolsetRequirement = Omit<PluginApplicationToolsetRequirement, 'label'> & { label: string }
@@ -61,8 +67,69 @@ export interface ApplicationInput {
   appName: string
   installationScope?: PluginApplicationScope
 }
+export type OrganizationSetupField =
+  | { kind: 'members'; key: string; label: string; optional: boolean }
+  | { kind: 'analytics'; key: string; label: string; providerId: string; requiredNumericFields: string[] }
+
+export interface OrganizationSettings {
+  revision: number
+  members: Record<string, string[]>
+  queries: Record<string, AnalyticsBinding>
+}
+export type BootstrapSelection = {
+  integrationId: string
+  workspaceId: string
+  dataSourceId: string
+  mode: string
+  userIds: string[]
+  revision: number
+}
+export type BootstrapPlan = {
+  state: 'create' | 'resume' | 'reuse' | 'conflict'
+  modelLabel: string
+  differences: string[]
+  receipt: string
+}
+export type OrganizationModelStep =
+  | { step: 'bootstrap-workspaces'; integrationId: string }
+  | { step: 'bootstrap-sources'; integrationId: string; workspaceId: string }
+  | ({ step: 'bootstrap-plan' } & BootstrapSelection)
+  | ({ step: 'bootstrap-apply'; receipt: string } & BootstrapSelection)
+  | { step: 'connections' }
+  | { step: 'models'; integrationId: string }
+  | { step: 'preview'; integrationId: string; modelId: string; revision: number }
+  | { step: 'confirm'; integrationId: string; modelId: string; revision: number; receipt: string }
+
+export type OrganizationModelChoice = { id: string; label: string }
+export interface OrganizationModelPreview {
+  receipt: string
+  queries: Array<{
+    key: string
+    rowCount: number
+    fields: Array<{ id: string; label: string }>
+    sample: Array<Record<string, string | number | boolean | null>>
+  }>
+}
+export type OrganizationModelResult =
+  | { choices: OrganizationModelChoice[]; actorId?: string }
+  | { plan: BootstrapPlan }
+  | { model: OrganizationModelChoice }
+  | OrganizationModelPreview
+  | { queries: OrganizationSettings['queries'] }
+export interface OrganizationSettingsForm {
+  modelSetup?: { kind: 'connection-model'; bootstrap?: { version: string; modes: OrganizationModelChoice[] } }
+  settings: OrganizationSettings
+  users: Array<{ id: string; label: string }>
+  sources: AnalyticsSourceSummary[]
+}
+export interface OrganizationSettingsTarget extends ApplicationInput {
+  organizationId: string
+  installationScope: 'organization'
+}
 export interface InitializeApplicationInput extends ApplicationInput {
   operationId: string
+  organizationId?: string
+  organizationSettings?: OrganizationSettings
   embeddingModelId?: string
   visionModelId?: string
   toolsets?: ApplicationToolsetSelection[]

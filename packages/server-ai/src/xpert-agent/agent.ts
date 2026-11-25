@@ -181,8 +181,22 @@ export function createMapStreamEvents(
 ) {
     const { agent, unmutes, xperts, language } = options ?? {}
     // A nested tool may inherit the outer call ID. Keep declarations scoped to both names and calls.
-    const presentations = new Map<string, PublicToolPresentation>()
-    const presentationKey = (id: string, tool: string) => JSON.stringify([id, tool])
+    const presentations = new Map<string, Map<string, PublicToolPresentation>>()
+
+    function presentationFor(id: string, name: string, declaration: unknown) {
+        const policies = presentations.get(id)
+        const saved = policies?.get(name)
+        if (saved) return saved
+        const policy = toolPresentation(declaration, name)
+        if (policy) {
+            if (policies) policies.set(name, policy)
+            else presentations.set(id, new Map([[name, policy]]))
+            return policy
+        }
+        // A nested or late event sharing a filtered call ID cannot publish its raw values.
+        if (policies) return { tool: name }
+    }
+
     const eventStack: string[] = []
     let prevEvent = ''
 
@@ -357,8 +371,7 @@ export function createMapStreamEvents(
                             //
                         }
                     }
-                    const policy = toolPresentation(metadata.publicToolPresentation, rest.name)
-                    if (policy) presentations.set(presentationKey(tool_call_id, rest.name), policy)
+                    const policy = presentationFor(tool_call_id, rest.name, metadata.publicToolPresentation)
                     const preview = presentToolValue(policy, 'input', input)
                     sendToolStep(tool_call_id, rest.name, {
                         title: rest.name,
@@ -380,18 +393,13 @@ export function createMapStreamEvents(
                 let output = data.output
                 if (isCommand(output)) {
                     const messages = (<typeof AgentStateAnnotation.State>output.update)?.messages
-                    if (Array.isArray(messages)) {
-                        const toolMessage = messages[messages.length - 1]
-                        output = toolMessage
-                    }
+                    output = Array.isArray(messages) ? messages.at(-1) : undefined
+                    if (!isBaseMessage(output) || !isToolMessage(output)) output = undefined
                 }
 
                 const tool_call_id = output?.tool_call_id || data.id || metadata.tool_call_id
                 if (tool_call_id) {
-                    const key = presentationKey(tool_call_id, rest.name)
-                    const policy =
-                        toolPresentation(metadata.publicToolPresentation, rest.name) ?? presentations.get(key)
-                    presentations.delete(key)
+                    const policy = presentationFor(tool_call_id, rest.name, metadata.publicToolPresentation)
                     const message = isBaseMessage(output) && isToolMessage(output) ? output : undefined
                     const content = message ? message.content : output
                     const failed = message?.status === 'error'
@@ -489,9 +497,13 @@ export function createMapStreamEvents(
                     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
                         const id = data.id || data.toolCall?.id || rest.run_id
                         const name = data.toolCall?.name
-                        const key = presentationKey(id, name)
-                        const policy = presentations.get(key) ?? toolPresentation(metadata.publicToolPresentation, name)
-                        presentations.delete(key)
+                        const policy = presentationFor(
+                            id,
+                            name,
+                            metadata.publicToolPresentation === undefined
+                                ? data.publicToolPresentation
+                                : metadata.publicToolPresentation
+                        )
                         const error = presentToolValue(policy, 'error', data.error)
                         sendToolStep(id, name, {
                             status: 'fail',
@@ -519,9 +531,7 @@ export function createMapStreamEvents(
                         const id = data.id || rest.run_id
                         if (data.category === 'Tool') {
                             const name = data.tool
-                            const policy =
-                                presentations.get(presentationKey(id, name)) ??
-                                toolPresentation(metadata.publicToolPresentation, name)
+                            const policy = presentationFor(id, name, metadata.publicToolPresentation)
                             const fields: Record<string, unknown> = {}
                             for (const phase of ['input', 'output', 'error'] as const) {
                                 if (!(phase in data)) continue

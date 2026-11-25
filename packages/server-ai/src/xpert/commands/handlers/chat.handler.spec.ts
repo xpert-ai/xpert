@@ -663,6 +663,19 @@ describe('XpertChatHandler', () => {
             channelType: 'wechat',
             sourceMessageLogIds: ['inbound-log-1', 'inbound-log-2']
         })
+        expect(commands).toContainEqual(
+            expect.objectContaining({
+                entity: expect.objectContaining({ id: 'conversation-1', title: 'Generated title' })
+            })
+        )
+        expect(events).toContainEqual(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    event: ChatMessageEventTypeEnum.ON_CONVERSATION_END,
+                    data: expect.objectContaining({ title: 'Generated title' })
+                })
+            })
+        )
         expect(
             commands.some((command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human')
         ).toBe(true)
@@ -3512,6 +3525,7 @@ describe('XpertChatHandler', () => {
                     checkpointNs: '',
                     checkpointId: 'checkpoint-loop-2',
                     metadata: retryMetadata('checkpoint-input-1', 'checkpoint-loop-2', xpert),
+                    type: 'agent',
                     inputs: {
                         input: 'Original prompt'
                     }
@@ -3565,6 +3579,7 @@ describe('XpertChatHandler', () => {
                     command.execution.status === XpertAgentExecutionStatusEnum.RUNNING &&
                     command.execution.inputs?.input === 'Original prompt' &&
                     command.execution.metadata?.retriedFromExecutionId === 'execution-old' &&
+                    command.execution.type === 'agent' &&
                     !command.execution.parentId
             )
         ).toBe(true)

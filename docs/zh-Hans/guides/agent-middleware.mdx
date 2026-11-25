@@ -22,6 +22,44 @@ Agent Middleware 用于在不改动核心编排逻辑的前提下，为智能体
 | `wrapModelCall` | 包裹模型调用         | 重试、缓存、防护策略     |
 | `wrapToolCall`  | 包裹工具调用         | 鉴权、限流、后处理       |
 
+## ChatKit 工具调用详情与字段白名单
+
+普通工具默认在 Bosi 和 ChatKit 对话中展示调用输入、返回值和错误。要指定参与者可见的字段，在服务端工具的注册选项中设置 `metadata.publicToolPresentation`。`@XpertTool` 装饰器和 LangChain 的 `tool()` 都支持这个位置。`tool` 必须与注册的 `name` 完全一致。
+
+以售后工具 `order_aftercare_finalize` 为例，在已有的 `@XpertTool({ ... })` 中加入 `metadata: { publicToolPresentation: aftercarePresentation }`。下面的白名单只展示输入中的证据编号、成功结果中的状态和阶段，以及一条给用户看的错误提示。
+
+```ts
+import type { PublicToolPresentation } from '@xpert-ai/contracts'
+import { z } from 'zod/v3'
+
+const visibleInput = z.object({ evidenceIds: z.array(z.string()) })
+const visibleResult = z.object({ status: z.literal('business_accepted'), step: z.literal('aftercare') })
+
+const aftercarePresentation = {
+  tool: 'order_aftercare_finalize',
+  input(args) {
+    const parsed = visibleInput.safeParse(args)
+    return parsed.success ? parsed.data : undefined
+  },
+  output(content) {
+    const value = typeof content === 'string' ? JSON.parse(content) : content
+    const parsed = visibleResult.safeParse(value)
+    return parsed.success ? parsed.data : undefined
+  },
+  error: () => '售后判断提交失败。'
+} satisfies PublicToolPresentation
+```
+
+例如，输入包含 `assessment` 和 `evidenceIds` 时，展开工具行只会看到 `{"evidenceIds":["INS-1201"]}`。工具仍收到完整输入，模型仍收到完整结果。装饰器工具返回的普通业务对象会被序列化为 JSON 字符串，因此示例先解析 `content`，再挑选输出字段。
+
+| 配置                                        | 对话中的表现                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 省略 `publicToolPresentation`               | 普通工具按默认规则展示详情，常见凭据字段会脱敏。                                                 |
+| 只声明部分回调                              | 只展示已声明阶段的返回值。`input` 和 `output` 返回可公开的 JSON 值，`error` 返回可公开的字符串。 |
+| 只写 `{ tool: 'order_aftercare_finalize' }` | 保留工具调用行，隐藏全部输入、输出和错误详情。                                                   |
+
+回调在服务端同步执行。回调返回 `undefined`、抛错或生成超限预览时，该阶段的详情会省略。更新并加载工具后，新调用的实时消息与历史回看都使用生成时的展示值。已保存的旧消息保留原记录。
+
 ## MCP App 视图工具
 
 需要让 Assistant 操作当前聊天中已打开的 MCP App 时，可配置 `McpAppToolsMiddleware`（“当前应用视图工具”）。它暴露 `mcp_app_tools_list` 和 `mcp_app_tool_call`，复用 `ClientToolMiddleware` 的客户端执行与恢复机制，由 ChatKit 定位视图、取得审批并调用 iframe 内的工具。

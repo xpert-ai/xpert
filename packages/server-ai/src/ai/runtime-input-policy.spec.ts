@@ -6,7 +6,9 @@ describe('managed application run admission', () => {
     beforeEach(() =>
         jest
             .spyOn(RequestContext, 'currentUser')
-            .mockReturnValue({ role: { name: RolesEnum.APP_USER } } as ReturnType<typeof RequestContext.currentUser>)
+            .mockReturnValue({ id: 'member', type: UserType.USER, role: { name: RolesEnum.APP_USER } } as ReturnType<
+                typeof RequestContext.currentUser
+            >)
     )
     afterEach(() => jest.restoreAllMocks())
     const request = {
@@ -27,7 +29,29 @@ describe('managed application run admission', () => {
         jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(true)
         expect(() => assertRuntimeInputPolicy({ ...request, config: { configurable: { isDraft: true } } })).toThrow()
         expect(() => assertRuntimeInputPolicy(request)).not.toThrow()
+        expect(() =>
+            assertRuntimeInputPolicy({
+                ...request,
+                input: { input: { input: 'Hello', model: 'mdl_' + 'a'.repeat(43) } }
+            })
+        ).toThrow()
     })
+    it.each(['send', 'follow_up', 'legacy'])(
+        'accepts a model selection on %s input and mirrored human state',
+        (action) => {
+            const human = { input: 'Hello', model: 'mdl_' + 'a'.repeat(43) }
+            const input =
+                action === 'legacy'
+                    ? { input: human, state: { human } }
+                    : {
+                          action,
+                          message: { input: human },
+                          state: { human },
+                          ...(action === 'follow_up' ? { mode: 'queue', conversationId: 'conversation' } : {})
+                      }
+            expect(assertRuntimeInputPolicy({ ...request, input })?.input).toEqual(input)
+        }
+    )
     it('accepts a business message', () => expect(() => assertRuntimeInputPolicy(request)).not.toThrow())
     const commandSource = {
         type: 'slash_command',

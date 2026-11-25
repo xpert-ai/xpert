@@ -1,3 +1,9 @@
+import { ApplicationModelReaderService } from './application-setup/application-model-reader.service'
+import { BusinessAreaModule } from '@xpert-ai/server-core'
+import { ApplicationModelSetupController } from './application-setup/application-model-setup.controller'
+import { ApplicationModelSetupService } from './application-setup/application-model-setup.service'
+import { AnalyticsDefinitionModule } from '../analytics/analytics-definition.module'
+import { AnalyticsModule, Integration } from '@xpert-ai/server-core'
 import { PlatformUpdateService } from './app-platform/platform-update.service'
 import { ApplicationUpdateService } from './application-update/application-update.service'
 import { ApplicationInitializationLocks } from './application/application-initialization-locks'
@@ -32,6 +38,7 @@ import { TemplateInstallationEntity } from './template-installation/template-ins
 import { TemplateInstallationLocks } from './template-installation/template-installation-locks'
 import { PluginApplicationSuiteService } from './application-suite/plugin-application-suite.service'
 import { PluginApplicationToolsetsService } from './application-toolsets/plugin-application-toolsets.service'
+import { OrganizationSettingsService } from './application-setup/organization-settings.service'
 import { PluginApplicationSetupService } from './application-setup/plugin-application-setup.service'
 import { TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
@@ -78,6 +85,10 @@ import { PreparePluginTestAccessHandler } from './commands/handlers/prepare-plug
 
 @Module({
     imports: [
+        BusinessAreaModule,
+        AnalyticsModule,
+        AnalyticsDefinitionModule,
+        TypeOrmModule.forFeature([Integration]),
         BullModule.registerQueue({ name: APP_PLATFORM_QUEUE }),
         MembershipModule,
         forwardRef(() => XpertAgentModule),
@@ -111,12 +122,15 @@ import { PreparePluginTestAccessHandler } from './commands/handlers/prepare-plug
         McpPublicationModule
     ],
     controllers: [
+        ApplicationModelSetupController,
         PluginResourceController,
         PluginApplicationController,
         TemplateInstallationController,
         AppPlatformController
     ],
     providers: [
+        ApplicationModelSetupService,
+        ApplicationModelReaderService,
         AssertAppPlatformUploadHandler,
         CheckStorageQuotaHandler,
         RequestStorageUsageRefreshHandler,
@@ -143,6 +157,7 @@ import { PreparePluginTestAccessHandler } from './commands/handlers/prepare-plug
         AssertAssistantTemplateDependenciesHandler,
         TemplateInstallationService,
         TemplateInstallationLocks,
+        OrganizationSettingsService,
         PluginApplicationSetupService,
         PluginApplicationToolsetsService,
         PluginApplicationSuiteService,

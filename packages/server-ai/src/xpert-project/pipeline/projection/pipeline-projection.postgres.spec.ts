@@ -28,7 +28,7 @@ import { XpertProjectMembership } from '../../entities/project-membership.entity
 import { ProjectPipelineAnalyticsService } from '../queries/pipeline-analytics.service'
 import { pipelineEntryFocus } from '../queries/pipeline-entry-focus'
 import { readPipelineHumanWaitStatistics } from '../queries/pipeline-human-wait-statistics'
-import { pipelineTaskDispositions } from '../queries/pipeline-task-disposition'
+import { readTaskPipelineInfo } from '../queries/pipeline-task-disposition'
 import { ProjectTaskGraphService } from '../../services/project-task-graph.service'
 import { ProjectPipelineRefreshEntity } from '../persistence/pipeline.entity'
 import { ProjectPipelineRefreshStore } from './pipeline-refresh.store'
@@ -403,6 +403,12 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         )
         const previous = process.env.XPERT_PIPELINE_DISPATCH_ENABLED
         try {
+            const graph = await taskGraph.viewIndex(context)
+            expect(graph.tasks[0].pipelineInstanceTitle).toBe(snapshot().title)
+            expect((await query.list(context, { search: 'WORKflow' })).items.map((item) => item.id)).toEqual([
+                first.instanceId
+            ])
+            expect((await query.list(context, { search: '%_' })).items).toEqual([])
             process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'true'
             const enabled = await query.graph(context, first.instanceId)
             process.env.XPERT_PIPELINE_DISPATCH_ENABLED = 'false'
@@ -733,12 +739,12 @@ integration.each(['empty', 'orm-precreated'])('Project Pipeline atomic PostgreSQ
         await db
             .getRepository(XpertProjectTask)
             .update({ id: first.tasks[0].taskId }, { pipelineDisposition: 'active' })
-        expect((await pipelineTaskDispositions(db.manager, context, await tasks())).get(first.tasks[0].taskId)).toBe(
-            'excluded'
-        )
-        expect(
-            (await pipelineTaskDispositions(db.manager, { ...context, projectId: randomUUID() }, await tasks())).size
-        ).toBe(0)
+        const info = await readTaskPipelineInfo(db.manager, context, await tasks())
+        expect(info.instancesById.get(first.instanceId)?.title).toBe(input.title)
+        expect(info.dispositions.get(first.tasks[0].taskId)).toBe('excluded')
+        const foreign = await readTaskPipelineInfo(db.manager, { ...context, projectId: randomUUID() }, await tasks())
+        expect(foreign.instancesById.size).toBe(0)
+        expect(foreign.dispositions.size).toBe(0)
         expect((await tasks())[0]).toMatchObject({ status: 'review', pipelineDisposition: 'active' })
         const shared = structuredClone(excluded)
         shared.sourceSequence = 3

@@ -50,12 +50,19 @@ def workspace_ownership(root: pathlib.Path, uid: int, gid: int, paths: Iterable[
         result = subprocess.run(
             [sys.executable, '-I', __file__, str(descriptor)],
             pass_fds=(descriptor,), user=uid, group=gid, extra_groups=[],
-            cwd='/', input=json.dumps(list(paths)), capture_output=True, text=True, timeout=30, check=True,
+            cwd='/', input=json.dumps(list(paths)), capture_output=True, text=True, timeout=30,
         )
+        if result.returncode == 75:
+            raise FileNotFoundError('Workspace changed during ownership inspection')
+        result.check_returncode()
         return json.loads(result.stdout)
     finally:
         os.close(descriptor)
 
 
 if __name__ == '__main__':
-    print(json.dumps(ownership_tree(int(sys.argv[1]), json.load(sys.stdin))))
+    try:
+        print(json.dumps(ownership_tree(int(sys.argv[1]), json.load(sys.stdin))))
+    except (FileNotFoundError, NotADirectoryError):
+        # A concurrent host rename/removal is a conflict, not an internal error.
+        sys.exit(75)

@@ -4,6 +4,7 @@ import type { IUser } from '@xpert-ai/contracts'
 import { PERMISSIONS_METADATA } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { evaluatePermissions } from './permission-policy'
+import { PublicVisitorChatGuard } from './public-visitor-chat.guard'
 
 /** Compatibility adapter for existing routes; shares the post-authentication interceptor's policy. */
 @Injectable()
@@ -17,7 +18,11 @@ export class PermissionGuard implements CanActivate {
 			context.getClass()
 		])
 		const request = context.switchToHttp().getRequest<{ user?: IUser } | undefined>()
-		const decision = evaluatePermissions(request?.user ?? RequestContext.currentUser(), permissions)
+		const decision = evaluatePermissions(
+			request?.user ?? RequestContext.currentUser(),
+			permissions,
+			PublicVisitorChatGuard.verifiedVisitor(request)
+		)
 		if (decision.allowed === false)
 			this.logger.debug({
 				event: 'authorization_denied',

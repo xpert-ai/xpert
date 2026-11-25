@@ -65,11 +65,96 @@ export interface AnalyticsProviderResult {
 }
 
 /**
+ * Host-supplied scope for one model setup operation on an authorized connection.
+ * Providers use this actor and connection for source access and propagate the signal and deadline to upstream calls.
+ */
+export interface AnalyticsModelSetupContext {
+  /** Include models prepared through application templates when the actor has access to them. */
+  includeProvisioned?: boolean
+  /** Only the selected connection. Rechecks the acting organization's configuration grant on every read. */
+  readConnectionOptions(): Promise<unknown>
+  actor: DataSourceActor
+  integrationId: string
+  signal: AbortSignal
+  deadlineAt: number
+}
+
+/** Choices an administrator reviews before preparing a model from an application template. */
+export interface AnalyticsModelBootstrapSelection {
+  workspaceId: string
+  dataSourceId: string
+  /** Stable ID of a preparation mode declared by the application's bootstrap template. */
+  mode: string
+  /** Organization members selected to receive read access in this operation. Existing grants are retained. */
+  userIds: string[]
+}
+
+/**
+ * Optional provider extension for preparing a model from the application's versioned bundle.
+ * Inspect the selected resources before confirmation. Applying the confirmed plan must support retries
+ * and preserve existing resources when their configuration conflicts with the plan.
+ */
+export interface AnalyticsModelBootstrap {
+  workspaces(context: AnalyticsModelSetupContext): Promise<Array<{ id: string; label: string }>>
+  sources(context: AnalyticsModelSetupContext, workspaceId: string): Promise<Array<{ id: string; label: string }>>
+  /** Describe the proposed changes without writing. The fingerprint identifies the state reviewed by the administrator. */
+  inspect(
+    context: AnalyticsModelSetupContext,
+    bundle: JSONValue,
+    selection: AnalyticsModelBootstrapSelection
+  ): Promise<{
+    state: 'create' | 'resume' | 'reuse' | 'conflict'
+    modelLabel: string
+    fingerprint: string
+    differences: string[]
+  }>
+  /** Recheck the fingerprint before making changes. Use the host callbacks for scoped access to the prepared model. */
+  apply(
+    context: AnalyticsModelSetupContext,
+    bundle: JSONValue,
+    selection: AnalyticsModelBootstrapSelection,
+    fingerprint: string,
+    access: {
+      area(modelKey: string, name: string): Promise<string>
+      prepare(resourceId: string, name: string): Promise<{ xpertId: string; businessAreaId: string }>
+      grant(resourceId: string, xpertId: string): Promise<void>
+    }
+  ): Promise<{ id: string; label: string }>
+}
+
+/**
+ * Provider extension for choosing an authorized model and previewing an application's query recipes.
+ * The provider returns a sample and a candidate binding for each recipe. On confirmation the host binds
+ * the queries to a published definition version. Implement bootstrap to also offer model preparation.
+ */
+export interface AnalyticsModelSetup {
+  bootstrap?: AnalyticsModelBootstrap
+  /** Integration provider ID the host uses to find compatible connections. */
+  integrationProvider: string
+  models(context: AnalyticsModelSetupContext): Promise<Array<{ id: string; label: string }>>
+  preview(
+    context: AnalyticsModelSetupContext,
+    modelId: string,
+    recipes: Record<string, JSONValue>
+  ): Promise<{
+    options: Record<string, JSONValue>
+    modelLabel: string
+    queries: Array<{
+      key: string
+      binding: Omit<AnalyticsBinding, 'source'>
+      rowCount: number
+      sample: Array<Record<string, AnalyticsValue>>
+    }>
+  }>
+}
+
+/**
  * Plugin extension point for SQL, ontology, file or other query formats.
- * Implement native payload validation, source permissions and read-only execution here;
- * the host provides scoped lookup, parameter checks, execution limits and result normalization.
+ * Providers validate native payloads, enforce source permissions and execute read-only queries.
+ * The host handles scoped lookup, parameter checks, execution limits and result normalization.
  */
 export interface AnalyticsQueryProvider {
+  readonly modelSetup?: AnalyticsModelSetup
   readonly descriptor: AnalyticsProviderDescriptor
   readonly configuration?: AnalyticsConfigurationEntry
   readonly authoring?: AnalyticsDefinitionAuthoring

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import i18next from 'i18next'
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { deliveryFixture } from './delivery.fixture'
 import { CodingDeliveryWork } from './entities'
@@ -10,6 +11,9 @@ import { parseMaterialManifest } from './material-validation'
 import { PROVIDER } from './constants'
 
 describe('Delivery materials before acceptance', () => {
+  beforeAll(async () => {
+    await i18next.init({ lng: 'en', resources: {} })
+  })
   let f: Awaited<ReturnType<typeof deliveryFixture>>
   beforeEach(async () => {
     f = await deliveryFixture()
@@ -138,11 +142,11 @@ describe('Delivery materials before acceptance', () => {
       )
     ).toThrow('pullRequestUrl')
   })
-  it('uses only the submit tool for invalid materials, readiness and sealed submission', async () => {
+  const middleware = () => {
     const unexpected = async () => {
       throw Error('Model calls are not needed for material validation')
     }
-    const tools = new CodingDeliveryMiddleware(
+    return new CodingDeliveryMiddleware(
       new CodingDeliveryService(f.store, f.evidence),
       f.store,
       f.evidence,
@@ -159,7 +163,11 @@ describe('Delivery materials before acceptance', () => {
         tools: new Map(),
         runtime: { createModelClient: unexpected, wrapWorkflowNodeExecution: unexpected }
       }
-    ).tools!
+    )
+  }
+
+  it('uses only the submit tool for invalid materials, readiness and sealed submission', async () => {
+    const tools = middleware().tools!
     expect(tools.some((tool) => tool.name === 'coding_delivery_validate')).toBe(false)
     const seal = tools.find((tool) => tool.name === 'coding_delivery_submit')!
     const input = { taskId: f.accepted().taskId }
@@ -168,7 +176,8 @@ describe('Delivery materials before acceptance', () => {
     expect(JSON.parse(await seal.invoke(input))).toMatchObject({
       status: 'materials_invalid',
       submitted: false,
-      saved: false
+      saved: false,
+      recovery: expect.stringContaining('current implementation task')
     })
     await unsealed()
     setManifest(f.manifest)
@@ -191,18 +200,102 @@ describe('Delivery materials before acceptance', () => {
     f.setCompleted()
     expect(JSON.parse(await seal.invoke(input))).toEqual(receipt)
   })
-  it('never falls back to pre-acceptance when an accepted task lacks independent execution review', async () => {
-    f.readAcceptance.mockResolvedValue({ ...f.accepted(), review: null })
-    await expect(
-      f.evidence.submitTask(f.context, f.context.executor.conversationId, f.accepted().taskId)
-    ).rejects.toMatchObject({ response: { code: 'CODING_EXECUTION_REVIEW_REQUIRED' } })
+  it.each(['missing', 'evidence_only'] as const)(
+    'rejects an accepted task with %s review through the submit tool',
+    async (mode) => {
+      const accepted = f.accepted()
+      f.readAcceptance.mockResolvedValue({
+        ...accepted,
+        review: mode === 'missing' ? null : { ...accepted.review!, mode }
+      })
+      const seal = middleware().tools!.find((tool) => tool.name === 'coding_delivery_submit')!
+      await expect(seal.invoke({ taskId: accepted.taskId })).rejects.toMatchObject({
+        response: { code: 'CODING_EXECUTION_REVIEW_REQUIRED' }
+      })
+      expect(await f.operations.collect(f.context, 'development')).toBeNull()
+      await unsealed()
+    }
+  )
+
+  it('keeps a prematurely accepted delivery open until a corrective task is accepted and submitted', async () => {
+    const seal = middleware().tools!.find((tool) => tool.name === 'coding_delivery_submit')!
+    const original = f.accepted()
+    const originalSnapshot = structuredClone(original)
+    setManifest({ ...f.manifest, package: { ...f.manifest.package, fileName: 'dist/plugin.tgz' } })
+    expect(JSON.parse(await seal.invoke({ taskId: original.taskId }))).toMatchObject({
+      status: 'materials_invalid',
+      submitted: false,
+      recovery: expect.stringContaining('corrective summary')
+    })
+    expect(await f.operations.collect(f.context, 'development')).toBeNull()
+    await unsealed()
+
+    const correctedManifest = f.addFile('delivery-manifest.json', JSON.stringify(f.manifest))
+    const corrected = f.task([correctedManifest, f.packageFile, f.sourceFile, f.reportFile])
+    const history = new Map([
+      [original.taskId, original],
+      [corrected.taskId, corrected]
+    ])
+    f.readAcceptance.mockImplementation(async (_scope, taskId) => history.get(taskId) ?? null)
+    f.readAcceptance.mockResolvedValueOnce(null)
+    expect(JSON.parse(await seal.invoke({ taskId: corrected.taskId }))).toMatchObject({
+      status: 'awaiting_acceptance',
+      submitted: false
+    })
+    await unsealed()
+    const result = JSON.parse(await seal.invoke({ taskId: corrected.taskId }))
+    expect(result).toMatchObject({ status: 'submitted', submitted: true })
+    expect(await f.operations.collect(f.context, 'development')).toEqual({ result: result.evidence })
+    expect(await f.evidence.read(f.context, result.evidence)).toMatchObject({
+      taskId: corrected.taskId,
+      decisionId: corrected.decisionId
+    })
+    expect(history.get(original.taskId)).toEqual(originalSnapshot)
+    expect(await f.db.getRepository(CodingDeliveryWork).count()).toBe(1)
+    expect(f.nextRound).not.toHaveBeenCalled()
+    expect(JSON.parse(await seal.invoke({ taskId: corrected.taskId }))).toEqual(result)
+    await expect(seal.invoke({ taskId: original.taskId })).rejects.toMatchObject({
+      response: { code: 'CODING_EVIDENCE_ALREADY_SEALED' }
+    })
+  })
+
+  it('rejects an accepted task from a different stage conversation', async () => {
+    f.readAcceptance.mockResolvedValue({ ...f.accepted(), conversationId: randomUUID() })
+    const seal = middleware().tools!.find((tool) => tool.name === 'coding_delivery_submit')!
+    await expect(seal.invoke({ taskId: f.accepted().taskId })).rejects.toMatchObject({
+      response: { code: 'CODING_TASK_NOT_FROM_THIS_OPERATION' }
+    })
     await unsealed()
   })
-  it('reports material errors even after acceptance without sealing output', async () => {
-    setManifest({ ...f.manifest, package: { ...f.manifest.package, fileName: 'dist/plugin.tgz' } })
-    expect(
-      await f.evidence.submitTask(f.context, f.context.executor.conversationId, f.accepted().taskId)
-    ).toMatchObject({ status: 'materials_invalid', submitted: false })
+
+  it('rechecks acceptance at sealing after the tool initially observed an accepted task', async () => {
+    f.readAcceptance.mockResolvedValueOnce(f.accepted()).mockResolvedValueOnce(null)
+    const seal = middleware().tools!.find((tool) => tool.name === 'coding_delivery_submit')!
+    await expect(seal.invoke({ taskId: f.accepted().taskId })).rejects.toMatchObject({
+      response: { code: 'CODING_FORMAL_ACCEPTANCE_NOT_SUBMITTED' }
+    })
     await unsealed()
+  })
+
+  it('seals only one acceptance when different accepted tasks submit concurrently', async () => {
+    const first = f.accepted()
+    const second = f.task([f.manifestFile, f.packageFile, f.sourceFile, f.reportFile])
+    const history = new Map([
+      [first.taskId, first],
+      [second.taskId, second]
+    ])
+    f.readAcceptance.mockImplementation(async (_scope, taskId) => history.get(taskId) ?? null)
+    const seal = middleware().tools!.find((tool) => tool.name === 'coding_delivery_submit')!
+    const results = await Promise.allSettled([
+      seal.invoke({ taskId: first.taskId }),
+      seal.invoke({ taskId: second.taskId })
+    ])
+    const success = results.filter((result) => result.status === 'fulfilled')
+    const failures = results.filter((result) => result.status === 'rejected')
+    expect(success).toHaveLength(1)
+    expect(failures).toHaveLength(1)
+    expect(failures[0].reason).toMatchObject({ response: { code: 'CODING_EVIDENCE_ALREADY_SEALED' } })
+    const winner = JSON.parse(success[0].value)
+    expect(await f.operations.collect(f.context, 'development')).toEqual({ result: winner.evidence })
   })
 })

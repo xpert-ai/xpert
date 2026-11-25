@@ -5,7 +5,7 @@ export type {
   IChatConversationUnreadSnapshot
 } from './chat-activity.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { IXpertAgentExecution } from './xpert-agent-execution.model'
+import { type TChatAgentRunSummary, IXpertAgentExecution } from './xpert-agent-execution.model'
 import { IXpert } from './xpert.model'
 import { I18nObject } from '../types'
 import { CopilotChatMessage, CopilotMessageGroup, IChatMessage } from './chat-message.model'
@@ -16,7 +16,7 @@ import { IXpertTask } from './xpert-task.model'
 import { TToolCall } from '../agent'
 import { TInterrupt } from '../agent/interrupt'
 import { IUser } from '../user.model'
-import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
+import type { RuntimeCapabilitiesSelection, TChatActivityPresentation } from '@xpert-ai/chatkit-types'
 
 export type TChatConversationOptions = {
   /** First Project binding is deferred until a human submits the application's setup App. */
@@ -51,6 +51,14 @@ export type TChatConversationSourceAudit = {
 
 export type TChatCheckpointReference = { threadId: string; checkpointNs: string; checkpointId: string }
 
+/** Version 1 contains only the executions visible in the transcript. */
+export type TChatAgentRunSnapshot = { version: 1; runs: TChatAgentRunSummary[] }
+
+/** Unversioned branch snapshots may contain unclassified or explicitly marked executions. */
+export type TStoredChatAgentRuns =
+  | TChatAgentRunSnapshot
+  | (TChatAgentRunSummary & { presentation?: TChatActivityPresentation })[]
+
 export type TChatInputCheckpoint = {
   version: 1
   checkpoint: TChatCheckpointReference | null
@@ -77,7 +85,7 @@ export type TChatOutputCheckpoint = {
   messagePathHash?: string
   /** Access must be checked again before linking these assets to a new conversation. */
   fileAssetIds?: string[]
-  agentRuns?: import('./xpert-agent-execution.model').TChatAgentRunSummary[]
+  agentRuns?: TStoredChatAgentRuns
 }
 
 /** Copy the source thread's ancestor path through afterMessageId, inclusive. */

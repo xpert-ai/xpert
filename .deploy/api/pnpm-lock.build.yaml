@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@xpert-ai/chatkit-types':
-      specifier: ~0.24.0
-      version: 0.24.0
+      specifier: ~0.24.1
+      version: 0.24.1
 
 overrides:
   app-builder-lib>@electron/notarize@2.5.0: 3.1.2
@@ -54,7 +54,7 @@ importers:
         version: 0.5.3
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.24.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.24.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/plugin-sdk':
         specifier: workspace:*
         version: link:packages/plugin-sdk/dist
@@ -363,7 +363,7 @@ importers:
         version: 7.0.15
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.24.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.24.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       zod:
         specifier: 3.25.67
         version: 3.25.67
@@ -495,7 +495,7 @@ importers:
         version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.24.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.24.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/contracts':
         specifier: workspace:^
         version: link:../../contracts/dist
@@ -1011,7 +1011,7 @@ importers:
         version: 2.4.0
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.24.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.24.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/cli-model-profiles':
         specifier: workspace:*
         version: link:../plugins/cli-model-profiles/dist
@@ -7092,8 +7092,8 @@ packages:
     engines: {node: '>=10.0.0'}
     deprecated: this version has critical issues, please update to the latest version
 
-  '@xpert-ai/chatkit-types@0.24.0':
-    resolution: {integrity: sha512-Anv3pQQXRc3Rg2HPnJ3ub47PL7MtdNhpSlej9p4zXziZWkiADZSmiqCxkm7WGsD6a1c2Y0kxo4KWgaF51iIZyg==}
+  '@xpert-ai/chatkit-types@0.24.1':
+    resolution: {integrity: sha512-gxIxGsUfvvdsCmvMnWUFuLLMB9eFkdCHH2RiHCIEziIee3IpvriJB05Bqo2xFzyY4teh+s5vNsUCT+awgayyFQ==}
     peerDependencies:
       '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
@@ -22578,7 +22578,7 @@ snapshots:
   '@xmldom/xmldom@0.8.13':
     optional: true
 
-  '@xpert-ai/chatkit-types@0.24.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-types@0.24.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67))

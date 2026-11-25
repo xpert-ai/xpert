@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { t } from 'i18next'
 import { createHash } from 'node:crypto'
 import {
   ArtifactsRuntimeCapability,
@@ -141,29 +142,11 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     if (row.evidence) return seal()
     await this.store.assertActive(row, 'submit', c)
     const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    const accepted = await tasks.readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
     try {
-      const accepted = await tasks.readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
       // The strict submit path re-reads acceptance and all current guards; a stale receipt grants nothing.
       if (accepted) return await seal()
-      if (!tasks.readCandidate) throw conflict('CODING_CANDIDATE_READ_UNAVAILABLE')
-      const candidate = await tasks.readCandidate({ actor: c.actor, projectId: c.projectId }, taskId)
-      if (candidate.projectId !== c.projectId || candidate.taskId !== taskId)
-        throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
-      if (candidate.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
-      const checked = await this.validateMaterials(c, row, candidate.artifacts, manifestArtifactId)
-      return {
-        status: 'awaiting_acceptance' as const,
-        submitted: false as const,
-        valid: true as const,
-        saved: false as const,
-        operationId: row.id,
-        taskId,
-        taskRevision: candidate.taskRevision,
-        executionId: candidate.executionId,
-        manifestArtifactId: checked.artifacts[0].artifactId,
-        artifacts: checked.artifacts,
-        acceptance: 'required' as const
-      }
+      return await this.checkCandidate(c, row, taskId, manifestArtifactId)
     } catch (error) {
       if (error instanceof MaterialValidationError)
         return {
@@ -171,9 +154,49 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
           status: 'materials_invalid' as const,
           submitted: false as const,
           operationId: row.id,
-          taskId
+          taskId,
+          recovery: accepted
+            ? t('coding_project:Submission.CorrectAcceptedTask', {
+                defaultValue:
+                  'Create a corrective summary and implementation task in this delivery stage. Reuse valid candidate files, repair the reported issues, and export the manifest and every referenced file. Preflight the new implementation, independently review it, accept the new summary, then submit that summary.'
+              })
+            : t('coding_project:Submission.RepairCandidate', {
+                defaultValue:
+                  'Repair the reported issues in the current implementation task. Export the manifest and every referenced file, then call coding_delivery_submit again before independent review and task acceptance.'
+              })
         }
       throw error
+    }
+  }
+
+  private async checkCandidate(
+    c: ProjectPipelineContext,
+    row: Awaited<ReturnType<CodingDeliveryStore['operation']>>,
+    taskId: string,
+    manifestArtifactId?: string
+  ) {
+    const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    if (!tasks.readCandidate) throw conflict('CODING_CANDIDATE_READ_UNAVAILABLE')
+    const candidate = await tasks.readCandidate({ actor: c.actor, projectId: c.projectId }, taskId)
+    if (candidate.projectId !== c.projectId || candidate.taskId !== taskId)
+      throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
+    if (candidate.conversationId !== row.context.executor.conversationId)
+      throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
+    const checked = await this.validateMaterials(c, row, candidate.artifacts, manifestArtifactId)
+    return {
+      status: 'awaiting_acceptance' as const,
+      submitted: false as const,
+      valid: true as const,
+      saved: false as const,
+      operationId: row.id,
+      taskId,
+      taskRevision: candidate.taskRevision,
+      executionId: candidate.executionId,
+      manifestArtifactId: checked.artifacts[0].artifactId,
+      artifacts: checked.artifacts,
+      acceptance: 'required' as const,
+      nextAction:
+        'Read the implementation result and dispatch its independent execution review with reviewAsSubtask=true on this implementation task. If already dispatched, wait for its result. Read the review Markdown before deciding on the summary task.'
     }
   }
 

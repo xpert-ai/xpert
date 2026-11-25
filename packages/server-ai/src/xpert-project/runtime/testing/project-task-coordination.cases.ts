@@ -555,24 +555,39 @@ export function projectTaskCoordinationCases(fixture: () => Fixture) {
             expect((await task(input.taskId)).decisions.map((item) => item.outcome)).toEqual(['rework', 'accept'])
         })
         it('requires the assigned reviewer and prevents silent removal during implementation retries', async () => {
-            await reviewer()
+            const binding = await reviewer()
             const input = await implemented()
             await expect(decisions.decide(f.scope.projectId, input, f.caller)).rejects.toThrow()
             const other = await reviewer(false)
             await expect(review(input, other)).rejects.toThrow()
             await decisions.decide(f.scope.projectId, { ...input, outcome: 'rework' }, f.caller)
+            f.input = {
+                ...f.input,
+                requestId: randomUUID(),
+                expectedRevision: (await task(input.taskId)).revision,
+                purpose: { type: 'implementation' }
+            }
+            const retry = await implemented()
+            const attempt = await f.database.getRepository(XpertProjectTaskExecution).findOneByOrFail({
+                id: retry.implementationExecutionId
+            })
+            expect(attempt.purpose).toMatchObject({
+                type: 'implementation',
+                reviewer: { bindingId: binding, mode: 'evidence_only' }
+            })
+            await expect(decisions.decide(f.scope.projectId, retry, f.caller)).rejects.toThrow()
+            await expect(review(retry, other)).rejects.toThrow()
+            const receipt = await review(retry, binding)
             await expect(
-                f.service.dispatch(
+                decisions.decide(
                     f.scope.projectId,
                     {
-                        ...f.input,
-                        requestId: randomUUID(),
-                        expectedRevision: (await task(input.taskId)).revision,
-                        purpose: { type: 'implementation' }
+                        ...retry,
+                        reviewExecutionId: receipt.taskExecutionId
                     },
                     f.caller
                 )
-            ).rejects.toThrow()
+            ).resolves.toMatchObject({ outcome: 'accept' })
         })
         it('does not let a late implementation observation undo a parent rework decision', async () => {
             const parent = await summaryParent(),

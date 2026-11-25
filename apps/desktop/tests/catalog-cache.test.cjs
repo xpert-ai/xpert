@@ -205,3 +205,43 @@ test('a failed replacement page retains the complete previous template catalog',
   assert.equal(cache.getSnapshot('templates').loading, false)
   assert.equal(cache.getSnapshot('templates').error, 'Page unavailable')
 })
+
+test('reopening a fresh session catalog reuses cards and deduplicates scoped artwork', async () => {
+  let fetches = 0
+  const cache = createCatalogCache(async () => {
+    fetches++
+    return []
+  })
+  await cache.load('applications')
+  await cache.load('applications')
+  assert.equal(fetches, 1)
+  const pending = deferred()
+  let imageFetches = 0
+  const read = () => {
+    imageFetches++
+    return pending.promise
+  }
+  const a = cache.images('cover', read)
+  const b = cache.images('cover', read)
+  pending.resolve({ cover: 'preview' })
+  assert.equal((await a).cover, 'preview')
+  assert.equal(await b, await a)
+  assert.equal(imageFetches, 1)
+})
+
+test('stale catalog renders cached cards while refreshing and removes them on access denial', async (t) => {
+  let now = 100000
+  t.mock.method(Date, 'now', () => now)
+  const blocked = deferred()
+  let calls = 0
+  const cache = createCatalogCache(async () =>
+    ++calls === 1 ? [{ id: 'card', kind: 'applications' }] : blocked.promise
+  )
+  await cache.load('applications')
+  now += 31000
+  const refreshing = cache.load('applications')
+  assert.equal(cache.getSnapshot('applications').items.length, 1)
+  blocked.reject(Object.assign(new Error('Forbidden'), { status: 403 }))
+  await refreshing
+  assert.deepEqual(cache.getSnapshot('applications').items, [])
+})

@@ -127,8 +127,13 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
 describe('Runtime background target admission', () => {
     let f: ReturnType<typeof fixture>
     const scope: AgentInvocationScope = {
-        tenantId: 'tenant', organizationId: 'org', userId: 'user', workspaceId: 'workspace',
-        callerXpertId: 'assistant', callerAgentKey: 'leader', parentExecutionId: 'parent'
+        tenantId: 'tenant',
+        organizationId: 'org',
+        userId: 'user',
+        workspaceId: 'workspace',
+        callerXpertId: 'assistant',
+        callerAgentKey: 'leader',
+        parentExecutionId: 'parent'
     }
     beforeEach(() => {
         f = fixture()
@@ -153,24 +158,28 @@ describe('Runtime background target admission', () => {
     })
     it('propagates environment authorization failures', async () => {
         f.managed.assertEnabled.mockRejectedValue(new Error('Environment permission revoked'))
-        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toThrow('Environment permission revoked')
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toThrow(
+            'Environment permission revoked'
+        )
         expect(f.provider.start).not.toHaveBeenCalled()
     })
     it('requires an installed background provider', async () => {
         f.binding.target.provider = 'missing'
-        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'ProviderUnavailable' })
+        await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({
+            code: 'ProviderUnavailable'
+        })
         f.binding.target.provider = 'opencode'
         f.provider.capabilities.background = false
         await expect(f.factory.resolveBackgroundTarget(scope, bindingId)).rejects.toMatchObject({ code: 'Unsupported' })
     })
-
 })
 
 describe('Agent invocation factory and controller boundaries', () => {
     it('binds the runner to the persisted call identity after its admitting execution resumes', async () => {
         const f = fixture()
         jest.spyOn(f.runtime, 'resolveIdentityScope').mockImplementation(async (scope) => ({
-            ...scope, parentExecutionId: 'original-attempt'
+            ...scope,
+            parentExecutionId: 'original-attempt'
         }))
         const scopes: Readonly<AgentInvocationScope>[] = []
         f.capabilities.register(AgentExecutionRunnerFactoryCapability, {
@@ -182,7 +191,8 @@ describe('Agent invocation factory and controller boundaries', () => {
         jest.mocked(f.provider.start).mockImplementation(async (_request, context) => {
             expect(scopes.at(-1)).toEqual(context.scope)
             expect(context.scope.parentExecutionId).toBe('original-attempt')
-            const receipt = await context.capabilities.require(AgentExecutionRunnerCapability)
+            const receipt = await context.capabilities
+                .require(AgentExecutionRunnerCapability)
                 .start(context.invocationId, async () => undefined)
             return { status: 'running', handle: { sessionId: 'session', runId: context.invocationId, runner: receipt } }
         })
@@ -212,9 +222,11 @@ describe('Agent invocation factory and controller boundaries', () => {
             expect(f.repository.find).not.toHaveBeenCalled()
             return f.binding.target
         })
-        await expect(f.factory.listProjectBindings(scope)).resolves.toEqual([
-            { bindingId, title: 'Remote runtime', provider: 'remote', revision: '1' }
+        const describe = jest.fn(() => ({ reviewModes: ['execution' as const] }))
+        await expect(f.factory.listProjectBindings(scope, describe)).resolves.toEqual([
+            { bindingId, title: 'Remote runtime', provider: 'remote', revision: '1', reviewModes: ['execution'] }
         ])
+        expect(describe).toHaveBeenCalledWith(f.binding.target)
         expect(f.managed.resolve).toHaveBeenCalledWith(scope, { provider: 'remote', reference: 'profile' })
         expect(f.projects.assertEdit).toHaveBeenCalled()
         expect(f.provider.start).not.toHaveBeenCalled()

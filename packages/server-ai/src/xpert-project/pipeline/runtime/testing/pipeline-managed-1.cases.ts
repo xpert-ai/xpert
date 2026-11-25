@@ -179,7 +179,7 @@ export function registerManagedCases1(fixture: ReturnType<typeof managedPipeline
         ).rejects.toMatchObject({ response: { code: 'PIPELINE_DISPATCH_PAUSED' } })
         for (const operation of await fixture.operations()) await fixture.runner.run(fixture.context, operation.id)
         expect(fixture.execute).not.toHaveBeenCalled()
-        await fixture.lifecycle.cancel(fixture.context, await fixture.commandInput(launched.instanceId))
+        await fixture.lifecycle.cancel(fixture.context, await fixture.cancelInput(launched.instanceId))
         expect(
             await fixture.db.getRepository(ProjectPipelineRunEntity).findOneByOrFail({ id: launched.runId })
         ).toMatchObject({
@@ -297,13 +297,13 @@ export function registerManagedCases1(fixture: ReturnType<typeof managedPipeline
         })
         await expect(
             fixture.lifecycle.cancel(fixture.context, {
-                ...(await fixture.commandInput(launched.instanceId)),
-                expectedRevision: 1
+                ...(await fixture.cancelInput(launched.instanceId)),
+                runId: randomUUID()
             })
-        ).rejects.toMatchObject({ response: { code: 'RUN_REVISION_CONFLICT' } })
+        ).rejects.toThrow()
         fixture.access.assertEdit.mockRejectedValueOnce(new Error('revoked'))
         await expect(
-            fixture.lifecycle.cancel(fixture.context, await fixture.commandInput(launched.instanceId))
+            fixture.lifecycle.cancel(fixture.context, await fixture.cancelInput(launched.instanceId))
         ).rejects.toThrow('revoked')
         expect(await fixture.operations()).toHaveLength(2)
         expect(

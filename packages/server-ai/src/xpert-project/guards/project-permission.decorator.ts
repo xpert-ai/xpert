@@ -1,9 +1,8 @@
-import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
-import { applyDecorators, SetMetadata } from '@nestjs/common'
+import { SetMetadata } from '@nestjs/common'
 
 export const XPERT_PROJECT_PERMISSION = 'xpert-project:permission'
 
-export const ProjectPermission = (permission: AIPermissionsEnum) => applyDecorators(
-    Permissions(permission), SetMetadata(XPERT_PROJECT_PERMISSION, permission)
-)
+// Project guards resolve collection grants or the current Project ACL. Requiring
+// the same tenant-wide grant again would deny ordinary Project owners/managers.
+export const ProjectPermission = (permission: AIPermissionsEnum) => SetMetadata(XPERT_PROJECT_PERMISSION, permission)

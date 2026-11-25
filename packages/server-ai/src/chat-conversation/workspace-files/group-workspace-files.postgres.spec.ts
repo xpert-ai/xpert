@@ -30,6 +30,12 @@ import type { ChatMessageService } from '../../chat-message/chat-message.service
 import type { ChatConversationThreadService } from '../conversation-thread.service'
 import { ConversationEnvironmentFilesModule } from './conversation-environment-files.module'
 import { AssertUserXpertGrantQuery } from '../../../../server/src/secret-token/assert-user-xpert-grant.query'
+import { ExecutionUserLoader } from '../../../../server/src/user/execution-identity/execution-user-loader'
+import { ResolveExecutionIdentityHandler } from '../../../../server/src/user/execution-identity/resolve-execution-identity.handler'
+import { ResolveUserOrganizationAccessHandler } from '../../../../server/src/user-organization/commands/handlers/resolve-user-organization-access.handler'
+import { executionIdentityPostgresEntities } from '../../shared/testing/execution-identity-postgres.fixture'
+import { AssertAppPlatformUploadHandler } from '../../plugin-resource/app-platform/app-platform-upload.handler'
+import { AppPlatformDelivery } from '../../plugin-resource/app-platform/app-platform-delivery.entity'
 
 jest.mock('../../chat-message/chat-message.service', () => ({ ChatMessageService: class {} }))
 jest.mock('../../copilot-store', () => ({ CreateCopilotStoreCommand: class {} }))
@@ -58,25 +64,11 @@ const uuid = { type: 'uuid' as const, nullable: true }
 const text = { type: 'varchar' as const, nullable: true }
 const scopeColumns = { tenantId: uuid, organizationId: uuid }
 const groupFileTestEntities = [
-    new EntitySchema({ name: 'Role', target: Role, columns: { id, name: text } }),
-    new EntitySchema({
-        name: 'Organization',
-        target: Organization,
-        columns: { id, isActive: { type: 'boolean', default: true } }
-    }),
-    new EntitySchema<User>({
-        name: 'User',
-        target: User,
-        columns: { id, tenantId: uuid, type: text },
-        relations: { role: { type: 'many-to-one', target: 'Role', joinColumn: true } }
-    }),
-    new EntitySchema<UserOrganization>({
-        name: 'UserOrganization',
-        target: UserOrganization,
-        columns: { id, ...scopeColumns, userId: uuid, isActive: { type: 'boolean', default: true } },
-        relations: {
-            organization: { type: 'many-to-one', target: 'Organization', joinColumn: { name: 'organizationId' } }
-        }
+    ...executionIdentityPostgresEntities,
+    new EntitySchema<AppPlatformDelivery>({
+        name: 'AppPlatformDelivery',
+        target: AppPlatformDelivery,
+        columns: { id, ...scopeColumns, userId: uuid, configuration: { type: 'jsonb' } }
     }),
     new EntitySchema({
         name: 'ChatConversation',
@@ -148,10 +140,10 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ path: 'report.txt', content })
         })
-    const upload = () => {
+    const upload = (content = 'upload', filename = 'upload.txt') => {
         const body = new FormData()
         body.append('path', '')
-        body.append('file', new Blob(['upload']), 'upload.txt')
+        body.append('file', new Blob([content]), filename)
         return request('file/upload', { method: 'POST', body })
     }
     const operations = [
@@ -181,7 +173,14 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
                 GroupAccessService,
                 ResolveGroupRuntimeAccessHandler,
                 AssistantFileAccessService,
+                ExecutionUserLoader,
+                ResolveExecutionIdentityHandler,
+                ResolveUserOrganizationAccessHandler,
+                AssertAppPlatformUploadHandler,
                 { provide: DataSource, useValue: db },
+                { provide: getRepositoryToken(User), useValue: db.getRepository(User) },
+                { provide: getRepositoryToken(UserOrganization), useValue: db.getRepository(UserOrganization) },
+                { provide: getRepositoryToken(Organization), useValue: db.getRepository(Organization) },
                 { provide: getRepositoryToken(ChatConversation), useValue: db.getRepository(ChatConversation) },
                 { provide: PublishedXpertAccessService, useValue: published },
                 { provide: XpertProjectAccessService, useValue: projects },
@@ -227,17 +226,22 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         app.setGlobalPrefix('api/ai')
         await app.listen(0, '127.0.0.1')
         origin = await app.getUrl()
-        await db.getRepository(Organization).save({ id: scope.organizationId, isActive: true })
+        await db
+            .getRepository(Organization)
+            .save({ id: scope.organizationId, tenantId: scope.tenantId, isActive: true })
+        const role = await db.getRepository(Role).save({ tenantId: scope.tenantId, name: 'AI_BUILDER' })
         for (const id of [userId, creatorId, outsiderId]) {
-            await db.getRepository(User).save({ id, tenantId: scope.tenantId, type: UserType.USER })
+            await db.getRepository(User).save({ id, tenantId: scope.tenantId, type: UserType.USER, roleId: role.id })
             await db.getRepository(UserOrganization).save({ ...scope, userId: id, isActive: true })
         }
     }, 60000)
 
     beforeEach(async () => {
+        await db.getRepository(AppPlatformDelivery).clear()
         await db.getRepository(GroupParticipant).clear()
         await db.getRepository(ChatConversation).clear()
-        await db.getRepository(Organization).update(scope.organizationId, { isActive: true })
+        await db.getRepository(Organization).update(scope.organizationId, { isActive: true, tenantId: scope.tenantId })
+        await db.getRepository(User).update(userId, { isActive: true, tenantId: scope.tenantId, type: UserType.USER })
         await db.getRepository(UserOrganization).update({ ...scope }, { isActive: true })
         group = await db
             .getRepository(ChatConversation)
@@ -336,6 +340,44 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         await expect(files.assertAccess(runtime.id)).rejects.toBeInstanceOf(ForbiddenException)
     })
 
+    it('enforces the persisted upload allowance before HTTP or direct calls touch storage', async () => {
+        await db.getRepository(AppPlatformDelivery).save({
+            ...scope,
+            userId,
+            configuration: {
+                definition: { entitlements: { defaultPlanRef: 'trial' } },
+                environment: { plans: { trial: { maxUploadBytes: 4 } } }
+            }
+        })
+        expect((await upload('oversized', 'denied.txt')).status).toBe(413)
+        await expect(
+            files.uploadWorkspaceFile(runtime.id, '', { originalname: 'denied.txt', buffer: Buffer.alloc(5) })
+        ).rejects.toMatchObject({ status: 413, response: { code: 'application_upload_limit' } })
+        expect(resolveVolume).not.toHaveBeenCalled()
+        await expect(readFile(join(root, 'denied.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+        expect((await upload('four', 'allowed.txt')).status).toBe(201)
+        expect(await readFile(join(root, 'allowed.txt'), 'utf8')).toBe('four')
+    })
+
+    it('scopes upload plans to the current account and reads changed limits again', async () => {
+        const configuration = {
+            definition: { entitlements: { defaultPlanRef: 'trial' } },
+            environment: { plans: { trial: { maxUploadBytes: 1 } } }
+        }
+        const deliveries = db.getRepository(AppPlatformDelivery)
+        await deliveries.save({ ...scope, userId: outsiderId, configuration })
+        await deliveries.save({ ...scope, tenantId: randomUUID(), userId, configuration })
+        expect((await upload('upload', 'scoped.txt')).status).toBe(201)
+        const current = await deliveries.save({ ...scope, userId, configuration })
+        resolveVolume.mockClear()
+        expect((await upload('changed', 'scoped.txt')).status).toBe(413)
+        expect(resolveVolume).not.toHaveBeenCalled()
+        expect(await readFile(join(root, 'scoped.txt'), 'utf8')).toBe('upload')
+        await deliveries.delete(current.id)
+        expect((await upload('restored', 'scoped.txt')).status).toBe(201)
+        expect(await readFile(join(root, 'scoped.txt'), 'utf8')).toBe('restored')
+    })
+
     it.each(operations)(
         'rechecks revoked group membership before %s and does not touch storage',
         async (_name, operation) => {
@@ -355,6 +397,10 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         'nonMember',
         'organizationMembership',
         'organization',
+        'organizationTenant',
+        'inactiveUser',
+        'userTenant',
+        'serviceAccount',
         'assistantMembership',
         'crossGroupCredential',
         'runtimeCredential',
@@ -378,6 +424,12 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
             await db.getRepository(UserOrganization).update({ ...scope, userId }, { isActive: false })
         if (condition === 'organization')
             await db.getRepository(Organization).update(scope.organizationId, { isActive: false })
+        if (condition === 'organizationTenant')
+            await db.getRepository(Organization).update(scope.organizationId, { tenantId: randomUUID() })
+        if (condition === 'inactiveUser') await db.getRepository(User).update(userId, { isActive: false })
+        if (condition === 'userTenant') await db.getRepository(User).update(userId, { tenantId: randomUUID() })
+        if (condition === 'serviceAccount')
+            await db.getRepository(User).update(userId, { type: UserType.COMMUNICATION })
         if (condition === 'assistantMembership')
             await db.getRepository(GroupParticipant).update(participant.id, { active: false })
         if (condition === 'crossGroupCredential')

@@ -1,3 +1,4 @@
+import { PublicVisitorChatGuard } from './public-visitor-chat.guard'
 import {
 	CanActivate,
 	Controller,
@@ -116,6 +117,20 @@ class AccountController {
 class RouteAuthentication implements CanActivate {
 	canActivate(context: ExecutionContext) {
 		const request = context.switchToHttp().getRequest<{ user?: Partial<IUser>; headers: Record<string, string> }>()
+		if (request.headers['x-visitor']) {
+			const visitor: IApiPrincipal = {
+				id: 'visitor',
+				tenantId: 'tenant',
+				type: UserType.COMMUNICATION,
+				principalType: 'client_secret',
+				clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+				clientSecretId: 'session',
+				isActive: !request.headers['x-visitor-disabled'],
+				resourceScope: { kind: 'assistant', xpertId: request.headers['x-no-assistant'] ? '' : 'assistant' }
+			}
+			request.user = visitor
+			return true
+		}
 		if (request.headers['x-technical']) {
 			const principal: IApiPrincipal = {
 				id: 'technical',
@@ -167,6 +182,14 @@ class RuntimeController {
 		return { business: true }
 	}
 
+	@Get('visitor-chat')
+	@UseGuards(PublicVisitorChatGuard)
+	@Permissions(AIPermissionsEnum.CHAT_VIEW)
+	visitorChat() {
+		return { business: true }
+	}
+
+	@UseGuards(PublicVisitorChatGuard)
 	@Get('configuration')
 	@Permissions(AIPermissionsEnum.XPERT_EDIT)
 	configuration() {
@@ -214,6 +237,18 @@ describe('role-independent HTTP permissions after authentication', () => {
 			).toBe(200)
 		}
 	)
+	it('admits a roleless public visitor only on explicitly scoped chat operations', async () => {
+		const headers = { 'x-visitor': 'true' }
+		expect((await fetch(origin + '/runtime/visitor-chat', { headers })).status).toBe(200)
+		expect((await fetch(origin + '/runtime/chat', { headers })).status).toBe(403)
+		for (const header of ['x-visitor-disabled', 'x-no-assistant']) {
+			expect(
+				(await fetch(origin + '/runtime/visitor-chat', { headers: { ...headers, [header]: 'true' } })).status
+			).toBe(403)
+		}
+		expect((await fetch(origin + '/runtime/configuration', { headers })).status).toBe(403)
+	})
+
 	it('checks management method permissions without restricting self-service on the same controller', async () => {
 		expect((await fetch(`${origin}/account`)).status).toBe(200)
 		expect((await fetch(`${origin}/account/configuration`)).status).toBe(403)

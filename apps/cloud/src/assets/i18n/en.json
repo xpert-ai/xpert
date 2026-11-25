@@ -4130,6 +4130,18 @@
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
       "Application": {
+        "OrganizationSetup": {
+          "EmptySources": "No shared source is available. Publish an analytics definition for this provider with organization visibility, then reopen this form.",
+          "Title": "Organization settings",
+          "Complete": "Configure organization settings",
+          "Source": "Select an authorized data source",
+          "Query": "Read-only query definition (AnalyticsBinding JSON)",
+          "Invalid": "Enter a query with its operation, parameters and output fields.",
+          "Loading": "Loading organization resources…",
+          "Retry": "Retry",
+          "Save": "Save settings",
+          "Saved": "Organization settings saved."
+        },
         "Toolsets": {
           "Title": "Required toolsets",
           "Description": "Adding a configuration first prepares the application Workspace. New configurations are saved there; existing configurations are copied when you enable the application.",

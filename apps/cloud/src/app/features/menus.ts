@@ -275,8 +275,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       scopeContext: 'dual-scope',
       data: {
         translationKey: 'Data & Ontology',
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY],
-        permissionKeys: [PermissionsEnum.DATA_SOURCE_EDIT]
+        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_DATA_ONTOLOGY]
       }
     },
     {

@@ -58,8 +58,10 @@ export function ChatPanel({
   const optionsRef = useRef<ChatKitOptions | null>(null)
   // The frame load event precedes ChatKit's own session/data loading state.
   const [frameReady, setFrameReady] = useState(false)
-  const [error, setError] = useState('')
-  const sessionError = useRef('')
+  const [frameTimedOut, setFrameTimedOut] = useState(false)
+  const [sessionError, setSessionError] = useState('')
+  const error =
+    sessionError || (frameTimedOut ? t('ChatKit took too long to load. Check the ChatKit URL and retry.') : '')
   const [retry, setRetry] = useState(0)
   const [customizeId, setCustomizeId] = useState<string | null>(null)
   const delivery = useDeliveredFile(sessionKey)
@@ -99,19 +101,11 @@ export function ChatPanel({
     let disposed = false
     instance.current = element
     setFrameReady(false)
-    setError('')
-    sessionError.current = ''
+    setFrameTimedOut(false)
     element.addEventListener('chatkit.ready', () => {
       if (!disposed) {
         setFrameReady(true)
-        setError('')
-        sessionError.current = ''
-      }
-    })
-    element.addEventListener('chatkit.error', (event) => {
-      if (!disposed) {
-        const message = event.detail.error.message || t('ChatKit could not connect. Check your connection settings.')
-        setError(message)
+        setFrameTimedOut(false)
       }
     })
     // StrictMode's discarded effect must not start an iframe navigation.
@@ -119,7 +113,7 @@ export function ChatPanel({
       if (!disposed) container.current?.appendChild(node)
     })
     const timer = window.setTimeout(() => {
-      if (!disposed) setError(t('ChatKit took too long to load. Check the ChatKit URL and retry.'))
+      if (!disposed) setFrameTimedOut(true)
     }, 30000)
     element.addEventListener('chatkit.ready', () => window.clearTimeout(timer))
     return () => {
@@ -150,8 +144,7 @@ export function ChatPanel({
     setShellAssistantId(activeAssistant)
     setThreadId(activeThread)
     setCustomizeId(null)
-    setError('')
-    sessionError.current = ''
+    setSessionError('')
     const header = {
       enabled: true,
       windowDrag: !!window.xpertDesktop,
@@ -249,9 +242,7 @@ export function ChatPanel({
         getClientSecret: async () => {
           const recovered = <T,>(value: T): T => {
             if (!disposed && activeSessionKey.current === sessionKey) {
-              const previous = sessionError.current
-              setError((current) => (previous && current === previous ? '' : current))
-              sessionError.current = ''
+              setSessionError('')
             }
             return value
           }
@@ -284,9 +275,7 @@ export function ChatPanel({
             return recovered(await invoke('chatSession', botId))
           } catch (error) {
             if (!disposed && activeSessionKey.current === sessionKey) {
-              const message = error instanceof Error ? error.message : t('Could not create a chat session.')
-              sessionError.current = message
-              setError(message)
+              setSessionError((error instanceof Error && error.message) || t('Could not create a chat session.'))
             }
             throw error
           }

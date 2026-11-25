@@ -4,6 +4,7 @@ jest.mock('../../chat-conversation/recovery/thread-recovery.service', () => ({ T
 jest.mock('@xpert-ai/server-core', () => ({
     Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
+    ...jest.requireActual('../../../../server/src/shared/guards/public-visitor-chat.guard'),
     Public: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
     TransformInterceptor: class {},
