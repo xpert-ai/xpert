@@ -1,3 +1,4 @@
+import { markImmutableArtifact } from './installation/immutable-artifact'
 import { setupPluginManagementTests } from './plugin-management.test-fixture'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
@@ -9,26 +10,33 @@ import { withOrganizationPluginStoreLock } from './organization-plugin.store'
 
 jest.mock('@xpert-ai/server-config', () => ({ getConfig: jest.fn() }))
 
-const readActualManifest = jest.requireActual<typeof import('./plugin-archive')>('./plugin-archive').readPluginPackageJson
+const readActualManifest =
+	jest.requireActual<typeof import('./plugin-archive')>('./plugin-archive').readPluginPackageJson
 
 describe('approved archive installation under the store lease', () => {
 	const fixture = setupPluginManagementTests()
-	const sha256 = 'a'.repeat(64), name = '@xpert-ai/plugin-openrouter', version = '1.0.0'
-	let directory: string, packageDir: string, runtimeDir: string
+	const sha256 = 'a'.repeat(64),
+		name = '@xpert-ai/plugin-openrouter',
+		version = '1.0.0'
+	let directory: string, packageDir: string, runtimeDir: string, installedPackageDir: string
 	beforeEach(() => {
 		directory = mkdtempSync(join(tmpdir(), 'archive-installation-'))
 		packageDir = join(directory, 'incoming')
 		runtimeDir = join(directory, 'installed')
-		for (const dir of [packageDir, runtimeDir]) {
-			mkdirSync(dir)
+		installedPackageDir = join(runtimeDir, 'node_modules', name)
+		for (const dir of [packageDir, installedPackageDir]) {
+			mkdirSync(dir, { recursive: true })
 			writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version }))
 		}
+		writeFileSync(join(runtimeDir, 'package.json'), JSON.stringify({ private: true, name: 'runtime-workspace' }))
+		markImmutableArtifact(runtimeDir, name, 'existing-runtime')
 		fixture.readPluginPackageJson.mockImplementation(readActualManifest)
 		Object.assign(fixture.pluginInstanceService, { getConfig: jest.fn(() => ({ existingSetting: 'kept' })) })
 		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version })
 		fixture.loadPlugin.mockResolvedValue({ meta: { name, version, level: 'organization' } })
 		fixture.getOrganizationPluginPath.mockImplementation((_organization: string, runtimeName: string) =>
-			runtimeName === 'existing-runtime' ? runtimeDir : join(directory, runtimeName.replace(/[\/@]/g, '_')))
+			runtimeName === 'existing-runtime' ? runtimeDir : join(directory, runtimeName.replace(/[\/@]/g, '_'))
+		)
 	})
 	afterEach(() => rmSync(directory, { recursive: true, force: true }))
 	function input(): PluginInstallInput {
@@ -38,8 +46,12 @@ describe('approved archive installation under the store lease', () => {
 		return { allowPackageDir: true, archiveDeployment: { sha256, allowReplace } }
 	}
 	function installed() {
-		return { version, source: 'code', pendingRestart: true,
-			sourceConfig: { archiveSha256: sha256, runtimeName: 'existing-runtime', immutableRuntime: true } }
+		return {
+			version,
+			source: 'code',
+			pendingRestart: true,
+			sourceConfig: { archiveSha256: sha256, runtimeName: 'existing-runtime', immutableRuntime: true }
+		}
 	}
 	function expectNoInstallation() {
 		expect(fixture.loadPlugin).not.toHaveBeenCalled()
@@ -52,30 +64,52 @@ describe('approved archive installation under the store lease', () => {
 	it('reuses the exact installed archive without claiming that it has loaded or converged', async () => {
 		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(installed())
 		const result = await fixture.service.installPlugin(input(), options())
-		expect(result).toMatchObject({ success: true, currentVersion: version, restartRequired: true,
-			runtimeRequirements: [{ pluginName: name, scopeKey: 'org-1', version, runtimeRevision: 'runtime:existing-runtime', state: 'loaded' }] })
+		expect(result).toMatchObject({
+			success: true,
+			currentVersion: version,
+			restartRequired: true,
+			runtimeRequirements: [
+				{
+					pluginName: name,
+					scopeKey: 'org-1',
+					version,
+					runtimeRevision: 'runtime:existing-runtime',
+					state: 'loaded'
+				}
+			]
+		})
 		expect(result).not.toHaveProperty('runtimeConvergence')
 		expect(result).not.toHaveProperty('loaded')
 		expectNoInstallation()
 	})
 
-	it.each(['digest', 'version', 'source'] as const)('rejects an unauthorized replacement with a different %s', async kind => {
-		const row = installed()
-		if (kind === 'digest') row.sourceConfig.archiveSha256 = 'b'.repeat(64)
-		if (kind === 'version') row.version = '2.0.0'
-		if (kind === 'source') row.source = 'npm'
-		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(row)
-		await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
-		expectNoInstallation()
-	})
+	it.each(['digest', 'version', 'source'] as const)(
+		'rejects an unauthorized replacement with a different %s',
+		async (kind) => {
+			const row = installed()
+			if (kind === 'digest') row.sourceConfig.archiveSha256 = 'b'.repeat(64)
+			if (kind === 'version') row.version = '2.0.0'
+			if (kind === 'source') row.source = 'npm'
+			fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(row)
+			await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
+			expectNoInstallation()
+		}
+	)
 
 	it('allows an explicitly authorized replacement and persists only host provenance', async () => {
-		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue({ ...installed(), sourceConfig: { archiveSha256: 'b'.repeat(64) } })
+		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue({
+			...installed(),
+			sourceConfig: { archiveSha256: 'b'.repeat(64) }
+		})
 		await fixture.service.installPlugin(input(), options(true))
 		expect(fixture.loadPlugin).toHaveBeenCalled()
-		expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(expect.objectContaining({
-			source: 'code', sourceConfig: expect.objectContaining({ archiveSha256: sha256, immutableRuntime: true })
-		}), expect.objectContaining({ publicationLease: expect.anything() }))
+		expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				source: 'code',
+				sourceConfig: expect.objectContaining({ archiveSha256: sha256, immutableRuntime: true })
+			}),
+			expect.objectContaining({ publicationLease: expect.anything() })
+		)
 	})
 
 	it('persists the verified digest on the first installation and removes temporary packageDir', async () => {
@@ -86,20 +120,30 @@ describe('approved archive installation under the store lease', () => {
 		expect(persisted.sourceConfig.runtimeName).not.toBe('existing-runtime')
 	})
 
-	it.each(['missing', 'invalid', 'wrong-name', 'wrong-version', 'mutable'] as const)(
-		'repairs the same approved archive instead of reusing a %s package directory', async kind => {
+	it.each(['missing', 'invalid', 'wrong-name', 'wrong-version', 'mutable', 'missing-marker'] as const)(
+		'repairs the same approved archive instead of reusing a %s package directory',
+		async (kind) => {
 			const row = installed()
 			if (kind === 'missing') rmSync(runtimeDir, { recursive: true, force: true })
-			if (kind === 'invalid') writeFileSync(join(runtimeDir, 'package.json'), '{')
-			if (kind === 'wrong-name') writeFileSync(join(runtimeDir, 'package.json'), JSON.stringify({ name: '@fixture/other', version }))
-			if (kind === 'wrong-version') writeFileSync(join(runtimeDir, 'package.json'), JSON.stringify({ name, version: '2.0.0' }))
+			if (kind === 'invalid') writeFileSync(join(installedPackageDir, 'package.json'), '{')
+			if (kind === 'wrong-name')
+				writeFileSync(
+					join(installedPackageDir, 'package.json'),
+					JSON.stringify({ name: '@fixture/other', version })
+				)
+			if (kind === 'wrong-version')
+				writeFileSync(join(installedPackageDir, 'package.json'), JSON.stringify({ name, version: '2.0.0' }))
+			if (kind === 'missing-marker') rmSync(join(runtimeDir, '.xpert-runtime-artifact.json'))
 			if (kind === 'mutable') row.sourceConfig.immutableRuntime = false
 			fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(row)
 			await fixture.service.installPlugin(input(), options())
 			expect(fixture.loadPlugin).toHaveBeenCalled()
 			expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(
-				expect.objectContaining({ config: { existingSetting: 'kept' } }), expect.anything())
-		})
+				expect.objectContaining({ config: { existingSetting: 'kept' } }),
+				expect.anything()
+			)
+		}
+	)
 
 	it('strips client-supplied provenance without modifying the request object', async () => {
 		const body = input()
@@ -110,8 +154,10 @@ describe('approved archive installation under the store lease', () => {
 	})
 
 	it.each(['source', 'directory', 'permission', 'workspace', 'config', 'digest'] as const)(
-		'rejects invalid host archive %s options before installation', async kind => {
-			const body = input(), opts = options()
+		'rejects invalid host archive %s options before installation',
+		async (kind) => {
+			const body = input(),
+				opts = options()
 			if (kind === 'source') body.source = 'npm'
 			if (kind === 'directory') delete body.sourceConfig.packageDir
 			if (kind === 'permission') opts.allowPackageDir = false
@@ -120,7 +166,8 @@ describe('approved archive installation under the store lease', () => {
 			if (kind === 'digest') opts.archiveDeployment.sha256 = 'invalid'
 			await expect(fixture.service.installPlugin(body, opts)).rejects.toMatchObject({ status: 400 })
 			expectNoInstallation()
-		})
+		}
+	)
 
 	it('makes the replacement decision using the current scoped row while holding the store lease', async () => {
 		const lease = new PluginStoreLease(join(directory, 'unused-lock'), 30000)
@@ -132,10 +179,19 @@ describe('approved archive installation under the store lease', () => {
 		})
 		jest.mocked(withOrganizationPluginStoreLock).mockImplementation(async (_options, action) => {
 			locked = true
-			try { return await action(lease) } finally { locked = false }
+			try {
+				return await action(lease)
+			} finally {
+				locked = false
+			}
 		})
 		await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
-		expect(fixture.pluginInstanceService.findOneByPluginName).toHaveBeenCalledWith(name, 'org-1', 'tenant-1', 'org-1')
+		expect(fixture.pluginInstanceService.findOneByPluginName).toHaveBeenCalledWith(
+			name,
+			'org-1',
+			'tenant-1',
+			'org-1'
+		)
 		expectNoInstallation()
 	})
 
@@ -148,20 +204,30 @@ describe('approved archive installation under the store lease', () => {
 		expectNoInstallation()
 	})
 
-	it.each([false, undefined])('denies restart-required installation without an explicit grant (%s)', async allowRestart => {
-		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version,
-			runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' } })
-		const opts = options()
-		opts.archiveDeployment.allowRestart = allowRestart
-		await expect(fixture.service.installPlugin(input(), opts)).rejects.toMatchObject({ status: 400 })
-		expectNoInstallation()
-	})
+	it.each([false, undefined])(
+		'denies restart-required installation without an explicit grant (%s)',
+		async (allowRestart) => {
+			fixture.assertPluginSdkCompatibility.mockReturnValue({
+				level: 'organization',
+				version,
+				runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' }
+			})
+			const opts = options()
+			opts.archiveDeployment.allowRestart = allowRestart
+			await expect(fixture.service.installPlugin(input(), opts)).rejects.toMatchObject({ status: 400 })
+			expectNoInstallation()
+		}
+	)
 
 	it('checks the current runtime restart policy after acquiring the installation lease', async () => {
 		jest.mocked(withOrganizationPluginStoreLock).mockImplementation(async (_options, action) => {
 			// Another install completed before this operation acquired the lease.
-			fixture.loadedPlugins.push({ scopeKey: 'org-1', name, packageName: name,
-				instance: { meta: { runtimePolicy: { install: 'hot', update: 'restart', uninstall: 'restart' } } } })
+			fixture.loadedPlugins.push({
+				scopeKey: 'org-1',
+				name,
+				packageName: name,
+				instance: { meta: { runtimePolicy: { install: 'hot', update: 'restart', uninstall: 'restart' } } }
+			})
 			return action({ assertOwned: async () => undefined } as PluginStoreLease)
 		})
 		await expect(fixture.service.installPlugin(input(), options())).rejects.toMatchObject({ status: 400 })
@@ -175,17 +241,29 @@ describe('approved archive installation under the store lease', () => {
 		const opts = options()
 		opts.archiveDeployment.allowRestart = true
 		await fixture.service.installPlugin(input(), opts)
-		expect(fixture.registerPluginsAsync).toHaveBeenCalledWith(expect.objectContaining({ stageOnly: true }), expect.anything())
-		expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(expect.objectContaining({ pendingRestart: true }), expect.anything())
+		expect(fixture.registerPluginsAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ stageOnly: true }),
+			expect.anything()
+		)
+		expect(fixture.pluginInstanceService.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({ pendingRestart: true }),
+			expect.anything()
+		)
 		expect(fixture.runtimeControl.recordPluginRuntimeChange).toHaveBeenCalled()
 		expect(fixture.loadPlugin).not.toHaveBeenCalled()
 	})
 
 	it('can reuse a previously installed restart-required archive without scheduling another restart', async () => {
 		fixture.pluginInstanceService.findOneByPluginName.mockResolvedValue(installed())
-		fixture.assertPluginSdkCompatibility.mockReturnValue({ level: 'organization', version,
-			runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' } })
-		await expect(fixture.service.installPlugin(input(), options())).resolves.toMatchObject({ success: true, restartRequired: true })
+		fixture.assertPluginSdkCompatibility.mockReturnValue({
+			level: 'organization',
+			version,
+			runtimePolicy: { install: 'restart', update: 'restart', uninstall: 'restart' }
+		})
+		await expect(fixture.service.installPlugin(input(), options())).resolves.toMatchObject({
+			success: true,
+			restartRequired: true
+		})
 		expectNoInstallation()
 	})
 })
