@@ -68,21 +68,23 @@ describe('Authenticated Artifact presentations', () => {
             query
         }
         const types = configuredArtifactPolicies()
-        types.registry.register(
-            artifactTypeKey(artifact),
-            {
-                definition: {
-                    kinds: ['file'],
-                    presentation:
-                        allowDownloads === undefined
-                            ? { mode: 'authenticated' }
-                            : { mode: 'authenticated', allowDownloads }
+        const registerType = (allowDownloads?: boolean) =>
+            types.registry.register(
+                artifactTypeKey(artifact),
+                {
+                    definition: {
+                        kinds: ['file'],
+                        presentation:
+                            allowDownloads === undefined
+                                ? { mode: 'authenticated' }
+                                : { mode: 'authenticated', allowDownloads }
+                    },
+                    authorize: async () => {},
+                    validateContent: () => {}
                 },
-                authorize: async () => {},
-                validateContent: () => {}
-            },
-            { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
-        )
+                { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' }
+            )
+        registerType(allowDownloads)
         artifact.typeBinding = types.bind(artifact, artifact, 'file')
         const registrations = jest.fn(
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
@@ -125,6 +127,7 @@ describe('Authenticated Artifact presentations', () => {
             describe,
             query,
             providerRead,
+            registerType,
             registrations,
             deny: () => {
                 allowed = false
@@ -163,6 +166,15 @@ describe('Authenticated Artifact presentations', () => {
             expect(f.link.allowDownload).toBe(rawDownload)
         }
     )
+    it('uses the current download policy if the type registration changes during rendering', async () => {
+        const f = await fixture(true)
+        f.providerRead.mockImplementationOnce(async () => {
+            f.registerType(false)
+            return { text: 'published' }
+        })
+        const page = await f.run(() => f.service.read('team-link'))
+        expect(page.allowDownloads).toBe(false)
+    })
     it.each(['save', 'publish', 'revoke-share', 'arbitrary-sql'])(
         'rejects undeclared operation %s',
         async (operation) => {

@@ -5,7 +5,7 @@ import type { ArtifactGroupReferenceView, ArtifactPresentationQuery } from '@xpe
 import { ArtifactPresentationRegistry, type ArtifactPresentationContext, type ContentActor } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { ArtifactTypesService } from '../types/artifact-types.service'
-import { artifactPresentationProvider } from '../presentation/artifact-presentation-provider'
+import { resolveArtifactPresentation } from '../presentation/artifact-presentation-provider'
 import { ArtifactGroupContentService } from './artifact-group-content.service'
 
 @Injectable()
@@ -18,10 +18,11 @@ export class ArtifactGroupViewService {
 
     async read(actor: ContentActor, groupId: string, referenceId: string): Promise<ArtifactGroupReferenceView> {
         const loaded = await this.content(actor, groupId, referenceId)
-        const provider = artifactPresentationProvider(this.registry, this.types, loaded.context)
+        const { provider } = resolveArtifactPresentation(this.registry, this.types, loaded.context)
         const [entry, data] = await Promise.all([provider.getEntry(), provider.read(loaded.context)])
         await loaded.recheck()
-        if (artifactPresentationProvider(this.registry, this.types, loaded.context) !== provider) throw this.changed()
+        if (resolveArtifactPresentation(this.registry, this.types, loaded.context).provider !== provider)
+            throw this.changed()
         return {
             reference: loaded.selected.descriptor,
             title: loaded.selected.reference.title,
@@ -50,12 +51,12 @@ export class ArtifactGroupViewService {
             input.target.versionId !== loaded.context.version.id
         )
             throw this.changed()
-        const provider = artifactPresentationProvider(this.registry, this.types, loaded.context)
+        const { provider } = resolveArtifactPresentation(this.registry, this.types, loaded.context)
         if (!this.operations(loaded.context, provider.operations).includes(input.operation)) throw this.denied()
         const result = await provider.query(loaded.context, input)
         await loaded.recheck()
         if (
-            artifactPresentationProvider(this.registry, this.types, loaded.context) !== provider ||
+            resolveArtifactPresentation(this.registry, this.types, loaded.context).provider !== provider ||
             !this.operations(loaded.context, provider.operations).includes(input.operation)
         )
             throw this.changed()

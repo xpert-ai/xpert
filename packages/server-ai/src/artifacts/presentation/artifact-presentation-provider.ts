@@ -8,7 +8,7 @@ import { t } from 'i18next'
 import { ArtifactTypesService } from '../types/artifact-types.service'
 
 /** Resolve the source's pinned plugin installation; never fall back to another registration. */
-export function artifactPresentationProvider(
+export function resolveArtifactPresentation(
     registry: ArtifactPresentationRegistry,
     types: ArtifactTypesService,
     context: ArtifactPresentationContext
@@ -19,8 +19,9 @@ export function artifactPresentationProvider(
             code: 'ARTIFACT_PRESENTATION_UNAVAILABLE',
             message: t('server-ai:Error.ArtifactPresentationUnavailable')
         })
-    if (!binding || types.provider(context.artifact).definition.presentation.mode !== 'authenticated')
-        throw unavailable()
+    if (!binding) throw unavailable()
+    const { presentation } = types.provider(context.artifact).definition
+    if (presentation.mode !== 'authenticated') throw unavailable()
     const registration = registry
         .listAllRegistrations()
         .find(
@@ -33,5 +34,5 @@ export function artifactPresentationProvider(
         registration.source.pluginName !== context.artifact.pluginName
     )
         throw unavailable()
-    return registration.strategy
+    return { provider: registration.strategy, presentation }
 }
