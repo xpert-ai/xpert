@@ -1,5 +1,11 @@
 import { attemptTimes, isRunning, type Attempt } from './model'
 import { runtimeLabel, type Texts } from './i18n'
+export const executionColors = {
+    running: 'bg-primary ring-primary/15',
+    success: 'bg-[var(--success)] ring-[var(--success)]/15',
+    failed: 'bg-destructive ring-destructive/15',
+    other: 'bg-muted-foreground ring-muted-foreground/15'
+}
 export function executionSummary(attempt: Attempt, t: Texts) {
     // Execution color follows the runtime result; business acceptance is a separate annotation.
     const state = attempt.invocationStatus ?? attempt.runtimeStatus ?? attempt.status
@@ -17,12 +23,12 @@ export function executionSummary(attempt: Attempt, t: Texts) {
               ? t.failed
               : null)
     const color = failed
-        ? 'bg-destructive'
+        ? executionColors.failed
         : succeeded
-          ? 'bg-[var(--success)]'
+          ? executionColors.success
           : state === 'running'
-            ? 'bg-primary'
-            : 'bg-muted-foreground'
+            ? executionColors.running
+            : executionColors.other
     const purposeLabel =
         (attempt.purposeType ?? attempt.purpose?.type) === 'review'
             ? t.executionReview

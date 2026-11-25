@@ -17,6 +17,7 @@ import {
     PopoverContent,
     Checkbox,
     Label,
+    cn,
     buttonVariants,
     DropdownMenu,
     DropdownMenuTrigger,
@@ -36,6 +37,7 @@ import { PipelineInstanceSelect } from './pipeline/instance-select'
 import { pipelineTexts } from './pipeline/i18n'
 import { type Filters, type Grouping, type Sort, type View, statuses, owner } from './model'
 import { Choice, IconButton } from './ui'
+import { ExecutionLegend } from './execution-legend'
 import { TimelineControls, TimelineMenuItems, type TimelineControlsProps } from './timeline-controls'
 
 export type Fields = { status: boolean; assignee: boolean; attempts: boolean; dates: boolean }
@@ -132,9 +134,12 @@ export function Toolbar({
             ref={toolbar}
             role="toolbar"
             aria-label={t.actions}
-            className="flex min-w-0 shrink-0 items-center gap-2 border-b px-3 py-1.5"
+            className={cn(
+                'flex min-w-0 shrink-0 items-center gap-2 border-b px-3 py-1.5',
+                view === 'board' && 'flex-wrap gap-y-3 px-4 py-6'
+            )}
         >
-            <div className="relative min-w-16 max-w-64 flex-1">
+            <div className={cn('relative min-w-16 max-w-64 flex-1', view === 'board' && 'max-w-80')}>
                 <Search
                     aria-hidden
                     className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -349,6 +354,11 @@ export function Toolbar({
                         {timeline && <TimelineMenuItems controls={timeline} t={t} compact={!showTimeline} />}
                     </DropdownMenuContent>
                 </DropdownMenu>
+            )}
+            {view === 'board' && (
+                <div className="ml-auto flex flex-wrap basis-full justify-end min-[1200px]:basis-auto">
+                    <ExecutionLegend t={t} />
+                </div>
             )}
         </div>
     )

@@ -8,6 +8,7 @@ import { pipelineTexts } from './i18n'
 jest.mock('./bridge', () => ({ readOperationActions: jest.fn(), submitOperationAction: jest.fn() }))
 jest.mock('../view-visibility', () => ({ useViewVisible: () => true }))
 jest.mock('@xpert-ai/shadcn-ui', () => ({
+    ...jest.requireActual('@/components/ui/checkbox'),
     Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />
 }))
 
@@ -40,7 +41,13 @@ it('requires confirmation of the displayed version, submits once and removes the
             }
         ]
     })
+    let finishSubmit: () => void = () => {
+        throw new Error('No submission in progress')
+    }
     submit.mockImplementation(async () => {
+        await new Promise<void>((resolve) => {
+            finishSubmit = resolve
+        })
         read.mockResolvedValue({ operationId, messages: [{ en_US: 'Authorized' }], items: [] })
         return { accepted: true }
     })
@@ -60,12 +67,23 @@ it('requires confirmation of the displayed version, submits once and removes the
                 />
             )
         )
-        expect(container.querySelector('button')?.disabled).toBe(true)
-        await act(async () => container.querySelector<HTMLInputElement>('input')!.click())
-        expect(container.querySelector('button')?.disabled).toBe(false)
-        await act(async () => container.querySelector('button')!.click())
+        const checkbox = container.querySelector<HTMLButtonElement>('[role="checkbox"]')!
+        const action = container.querySelector<HTMLButtonElement>('button:not([role="checkbox"])')!
+        expect(action.disabled).toBe(true)
+        await act(async () => container.querySelector('label')!.click())
+        expect(checkbox.getAttribute('aria-checked')).toBe('true')
+        expect(action.disabled).toBe(false)
+        await act(async () => checkbox.click())
+        expect(checkbox.getAttribute('aria-checked')).toBe('false')
+        expect(action.disabled).toBe(true)
+        await act(async () => checkbox.click())
+        await act(async () => action.click())
+        expect(checkbox.disabled).toBe(true)
+        expect(action.disabled).toBe(true)
+        await act(async () => action.click())
         expect(submit).toHaveBeenCalledTimes(1)
         expect(submit).toHaveBeenCalledWith({ operationId, key: 'authorize', version: 'digest' })
+        await act(async () => finishSubmit())
         expect(container.querySelector('button')).toBeNull()
         expect(container.textContent).toContain('Authorized')
         expect(reload).toHaveBeenCalledTimes(1)

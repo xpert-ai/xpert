@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { z } from 'zod'
 import { graphSchema, request, type Graph } from './bridge'
 import { useViewVisible } from './view-visibility'
@@ -35,13 +35,16 @@ export class ExecutionPageCache {
 /** Each visible batch has one owner; stale context responses cannot replace the current rows. */
 export function useExecutionRows(graph: Graph, taskIds: string[], onError: (message: string) => void): Graph {
     const visible = useViewVisible()
-    const cache = useRef(new ExecutionPageCache())
+    const cache = useMemo(() => new ExecutionPageCache(), [graph.projectId])
     const key = [...new Set(taskIds)].sort().join(',')
     const versions = graph.tasks
         .filter((task) => taskIds.includes(task.id))
         .map((task) => `${task.id}:${task.executionVersion ?? graph.cursor}`)
         .join(',')
-    const [loaded, setLoaded] = useState<{ key: string; items: Graph['executions'] }>({ key: '', items: [] })
+    const [loaded, setLoaded] = useState<{ cache: ExecutionPageCache; items: Graph['executions'] }>({
+        cache,
+        items: []
+    })
     useEffect(() => {
         if (!graph.progressive || !visible || !key) return
         let active = true,
@@ -55,13 +58,28 @@ export function useExecutionRows(graph: Graph, taskIds: string[], onError: (mess
                 for (let start = 0; start < ids.length; start += 100) {
                     let after: string | undefined
                     do {
-                        const page = await cache.current.read(ids.slice(start, start + 100), after)
+                        const page = await cache.read(ids.slice(start, start + 100), after)
                         if (!active) return
                         items.push(...page.items)
                         after = page.next ?? undefined
                     } while (after)
                 }
-                if (active) setLoaded({ key, items })
+                if (active) {
+                    const refreshed = new Set(ids)
+                    const currentTasks = new Set(graph.tasks.map((task) => task.id))
+                    // Retain other loaded cards: clearing them changes visibility and triggers another fetch.
+                    setLoaded((previous) => ({
+                        cache,
+                        items: [
+                            ...(previous.cache === cache
+                                ? previous.items.filter(
+                                      (item) => currentTasks.has(item.taskId) && !refreshed.has(item.taskId)
+                                  )
+                                : []),
+                            ...items
+                        ]
+                    }))
+                }
             } catch (error) {
                 if (active) onError(error instanceof Error ? error.message : String(error))
             } finally {
@@ -72,8 +90,8 @@ export function useExecutionRows(graph: Graph, taskIds: string[], onError: (mess
         return () => {
             active = false
         }
-    }, [graph.progressive, graph.projectId, key, versions, visible])
-    return graph.progressive ? { ...graph, executions: loaded.key === key ? loaded.items : [] } : graph
+    }, [graph.progressive, cache, key, versions, visible])
+    return graph.progressive ? { ...graph, executions: loaded.cache === cache ? loaded.items : [] } : graph
 }
 
 /** Board cards are not virtualized, so observe their actual visibility before loading histories. */

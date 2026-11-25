@@ -314,13 +314,13 @@ export function NotificationCenter({
               {pending.length > 0 && (
                 <section className="border-b py-2">
                   <h3 className="font-semibold">{t('Needs your attention')}</h3>
-                  <div className="divide-y">{pending.map(render)}</div>
+                  <div className="mt-2 flex flex-col gap-3">{pending.map(render)}</div>
                 </section>
               )}
               {recent.length > 0 && (
                 <section className="pt-3">
                   <h3 className="font-semibold">{t('Recent notifications')}</h3>
-                  <div className="divide-y">{recent.map(render)}</div>
+                  <div className="mt-2 flex flex-col gap-3">{recent.map(render)}</div>
                 </section>
               )}
               {details && showResults && detailNotice && details.items.some((i) => !i.workbench) && (

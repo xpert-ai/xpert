@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Button } from '@xpert-ai/shadcn-ui'
+import { useEffect, useId, useState } from 'react'
+import { Button, Checkbox } from '@xpert-ai/shadcn-ui'
 import type { ProjectPipelineOperationActions } from '@xpert-ai/contracts'
 import { useViewVisible } from '../view-visibility'
 import { readOperationActions, submitOperationAction, type PipelineGraph, type PipelineNode } from './bridge'
@@ -19,6 +19,7 @@ export function OperationActions({
     reload: () => Promise<void>
 }) {
     const visible = useViewVisible()
+    const confirmationId = useId()
     const [data, setData] = useState<ProjectPipelineOperationActions | null>(null)
     const [confirmed, setConfirmed] = useState('')
     const [busy, setBusy] = useState(false)
@@ -58,14 +59,16 @@ export function OperationActions({
             ))}
             {data?.items.map((item) => {
                 const key = `${data.operationId}:${item.key}:${item.version}`
+                const checkboxId = `${confirmationId}-${key}`
                 return (
                     <div key={key} className="space-y-3 rounded-lg border p-3">
-                        <label className="flex items-start gap-2 text-sm">
-                            <input
-                                type="checkbox"
+                        <label htmlFor={checkboxId} className="flex items-start gap-2 text-sm">
+                            <Checkbox
+                                id={checkboxId}
+                                className="mt-0.5"
                                 checked={confirmed === key}
                                 disabled={busy}
-                                onChange={(event) => setConfirmed(event.target.checked ? key : '')}
+                                onCheckedChange={(checked) => setConfirmed(checked === true ? key : '')}
                             />
                             {label(item.confirmation)}
                         </label>

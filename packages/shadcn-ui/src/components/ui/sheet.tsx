@@ -4,6 +4,7 @@ import { Dialog as SheetPrimitive } from 'radix-ui'
 
 import { Button } from '@/components/ui/button'
 import { XIcon } from 'lucide-react'
+import { useNestedDismissGuard } from '@/lib/use-nested-dismiss-guard'
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -44,16 +45,17 @@ const SheetOverlay = React.forwardRef<
   )
 })
 
-function SheetContent({
-  className,
-  children,
-  side = 'right',
-  showCloseButton = true,
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
-  side?: 'top' | 'right' | 'bottom' | 'left'
-  showCloseButton?: boolean
-}) {
+const SheetContent = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> & {
+    side?: 'top' | 'right' | 'bottom' | 'left'
+    showCloseButton?: boolean
+  }
+>(function SheetContent(
+  { className, children, side = 'right', showCloseButton = true, onPointerDownOutside, ...props },
+  ref
+) {
+  const dismissGuard = useNestedDismissGuard(ref)
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -65,6 +67,11 @@ function SheetContent({
           className
         )}
         {...props}
+        ref={dismissGuard.ref}
+        onPointerDownOutside={(event) => {
+          dismissGuard.onPointerDownOutside(event)
+          onPointerDownOutside?.(event)
+        }}
       >
         {children}
         {showCloseButton && (
@@ -78,7 +85,7 @@ function SheetContent({
       </SheetPrimitive.Content>
     </SheetPortal>
   )
-}
+})
 
 function SheetHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return <div data-slot="sheet-header" className={cn('flex flex-col gap-0.5 p-4', className)} {...props} />
