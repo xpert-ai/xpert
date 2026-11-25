@@ -116,6 +116,7 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "ThreadHasChildBranches": "A thread with child branches cannot be deleted",
         "ApplicationModelBootstrapAccess": "Select a private workspace you manage in this organization and check access to the dedicated area and reader.",
         "ApplicationModelReaderTitle": "{{model}} · Read-only access",
         "ApplicationModelSetupUnavailable": "This application or authorized connection is unavailable.",
