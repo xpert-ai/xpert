@@ -1,3 +1,7 @@
+import { ResolveCapabilityToolsetsQuery } from '../../xpert-toolset/queries/resolve-capability-toolsets.query'
+import { RecomposeAssistantCapabilitiesHandler } from '../../xpert-template/capabilities/recompose-capabilities.handler'
+import { applyAssistantMiddleware } from '@xpert-ai/plugin-sdk'
+import type { IXpert } from '@xpert-ai/contracts'
 import {
     RealtimeModelCatalog,
     RealtimeVoiceCapabilityProvider
@@ -6,6 +10,8 @@ jest.mock('i18next', () => ({ t: (key: string) => key }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
+        isTenantScope: () => false,
+        hasRole: () => false,
         currentTenantId: () => 'tenant',
         getOrganizationId: () => 'org',
         getLanguageCode: () => 'en-US'
@@ -75,9 +81,14 @@ function fixture(
     }
     const access = { assertCanAuthor: jest.fn(async () => ({ workspace: { id: 'workspace', name: 'Workspace' } })) }
     const queries = {
-        execute: jest.fn(async () => [
-            { id: 'provider', providerWithModels: { models: [{ model: 'llm', features: [ModelFeature.TOOL_CALL] }] } }
-        ])
+        execute: jest.fn(
+            async (_query?: unknown): Promise<unknown> => [
+                {
+                    id: 'provider',
+                    providerWithModels: { models: [{ model: 'llm', features: [ModelFeature.TOOL_CALL] }] }
+                }
+            ]
+        )
     }
     const catalog = new RealtimeModelCatalog(queries as unknown as QueryBus)
     const registered = typeof providers === 'function' ? providers(catalog) : providers
@@ -92,7 +103,7 @@ function fixture(
         {} as XpertTemplateService,
         capabilities
     )
-    return { entity, xperts, access, queries, service, catalog }
+    return { entity, xperts, access, queries, service, catalog, capabilities }
 }
 const language = LanguagesEnum.English
 const settings = { prompt: 'Answer concisely.', modelId: 'provider/llm', capabilities: [] }
@@ -441,5 +452,84 @@ describe('Dialog capability draft composition', () => {
         })
         primaryAgent(entity.draft).entity.prompt += '\nStudio edits'
         await expect(service.getCapabilities('expert', language)).rejects.toThrow('AssistantCapabilityConflict')
+    })
+})
+
+describe('workspace MCP capability lifecycle', () => {
+    const provider: IAssistantCapabilityProvider = {
+        key: 'documents',
+        label: 'Documents',
+        description: 'Workspace documents',
+        availableForBlankAssistant: true,
+        toolsets: [{ bindingKey: 'sample.documents', category: 'mcp', requiredTools: ['find_documents'] }],
+        check: async () => ({ available: true }),
+        apply: async ({ draft }) =>
+            applyAssistantMiddleware(draft, {
+                provider: 'document-observer',
+                key: 'Document_Observer',
+                title: 'Documents',
+                instructions: 'Use document evidence.'
+            })
+    }
+    function setup() {
+        const f = fixture([provider])
+        const model = {
+            id: 'provider',
+            providerWithModels: { models: [{ model: 'llm', features: [ModelFeature.TOOL_CALL] }] }
+        }
+        f.queries.execute.mockImplementation(async (query) =>
+            query instanceof ResolveCapabilityToolsetsQuery
+                ? [
+                      {
+                          requirement: provider.toolsets[0],
+                          toolset: {
+                              id: 'documents',
+                              name: 'Documents',
+                              category: 'mcp',
+                              options: { capabilityBindingKey: 'sample.documents' }
+                          }
+                      }
+                  ]
+                : [model]
+        )
+        return f
+    }
+    it('previews repeatedly without saving, then removes the owned connection and observer together', async () => {
+        const f = setup()
+        for (const selection of [['documents'], ['documents'], [], ['documents'], []]) {
+            const config = await f.service.getCapabilities('expert', language)
+            const draft = await f.service.previewCapabilities('expert', language, {
+                revision: config.revision,
+                capabilities: selection
+            })
+            expect(draft.connections.filter((edge) => edge.type === 'toolset')).toHaveLength(selection.length)
+            expect(draft.nodes.filter((node) => node.type === 'workflow')).toHaveLength(selection.length)
+            expect(f.xperts.saveDraft).not.toHaveBeenCalled()
+            expect(f.xperts.publish).not.toHaveBeenCalled()
+            f.entity.draft = draft
+        }
+    })
+    it('recomposes the persisted selection on a replacement base and preserves an explicit off choice', async () => {
+        const f = setup()
+        const base = structuredClone(f.entity.draft)
+        const handler = new RecomposeAssistantCapabilitiesHandler(f.capabilities, {} as XpertTemplateService)
+        for (const selection of [['documents'], []]) {
+            const config = await f.service.getCapabilities('expert', language)
+            f.entity.draft = await f.service.previewCapabilities('expert', language, {
+                revision: config.revision,
+                capabilities: selection
+            })
+            const incoming = structuredClone(base)
+            primaryAgent(incoming).entity.prompt = 'New base instructions'
+            const result = await handler.execute({
+                installed: f.entity as unknown as IXpert,
+                incoming,
+                language,
+                sandboxProviders: []
+            })
+            expect(result.team.options.assistantCapabilities.selected).toEqual(selection)
+            expect(result.connections.filter((edge) => edge.type === 'toolset')).toHaveLength(selection.length)
+            expect(primaryAgent(result).entity.prompt).toContain('New base instructions')
+        }
     })
 })

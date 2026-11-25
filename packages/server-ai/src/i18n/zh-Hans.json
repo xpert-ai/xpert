@@ -110,6 +110,13 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "CapabilityWorkspaceRequired": "请先选择编辑工作空间，再启用此能力。",
+        "CapabilityBindingMissing": "工作空间连接 {{binding}} 尚未准备完成。",
+        "CapabilityBindingAmbiguous": "多个工作空间连接声明了 {{binding}}，请先处理重复绑定。",
+        "CapabilityBindingCategory": "工作空间连接 {{binding}} 的类型不符合能力要求。",
+        "CapabilityBindingTools": "工作空间连接 {{binding}} 缺少已启用工具：{{tools}}。",
+        "CapabilityTargetMissing": "草稿中不存在此能力指定的目标 Agent。",
+
         "RunReconciliationDeferred": "运行调和已延后，其他候选任务仍将继续检查。",
         "ToolFinalResultMissing": "工具执行已结束，但缺少最终结果。已完成的输出已保留。",
         "HandoffDispatchUncertain": "回调执行结果不确定，已暂停自动重放。",

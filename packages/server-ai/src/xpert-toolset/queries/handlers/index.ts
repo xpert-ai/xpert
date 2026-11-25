@@ -5,13 +5,15 @@ import { ListBuiltinCredentialsSchemaHandler } from './list-builtin-credentials-
 import { ListBuiltinToolProvidersHandler } from './list-builtin-providers.handler'
 import { ListBuiltinToolsHandler } from './list-builtin-tools.handler'
 import { FindXpertToolsetsHandler } from './toolset-find.handler'
+import { ResolveCapabilityToolsetsHandler } from './resolve-capability-toolsets.handler'
 
 export const QueryHandlers = [
-	FindXpertToolsetsHandler,
-	ListBuiltinToolProvidersHandler,
-	ToolProviderIconHandler,
-	ListBuiltinToolsHandler,
-	ListBuiltinCredentialsSchemaHandler,
-	GetODataRemoteMetadataHandler,
-	GetOpenAPIRemoteSchemaHandler
+    ResolveCapabilityToolsetsHandler,
+    FindXpertToolsetsHandler,
+    ListBuiltinToolProvidersHandler,
+    ToolProviderIconHandler,
+    ListBuiltinToolsHandler,
+    ListBuiltinCredentialsSchemaHandler,
+    GetODataRemoteMetadataHandler,
+    GetOpenAPIRemoteSchemaHandler
 ]

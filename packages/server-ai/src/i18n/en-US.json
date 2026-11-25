@@ -110,6 +110,13 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "CapabilityWorkspaceRequired": "Select an authoring workspace before enabling this capability.",
+        "CapabilityBindingMissing": "Workspace connection {{binding}} is not prepared.",
+        "CapabilityBindingAmbiguous": "Multiple workspace connections declare {{binding}}. Resolve the duplicate binding.",
+        "CapabilityBindingCategory": "Workspace connection {{binding}} has an incompatible category.",
+        "CapabilityBindingTools": "Workspace connection {{binding}} is missing enabled tools: {{tools}}.",
+        "CapabilityTargetMissing": "The target Agent for this capability is missing from the draft.",
+
         "RunReconciliationDeferred": "Run reconciliation is deferred; the remaining candidates will still be checked.",
         "ToolFinalResultMissing": "Tool execution ended without a final result. Completed output was preserved.",
         "HandoffDispatchUncertain": "Callback execution is uncertain; automatic replay is withheld.",
