@@ -79,6 +79,7 @@ const methods = new Set([
   'botProfileViews',
   'personalInboxViews',
   'workbenchInboxConversation',
+  'resolveWorkbenchEntry',
   'openProfileView',
   'closeProfileView',
   'profileViewRequest',

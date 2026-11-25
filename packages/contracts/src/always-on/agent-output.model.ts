@@ -4,6 +4,7 @@ import {
   type OutputWorkbench,
   type OutputWorkbenchTarget
 } from './output-workbench.schema'
+export { outputWorkbenchEntry } from './output-workbench.schema'
 export type { OutputWorkbench, OutputWorkbenchTarget } from './output-workbench.schema'
 import { agentOutputReferenceSchema } from './agent-output-reference.schema'
 import { humanDecisionSchema, type HumanDecision } from './human-decision.model'

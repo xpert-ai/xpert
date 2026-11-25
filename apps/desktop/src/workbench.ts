@@ -1,6 +1,8 @@
 import { EVENT_INBOX_VIEW_KEY, parseOpenConversationAction, type OpenConversationAction } from '@xpert-ai/contracts'
 import { isAudioCaptureCommand } from '@xpert-ai/desktop-protocol'
 import type { ChatKitWorkbenchClientCommandRequest, WorkspaceConnectorConnectHandler } from '@xpert-ai/chatkit-types'
+import { parseProjectNavigation } from '../electron/project-navigation.mjs'
+import type { WorkbenchNavigation } from './workbench-entry'
 import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 import { invoke, HostError } from './host'
 import type { WorkbenchSession } from './types'
@@ -15,8 +17,14 @@ export function createWorkbenchHandler(
   botId: string,
   webUrl: string,
   onSession: (session: WorkbenchSession) => void,
-  connection?: { assistantId: () => string | undefined; connect: WorkspaceConnectorConnectHandler },
-  openConversation?: (action: OpenConversationAction) => void
+  connection?: {
+    assistantId: () => string | undefined
+    connect: WorkspaceConnectorConnectHandler
+    source?: () => WorkbenchNavigation | undefined
+    sourceAssistantId?: () => string | undefined
+  },
+  openConversation?: (action: OpenConversationAction) => void,
+  openWorkbench?: (target: WorkbenchNavigation) => Promise<boolean>
 ) {
   let lastSessionScope: string | undefined
   let activeAssistantId: string | undefined
@@ -92,10 +100,24 @@ export function createWorkbenchHandler(
       }
       if (commandKey === 'workbench.navigation.open') {
         const target = value(payload, 'target')
+        if (target === 'project.pipelines') {
+          const navigation = parseProjectNavigation(payload)
+          if (!navigation || !openWorkbench) return { success: false, code: 'unsupported_target' }
+          const source = connection?.source?.()
+          if (source && navigation.organizationId !== undefined && navigation.organizationId !== source.organizationId)
+            return { success: false, code: 'forbidden' }
+          const opened = await openWorkbench({
+            ...navigation,
+            ...(source ? { organizationId: source.organizationId } : {})
+          })
+          return { success: opened, status: opened ? 'opened' : 'cancelled', external: false }
+        }
         if (target === 'assistant.conversation' || target === 'assistant.project') {
           const session = await invoke('workbenchSession', {
             botId,
             target,
+            source: connection?.source?.(),
+            sourceAssistantId: connection?.sourceAssistantId?.(),
             // Only the authenticated host response may change the active Assistant.
             // Restored conversations already have a canonical Assistant before this handler navigates once.
             ...(target === 'assistant.project' ? { assistantId: activeAssistantId ?? connection?.assistantId() } : {}),

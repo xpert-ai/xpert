@@ -188,6 +188,8 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   }
   let groupId = null
   let selectionVersion = 0
+  let initialWorkbench = null
+  const runtimeScopes = []
   const reads = []
   const sessions = []
   const render = () =>
@@ -199,6 +201,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
         config: { ...DEFAULT_CONFIG, appearance },
         dark: false,
         initialThread: 'existing-thread',
+        initialWorkbench,
+        organizationId: 'org',
+        onRuntimeScope: (scope) => runtimeScopes.push(scope),
         onConversationRead: (...args) => reads.push(args),
         onSessionChange: (session) => sessions.push(JSON.parse(JSON.stringify(session))),
         onAppearanceSaved: async () => appearanceSaves++
@@ -353,6 +358,56 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   assert.notEqual(received.at(-1).sessionKey, assistantSessionKey, 'same-Assistant navigation resets logical UI state')
   assert.equal(document.querySelector('xpertai-chatkit'), element)
+  const scopedApi = received.at(-1).api
+  const scopedSession = received.at(-1).sessionKey
+  initialWorkbench = {
+    assistantId: 'second-bot',
+    projectId: 'project',
+    organizationId: 'org',
+    requestId: 'first',
+    viewKey: 'platform.project-tasks__timeline',
+    parameters: {
+      initialTab: 'pipeline',
+      pipelineInstanceId: 'instance',
+      pipelineRoundId: 'round',
+      pipelineNodeId: 'node'
+    },
+    source: { target: 'project.pipelines', projectId: 'project', organizationId: 'org' }
+  }
+  await React.act(render)
+  assert.equal(received.at(-1).api, scopedApi, 'View focus updates do not replace the current credential provider')
+  assert.equal(received.at(-1).sessionKey, scopedSession)
+  assert.deepEqual(received.at(-1).workbench.navigation.view.parameters, initialWorkbench.parameters)
+  initialWorkbench = { ...initialWorkbench, requestId: 'repeat' }
+  await React.act(render)
+  assert.equal(received.at(-1).workbench.navigation.requestId, 'repeat')
+  assert.equal(received.at(-1).initialThread, 'existing-thread')
+  assert.equal(document.querySelector('xpertai-chatkit'), element)
+  initialWorkbench = {
+    ...initialWorkbench,
+    projectId: null,
+    viewKey: 'orders__review',
+    selectionId: 'order-42',
+    source: {
+      target: 'workbench.view',
+      assistantId: 'second-bot',
+      organizationId: 'org',
+      projectId: null,
+      viewKey: 'orders__review'
+    }
+  }
+  await React.act(render)
+  await React.act(() => received.at(-1).api.getClientSecret())
+  assert.equal(sessionRequests.at(-1)[0], 'workbenchSession')
+  assert.equal(sessionRequests.at(-1)[1].target, 'workbench.view')
+  assert.equal(
+    sessionRequests.at(-1)[1].source.viewKey,
+    'orders__review',
+    'renewal uses the current View after refocusing'
+  )
+  assert.equal(sessionRequests.at(-1)[1].source.projectId, null, 'non-Project Views still use scoped entry sessions')
+  assert.equal(received.at(-1).sessionKey, scopedSession)
+  initialWorkbench = null
   for (const id of ['group-one', 'group-two', null]) {
     groupId = id
     await React.act(render)

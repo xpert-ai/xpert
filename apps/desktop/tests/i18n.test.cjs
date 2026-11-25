@@ -431,7 +431,7 @@ test('catalog and sidebar descriptions resolve serialized translations at the ho
             total: 2
           })
         )
-      if (pathname === '/api/plugin-applications/catalog')
+      if (pathname === '/api/plugin-applications/catalog/cards')
         return new Response(
           JSON.stringify([
             {

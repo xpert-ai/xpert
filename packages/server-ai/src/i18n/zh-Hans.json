@@ -116,6 +116,8 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "WorkbenchEntryInputInvalid": "工作台导航目标无效。",
+        "WorkbenchEntryUnavailable": "无法打开此工作台视图，请检查当前访问权限和视图配置。",
         "ApplicationModelBootstrapAccess": "请选择本组织内您有管理权限的专用私有工作空间，并确认可管理业务区域及只读身份。",
         "ApplicationModelReaderTitle": "{{model}} · 只读访问",
         "ApplicationModelSetupUnavailable": "当前应用或已授权连接不可用。",

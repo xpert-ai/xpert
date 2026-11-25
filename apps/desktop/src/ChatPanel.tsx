@@ -13,7 +13,8 @@ import { Button } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
-import type { OpenConversationAction, OutputWorkbenchTarget } from '@xpert-ai/contracts'
+import type { OpenConversationAction } from '@xpert-ai/contracts'
+import type { DesktopWorkbenchTarget, WorkbenchRuntimeScope } from './workbench-entry'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
 import { assistantAccentColor } from './avatar/color'
@@ -31,6 +32,9 @@ export function ChatPanel({
   initialVoice,
   onConversationRead,
   onOpenConversation,
+  onOpenWorkbench,
+  organizationId,
+  onRuntimeScope,
   onSessionChange,
   onAppearanceSaved
 }: {
@@ -39,11 +43,14 @@ export function ChatPanel({
   selectionVersion?: number
   config: ConnectionConfig
   dark: boolean
-  initialWorkbench?: OutputWorkbenchTarget | null
+  initialWorkbench?: DesktopWorkbenchTarget | null
+  organizationId: string | null
+  onRuntimeScope?: (scope: WorkbenchRuntimeScope | null) => void
   initialThread: string | null
   initialVoice?: DesktopLastSession['conversation'] | null
   onConversationRead: (botId: string, threadId: string | null) => void
   onOpenConversation: (action: OpenConversationAction) => void
+  onOpenWorkbench: (target: import('./workbench-entry').WorkbenchNavigation) => Promise<boolean>
   onSessionChange?: (session: DesktopLastSession) => void
   onAppearanceSaved: () => Promise<void>
 }) {
@@ -90,10 +97,16 @@ export function ChatPanel({
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
   const connectRef = useRef(connection.connect)
   connectRef.current = connection.connect
+  const openWorkbenchRef = useRef(onOpenWorkbench)
+  openWorkbenchRef.current = onOpenWorkbench
   const openConversationRef = useRef(onOpenConversation)
   openConversationRef.current = onOpenConversation
   const sessionChangeRef = useRef(onSessionChange)
   sessionChangeRef.current = onSessionChange
+  const runtimeScopeRef = useRef(onRuntimeScope)
+  runtimeScopeRef.current = onRuntimeScope
+  const workbenchTargetRef = useRef(initialWorkbench)
+  workbenchTargetRef.current = initialWorkbench
 
   useEffect(() => {
     const node = document.createElement('xpertai-chatkit')
@@ -132,6 +145,20 @@ export function ChatPanel({
     const listeners = new AbortController()
     let activeThread = groupId ? null : initialThread
     let activeAssistant = groupId ? '' : initialVoice?.assistantId || bot?.assistantId || botId
+    let activeProject = initialWorkbench?.projectId ?? initialVoice?.projectId ?? null
+    let activeOrganization = initialWorkbench ? initialWorkbench.organizationId : organizationId
+    const publishScope = () => {
+      if (!disposed)
+        runtimeScopeRef.current?.(
+          groupId
+            ? null
+            : {
+                assistantId: activeAssistant,
+                projectId: activeProject,
+                organizationId: activeOrganization ?? null
+              }
+        )
+    }
     let activeConversation = initialThread ? (initialVoice ?? undefined) : undefined
     const remember = () => {
       if (disposed || groupId || (activeAssistant !== (bot?.assistantId || botId) && !activeConversation)) return
@@ -155,10 +182,12 @@ export function ChatPanel({
       ...(initialWorkbench && !groupId && initialWorkbench.assistantId === activeAssistant
         ? {
             navigation: {
+              requestId: initialWorkbench.requestId,
               projectId: initialWorkbench.projectId,
               view: {
                 viewKey: initialWorkbench.viewKey,
                 selectionId: initialWorkbench.selectionId,
+                parameters: initialWorkbench.parameters,
                 layout: 'maximized'
               }
             }
@@ -175,6 +204,9 @@ export function ChatPanel({
               if (!disposed) {
                 activeAssistant = session.assistantId
                 activeThread = session.threadId
+                activeProject = session.projectId
+                activeOrganization = session.organizationId ?? null
+                publishScope()
                 activeConversation =
                   session.conversationId && session.threadId
                     ? { assistantId: session.assistantId, conversationId: session.conversationId }
@@ -186,9 +218,12 @@ export function ChatPanel({
             },
             {
               assistantId: () => (disposed ? undefined : activeAssistant),
+              source: () => workbenchTargetRef.current?.source,
+              sourceAssistantId: () => workbenchTargetRef.current?.assistantId,
               connect: (request) => connectRef.current(request)
             },
-            (action) => openConversationRef.current(action)
+            (action) => openConversationRef.current(action),
+            (target) => openWorkbenchRef.current(target)
           )
     }
     const options: ChatKitOptions = {
@@ -243,6 +278,7 @@ export function ChatPanel({
           const recovered = <T,>(value: T): T => {
             if (!disposed && activeSessionKey.current === sessionKey) {
               setSessionError('')
+              publishScope()
             }
             return value
           }
@@ -251,12 +287,15 @@ export function ChatPanel({
               return recovered(
                 await invoke('chatSession', { scope: { kind: 'conversation', conversationId: groupId } })
               )
-            if (initialWorkbench?.projectId) {
+            const destination = workbenchTargetRef.current
+            if (destination?.source || destination?.projectId) {
               const session = await invoke('workbenchSession', {
                 botId,
-                target: 'assistant.project',
+                target: destination.source ? 'workbench.view' : 'assistant.project',
                 assistantId: activeAssistant,
-                projectId: initialWorkbench.projectId
+                source: destination.source,
+                sourceAssistantId: destination.assistantId,
+                projectId: destination.projectId ?? undefined
               })
               return recovered({ secret: session.secret, organizationId: session.organizationId })
             }
@@ -290,7 +329,10 @@ export function ChatPanel({
       history: { enabled: true },
       taskSummary: { enabled: true },
       composer: {
-        projects: { enabled: true, locked: Boolean(initialThread && initialVoice?.projectId) },
+        projects: {
+          enabled: true,
+          locked: Boolean(initialWorkbench?.source || (initialThread && initialVoice?.projectId))
+        },
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }
@@ -305,6 +347,16 @@ export function ChatPanel({
     }
     element.setOptions(options)
     optionsRef.current = options
+    element.addEventListener(
+      'chatkit.project.change',
+      (event) => {
+        if (!disposed) {
+          activeProject = event.detail.projectId
+          publishScope()
+        }
+      },
+      { signal: listeners.signal }
+    )
     element.addEventListener(
       'chatkit.thread.change',
       (event) => {
@@ -358,10 +410,34 @@ export function ChatPanel({
       disposed = true
       void window.xpertDesktop?.windowControl?.('stop').catch(() => {})
       listeners.abort()
+      runtimeScopeRef.current?.(null)
     }
     // Presentation changes are applied separately without resetting the logical session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionKey, config.apiUrl, config.frameUrl, config.webUrl, retry])
+
+  useEffect(() => {
+    if (!initialWorkbench || !instance.current || !optionsRef.current) return
+    // Refocusing an authorized View must not reset the current conversation or recreate ChatKit.
+    const options = {
+      ...optionsRef.current,
+      workbench: {
+        ...optionsRef.current.workbench,
+        navigation: {
+          requestId: initialWorkbench.requestId,
+          projectId: initialWorkbench.projectId,
+          view: {
+            viewKey: initialWorkbench.viewKey,
+            selectionId: initialWorkbench.selectionId,
+            parameters: initialWorkbench.parameters,
+            layout: 'maximized' as const
+          }
+        }
+      }
+    }
+    optionsRef.current = options
+    instance.current.setOptions(options)
+  }, [initialWorkbench])
 
   useEffect(() => {
     if (frameReady && instance.current && optionsRef.current) {

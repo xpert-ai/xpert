@@ -105,6 +105,28 @@ it('isolates failed action presentations across list, snapshot, count and click 
         const restored = await service.snapshot('desktop', true, true)
         expect(restored.pendingCount).toBe(2)
         expect(restored.notifications.map((item) => item.id)).toEqual(rows.map((row) => row.id))
+        presentation.workbench = {
+            target: 'workbench.view',
+            assistantId: randomUUID(),
+            organizationId: null,
+            projectId: null,
+            viewKey: 'orders__review',
+            selectionId: 'order-42',
+            parameters: { tab: 'evidence' }
+        }
+        expect(await service.snapshot('desktop', true, true)).toMatchObject({ pendingCount: 0, notifications: [] })
+        expect(await service.snapshot('desktop', true, true, true)).toMatchObject({
+            pendingCount: 2,
+            notifications: [
+                { presentation: { workbench: { target: 'workbench.view' } } },
+                { presentation: { workbench: { target: 'workbench.view' } } }
+            ]
+        })
+        await expect(service.read(rows[0].id)).rejects.toMatchObject({ status: 404 })
+        expect(transaction).not.toHaveBeenCalled()
+        expect(await service.read(rows[0].id, true)).toMatchObject({
+            notification: { presentation: { workbench: { target: 'workbench.view' } } }
+        })
     } finally {
         warn.mockRestore()
         await module.close()

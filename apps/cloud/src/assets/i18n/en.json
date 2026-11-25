@@ -9033,6 +9033,11 @@
       "BasedOn": "Based on version"
     },
     "Notifications": {
+      "PendingActions": "Pending actions",
+      "AwaitingDecision": "Awaiting decision",
+      "ViewAndAct": "View and act",
+      "Handled": "Handled",
+      "Closed": "Closed",
       "EditAnnouncement": "Edit announcement",
       "EditorHint": "Set the content, client audience and effective time.",
       "ClearExpiry": "Clear expiry time",
@@ -9070,7 +9075,7 @@
       "Previous": "Previous",
       "Next": "Next",
       "More": "Load more",
-      "Results": "Scheduled task results",
+      "Results": "Recent notifications",
       "DeliverySettings": "Delivery preferences",
       "PrivateLark": "Feishu private chat",
       "InApp": "In-app",

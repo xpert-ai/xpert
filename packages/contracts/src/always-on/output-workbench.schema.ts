@@ -1,4 +1,5 @@
 import { z } from 'zod/v3'
+import type { AssistantWorkbenchTarget } from '../view-extension/workbench-entry.schema'
 
 const label = z
   .object({ en_US: z.string().trim().min(1).max(160), zh_Hans: z.string().trim().min(1).max(160) })
@@ -36,3 +37,15 @@ export const outputWorkbenchTargetSchema = outputWorkbenchSchema.extend({
   organizationId: z.string().uuid(),
   projectId: z.string().uuid().nullable()
 })
+
+/** Preserve the source's navigation context independently of its business presentation. */
+export function outputWorkbenchEntry(target: OutputWorkbenchTarget): AssistantWorkbenchTarget {
+  return {
+    target: 'workbench.view',
+    assistantId: target.assistantId,
+    organizationId: target.organizationId,
+    projectId: target.projectId,
+    viewKey: target.viewKey,
+    selectionId: target.selectionId
+  }
+}

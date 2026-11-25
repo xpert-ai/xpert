@@ -14,6 +14,7 @@ const snapshot = (version = '1') => ({
   version,
   announcements: [{ id }],
   notifications: [],
+  pendingCount: 0,
   hasMoreAnnouncements: false,
   hasMoreNotifications: false
 })
@@ -37,7 +38,7 @@ test('legacy APIs receive only supported query parameters when desktop requests 
   const methods = createNotificationMethods()
   service.request.mock.mockImplementation(async (path, options) => {
     const url = new URL(path, service.config.apiUrl)
-    assert.equal(options.accept, 'application/json; profile="xpert-agent-output-v1"')
+    assert.equal(options.accept, 'application/json; profile="xpert-notifications-v3"')
     if (url.pathname.endsWith('/sync')) {
       assert.equal(url.search, '?client=desktop')
       return snapshot()
@@ -48,6 +49,22 @@ test('legacy APIs receive only supported query parameters when desktop requests 
   })
   assert.equal((await notifications.refresh()).announcements.length, 1)
   assert.equal((await methods.notificationList.call(service, 30)).nextOffset, 30)
+})
+test('older hosts retain agent output notifications after declining the action profile', async (t) => {
+  const { service, notifications } = fixture(t)
+  const older = snapshot()
+  delete older.pendingCount
+  const profiles = []
+  service.request.mock.mockImplementation(async (_path, options) => {
+    profiles.push(options.accept)
+    return older
+  })
+  await notifications.refresh()
+  assert.deepEqual(profiles, [
+    'application/json; profile="xpert-notifications-v3"',
+    'application/json; profile="xpert-notifications-v2"',
+    'application/json; profile="xpert-agent-output-v1"'
+  ])
 })
 
 test('offline dismissal is persisted, suppresses stale snapshots and retries idempotently', async (t) => {
@@ -157,4 +174,28 @@ test('disk storage retains dismissal retries after a real service restart', asyn
   const key = JSON.stringify(['https://api.example.test', 'tenant', 'user'])
   storage.write({ config: {}, credentials: null, sidebars: {}, notificationDismissals: { [key]: [id] } })
   assert.deepEqual(storage.read().notificationDismissals, { [key]: [id] })
+})
+
+test('v2-only hosts retain pending Project actions and use the negotiated profile for list and read', async (t) => {
+  const { service, notifications } = fixture(t)
+  service.userNotifications = notifications
+  const older = snapshot()
+  delete older.pendingCount
+  const profiles = []
+  service.request.mock.mockImplementation(async (path, options) => {
+    profiles.push(options.accept)
+    if (path.includes('/sync')) return options.accept.endsWith('v3"') ? older : { ...snapshot(), pendingCount: 2 }
+    return { read: true, items: [] }
+  })
+  await notifications.refresh()
+  assert.equal(notifications.snapshot.pendingCount, 2)
+  const methods = createNotificationMethods()
+  await methods.notificationList.call(service, 0)
+  await methods.notificationRead.call(service, id)
+  assert.deepEqual(profiles, [
+    'application/json; profile="xpert-notifications-v3"',
+    'application/json; profile="xpert-notifications-v2"',
+    'application/json; profile="xpert-notifications-v2"',
+    'application/json; profile="xpert-notifications-v2"'
+  ])
 })

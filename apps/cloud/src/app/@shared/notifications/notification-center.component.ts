@@ -1,6 +1,6 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { DatePipe } from '@angular/common'
-import { Component, effect, inject, OnDestroy, OnInit, signal } from '@angular/core'
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core'
 import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Announcement, UserNotification } from '@xpert-ai/contracts'
@@ -16,6 +16,8 @@ import { UserNotificationsService } from '../../@core/services/user-notification
 import { OutputPreferencesComponent } from './output-preferences.component'
 import { openConversation } from './open-conversation'
 import { AnnouncementDialogComponent } from './announcement-dialog.component'
+import { WorkbenchEntryNavigation } from '../../@core/services/workbench-entry-navigation.service'
+import { outputWorkbenchEntry } from '@xpert-ai/contracts'
 
 @Component({
   standalone: true,
@@ -57,6 +59,18 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
           <z-loader zSize="sm" />{{ 'XP.Notifications.Loading' | translate }}
         </div>
       }
+      @if (pending().length) {
+        <h3 class="font-semibold">{{ 'XP.Notifications.PendingActions' | translate }}</h3>
+        @for (item of pending(); track item.id) {
+          @if (item.kind === 'action.required') {
+            <article class="space-y-2 rounded-lg border p-3">
+              <p class="font-medium">{{ item.presentation.title }}</p>
+              <p class="text-sm text-muted-foreground">{{ 'XP.Notifications.AwaitingDecision' | translate }}</p>
+              <button z-button (click)="open(item)">{{ 'XP.Notifications.ViewAndAct' | translate }}</button>
+            </article>
+          }
+        }
+      }
       <h3 class="font-semibold">{{ 'XP.Notifications.Announcements' | translate }}</h3>
       @for (item of announcements(); track item.id) {
         <button z-button zType="ghost" class="w-full justify-start" (click)="show(item)">
@@ -72,7 +86,7 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
         </button>
       }
       <h3 class="font-semibold">{{ 'XP.Notifications.Results' | translate }}</h3>
-      @for (item of notifications(); track item.id) {
+      @for (item of recent(); track item.id) {
         <button
           z-button
           zType="ghost"
@@ -80,14 +94,27 @@ import { AnnouncementDialogComponent } from './announcement-dialog.component'
           [class.font-semibold]="!item.readAt"
           (click)="open(item)"
         >
-          {{ item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate) }}
+          {{
+            item.kind === 'action.required'
+              ? item.presentation.title
+              : item.kind === 'agent.output'
+                ? item.titles.join(' · ')
+                : ('XP.Notifications.TaskCompleted' | translate)
+          }}
+          @if (item.kind === 'action.required') {
+            ·
+            {{
+              (item.presentation.state === 'handled' ? 'XP.Notifications.Handled' : 'XP.Notifications.Closed')
+                | translate
+            }}
+          }
           · {{ item.createdAt | date: 'short' }}
         </button>
         @if (expanded()?.id === item.id) {
           <ul>
             @for (entry of expanded()?.items; track entry.id) {
               <li>
-                @if (entry.action) {
+                @if (entry.action || entry.workbench) {
                   <button z-button zType="link" (click)="open(item, entry.id)">{{ entry.title }}</button>
                 } @else {
                   {{ entry.title }}
@@ -122,8 +149,15 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   private readonly dialog = inject(Dialog)
   readonly language = inject(TranslateService)
   private readonly router = inject(Router)
+  private readonly workbench = inject(WorkbenchEntryNavigation)
   readonly announcements = signal<Announcement[]>([])
   readonly notifications = signal<UserNotification[]>([])
+  readonly pending = computed(() =>
+    this.notifications().filter((item) => item.kind === 'action.required' && item.presentation.state === 'pending')
+  )
+  readonly recent = computed(() =>
+    this.notifications().filter((item) => !(item.kind === 'action.required' && item.presentation.state === 'pending'))
+  )
   readonly moreAnnouncements = signal(false)
   readonly moreNotifications = signal(false)
   readonly loading = signal(false)
@@ -141,6 +175,9 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       this.service.snapshot()
+      untracked(() => {
+        if (this.offset) void this.refreshNotifications()
+      })
       const id = this.historyId
       if (id)
         void this.service.announcement(id).catch(() => {
@@ -198,6 +235,31 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
       this.loadingNotifications = false
     }
   }
+  private async refreshNotifications() {
+    if (this.loadingNotifications || this.destroyed) return
+    this.loadingNotifications = true
+    try {
+      const items: UserNotification[] = []
+      let offset = 0
+      let hasMore = false
+      do {
+        const page = await this.service.notifications(offset)
+        items.push(...page.items)
+        if (page.nextOffset <= offset) break
+        offset = page.nextOffset
+        hasMore = page.hasMore
+      } while (hasMore && offset < this.offset)
+      if (!this.destroyed) {
+        this.notifications.set(items)
+        this.offset = offset
+        this.moreNotifications.set(hasMore)
+      }
+    } catch {
+      this.failed.set(true)
+    } finally {
+      this.loadingNotifications = false
+    }
+  }
   async show(item: Announcement) {
     try {
       const current = await this.service.announcement(item.id)
@@ -223,13 +285,31 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   } | null>(null)
   async open(item: UserNotification, memberId?: string) {
     try {
-      const { items } = await this.service.read(item.id)
+      const { items, notification } = await this.service.read(item.id)
       if (this.destroyed) return
+      if (item.kind === 'action.required') {
+        if (notification?.kind !== 'action.required') throw new Error('ACTION_NOTIFICATION_UNAVAILABLE')
+        if (!(await this.workbench.open(notification.presentation.workbench)))
+          throw new Error('ACTION_NOTIFICATION_UNAVAILABLE')
+        this.ref.close()
+        return
+      }
       if (item.kind === 'agent.output') this.expanded.set({ id: item.id, items: items ?? [] })
-      const action =
+      const entry =
         item.kind === 'agent.output'
-          ? (memberId ? items?.find((entry) => entry.id === memberId) : items?.length === 1 ? items[0] : null)?.action
-          : item.action
+          ? memberId
+            ? items?.find((entry) => entry.id === memberId)
+            : items?.length === 1
+              ? items[0]
+              : null
+          : null
+      if (entry?.workbench) {
+        if (!(await this.workbench.open(outputWorkbenchEntry(entry.workbench))))
+          throw new Error('WORKBENCH_UNAVAILABLE')
+        this.ref.close()
+        return
+      }
+      const action = item.kind === 'agent.output' ? entry?.action : item.action
       if (action) {
         this.ref.close()
         await openConversation(this.router, action)

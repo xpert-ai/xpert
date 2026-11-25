@@ -23,7 +23,11 @@ import { NotificationCenterComponent } from './notification-center.component'
         <z-card role="status" class="pointer-events-auto flex-row items-center gap-3 p-4 shadow-lg">
           <button z-button zType="ghost" class="min-w-0 flex-1 whitespace-normal" (click)="openCenter()">
             {{
-              item.kind === 'agent.output' ? item.titles.join(' · ') : ('XP.Notifications.TaskCompleted' | translate)
+              item.kind === 'action.required'
+                ? item.presentation.title
+                : item.kind === 'agent.output'
+                  ? item.titles.join(' · ')
+                  : ('XP.Notifications.TaskCompleted' | translate)
             }}
           </button>
           <button

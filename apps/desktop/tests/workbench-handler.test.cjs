@@ -11,7 +11,7 @@ const handlerCode = ts.transpileModule(readFileSync(join(__dirname, '../src/work
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText
 
-function createHandler(service, onSession, desktop, connection, openConversation) {
+function createHandler(service, onSession, desktop, connection, openConversation, openProject) {
   class HostError extends Error {
     constructor(error) {
       super(error.message)
@@ -37,11 +37,19 @@ function createHandler(service, onSession, desktop, connection, openConversation
             }
           }
         }
+      if (id === '../electron/project-navigation.mjs') return require('../electron/project-navigation.mjs')
       if (id === '../electron/workbench-platform.mjs') return require('../electron/workbench-platform.mjs')
       throw new Error(`Unexpected import: ${id}`)
     }
   })
-  return exports.createWorkbenchHandler('local-copy', 'https://xpert.example', onSession, connection, openConversation)
+  return exports.createWorkbenchHandler(
+    'local-copy',
+    'https://xpert.example',
+    onSession,
+    connection,
+    openConversation,
+    openProject
+  )
 }
 
 function fixture() {
@@ -486,4 +494,39 @@ test('a revoked, mismatched or stale receipt cannot navigate after the detail wa
     assert.equal((await handle(inbox)).success, false)
     assert.deepEqual(opened, [])
   }
+})
+
+test('project pipelines use the app project host and never fall through to the browser', async () => {
+  let external = 0,
+    internal = 0
+  const handler = createHandler(
+    {},
+    () => {},
+    {
+      openPlatform: () => {
+        external++
+        return true
+      }
+    },
+    undefined,
+    undefined,
+    async (target) => {
+      internal++
+      assert.equal(target.projectId, 'project')
+      return true
+    }
+  )
+  const result = await handler({
+    commandKey: 'workbench.navigation.open',
+    payload: { target: 'project.pipelines', projectId: 'project' }
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.external, false)
+  const invalid = await handler({
+    commandKey: 'workbench.navigation.open',
+    payload: { target: 'project.pipelines', projectId: '../other' }
+  })
+  assert.equal(invalid.success, false)
+  assert.equal(internal, 1)
+  assert.equal(external, 0)
 })

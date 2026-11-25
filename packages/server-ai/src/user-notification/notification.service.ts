@@ -33,7 +33,7 @@ export class UserNotificationService {
         private readonly actions: ActionNotificationSources
     ) {}
 
-    async list(offset = 0, limit = 30, outputs = false, details = false, actions = false) {
+    async list(offset = 0, limit = 30, outputs = false, details = false, actions = false, workbenchViews = false) {
         const scope = notificationScope()
         const query = this.database
             .getRepository(UserNotificationEntity)
@@ -57,22 +57,27 @@ export class UserNotificationService {
         const items: UserNotification[] = []
         for (const row of rows) {
             const visible = await this.view(row, details)
-            if (visible) items.push(visible)
+            if (visible && supportsTarget(visible, workbenchViews)) items.push(visible)
         }
         return { items, hasMore: offset + rows.length < total, nextOffset: offset + rows.length }
     }
 
-    async snapshot(client: NotificationClient, outputs = false, actions = false): Promise<NotificationSnapshot> {
+    async snapshot(
+        client: NotificationClient,
+        outputs = false,
+        actions = false,
+        workbenchViews = false
+    ): Promise<NotificationSnapshot> {
         const [announcements, notifications] = await Promise.all([
             this.announcements.list(client, true),
-            this.list(0, 30, outputs, false, actions)
+            this.list(0, 30, outputs, false, actions, workbenchViews)
         ])
         const content = {
             announcements: announcements.items,
             notifications: notifications.items,
             hasMoreAnnouncements: announcements.total > announcements.items.length,
             hasMoreNotifications: notifications.hasMore,
-            ...(actions ? { pendingCount: await this.pendingCount() } : {})
+            ...(actions ? { pendingCount: await this.pendingCount(workbenchViews) } : {})
         }
         return {
             supported: true,
@@ -81,7 +86,7 @@ export class UserNotificationService {
         }
     }
 
-    async read(id: string) {
+    async read(id: string, workbenchViews = false) {
         const scope = notificationScope()
         const row = await this.database.getRepository(UserNotificationEntity).findOneBy({ ...scope, id })
         if (
@@ -90,6 +95,7 @@ export class UserNotificationService {
         )
             throw notificationError('unavailable')
         const notification = row.kind === 'action.required' ? await this.view(row) : undefined
+        if (notification && !supportsTarget(notification, workbenchViews)) throw notificationError('unavailable')
         const items =
             row.kind === 'agent.output'
                 ? await this.outputs.view(
@@ -116,14 +122,19 @@ export class UserNotificationService {
         return items ? { read: true, items } : { read: true, ...(notification ? { notification } : {}) }
     }
 
-    private async pendingCount() {
+    private async pendingCount(workbenchViews: boolean) {
         const rows = await this.database
             .getRepository(UserNotificationEntity)
             .findBy({ ...notificationScope(), actionState: 'pending' })
         let count = 0
         for (const row of rows) {
             const visible = await this.view(row)
-            if (visible?.kind === 'action.required' && visible.presentation.state === 'pending') count++
+            if (
+                visible?.kind === 'action.required' &&
+                visible.presentation.state === 'pending' &&
+                supportsTarget(visible, workbenchViews)
+            )
+                count++
         }
         return count
     }
@@ -213,4 +224,13 @@ export class UserNotificationService {
             throw error
         }
     }
+}
+
+// A legacy client must not receive a target its schema cannot parse, including in the count.
+function supportsTarget(notification: UserNotification, workbenchViews: boolean) {
+    return (
+        workbenchViews ||
+        notification.kind !== 'action.required' ||
+        notification.presentation.workbench.target === 'project.pipelines'
+    )
 }

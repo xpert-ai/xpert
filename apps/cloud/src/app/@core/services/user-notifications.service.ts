@@ -1,6 +1,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { Injectable, computed, inject, signal } from '@angular/core'
 import {
+  WORKBENCH_NOTIFICATION_ACCEPT,
+  ACTION_NOTIFICATION_ACCEPT,
   AGENT_OUTPUT_ACCEPT,
   RequestScopeLevel,
   Announcement,
@@ -21,6 +23,8 @@ import { coordinateNotificationStream } from './notification-stream-coordinator'
 
 @Injectable({ providedIn: 'root' })
 export class UserNotificationsService {
+  private notificationAccept = WORKBENCH_NOTIFICATION_ACCEPT
+
   private readonly conversations = inject(ChatConversationService)
   private readonly http = inject(HttpClient)
   private readonly store = inject(Store)
@@ -30,7 +34,10 @@ export class UserNotificationsService {
   readonly unread = computed(
     () =>
       (this.snapshot()?.announcements.length ?? 0) +
-      (this.snapshot()?.notifications.filter((item) => !item.readAt).length ?? 0)
+      (this.snapshot()?.pendingCount ?? 0) +
+      (this.snapshot()?.notifications.filter(
+        (item) => !item.readAt && !(item.kind === 'action.required' && item.presentation.state === 'pending')
+      ).length ?? 0)
   )
   readonly openRequested = signal(0)
   readonly identity = signal('')
@@ -244,13 +251,39 @@ export class UserNotificationsService {
       const response = await firstValueFrom(
         this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, {
           params: { client: 'web' },
-          headers: { Accept: AGENT_OUTPUT_ACCEPT }
+          headers: { Accept: WORKBENCH_NOTIFICATION_ACCEPT }
         })
       )
       if (generation !== this.generation) return
-      const snapshot = parseNotificationSnapshot(response)
+      let snapshot = parseNotificationSnapshot(response)
+      let negotiatedAccept = WORKBENCH_NOTIFICATION_ACCEPT
+      if (snapshot.pendingCount === undefined) {
+        negotiatedAccept = ACTION_NOTIFICATION_ACCEPT
+        snapshot = parseNotificationSnapshot(
+          await firstValueFrom(
+            this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, {
+              params: { client: 'web' },
+              headers: { Accept: ACTION_NOTIFICATION_ACCEPT }
+            })
+          )
+        )
+        if (generation !== this.generation) return
+      }
+      if (snapshot.pendingCount === undefined) {
+        negotiatedAccept = AGENT_OUTPUT_ACCEPT
+        snapshot = parseNotificationSnapshot(
+          await firstValueFrom(
+            this.http.get<unknown>(`${API_PREFIX}/user-notifications/sync`, {
+              params: { client: 'web' },
+              headers: { Accept: AGENT_OUTPUT_ACCEPT }
+            })
+          )
+        )
+        if (generation !== this.generation) return
+      }
       snapshot.announcements = snapshot.announcements.filter((item) => !this.pending.has(item.id))
       this.supported.set(true)
+      this.notificationAccept = negotiatedAccept
       this.snapshot.set(snapshot)
     } catch (error) {
       if (generation === this.generation && error instanceof HttpErrorResponse && [401, 403].includes(error.status))
@@ -303,13 +336,22 @@ export class UserNotificationsService {
     return firstValueFrom(
       this.http.get<{ items: UserNotification[]; hasMore: boolean; nextOffset: number }>(
         `${API_PREFIX}/user-notifications`,
-        { params: { offset }, headers: { Accept: AGENT_OUTPUT_ACCEPT } }
+        {
+          params: { offset },
+          headers: {
+            Accept: this.notificationAccept
+          }
+        }
       )
     )
   }
   async read(id: string) {
     const result = await firstValueFrom(
-      this.http.put<{ read: true; items?: AgentOutputItem[] }>(`${API_PREFIX}/user-notifications/${id}/read`, {})
+      this.http.put<{ read: true; items?: AgentOutputItem[]; notification?: UserNotification }>(
+        `${API_PREFIX}/user-notifications/${id}/read`,
+        {},
+        { headers: { Accept: this.notificationAccept } }
+      )
     )
     this.scheduleRefresh()
     return result

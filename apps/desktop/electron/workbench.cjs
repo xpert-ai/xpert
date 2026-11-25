@@ -1,4 +1,5 @@
 // The authenticated host resolves scope; ChatKit owns the resulting navigation.
+const { workbenchScope } = require('./workbench-scope.cjs')
 function createWorkbenchMethods(ClientError) {
   const id = (value) =>
     typeof value === 'string' && /^[a-zA-Z0-9_.:-]{1,200}$/.test(value) && !['.', '..'].includes(value)
@@ -10,21 +11,29 @@ function createWorkbenchMethods(ClientError) {
       assistantId: currentAssistantId,
       conversationId,
       projectId,
-      threadId
+      threadId,
+      source,
+      sourceAssistantId
     } = {}) {
       const bot = this.bots.find((item) => item.id === botId)
-      if (!bot) throw new ClientError('Select a Bot in the current workspace first.', 403)
-      const requesterXpertId = bot.assistantId || bot.id
       const generation = this.generation
-      const organizationId = this.profile?.organizationId
+      const entry = source ? await this.resolveWorkbenchEntry(source) : undefined
+      if (entry && entry.assistantId !== sourceAssistantId)
+        throw new ClientError('The workspace changed. Please retry.', 409)
+      if (!bot && !entry) throw new ClientError('Select a Bot in the current workspace first.', 403)
+      const requesterXpertId = entry?.assistantId || bot.assistantId || bot.id
+      const organizationId = entry ? entry.organizationId : this.profile?.organizationId
+      const requestScope = entry ? workbenchScope(this, entry.source, ClientError).request : {}
       let assistantId = requesterXpertId
       let canonicalProject = null
       let canonicalThread = null
       let conversation
       if (target === 'assistant.conversation' && id(conversationId)) {
-        const query = new URLSearchParams({ requesterXpertId, organizationId })
+        const query = new URLSearchParams({ requesterXpertId })
+        if (organizationId) query.set('organizationId', organizationId)
         const resolved = await this.request(
-          `/api/chat-conversation/${encodeURIComponent(conversationId)}/workbench-navigation?${query}`
+          `/api/chat-conversation/${encodeURIComponent(conversationId)}/workbench-navigation?${query}`,
+          requestScope
         )
         if (
           resolved?.conversationId !== conversationId ||
@@ -45,9 +54,13 @@ function createWorkbenchMethods(ClientError) {
         // The session endpoint authorizes the requested Project's exact Assistant binding.
         assistantId = currentAssistantId ?? requesterXpertId
         canonicalProject = projectId
+      } else if (target === 'workbench.view' && entry) {
+        assistantId = entry.assistantId
+        canonicalProject = entry.projectId
       } else throw new ClientError('Unsupported operation.', 400)
       if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
       const result = await this.request('/api/ai/v1/chatkit/sessions', {
+        ...requestScope,
         method: 'POST',
         body: {
           assistant: { id: assistantId },
@@ -66,7 +79,7 @@ function createWorkbenchMethods(ClientError) {
         threadId: canonicalThread,
         ...(conversation ? { conversationId } : {}),
         secret: result.client_secret,
-        organizationId
+        organizationId: organizationId ?? undefined
       }
     }
   }

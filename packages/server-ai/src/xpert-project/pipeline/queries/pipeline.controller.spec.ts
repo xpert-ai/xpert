@@ -8,6 +8,8 @@ import { XpertProjectAccessService } from '../../services/project-access.service
 import { ProjectPipelineController } from './pipeline.controller'
 import { ProjectPipelineQueryService } from './pipeline-query.service'
 import { ProjectPipelineWorkspaceService } from './pipeline-workspace.service'
+import { QueryBus } from '@nestjs/cqrs'
+import { ProjectPipelineWorkbenchQuery } from './pipeline-workbench-navigation.query'
 
 describe('pipeline history HTTP boundary', () => {
     const actor = { userId: randomUUID(), tenantId: randomUUID(), organizationId: randomUUID() }
@@ -17,6 +19,7 @@ describe('pipeline history HTTP boundary', () => {
     const access = { assertCanRead: jest.fn() }
     const query = { graph: jest.fn(), rounds: jest.fn() }
     const workspaces = { entry: jest.fn() }
+    const queries = { execute: jest.fn() }
     let app: INestApplication, url: string
     beforeAll(async () => {
         const module = await Test.createTestingModule({
@@ -24,6 +27,7 @@ describe('pipeline history HTTP boundary', () => {
             providers: [
                 { provide: ProjectPipelineQueryService, useValue: query },
                 { provide: ProjectPipelineWorkspaceService, useValue: workspaces },
+                { provide: QueryBus, useValue: queries },
                 { provide: XpertProjectAccessService, useValue: access }
             ]
         }).compile()
@@ -52,6 +56,34 @@ describe('pipeline history HTTP boundary', () => {
     afterAll(async () => app?.close())
     const get = (suffix: string) => fetch(`${url}/project/pipelines/${instanceId}/${suffix}`)
     const nodeFocus = `node-workbench?roundId=${roundId}&pipelineNodeId=${nodeId}`
+    it('resolves Workbench navigation through a typed query with authenticated scope', async () => {
+        queries.execute.mockResolvedValue({ assistant: { id: 'bound' } })
+        const response = await fetch(
+            `${url}/project/pipelines/workbench-navigation?pipelineInstanceId=${instanceId}&pipelineRoundId=${roundId}&pipelineNodeId=${nodeId}`
+        )
+        expect(response.status).toBe(200)
+        expect(queries.execute).toHaveBeenCalledWith(
+            new ProjectPipelineWorkbenchQuery(
+                { projectId: 'project', actor },
+                {
+                    pipelineInstanceId: instanceId,
+                    pipelineRoundId: roundId,
+                    pipelineNodeId: nodeId
+                }
+            )
+        )
+    })
+    it.each([
+        'pipelineNodeId=invalid',
+        `pipelineNodeId=${nodeId}`,
+        `pipelineInstanceId=${instanceId}&pipelineRoundId=${roundId}`,
+        'assistantId=injected',
+        'organizationId=injected'
+    ])('rejects incomplete or injected Workbench navigation: %s', async (query) => {
+        const response = await fetch(`${url}/project/pipelines/workbench-navigation?${query}`)
+        expect(response.status).toBe(400)
+        expect(queries.execute).not.toHaveBeenCalled()
+    })
     it('resolves the requested workbench node and round within the authenticated project', async () => {
         const entry = { projectId: 'project', kind: 'assistant', viewKey: 'order' }
         workspaces.entry.mockResolvedValue(entry)

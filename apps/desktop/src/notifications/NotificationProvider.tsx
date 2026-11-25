@@ -3,10 +3,12 @@ import { CircleCheck, X } from 'lucide-react'
 import {
   parseAnnouncement,
   parseNotificationSnapshot,
+  parseUserNotification,
+  outputWorkbenchEntry,
+  type NotificationWorkbench,
   type Announcement,
   type NotificationSnapshot,
   type AgentOutputItem,
-  type OutputWorkbenchTarget,
   type UserNotification
 } from '@xpert-ai/contracts'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
@@ -30,7 +32,7 @@ export function NotificationProvider({
   children: ReactNode
   suspended?: boolean
   activeThreadId: string | null
-  onWorkbench?: (target: OutputWorkbenchTarget) => void
+  onWorkbench?: (target: NotificationWorkbench) => Promise<boolean>
   onOpen: (item: UserNotification) => Promise<void>
 }) {
   const [snapshot, setSnapshot] = useState<NotificationSnapshot | null>(null)
@@ -189,14 +191,18 @@ export function NotificationProvider({
   const openResult = async (item: UserNotification, memberId?: string) => {
     setError('')
     try {
-      const { items = [] } = await invoke('notificationRead', item.id)
+      const { items = [], notification } = await invoke('notificationRead', item.id)
       if (!mounted.current) return
-      if (item.kind === 'agent.output') {
+      if (item.kind === 'action.required') {
+        const current = parseUserNotification(notification)
+        if (current.kind !== 'action.required' || !onWorkbench || !(await onWorkbench(current.presentation.workbench)))
+          throw new Error(t('Unavailable'))
+      } else if (item.kind === 'agent.output') {
         setDetails({ id: item.id, items })
         const entry = memberId ? items.find((entry) => entry.id === memberId) : items.length === 1 ? items[0] : null
         if (memberId && !entry) throw new Error(t('Unavailable'))
         if (entry?.workbench && onWorkbench) {
-          onWorkbench(entry.workbench)
+          if (!(await onWorkbench(outputWorkbenchEntry(entry.workbench)))) throw new Error(t('Unavailable'))
         } else if (!entry?.action) {
           setHint(null)
           setCenter(true)
@@ -216,7 +222,11 @@ export function NotificationProvider({
     }
   }
   const count =
-    (snapshot?.announcements.length ?? 0) + (snapshot?.notifications.filter((item) => !item.readAt).length ?? 0)
+    (snapshot?.announcements.length ?? 0) +
+    (snapshot?.pendingCount ?? 0) +
+    (snapshot?.notifications.filter(
+      (item) => !item.readAt && !(item.kind === 'action.required' && item.presentation.state === 'pending')
+    ).length ?? 0)
   return (
     <Context.Provider
       value={{
@@ -253,7 +263,11 @@ export function NotificationProvider({
           >
             <CircleCheck className="size-4 text-muted-foreground" aria-hidden="true" />
             <span className="min-w-0 break-words">
-              {hint.kind === 'agent.output' ? hint.titles.join(' · ') : t('Your scheduled task has completed')}
+              {hint.kind === 'action.required'
+                ? hint.presentation.title
+                : hint.kind === 'agent.output'
+                  ? hint.titles.join(' · ')
+                  : t('Your scheduled task has completed')}
             </span>
           </Button>
           <Button

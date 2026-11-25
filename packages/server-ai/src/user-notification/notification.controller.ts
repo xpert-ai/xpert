@@ -1,5 +1,6 @@
 import {
     ACTION_NOTIFICATION_ACCEPT,
+    WORKBENCH_NOTIFICATION_ACCEPT,
     AGENT_OUTPUT_ACCEPT,
     outputPreferenceSchema,
     type OutputPreference
@@ -41,9 +42,13 @@ export class UserNotificationController {
         return this.service.list(
             query.offset,
             query.limit,
-            accept === ACTION_NOTIFICATION_ACCEPT || accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
+            accept === WORKBENCH_NOTIFICATION_ACCEPT ||
+                accept === ACTION_NOTIFICATION_ACCEPT ||
+                accept === AGENT_OUTPUT_ACCEPT ||
+                query.outputs === '1',
             prefer === 'return=representation',
-            accept === ACTION_NOTIFICATION_ACCEPT
+            accept === WORKBENCH_NOTIFICATION_ACCEPT || accept === ACTION_NOTIFICATION_ACCEPT,
+            accept === WORKBENCH_NOTIFICATION_ACCEPT
         )
     }
     @Get('sync')
@@ -55,8 +60,12 @@ export class UserNotificationController {
     ) {
         return this.service.snapshot(
             query.client,
-            accept === ACTION_NOTIFICATION_ACCEPT || accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
-            accept === ACTION_NOTIFICATION_ACCEPT
+            accept === WORKBENCH_NOTIFICATION_ACCEPT ||
+                accept === ACTION_NOTIFICATION_ACCEPT ||
+                accept === AGENT_OUTPUT_ACCEPT ||
+                query.outputs === '1',
+            accept === WORKBENCH_NOTIFICATION_ACCEPT || accept === ACTION_NOTIFICATION_ACCEPT,
+            accept === WORKBENCH_NOTIFICATION_ACCEPT
         )
     }
     @Get('preferences') listPreferences() {
@@ -73,8 +82,8 @@ export class UserNotificationController {
     stream() {
         return this.realtime.stream(notificationScope(), notificationStreamLifetime())
     }
-    @Put(':id/read') read(@Param('id', UUIDValidationPipe) id: string) {
-        return this.service.read(id)
+    @Put(':id/read') read(@Param('id', UUIDValidationPipe) id: string, @Headers('accept') accept?: string) {
+        return this.service.read(id, accept === WORKBENCH_NOTIFICATION_ACCEPT)
     }
 }
 

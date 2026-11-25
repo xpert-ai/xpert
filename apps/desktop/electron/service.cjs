@@ -520,6 +520,7 @@ class DesktopService {
       errorMessages,
       includeServerMessage = false,
       viewProjectId,
+      organizationId: requestOrganizationId,
       runtimeRecoveryBudget = { remaining: 2, deadline: Date.now() + 15_000 }
     } = {}
   ) {
@@ -534,7 +535,7 @@ class DesktopService {
     }
     if (auth || token) headers.Authorization = `Bearer ${token || this.credentials.token}`
     if (auth && this.credentials.tenantId) headers['tenant-id'] = this.credentials.tenantId
-    const organizationId = this.profile?.organizationId || this.credentials?.organizationId
+    const organizationId = requestOrganizationId || this.profile?.organizationId || this.credentials?.organizationId
     if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
     if (viewProjectId) headers['x-xpert-view-project-id'] = viewProjectId
@@ -595,6 +596,7 @@ class DesktopService {
         errorMessages,
         includeServerMessage,
         viewProjectId,
+        organizationId: requestOrganizationId,
         runtimeRecoveryBudget
       })
     }
@@ -661,6 +663,7 @@ Object.assign(
 )
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./workbench-entry.cjs').createWorkbenchEntryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').createAssistantTriggerMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))

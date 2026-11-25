@@ -1,6 +1,7 @@
 import type { AgentOutputItem } from './always-on/agent-output.model'
 import { outputFieldSchema, outputWorkbenchTargetSchema } from './always-on/output-workbench.schema'
 import { z } from 'zod/v3'
+import { workbenchEntryTargetSchema, type WorkbenchEntryTarget } from './view-extension/workbench-entry.schema'
 
 // Application types are independent of delivery channels and external account identities.
 export const notificationClientSchema = z.enum(['web', 'desktop'])
@@ -116,6 +117,8 @@ const outputNotificationSchema = taskNotificationSchema.extend({
 })
 /** Opt-in protocol; older clients must not receive kinds they cannot render. */
 export const ACTION_NOTIFICATION_ACCEPT = 'application/json; profile="xpert-notifications-v2"'
+/** Opt-in protocol for generic Workbench targets; v2 remains restricted to Project pipelines. */
+export const WORKBENCH_NOTIFICATION_ACCEPT = 'application/json; profile="xpert-notifications-v3"'
 export const actionNotificationSourceSchema = z
   .object({
     type: z.literal('action'),
@@ -124,16 +127,7 @@ export const actionNotificationSourceSchema = z
     version: z.string().min(1).max(100)
   })
   .strict()
-export const notificationWorkbenchSchema = z
-  .object({
-    target: z.literal('project.pipelines'),
-    organizationId: z.string().uuid().nullable(),
-    projectId: z.string().uuid(),
-    pipelineInstanceId: z.string().uuid(),
-    pipelineRoundId: z.string().uuid(),
-    pipelineNodeId: z.string().uuid()
-  })
-  .strict()
+export const notificationWorkbenchSchema = workbenchEntryTargetSchema
 export const actionNotificationPresentationSchema = z
   .object({
     title: z.string().min(1).max(240),
@@ -148,7 +142,7 @@ const actionNotificationSchema = taskNotificationSchema.extend({
   action: z.null()
 })
 export type ActionNotificationSource = Required<z.output<typeof actionNotificationSourceSchema>>
-export type NotificationWorkbench = Required<z.output<typeof notificationWorkbenchSchema>>
+export type NotificationWorkbench = WorkbenchEntryTarget
 export type ActionNotificationPresentation = Omit<
   Required<z.output<typeof actionNotificationPresentationSchema>>,
   'workbench'

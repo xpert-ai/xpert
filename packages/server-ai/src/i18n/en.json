@@ -116,6 +116,8 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "WorkbenchEntryInputInvalid": "Invalid Workbench navigation target.",
+        "WorkbenchEntryUnavailable": "This Workbench view is unavailable. Check current access and View configuration.",
         "ApplicationModelBootstrapAccess": "Select a private workspace you manage in this organization and check access to the dedicated area and reader.",
         "ApplicationModelReaderTitle": "{{model}} · Read-only access",
         "ApplicationModelSetupUnavailable": "This application or authorized connection is unavailable.",

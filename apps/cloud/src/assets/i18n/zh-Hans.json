@@ -12748,6 +12748,11 @@
       "BasedOn": "基于版本"
     },
     "Notifications": {
+      "PendingActions": "待处理",
+      "AwaitingDecision": "等待人工确认",
+      "ViewAndAct": "查看并处理",
+      "Handled": "已处理",
+      "Closed": "已关闭",
       "EditAnnouncement": "编辑公告",
       "EditorHint": "设置公告内容、展示客户端和生效时间。",
       "ClearExpiry": "清除失效时间",
@@ -12785,7 +12790,7 @@
       "Previous": "上一页",
       "Next": "下一页",
       "More": "加载更多",
-      "Results": "定时任务结果",
+      "Results": "最近通知",
       "DeliverySettings": "通知投递设置",
       "PrivateLark": "飞书私聊",
       "InApp": "站内通知",
