@@ -86,9 +86,7 @@ export class ArtifactPresentationService {
                 title: context.version.title ?? context.version.fileName ?? '',
                 versionNumber: context.version.versionNumber,
                 readOnly: true,
-                allowViewerDownloads:
-                    context.artifact.pluginName === '@xpert-ai/plugin-live-dashboard' &&
-                    context.artifact.resourceType === 'live-dashboard',
+                allowViewerDownloads: this.types.allowsViewerDownloads(context.artifact),
                 entry,
                 data,
                 operations: [...provider.operations]

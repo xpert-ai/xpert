@@ -130,6 +130,10 @@ export class ArtifactTypesService {
         await provider.assertPublication?.(source, access)
         if (this.provider(source) !== provider) throw unavailable()
     }
+    allowsViewerDownloads(source: TypedArtifactSource) {
+        const { presentation } = this.provider(source).definition
+        return presentation.mode === 'authenticated' && presentation.allowViewerDownloads === true
+    }
     allowsProjectLinkAudience(source: TypedArtifactSource, link: ArtifactTypeLink) {
         const definition = this.provider(source).definition
         return (

@@ -15,14 +15,14 @@ import { ArtifactTypesService } from '../types/artifact-types.service'
 import { configuredArtifactPolicies } from '../testing/source-policies'
 
 describe('Authenticated Artifact presentations', () => {
-    async function fixture(pluginName = 'example-plugin', resourceType = 'report') {
+    async function fixture(allowViewerDownloads?: boolean) {
         const artifact = Object.assign(new Artifact(), {
             id: 'artifact',
             tenantId: 'tenant',
             organizationId: 'team',
             userId: 'owner',
-            pluginName,
-            resourceType,
+            pluginName: 'example-plugin',
+            resourceType: 'report',
             resourceId: 'report-1',
             status: 'active',
             title: 'PRIVATE DRAFT TITLE'
@@ -71,7 +71,13 @@ describe('Authenticated Artifact presentations', () => {
         types.registry.register(
             artifactTypeKey(artifact),
             {
-                definition: { kinds: ['file'], presentation: { mode: 'authenticated' } },
+                definition: {
+                    kinds: ['file'],
+                    presentation:
+                        allowViewerDownloads === undefined
+                            ? { mode: 'authenticated' }
+                            : { mode: 'authenticated', allowViewerDownloads }
+                },
                 authorize: async () => {},
                 validateContent: () => {}
             },
@@ -82,7 +88,7 @@ describe('Authenticated Artifact presentations', () => {
             (): ReturnType<ArtifactPresentationRegistry['listRegistrations']> => [
                 {
                     type: artifactPresentationKey(artifact),
-                    source: { kind: 'plugin', pluginName, scopeKey: 'team' },
+                    source: { kind: 'plugin', pluginName: artifact.pluginName, scopeKey: 'team' },
                     strategy: provider
                 }
             ]
@@ -144,16 +150,19 @@ describe('Authenticated Artifact presentations', () => {
         expect(f.describe).toHaveBeenCalledTimes(2)
     })
     it.each([
-        ['@xpert-ai/plugin-live-dashboard', 'live-dashboard', true],
-        ['@xpert-ai/plugin-live-dashboard', 'report', false],
-        ['example-plugin', 'live-dashboard', false]
-    ] as const)('sets viewer download permission for %s / %s to %s', async (pluginName, resourceType, expected) => {
-        const f = await fixture(pluginName, resourceType)
-        f.link.allowDownload = false
-        const page = await f.run(() => f.service.read('team-link'))
-        expect(page.allowViewerDownloads).toBe(expected)
-        expect(f.link.allowDownload).toBe(false)
-    })
+        [true, false, true],
+        [false, true, false],
+        [undefined, true, false]
+    ] as const)(
+        'resolves the type opt-in %s independently of raw download permission %s',
+        async (optIn, rawDownload, expected) => {
+            const f = await fixture(optIn)
+            f.link.allowDownload = rawDownload
+            const page = await f.run(() => f.service.read('team-link'))
+            expect(page.allowViewerDownloads).toBe(expected)
+            expect(f.link.allowDownload).toBe(rawDownload)
+        }
+    )
     it.each(['save', 'publish', 'revoke-share', 'arbitrary-sql'])(
         'rejects undeclared operation %s',
         async (operation) => {
