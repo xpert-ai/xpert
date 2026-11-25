@@ -1,7 +1,5 @@
 import { omit } from 'lodash'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
-import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
-import { collectMcpAppComponentData } from '../mcp-app-runtime/mcp-app-history-component'
 import {
     ChatThreadPurpose,
     isRuntimeChatMessage,
@@ -13,17 +11,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
-import {
-    And,
-    DataSource,
-    EntityManager,
-    Equal,
-    FindOptionsOrder,
-    FindOptionsWhere,
-    In,
-    IsNull,
-    Repository
-} from 'typeorm'
+import { And, DataSource, Equal, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
 import { threadControlConflict, threadGraphRevision } from './thread-run-control.service'
 import { recoveryConflict } from './recovery/recovery-error'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
@@ -445,25 +433,6 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         })
         if (!message) throw new NotFoundException(`Message "${messageId}" not found in thread conversation`)
         await this.repository.update(thread.id, { headMessageId: message.id })
-    }
-
-    async deleteBranchMessages(threadId: string): Promise<void> {
-        const thread = await this.requireByThreadId(threadId)
-        await this.dataSource.transaction(async (manager) => {
-            const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId ?? IsNull() }
-            const where = { ...scope, conversationId: thread.conversationId, createdInThreadId: thread.threadId }
-            const messages = await manager.find(ChatMessage, {
-                where,
-                select: { id: true, content: true, events: true }
-            })
-            const ids = messages.flatMap((message) =>
-                [...collectMcpAppComponentData(message.events), ...collectMcpAppComponentData(message.content)].map(
-                    (component) => component.appInstanceId
-                )
-            )
-            if (ids.length) await manager.delete(McpAppHistory, { ...scope, id: In(ids) })
-            await manager.softDelete(ChatMessage, where)
-        })
     }
 
     async findVisibleMessages(
