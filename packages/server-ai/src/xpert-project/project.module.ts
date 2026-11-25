@@ -126,6 +126,15 @@ import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
 import { ProjectPluginDeploymentService } from './pipeline/plugin-deployment/plugin-deployment.service'
 import { ProjectPluginDeploymentStore } from './pipeline/plugin-deployment/plugin-deployment.store'
+import { ProjectPluginInstallationAuthorizationStore } from './pipeline/plugin-deployment/plugin-installation-authorization.store'
+import { ProjectPluginInstallationAuthorizationService } from './pipeline/plugin-deployment/plugin-installation-authorization.service'
+import { ProjectPluginInstallationNotificationSource } from './pipeline/plugin-deployment/plugin-installation-notification.source'
+import { ProjectPluginInstallationNotificationWorker } from './pipeline/plugin-deployment/plugin-installation-notification.worker'
+import {
+    PIPELINE_OPERATION_ACTIONS,
+    ProjectPipelineOperationActionsService
+} from './pipeline/operation-actions/operation-actions.service'
+
 import { ProjectPluginDeploymentAdapters } from './pipeline/plugin-deployment/plugin-deployment.adapters'
 import { ProjectPluginTestAccessService } from './pipeline/plugin-deployment/plugin-test-access.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
@@ -288,6 +297,16 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineCatalogService,
         ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
+        ProjectPipelineOperationActionsService,
+        {
+            provide: PIPELINE_OPERATION_ACTIONS,
+            useFactory: (authorization: ProjectPluginInstallationAuthorizationService) => [authorization],
+            inject: [ProjectPluginInstallationAuthorizationService]
+        },
+        ProjectPluginInstallationAuthorizationStore,
+        ProjectPluginInstallationAuthorizationService,
+        ProjectPluginInstallationNotificationSource,
+        ProjectPluginInstallationNotificationWorker,
         ProjectPluginDeploymentStore,
         ProjectPluginDeploymentService,
         ProjectPluginTestAccessService,

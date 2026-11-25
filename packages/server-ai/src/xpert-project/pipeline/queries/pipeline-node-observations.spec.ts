@@ -1,6 +1,6 @@
 import { observeModelBudgetDenials } from './pipeline-model-budget-observations'
 import { projectPipelineStatistics, type ProjectPipelineGraph, type ProjectTaskGraph } from '@xpert-ai/contracts'
-import { observePipelineNodes } from './pipeline-node-observations'
+import { observePipelineNodes, observeOperationWaits } from './pipeline-node-observations'
 
 type Node = ProjectPipelineGraph['nodes'][number]
 type Attempt = ProjectTaskGraph['executions'][number]
@@ -106,4 +106,26 @@ it('shows resumed model denial without changing accepted evidence or unrelated n
     expect(original).toEqual(before)
     expect(blocked[1]).toBe(other)
     expect(observeModelBudgetDenials([original], [])[0]).toBe(original)
+})
+
+it('preserves a current explicit operation wait over generic running Tasks, but ignores old retries', () => {
+    const original = node()
+    const waiting = {
+        nodeInstanceId: original.id,
+        attempt: 1,
+        state: 'pending',
+        receipt: { status: 'pending' as const, receiptKey: 'operation', code: 'DOMAIN_AUTHORIZATION_REQUIRED' }
+    }
+    expect(observeOperationWaits([original], [waiting])[0].projection.state).toMatchObject({
+        runtime: 'waiting',
+        readiness: 'blocked'
+    })
+    expect(
+        observeOperationWaits(
+            [original],
+            [waiting, { ...waiting, attempt: 2, receipt: { status: 'pending', receiptKey: 'retry' } }]
+        )[0]
+    ).toBe(original)
+    expect(observeOperationWaits([original], [{ ...waiting, nodeInstanceId: 'other' }])[0]).toBe(original)
+    expect(observeOperationWaits([original], [])[0]).toBe(original)
 })

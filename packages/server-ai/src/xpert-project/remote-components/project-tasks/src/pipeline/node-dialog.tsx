@@ -1,3 +1,4 @@
+import { OperationActions } from './operation-actions'
 import type { ApprovalStep } from './approval-steps'
 import { pipelineExecutions } from './executions'
 import { executionSummary, executionDuration, formatExecutionDuration } from '../execution-summary'
@@ -136,6 +137,16 @@ export function PipelineNodeDialog({
                                 </section>
                             )}
                             <NodePresentation node={node} locale={locale} t={t} />
+                            {graph.instance.authority === 'platform' && !graph.historical && (
+                                <OperationActions
+                                    key={`operation-actions:${node.id}`}
+                                    graph={graph}
+                                    node={node}
+                                    locale={locale}
+                                    t={t}
+                                    reload={reload}
+                                />
+                            )}
                             <PipelineAttention
                                 key={`attention:${node.id}`}
                                 graph={graph}

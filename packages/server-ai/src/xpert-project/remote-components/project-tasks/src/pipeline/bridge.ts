@@ -1,3 +1,4 @@
+import { projectPipelineOperationActionsSchema, type ProjectPipelineOperationAction } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import {
     projectPipelineNodePresentationSchema,
@@ -206,4 +207,20 @@ export async function readProviderNodeDetails(instanceId: string, nodeInstanceId
             input: { instanceId, nodeInstanceId }
         })
     ).data
+}
+
+export async function readOperationActions(instanceId: string, nodeInstanceId: string) {
+    return z
+        .object({ success: z.literal(true), data: projectPipelineOperationActionsSchema })
+        .parse(
+            await request('executeAction', {
+                actionKey: 'pipeline-operation-actions',
+                input: { instanceId, nodeInstanceId }
+            })
+        ).data
+}
+export async function submitOperationAction(input: ProjectPipelineOperationAction) {
+    return z
+        .object({ success: z.literal(true), data: z.object({ accepted: z.literal(true) }) })
+        .parse(await request('executeAction', { actionKey: 'pipeline-operation-action', input })).data
 }

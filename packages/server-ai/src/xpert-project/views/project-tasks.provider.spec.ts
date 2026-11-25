@@ -1,3 +1,4 @@
+import { ProjectPipelineOperationActionsService } from '../pipeline/operation-actions/operation-actions.service'
 import { ProjectPipelineWorkspaceService } from '../pipeline/queries/pipeline-workspace.service'
 import { Test } from '@nestjs/testing'
 import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
@@ -55,6 +56,7 @@ async function fixture() {
     const module = await Test.createTestingModule({
         providers: [
             ProjectTasksViewProvider,
+            { provide: ProjectPipelineOperationActionsService, useValue: { list: jest.fn(), submit: jest.fn() } },
             { provide: ProjectPipelineWorkspaceService, useValue: projectTypes },
             { provide: ProjectTaskGraphService, useValue: tasks },
             { provide: ProjectTaskRuntimeReadService, useValue: {} },

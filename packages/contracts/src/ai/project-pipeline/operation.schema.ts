@@ -59,7 +59,7 @@ const receipt = {
     .optional()
 }
 export const projectPipelineOperationReceiptSchema = z.discriminatedUnion('status', [
-  z.object({ ...receipt, status: z.literal('pending') }).strict(),
+  z.object({ ...receipt, status: z.literal('pending'), code: projectPipelineKeySchema.optional() }).strict(),
   z
     .object({
       ...receipt,

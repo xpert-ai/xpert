@@ -3,7 +3,7 @@ import { observeModelBudgetDenials } from './pipeline-model-budget-observations'
 // Invariants: historical business state is immutable; runtime observations may finish later.
 // Merge observations only through persisted node/round ownership, never shared task identity alone.
 import { pipelineModelBudgetPolicy } from '../budget/pipeline-model-budget-policy'
-import { observePipelineNodes } from './pipeline-node-observations'
+import { observePipelineNodes, observeOperationWaits } from './pipeline-node-observations'
 import { attributePipelineExecutions } from './pipeline-execution-attribution'
 import { pipelineExecutionOwners } from './pipeline-execution-owners'
 import { pipelineDispatchEnabled } from '../runtime/pipeline-dispatch-policy'
@@ -307,7 +307,10 @@ export class ProjectPipelineQueryService implements ProjectPipelinesApi {
                       }
                     : null,
                 nodes: observeModelBudgetDenials(
-                    observePipelineNodes(attributed.nodes, graph.executions),
+                    observeOperationWaits(
+                        observePipelineNodes(attributed.nodes, graph.executions),
+                        !historical && ['active', 'waiting'].includes(run.state) ? operations : []
+                    ),
                     budgetDenials
                 ),
                 executionAttribution: attributed.executionAttribution,
