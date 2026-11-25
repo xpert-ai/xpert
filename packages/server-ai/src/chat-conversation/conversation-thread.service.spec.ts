@@ -151,6 +151,7 @@ describe('ChatConversationThreadService', () => {
         { used: 20, active: 2, rejected: 429 },
         { used: 20, active: 0, rejected: null }
     ])('applies account admission before claiming an idle thread: %j', async ({ used, active, rejected }) => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
         const thread = { id: 'row', threadId: 'thread', status: 'idle' } as ChatConversationThread
         const events: string[] = []
         const threads = {
@@ -179,6 +180,7 @@ describe('ChatConversationThreadService', () => {
                     events.push('account-lock')
                     return []
                 }
+                if (sql.includes('app_platform_storage_grant')) return [{ bytes: null }]
                 return [{ externalBytes: used, databaseBytes: 0, measuredAt: new Date() }]
             }),
             getRepository: (entity: unknown) =>
@@ -206,6 +208,10 @@ describe('ChatConversationThreadService', () => {
             expect(events).toEqual(['account-lock', 'thread-lock'])
             expect(thread.status).toBe('busy')
         }
+        expect(manager.query).toHaveBeenCalledWith(expect.stringContaining('app_platform_storage_usage'), [
+            'tenant',
+            'organization'
+        ])
     })
 
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {
