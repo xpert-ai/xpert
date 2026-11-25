@@ -102,6 +102,7 @@ import { ConversationEnvironmentFilesModule } from './workspace-files/conversati
         ...QueryHandlers
     ],
     exports: [
+        ChatConversationSidebarService,
         ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadReferenceService,

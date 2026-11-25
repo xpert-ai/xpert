@@ -49,6 +49,9 @@ function readModelMetadata(value: unknown): string | undefined {
 @Exclude()
 export class ConversationDTO {
     @Expose()
+    sidebar?: IChatConversation['sidebar']
+
+    @Expose()
     branchSource?: IChatConversation['branchSource']
 
     @Expose()
