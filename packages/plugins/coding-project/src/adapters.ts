@@ -247,6 +247,9 @@ export class CodingReleasePolicy implements ProjectPipelinePolicyEvaluator {
   async evaluate() {
     return { status: 'blocked' as const, code: 'CODING_HUMAN_RELEASE_APPROVAL_REQUIRED' }
   }
+  decisionRecipientRoles(selectionKey: string) {
+    return selectionKey === 'coding_project.project_managers' ? (['owner', 'manager'] as const) : []
+  }
   async authorizeDecision(
     c: ProjectPipelineOperationContext,
     input: Parameters<NonNullable<ProjectPipelinePolicyEvaluator['authorizeDecision']>>[1]

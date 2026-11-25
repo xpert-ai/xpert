@@ -19,6 +19,7 @@ import { digest } from './output-store'
 import { ExternalIdentityBinding, IntegrationService } from '@xpert-ai/server-core'
 import { AnnouncementService } from '../../announcement/announcement.service'
 import { UserNotificationService } from '../notification.service'
+import { ActionNotificationSources } from '../actions/action-notification.sources'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -146,7 +147,8 @@ integration('agent output with separate PostgreSQL transactions and worker lease
         for (const migration of [
             '20261031010000-user-notifications',
             '20261116090000-agent-output',
-            '20261117090000-private-decisions'
+            '20261117090000-private-decisions',
+            '20261125010000-action-notifications'
         ]) {
             await db.query(readFileSync(join(__dirname, '../migrations', migration + '.sql'), 'utf8'))
         }
@@ -171,6 +173,7 @@ integration('agent output with separate PostgreSQL transactions and worker lease
                 WorkbenchDecisionService,
                 OutputStore,
                 UserNotificationService,
+                ActionNotificationSources,
                 { provide: 'preferenceEditor', useClass: OutputPreferences },
                 {
                     provide: AnnouncementService,

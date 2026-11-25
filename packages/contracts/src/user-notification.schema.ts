@@ -89,7 +89,7 @@ const taskNotificationSchema = z
   .strict()
 type TaskNotification = Omit<Required<z.output<typeof taskNotificationSchema>>, 'source' | 'action'> & {
   source: Required<z.output<typeof notificationSourceSchema>>
-  action: Required<NonNullable<z.output<typeof userNotificationSchema>['action']>>
+  action: OpenConversationAction
 }
 export const agentOutputOriginSchema = z
   .object({ type: z.literal('agent_output'), deliveryId: z.string().uuid() })
@@ -114,9 +114,61 @@ const outputNotificationSchema = taskNotificationSchema.extend({
   titles: z.array(z.string().min(1).max(240)).min(1).max(20),
   action: openConversationActionSchema.nullable()
 })
-export const userNotificationSchema = z.discriminatedUnion('kind', [taskNotificationSchema, outputNotificationSchema])
+/** Opt-in protocol; older clients must not receive kinds they cannot render. */
+export const ACTION_NOTIFICATION_ACCEPT = 'application/json; profile="xpert-notifications-v2"'
+export const actionNotificationSourceSchema = z
+  .object({
+    type: z.literal('action'),
+    provider: z.string().min(1).max(100),
+    key: z.string().uuid(),
+    version: z.string().min(1).max(100)
+  })
+  .strict()
+export const notificationWorkbenchSchema = z
+  .object({
+    target: z.literal('project.pipelines'),
+    organizationId: z.string().uuid().nullable(),
+    projectId: z.string().uuid(),
+    pipelineInstanceId: z.string().uuid(),
+    pipelineRoundId: z.string().uuid(),
+    pipelineNodeId: z.string().uuid()
+  })
+  .strict()
+export const actionNotificationPresentationSchema = z
+  .object({
+    title: z.string().min(1).max(240),
+    state: z.enum(['pending', 'handled', 'closed']),
+    workbench: notificationWorkbenchSchema
+  })
+  .strict()
+const actionNotificationSchema = taskNotificationSchema.extend({
+  kind: z.literal('action.required'),
+  source: actionNotificationSourceSchema,
+  presentation: actionNotificationPresentationSchema,
+  action: z.null()
+})
+export type ActionNotificationSource = Required<z.output<typeof actionNotificationSourceSchema>>
+export type NotificationWorkbench = Required<z.output<typeof notificationWorkbenchSchema>>
+export type ActionNotificationPresentation = Omit<
+  Required<z.output<typeof actionNotificationPresentationSchema>>,
+  'workbench'
+> & {
+  workbench: NotificationWorkbench
+}
+export type ActionNotification = Omit<TaskNotification, 'kind' | 'source' | 'action'> & {
+  kind: 'action.required'
+  source: ActionNotificationSource
+  presentation: ActionNotificationPresentation
+  action: null
+}
+export const userNotificationSchema = z.discriminatedUnion('kind', [
+  taskNotificationSchema,
+  outputNotificationSchema,
+  actionNotificationSchema
+])
 export type UserNotification =
   | TaskNotification
+  | ActionNotification
   | {
       id: string
       kind: 'agent.output'
@@ -134,13 +186,14 @@ export const notificationSnapshotSchema = z
     announcements: z.array(announcementSchema),
     notifications: z.array(userNotificationSchema),
     hasMoreAnnouncements: z.boolean(),
-    hasMoreNotifications: z.boolean()
+    hasMoreNotifications: z.boolean(),
+    pendingCount: z.number().int().nonnegative().optional()
   })
   .strict()
 export type NotificationSnapshot = Omit<
   Required<z.output<typeof notificationSnapshotSchema>>,
-  'announcements' | 'notifications'
-> & { announcements: Announcement[]; notifications: UserNotification[] }
+  'announcements' | 'notifications' | 'pendingCount'
+> & { announcements: Announcement[]; notifications: UserNotification[]; pendingCount?: number }
 
 export const notificationChangeSchema = z
   .object({

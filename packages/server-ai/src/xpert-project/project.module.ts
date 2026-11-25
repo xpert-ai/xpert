@@ -157,6 +157,9 @@ import { ProjectPipelineOperationObserverService } from './pipeline/runtime/pipe
 import { ProjectPipelineOperationWorkerService } from './pipeline/runtime/pipeline-operation-worker.service'
 import { ProjectPipelineEvidenceService } from './pipeline/runtime/pipeline-evidence.service'
 import { ProjectPipelineDecisionService } from './pipeline/runtime/pipeline-decision.service'
+import { ActionNotificationModule } from '../user-notification/actions/action-notification.module'
+import { ProjectPipelineNotificationSource } from './pipeline/notifications/pipeline-notification.source'
+import { ProjectPipelineNotificationWorker } from './pipeline/notifications/pipeline-notification.worker'
 import { ProjectPipelineBuiltinAdapters } from './pipeline/runtime/pipeline-builtin-adapters'
 import { ProjectPipelineRoundService } from './pipeline/runtime/pipeline-round.service'
 import { ProjectPipelineLifecycleService } from './pipeline/runtime/pipeline-lifecycle.service'
@@ -169,6 +172,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 
 @Module({
     imports: [
+        ActionNotificationModule,
         ProjectReviewModule,
         ArtifactsModule,
         DiscoveryModule,
@@ -267,6 +271,8 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineOperationWorkerService,
         ProjectPipelineEvidenceService,
         ProjectPipelineDecisionService,
+        ProjectPipelineNotificationSource,
+        ProjectPipelineNotificationWorker,
         ProjectPipelineRefreshStore,
         ProjectPipelineProjectionProviderRegistry,
         ProjectPipelineProjectionStore,

@@ -1,4 +1,9 @@
-import { AGENT_OUTPUT_ACCEPT, outputPreferenceSchema, type OutputPreference } from '@xpert-ai/contracts'
+import {
+    ACTION_NOTIFICATION_ACCEPT,
+    AGENT_OUTPUT_ACCEPT,
+    outputPreferenceSchema,
+    type OutputPreference
+} from '@xpert-ai/contracts'
 import { OutputPreferences } from './output/output-preferences'
 import { Body, Controller, Get, Header, Headers, Param, Post, Put, Query, Sse } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
@@ -36,8 +41,9 @@ export class UserNotificationController {
         return this.service.list(
             query.offset,
             query.limit,
-            accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
-            prefer === 'return=representation'
+            accept === ACTION_NOTIFICATION_ACCEPT || accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
+            prefer === 'return=representation',
+            accept === ACTION_NOTIFICATION_ACCEPT
         )
     }
     @Get('sync')
@@ -47,7 +53,11 @@ export class UserNotificationController {
         query: z.output<typeof sync>,
         @Headers('accept') accept?: string
     ) {
-        return this.service.snapshot(query.client, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
+        return this.service.snapshot(
+            query.client,
+            accept === ACTION_NOTIFICATION_ACCEPT || accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
+            accept === ACTION_NOTIFICATION_ACCEPT
+        )
     }
     @Get('preferences') listPreferences() {
         return this.preferences.list()

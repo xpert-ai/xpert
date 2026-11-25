@@ -115,6 +115,8 @@ export interface ProjectPipelineCompletionEvaluator {
 export interface ProjectPipelinePolicyEvaluator {
   /** Pure evaluation: reevaluation after a lost worker must not perform a business write. */
   evaluate(context: ProjectPipelineOperationContext): Promise<ProjectPipelinePolicyReceipt>
+  /** Candidate notification audience only; it cannot authorize a decision or installation. */
+  decisionRecipientRoles?(candidateSelectionKey: string): readonly ProjectPipelineDecisionRecipientRole[]
   /** Required for human gates. Reauthorize the candidate selector and validate this exact decision. */
   authorizeDecision?(
     context: ProjectPipelineOperationContext,
@@ -125,3 +127,12 @@ export interface ProjectPipelinePolicyEvaluator {
     }
   ): Promise<boolean>
 }
+
+/** Project-scoped human audience. An absent declaration produces no implicit recipients. */
+export type ProjectPipelineDecisionRecipientRole =
+  /** The current Project owner; ownership must remain active. */
+  | 'owner'
+  /** Active Project managers; global administration alone is insufficient. */
+  | 'manager'
+  /** Active Project editors; the decision policy still determines eligible outcomes. */
+  | 'editor'

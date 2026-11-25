@@ -60,7 +60,16 @@ export class NotificationWorker implements OnModuleInit, OnModuleDestroy {
                     .delete({ state: 'sent', sentAt: LessThan(new Date(Date.now() - 7 * 86400000)) })
                 await this.database
                     .getRepository(UserNotificationEntity)
-                    .delete({ createdAt: LessThan(new Date(Date.now() - 90 * 86400000)) })
+                    .createQueryBuilder()
+                    .delete()
+                    .where(
+                        '("actionState" IS NULL OR "actionState" <> :pending) AND COALESCE("resolvedAt", "createdAt") < :since',
+                        {
+                            pending: 'pending',
+                            since: new Date(Date.now() - 90 * 86400000)
+                        }
+                    )
+                    .execute()
             }
         } finally {
             this.running = false

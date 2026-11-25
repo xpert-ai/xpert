@@ -56,6 +56,8 @@ export class UserNotificationEntity extends NotificationTenantEntity {
     @Column({ type: 'varchar', length: 32 }) kind: UserNotification['kind']
     @Column({ type: 'jsonb' }) source: UserNotification['source'] & { threadId?: string }
     @Column({ type: 'timestamptz', nullable: true }) readAt: Date | null
+    @Column({ type: 'varchar', length: 16, nullable: true }) actionState: 'pending' | 'handled' | 'closed' | null
+    @Column({ type: 'timestamptz', nullable: true }) resolvedAt: Date | null
 }
 
 @Entity('notification_outbox')

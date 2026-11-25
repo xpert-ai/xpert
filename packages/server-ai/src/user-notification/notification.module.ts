@@ -1,4 +1,5 @@
 import { AgentOutputModule } from './output/output.module'
+import { ActionNotificationModule } from './actions/action-notification.module'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -12,6 +13,7 @@ import { UserNotificationController, NotificationDeliveryAdminController } from 
 
 @Module({
     imports: [
+        ActionNotificationModule,
         AgentOutputModule,
         CqrsModule,
         RedisModule,
