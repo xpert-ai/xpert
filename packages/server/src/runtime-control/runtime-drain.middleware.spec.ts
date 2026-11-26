@@ -62,6 +62,26 @@ describe('runtime recovery HTTP admission', () => {
 		expect((await send('/api/plugin')).status).toBe(503)
 	})
 
+	it('allows authenticated plugin removal while unready, but never during drain', async () => {
+		const { send, lifecycle } = await fixture()
+		expect((await send('/api/plugin/uninstall', 'DELETE', false)).status).toBe(401)
+		expect((await send('/api/plugin/uninstall', 'DELETE')).status).toBe(200)
+		expect((await send('/api/plugin/uninstall/extra', 'DELETE')).status).toBe(503)
+		expect((await send('/api/plugin/uninstall', 'POST')).status).toBe(503)
+		lifecycle.beginDrain({ restartId: 'test-removal', requestedAt: new Date().toISOString() })
+		expect((await send('/api/plugin/uninstall', 'DELETE')).status).toBe(503)
+	})
+
+	it('allows authenticated organization discovery for scoped recovery only', async () => {
+		const { send, lifecycle } = await fixture()
+		expect((await send('/api/organization', 'GET', false)).status).toBe(401)
+		expect((await send('/api/organization?data=%7B%7D', 'GET')).status).toBe(200)
+		expect((await send('/api/organization', 'POST')).status).toBe(503)
+		expect((await send('/api/organization/other', 'GET')).status).toBe(503)
+		lifecycle.beginDrain({ restartId: 'test-discovery', requestedAt: new Date().toISOString() })
+		expect((await send('/api/organization', 'GET')).status).toBe(503)
+	})
+
 	it('serves normal authenticated business requests when ready', async () => {
 		const { send } = await fixture(true)
 		expect((await send('/api/xpert')).status).toBe(200)

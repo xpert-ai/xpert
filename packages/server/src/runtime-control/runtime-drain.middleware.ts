@@ -74,9 +74,13 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 			].includes(path)
 		}
 		if (request.method === 'PUT') return path === '/plugin/configuration'
+		// Removing a broken plugin must remain possible through the normal management guard.
+		if (request.method === 'DELETE') return path === '/plugin/uninstall'
 		if (request.method !== 'GET') return false
 		return (
 			path === '/plugin' ||
+			// Scope discovery is required to repair organization plugin installations.
+			path === '/organization' ||
 			path === '/system/runtime/restart-capability' ||
 			/^\/system\/runtime\/(restart\/[\w-]+|plugin-convergence\/\d+)$/.test(path)
 		)
