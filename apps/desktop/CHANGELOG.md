@@ -1,5 +1,20 @@
 # @xpert-ai/desktop
 
+## 0.5.6
+
+### Patch Changes
+
+- a90530c: Restore cross-platform Bosi builds by loading the catalog cache in the app activation regression test.
+- df35a6f: Keep packaging dependency test logs in the test runner's diagnostic channel to prevent intermittent CI reporting failures.
+- 261e450: Upgrade ChatKit UI to 0.29.0 with Xpert SDK 0.30.0, retaining the compatible
+  0.28.0 Angular, Web Component, shared runtime and type packages across Cloud,
+  Bosi Desktop and server contracts. Route writable spreadsheet files to installed
+  editor plugins and include follow-up recovery fixes, with consistent dependency
+  versions across workspace and deployment locks.
+- c31355b: Show the reconnect action for a chat frame timeout or a failed session request. Keep conversation and tool errors inside the chat.
+- 0709c7d: Align Bosi template overview and readiness responses with the current public contract. Stop requiring removed memory fields so current templates can be inspected and installed, and omit legacy memory contents and counts from renderer IPC responses.
+  - @xpert-ai/desktop-protocol@0.5.8
+
 ## 0.5.5
 
 ### Patch Changes

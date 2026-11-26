@@ -1,5 +1,29 @@
 # @xpert-ai/server-core
 
+## 3.39.0
+
+### Patch Changes
+
+- 46a7976: Refresh execution-control capabilities independently from plugin business readiness and validate all registered control schemas from one fresh catalog query. Preserve capability expiry and fail closed when validation is unavailable. Check stable running invocations every five seconds while retaining fresh authorization on each observation and the existing cadence for observed control changes.
+- 2cdc8e4: Validate declared TypeORM and Nest ORM peers against the running host, reject private runtime ORM dependencies, and link compatible peers before loading installed plugins. Preserve shared DataSource identity and Nest entity registration across staged archive and source installations.
+- a3eb73d: Keep authenticated organization discovery and plugin uninstallation available
+  while runtime readiness is withdrawn, allowing administrators to repair a failed
+  plugin installation through the normal management permissions.
+- 8bf6e68: Let public Assistant visitors use ChatKit with a visitor-scoped session and save their own model preference.
+- Updated dependencies [8529cf0]
+- Updated dependencies [8b46342]
+- Updated dependencies [261e450]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [426a843]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+    - @xpert-ai/contracts@3.39.0
+    - @xpert-ai/plugin-sdk@3.39.0
+    - @xpert-ai/server-common@3.39.0
+    - @xpert-ai/server-config@3.39.0
+
 ## 3.38.1
 
 ### Patch Changes

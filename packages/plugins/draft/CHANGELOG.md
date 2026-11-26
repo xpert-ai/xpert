@@ -1,5 +1,26 @@
 # @xpert-ai/plugin-draft
 
+## 12.1.4
+
+### Patch Changes
+
+- 261e450: Upgrade ChatKit UI to 0.29.0 with Xpert SDK 0.30.0, retaining the compatible
+  0.28.0 Angular, Web Component, shared runtime and type packages across Cloud,
+  Bosi Desktop and server contracts. Route writable spreadsheet files to installed
+  editor plugins and include follow-up recovery fixes, with consistent dependency
+  versions across workspace and deployment locks.
+- Updated dependencies [8529cf0]
+- Updated dependencies [8b46342]
+- Updated dependencies [261e450]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [426a843]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+  - @xpert-ai/contracts@3.39.0
+  - @xpert-ai/plugin-sdk@3.39.0
+
 ## 12.1.2
 
 ### Patch Changes

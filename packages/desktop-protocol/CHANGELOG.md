@@ -1,5 +1,19 @@
 # @xpert-ai/desktop-protocol
 
+## 0.5.8
+
+### Patch Changes
+
+- Updated dependencies [8529cf0]
+- Updated dependencies [261e450]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [426a843]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+  - @xpert-ai/contracts@3.39.0
+
 ## 0.5.7
 
 ### Patch Changes
