@@ -11,6 +11,7 @@ import { createRuntimeCapability } from '../core/runtime-capability'
 import type { ContentDocumentModel, ContentDocumentScope } from './document'
 import type { ContentResourceReference, ContentSourceInput } from './index'
 import type { CollaborationSessionDescriptor } from '../collaboration/types'
+import type { WorkspacePortableFileReference } from '../runtime/capabilities/workspace-files'
 export { supportsContentModel } from './editor-compatibility'
 
 /** File codecs expose no cells, blocks or plugin-specific edit operations to the platform. */
@@ -48,9 +49,12 @@ export class ContentEditorRegistry extends BaseStrategyRegistry<IContentEditorPr
     return provider
   }
 }
-export interface ContentEditorFile {
+/** File authority belongs to a Project or a standalone Assistant; at least one identity is required. */
+export type ContentFileScope =
+  | ContentDocumentScope
+  | { actor: ContentDocumentScope['actor']; assistantId: string; projectId?: never }
+export type ContentEditorFile = (Omit<ContentDocumentScope, 'actor'> | { assistantId: string; projectId?: never }) & {
   editorKey: string
-  projectId: string
   path: string
   title: string
 }
@@ -67,7 +71,7 @@ export interface ContentResourceEditor {
   createSession?(input: ContentSourceInput): Promise<CollaborationSessionDescriptor>
 }
 export type ContentEditorInput = ContentDocumentScope & { source: ContentResourceReference; editorKey?: string }
-export type ContentFileEditorInput = ContentDocumentScope & { path: string; editorKey?: string }
+export type ContentFileEditorInput = ContentFileScope & { path: string; editorKey?: string }
 export type ContentEditorPreferenceScope = 'resource' | 'project' | 'organization'
 export interface ContentEditorPreferenceState {
   scope: ContentEditorPreferenceScope
@@ -91,7 +95,7 @@ export interface ContentEditorResolution {
   }
   editors?: ResourceContentEditorRegistration[]
 }
-/** Trusted scope only. Every operation checks Project, Assistant binding and resource permissions. */
+/** Trusted scope only. Every operation checks the workspace authority and resource permissions. */
 export interface ContentEditorsApi {
   /** Read resource, Project and organization editor preferences, including permission to change each scope. */
   preferences(input: ContentDocumentScope & { contentId: string }): Promise<ContentEditorPreferenceState[]>
@@ -112,16 +116,24 @@ export interface ContentEditorsApi {
   ): Promise<{ registration: FileContentEditorRegistration; buffer: Buffer }>
   /** Resolve an authorized resource to a compatible editor and host navigation, honoring editor preferences. */
   resolve(input: ContentEditorInput): Promise<ContentEditorResolution>
-  /** Resolve a Project path through its live resource owner, falling back to a file codec only when unmanaged. */
+  /** Resolve an authorized workspace path; a resource owner takes precedence over a file codec. */
   resolveFile(input: ContentFileEditorInput): Promise<ContentEditorResolution>
-  /** Read and validate an unmanaged Project file; revision is its current hash. Owned files must use read(). */
-  readFile(input: ContentFileEditorInput): Promise<ContentEditorResolution & { buffer: Buffer; revision: string }>
+  /** Read an authorized unmanaged workspace file; its revision is the current content hash. */
+  readFile(
+    input: ContentFileEditorInput
+  ): Promise<ContentEditorResolution & { buffer: Buffer; revision: string; reference: WorkspacePortableFileReference }>
   /** Validate and atomically replace an unmanaged file at expectedRevision; reject owned paths and stale hashes. */
   writeFile(input: ContentFileEditorInput & { buffer: Buffer; expectedRevision: string }): Promise<{ revision: string }>
   /** Read a resource owner's current file and opaque revision; sequence and collaboration are optional owner capabilities. */
-  read(
-    input: ContentEditorInput
-  ): Promise<ContentEditorResolution & { buffer: Buffer; revision: string; sequence?: number; collaboration?: boolean }>
+  read(input: ContentEditorInput): Promise<
+    ContentEditorResolution & {
+      buffer: Buffer
+      revision: string
+      reference: WorkspacePortableFileReference
+      sequence?: number
+      collaboration?: boolean
+    }
+  >
   /** Validate bytes and publish through the owner using expectedRevision; the owner enforces atomic versions and history. */
   write(
     input: ContentEditorInput & { buffer: Buffer; expectedRevision: string }

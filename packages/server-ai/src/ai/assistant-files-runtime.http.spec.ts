@@ -1,4 +1,4 @@
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -119,6 +119,7 @@ describe('workspace file HTTP authentication', () => {
         const providers = [
             AssistantFileAccessGuard,
             { provide: CommandBus, useValue: { execute: jest.fn().mockResolvedValue({}) } },
+            { provide: QueryBus, useValue: { execute: jest.fn().mockResolvedValue(undefined) } },
             WorkspaceFileAccessService,
             { provide: getRepositoryToken(User), useValue: { findOne: async () => ({ ...user, isActive: true }) } },
             ImagePreviewService,

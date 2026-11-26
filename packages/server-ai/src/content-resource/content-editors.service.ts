@@ -145,11 +145,24 @@ export class ContentEditorsService implements ContentEditorsApi {
         if (!source.files || !isFileContentEditor(editor)) throw this.unavailable()
         const file = await source.files.read(scope)
         await editor.validateFile(file.buffer)
-        return { ...result, ...file, collaboration: !!source.createSession }
+        return {
+            ...result,
+            ...file,
+            collaboration: !!source.createSession,
+            reference: {
+                ...input.actor,
+                source: 'platform.workspace.files' as const,
+                catalog: 'projects' as const,
+                projectId: input.projectId,
+                scopeId: input.projectId,
+                filePath: result.file.path,
+                workspacePath: result.file.path
+            }
+        }
     }
     async resolveFile(input: Parameters<ContentEditorsApi['resolveFile']>[0]) {
         const source = await this.workspace.owner(input)
-        if (source) return this.resolve({ ...input, source })
+        if (source && input.projectId) return this.resolve({ ...input, projectId: input.projectId, source })
         const { buffer: _buffer, revision: _revision, ...resolution } = await this.workspace.read(input)
         return resolution
     }

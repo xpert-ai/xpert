@@ -35,7 +35,9 @@ function setup() {
             ownership as never,
             files as never,
             providers as never,
-            resources as never
+            resources as never,
+            {} as never,
+            {} as never
         )
     }
 }
