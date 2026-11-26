@@ -1,5 +1,42 @@
 # @xpert-ai/xpert-api
 
+## 3.39.0
+
+### Patch Changes
+
+- aa27249: Prepare execution activity output files outside database transactions, then atomically commit activity rows and their source cursor after rechecking the captured checkpoint. Batch database reads and inserts, preserve idempotent updates and first sequence numbers, and freeze expired activity before reclaiming its private volume without holding a database connection during file I/O. Reclaim late output that recreates an expired volume, keep failed cleanup retryable, and preserve the original storage error.
+- 8529cf0: Resolve Assistant capability MCP dependencies within the authorized authoring workspace, validate required enabled tools, and preserve owned bindings when capabilities are toggled or Assistant drafts are replaced.
+- 8b46342: Allow installed file editor plugins to open and save standalone Assistant files
+  using the published Assistant's authorization and volume scope. Preserve file
+  revision checks and keep download references bound to the authorized volume.
+- 261e450: Upgrade ChatKit UI to 0.29.0 with Xpert SDK 0.30.0, retaining the compatible
+  0.28.0 Angular, Web Component, shared runtime and type packages across Cloud,
+  Bosi Desktop and server contracts. Route writable spreadsheet files to installed
+  editor plugins and include follow-up recovery fixes, with consistent dependency
+  versions across workspace and deployment locks.
+- 372dfa6: Validate coding delivery materials through the delivery submission tool before review and again before sealing accepted evidence. Return repair guidance for incomplete exports and corrective tasks after premature acceptance. Preserve general task decision behavior.
+
+  Restore installed immutable revisions of built-in system plugins during startup. Prevent duplicate implementation dispatches and repeated pending-result reads when durable delivery will resume the coordinator.
+
+- 7674b71: Clarify Coding Project entry and assigned-stage coordination, expose delivery resources in the marketplace, and prepare separate immutable identity and manifest schema files for Coding CLI tasks. Require sealed candidate evidence or a verified authorized destination change before a new rework round. Keep independent review delegated and preserve coordinator-managed services across development, review and rework.
+- 46a7976: Refresh execution-control capabilities independently from plugin business readiness and validate all registered control schemas from one fresh catalog query. Preserve capability expiry and fail closed when validation is unavailable. Check stable running invocations every five seconds while retaining fresh authorization on each observation and the existing cadence for observed control changes.
+- fd1ddcd: Show ordinary tool inputs, results and errors in live chat and conversation history by default. Tools with a public presentation declaration continue to publish only their selected details.
+- c00d8c1: Allow artifact types to opt authenticated share viewers into downloading generated files.
+- 822a9c8: Let signed-in users and enterprise H5 users select an available published model and save their own preference across chat sessions.
+- d7dedf1: Retry model budget admission up to three total attempts after PostgreSQL lock timeouts roll back the transaction. Recheck persisted work and budget on each attempt, retain the first lock failure when retries are exhausted, and leave business denials and uncertain connection outcomes unretried.
+- 8295c71: Require an explicit runId for pipeline cancellation instead of expectedRevision. Pin the confirmation dialog to the observed run, preserve authorization and request idempotency, and report a historical run's terminal state without touching a newer run. API and UI consumers must update together; revision-only cancellation requests are rejected. Retry and next-round revision checks remain unchanged.
+- 2cdc8e4: Validate declared TypeORM and Nest ORM peers against the running host, reject private runtime ORM dependencies, and link compatible peers before loading installed plugins. Preserve shared DataSource identity and Nest entity registration across staged archive and source installations.
+- a3eb73d: Keep authenticated organization discovery and plugin uninstallation available
+  while runtime readiness is withdrawn, allowing administrators to repair a failed
+  plugin installation through the normal management permissions.
+- 45dab3a: Let project permission guards enforce the current project ACL without a second tenant-wide management requirement. Preserve collection-level grants and authenticated project scope. Add fresh, bounded project catalog authorization that batches ordinary ownership and membership reads while retaining live Assistant principal binding checks and propagating incomplete authorization reads.
+- 426a843: Preserve committed task receipts after partial batch creation and expose task hierarchy, current revisions and authorized review modes to coordinators. Distinguish missing reports from invalid references, stop repeated pending-report reads only when durable delivery targets the current conversation, and retain independent work and result resumption. Keep decision references consistent with transactional task state so completed tasks do not invite another acceptance or rework decision.
+- 8bf6e68: Let public Assistant visitors use ChatKit with a visitor-scoped session and save their own model preference.
+- 6a88a62: Defer new Runtime result continuations during process drain or module destruction while retaining durable, unstarted reservations for recovery. Preserve the original execution type on retry and paused-run resumption. Classify an unknown execution outcome as service unavailability instead of authorization denial, without automatically restarting an uncertain run.
+- d15d7e6: Give new side chats independent titles with explicit default, generated and manual ownership. Seed a first-question label and optionally summarize the side question and reply using the Assistant's title model. Atomically preserve manual renames and completed titles; never overwrite the shared conversation or inherited graph title. Retain legacy labels whose ownership is unknown.
+- 4c9e182: Expose workspace file views as a platform capability so installed editor views
+  can open without requiring file tools in the Assistant's middleware.
+
 ## 3.38.1
 
 ### Patch Changes

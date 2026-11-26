@@ -1,5 +1,57 @@
 # @xpert-ai/server-ai
 
+## 3.39.0
+
+### Patch Changes
+
+- aa27249: Prepare execution activity output files outside database transactions, then atomically commit activity rows and their source cursor after rechecking the captured checkpoint. Batch database reads and inserts, preserve idempotent updates and first sequence numbers, and freeze expired activity before reclaiming its private volume without holding a database connection during file I/O. Reclaim late output that recreates an expired volume, keep failed cleanup retryable, and preserve the original storage error.
+- 8529cf0: Let Assistant capabilities declare existing workspace MCP connections by an opaque binding key and required enabled tools. Resolve authorized connections during setup, preview and installation, track graph ownership for disablement, and recompose saved selections before replacing an installed Assistant's base draft.
+- 8b46342: Allow installed file editor plugins to open and save standalone Assistant files
+  using the published Assistant's authorization and volume scope. Preserve file
+  revision checks and keep download references bound to the authorized volume.
+- 261e450: Upgrade ChatKit UI to 0.29.0 with Xpert SDK 0.30.0, retaining the compatible
+  0.28.0 Angular, Web Component, shared runtime and type packages across Cloud,
+  Bosi Desktop and server contracts. Route writable spreadsheet files to installed
+  editor plugins and include follow-up recovery fixes, with consistent dependency
+  versions across workspace and deployment locks.
+- 372dfa6: Validate coding delivery materials through the delivery submission tool before review and again before sealing accepted evidence. Return repair guidance for incomplete exports and corrective tasks after premature acceptance. Preserve general task decision behavior.
+
+    Restore installed immutable revisions of built-in system plugins during startup. Prevent duplicate implementation dispatches and repeated pending-result reads when durable delivery will resume the coordinator.
+
+- 46a7976: Refresh execution-control capabilities independently from plugin business readiness and validate all registered control schemas from one fresh catalog query. Preserve capability expiry and fail closed when validation is unavailable. Check stable running invocations every five seconds while retaining fresh authorization on each observation and the existing cadence for observed control changes.
+- fd1ddcd: Show ordinary tool inputs, results and errors in live chat and conversation history by default. Tools with a public presentation declaration continue to publish only their selected details.
+- c00d8c1: Allow artifact types to opt authenticated share viewers into downloading generated files.
+- 822a9c8: Let signed-in users and enterprise H5 users select an available published model and save their own preference across chat sessions.
+- d7dedf1: Retry model budget admission up to three total attempts after PostgreSQL lock timeouts roll back the transaction. Recheck persisted work and budget on each attempt, retain the first lock failure when retries are exhausted, and leave business denials and uncertain connection outcomes unretried.
+- 8295c71: Require an explicit runId for pipeline cancellation instead of expectedRevision. Pin the confirmation dialog to the observed run, preserve authorization and request idempotency, and report a historical run's terminal state without touching a newer run. API and UI consumers must update together; revision-only cancellation requests are rejected. Retry and next-round revision checks remain unchanged.
+- 45dab3a: Let project permission guards enforce the current project ACL without a second tenant-wide management requirement. Preserve collection-level grants and authenticated project scope. Add fresh, bounded project catalog authorization that batches ordinary ownership and membership reads while retaining live Assistant principal binding checks and propagating incomplete authorization reads.
+- 426a843: Preserve committed task receipts after partial batch creation and expose task hierarchy, current revisions and authorized review modes to coordinators. Distinguish missing reports from invalid references, stop repeated pending-report reads only when durable delivery targets the current conversation, and retain independent work and result resumption. Keep decision references consistent with transactional task state so completed tasks do not invite another acceptance or rework decision.
+- 8bf6e68: Let public Assistant visitors use ChatKit with a visitor-scoped session and save their own model preference.
+- 6a88a62: Defer new Runtime result continuations during process drain or module destruction while retaining durable, unstarted reservations for recovery. Preserve the original execution type on retry and paused-run resumption. Classify an unknown execution outcome as service unavailability instead of authorization denial, without automatically restarting an uncertain run.
+- d15d7e6: Give new side chats independent titles with explicit default, generated and manual ownership. Seed a first-question label and optionally summarize the side question and reply using the Assistant's title model. Atomically preserve manual renames and completed titles; never overwrite the shared conversation or inherited graph title. Retain legacy labels whose ownership is unknown.
+- 4c9e182: Expose workspace file views as a platform capability so installed editor views
+  can open without requiring file tools in the Assistant's middleware.
+- Updated dependencies [8529cf0]
+- Updated dependencies [8b46342]
+- Updated dependencies [261e450]
+- Updated dependencies [46a7976]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [2cdc8e4]
+- Updated dependencies [a3eb73d]
+- Updated dependencies [426a843]
+- Updated dependencies [8bf6e68]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+    - @xpert-ai/contracts@3.39.0
+    - @xpert-ai/plugin-sdk@3.39.0
+    - @xpert-ai/server-core@3.39.0
+    - @xpert-ai/desktop-protocol@0.5.8
+    - @xpert-ai/server-auth@3.39.0
+    - @xpert-ai/server-common@3.39.0
+    - @xpert-ai/server-config@3.39.0
+
 ## 3.38.1
 
 ### Patch Changes

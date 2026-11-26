@@ -1,5 +1,28 @@
 # @xpert-ai/plugin-sdk
 
+## 3.39.0
+
+### Minor Changes
+
+- 8529cf0: Let Assistant capabilities declare existing workspace MCP connections by an opaque binding key and required enabled tools. Resolve authorized connections during setup, preview and installation, track graph ownership for disablement, and recompose saved selections before replacing an installed Assistant's base draft.
+- 8b46342: Allow installed file editor plugins to open and save standalone Assistant files
+  using the published Assistant's authorization and volume scope. Preserve file
+  revision checks and keep download references bound to the authorized volume.
+
+### Patch Changes
+
+- c00d8c1: Allow artifact types to opt authenticated share viewers into downloading generated files.
+- 8295c71: Require an explicit runId for pipeline cancellation instead of expectedRevision. Pin the confirmation dialog to the observed run, preserve authorization and request idempotency, and report a historical run's terminal state without touching a newer run. API and UI consumers must update together; revision-only cancellation requests are rejected. Retry and next-round revision checks remain unchanged.
+- Updated dependencies [8529cf0]
+- Updated dependencies [261e450]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [426a843]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+  - @xpert-ai/contracts@3.39.0
+
 ## 3.38.1
 
 ### Patch Changes

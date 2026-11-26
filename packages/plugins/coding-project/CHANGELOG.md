@@ -1,5 +1,26 @@
 # @xpert-ai/plugin-coding-project
 
+## 0.4.1
+
+### Patch Changes
+
+- 372dfa6: Validate coding delivery materials through the delivery submission tool before review and again before sealing accepted evidence. Return repair guidance for incomplete exports and corrective tasks after premature acceptance. Preserve general task decision behavior.
+
+  Restore installed immutable revisions of built-in system plugins during startup. Prevent duplicate implementation dispatches and repeated pending-result reads when durable delivery will resume the coordinator.
+
+- 7674b71: Clarify Coding Project entry and assigned-stage coordination, expose delivery resources in the marketplace, and prepare separate immutable identity and manifest schema files for Coding CLI tasks. Require sealed candidate evidence or a verified authorized destination change before a new rework round. Keep independent review delegated and preserve coordinator-managed services across development, review and rework.
+- Updated dependencies [8529cf0]
+- Updated dependencies [8b46342]
+- Updated dependencies [261e450]
+- Updated dependencies [fd1ddcd]
+- Updated dependencies [c00d8c1]
+- Updated dependencies [8295c71]
+- Updated dependencies [426a843]
+- Updated dependencies [d15d7e6]
+- Updated dependencies [4c9e182]
+  - @xpert-ai/contracts@3.39.0
+  - @xpert-ai/plugin-sdk@3.39.0
+
 ## 0.4.0
 
 ### Minor Changes
