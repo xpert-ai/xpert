@@ -1,3 +1,4 @@
+import { executionOutcome } from '../shared/agent/execution-outcome'
 import { externalAssistantState } from '../shared/agent/external-assistant-state'
 // Native compatibility compiler: preserves existing state projections and graph edges.
 import { RunnableLambda } from '@langchain/core/runnables'
@@ -152,16 +153,21 @@ export class NativeAgentCompiler {
                 let status = XpertAgentExecutionStatusEnum.SUCCESS
                 let error = null
                 let result = ''
+                let businessOutcome: ReturnType<typeof executionOutcome>
                 const finalize = async () => {
                     const _state = await graph.getState(config)
 
                     const timeEnd = Date.now()
+                    const current = businessOutcome
+                        ? await this.queryBus.execute(new XpertAgentExecutionOneQuery(_execution.id))
+                        : undefined
                     // Record End time
                     const newExecution = await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({
                             id: _execution.id,
                             checkpointId: _state.config.configurable.checkpoint_id,
                             elapsedTime: timeEnd - timeStart,
+                            ...(businessOutcome ? { metadata: { ...current?.metadata, businessOutcome } } : {}),
                             status,
                             error,
                             outputs: {
@@ -211,6 +217,11 @@ export class NativeAgentCompiler {
                         result = lastMessage.content as string
                     }
 
+                    businessOutcome = executionOutcome(output.messages, _execution.id)
+                    if (businessOutcome)
+                        result = JSON.stringify({ businessOutcome, assistantMessage: lastMessage.content })
+                    const returnedContent = businessOutcome ? result : lastMessage.content
+
                     const channel = output[channelName(agent.key)]
                     const projectedChannel =
                         channel && typeof channel === 'object' && !Array.isArray(channel) ? channel : {}
@@ -218,7 +229,7 @@ export class NativeAgentCompiler {
                         ? {
                               messages: [
                                   new ToolMessage({
-                                      content: lastMessage.content,
+                                      content: returnedContent,
                                       name: call.name,
                                       tool_call_id: call.id ?? ''
                                   })
@@ -226,7 +237,7 @@ export class NativeAgentCompiler {
                               [channelName(leaderKey)]: {
                                   messages: [
                                       new ToolMessage({
-                                          content: lastMessage.content,
+                                          content: returnedContent,
                                           name: call.name,
                                           tool_call_id: call.id ?? ''
                                       })
