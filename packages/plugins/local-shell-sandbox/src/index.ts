@@ -1,6 +1,7 @@
 import { XpertServerPlugin } from '@xpert-ai/plugin-sdk'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod'
+import manifest from '../package.json'
 import { LocalShellSandboxProvider } from './lib/local-shell-sandbox.provider'
 
 export const PLUGIN_ARTIFACT_NAMESPACE = 'local_shell_sandbox'
@@ -10,8 +11,8 @@ export class LocalShellSandboxPlugin {}
 
 const plugin: XpertPlugin = {
   meta: {
-    name: '@xpert-ai/plugin-local-shell-sandbox',
-    version: '0.2.0',
+    name: manifest.name,
+    version: manifest.version,
     level: 'system',
     artifactNamespace: PLUGIN_ARTIFACT_NAMESPACE,
     category: 'integration',
