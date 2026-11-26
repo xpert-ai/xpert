@@ -68,6 +68,7 @@ describe('runtime recovery HTTP admission', () => {
 		expect((await send('/api/plugin/uninstall', 'DELETE')).status).toBe(200)
 		expect((await send('/api/plugin/uninstall/extra', 'DELETE')).status).toBe(503)
 		expect((await send('/api/plugin/uninstall', 'POST')).status).toBe(503)
+		expect((await send('/api/xpert', 'DELETE')).status).toBe(503)
 		lifecycle.beginDrain({ restartId: 'test-removal', requestedAt: new Date().toISOString() })
 		expect((await send('/api/plugin/uninstall', 'DELETE')).status).toBe(503)
 	})
