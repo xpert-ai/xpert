@@ -24,7 +24,7 @@ import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'
 import { AgentStateAnnotation, createTextChunk } from '../shared'
-import { readSkillUsageArtifact } from '../skill-package/plugins/skills-middleware/skill-usage'
+import { getSkillUsageSummary } from '../skill-package/plugins/skills-middleware/skill-usage'
 
 import { parseToolIcon } from './tool-icon'
 import { presentToolValue, toolPresentation } from './tool-presentation'
@@ -406,27 +406,31 @@ export function createMapStreamEvents(
                     const preview = presentToolValue(policy, 'output', content)
                     const error = failed ? presentToolValue(policy, 'error', content) : undefined
                     const end_date = new Date()
+                    const taskSummary = getSkillUsageSummary({
+                        toolName: rest.name,
+                        toolCallId: tool_call_id,
+                        failed,
+                        artifact: message?.artifact
+                    })
                     sendToolStep(tool_call_id, rest.name, {
+                        ...(taskSummary ? { taskSummary } : {}),
                         status: failed ? 'fail' : 'success',
                         end_date,
                         ...(preview !== undefined ? { output: preview } : {}),
                         ...(error !== undefined ? { error } : {})
                     })
-                    // Native widget data and skill provenance have their own component. They must never
-                    // shallow-merge into the participant-facing tool row with the same LangChain call ID.
+                    // Native widget artifacts retain their existing separate component and category.
                     const artifact = message?.artifact
-                    const usage =
-                        rest.name === 'read_skill_file' && !failed ? readSkillUsageArtifact(artifact) : undefined
-                    const skill = usage?.toolCallId === tool_call_id ? usage : undefined
                     const mcpMeta = readXpertMcpMetaArtifact(artifact)
-                    if (mcpMeta || skill) {
+                    if (mcpMeta) {
                         sendComponent(`native:${tool_call_id}`, executionMeta, {
                             category: 'Computer',
                             tool: rest.name,
                             status: failed ? 'fail' : 'success',
                             end_date,
-                            ...(mcpMeta ? { artifact, _meta: mcpMeta, output: content } : {}),
-                            ...(skill ? { taskSummary: { version: 1, skillUsages: [skill] } } : {})
+                            artifact,
+                            _meta: mcpMeta,
+                            output: content
                         })
                     }
                 }

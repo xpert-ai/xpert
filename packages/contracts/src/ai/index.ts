@@ -176,3 +176,5 @@ export * from './model-replacement.model'
 export * from './default-model-role'
 
 export * from './project-task-view.model'
+
+export * from './skill-usage-compatibility'

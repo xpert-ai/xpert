@@ -178,6 +178,11 @@ describe('skill observations through runtime, stream and persistence', () => {
                 })
             }
         }
+        expect(Array.isArray(message.content) && message.content).toHaveLength(3)
+        for (const part of Array.isArray(message.content) ? message.content : []) {
+            expect(part).toMatchObject({ type: 'component', data: { category: 'Tool', toolPresentation: 'redacted' } })
+            expect(part.id).not.toMatch(/^native:/)
+        }
         const service = {
             save: jest.fn(async (entity) => entity),
             findOneInOrganizationOrTenant: jest.fn().mockResolvedValue(message)

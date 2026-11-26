@@ -1,3 +1,4 @@
+import { isLegacySkillUsageComponent } from '@xpert-ai/contracts'
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { Observable, shareReplay } from 'rxjs'
 import { ChatConversationService, IChatConversation, IXpert, XpertAPIService } from '../@core'
@@ -54,7 +55,10 @@ export class XpertHomeService {
         if (Array.isArray(item.content)) {
           stepMessage = [...item.content]
             .reverse()
-            .find((msg) => msg.type === 'component' && msg.data?.category === 'Computer')
+            .find(
+              (msg) =>
+                msg.type === 'component' && msg.data?.category === 'Computer' && !isLegacySkillUsageComponent(msg)
+            )
           return !!stepMessage
         }
         return false

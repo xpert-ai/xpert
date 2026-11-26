@@ -609,6 +609,49 @@ describe('createMapStreamEvents', () => {
         )
     })
 
+    it('attaches successful skill observations to the existing tool row without a native card', () => {
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const usage = {
+            skillId: 'skill',
+            name: 'Skill',
+            version: '1',
+            source: { type: 'plugin', id: 'plugin' },
+            activation: 'read',
+            toolCallId: 'call',
+            loadedAt: '2026-11-26T00:00:00Z'
+        }
+        for (const status of ['success', 'error'] as const) {
+            next.mockClear()
+            map({
+                event: 'on_tool_end',
+                name: 'read_skill_file',
+                tags: [],
+                metadata: {},
+                run_id: 'run',
+                data: {
+                    output: new ToolMessage({
+                        content: 'instructions',
+                        status,
+                        tool_call_id: 'call',
+                        artifact: { type: 'xpert_skill_usage', usage }
+                    })
+                }
+            })
+            expect(next).toHaveBeenCalledTimes(1)
+            const part = next.mock.calls[0][0].data.data
+            expect(part).toMatchObject({ id: 'call', data: { category: 'Tool', toolPresentation: 'redacted' } })
+            expect(part.data.taskSummary).toEqual(
+                status === 'success' ? { version: 1, skillUsages: [usage] } : undefined
+            )
+            expect(part.data).not.toHaveProperty('artifact')
+        }
+    })
+
     it('surfaces xpert MCP meta artifacts on tool end components', () => {
         const subscriber = { next: jest.fn() }
         const mapStreamEvent = createMapStreamEvents(
@@ -661,6 +704,7 @@ describe('createMapStreamEvents', () => {
                         id: 'native:tool-call-1',
                         type: 'component',
                         data: expect.objectContaining({
+                            category: 'Computer',
                             tool: 'query_data_xpert',
                             status: 'success',
                             output: '{"ok":true}',

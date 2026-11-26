@@ -1,5 +1,5 @@
 jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+  const { Component, Input, Output, EventEmitter, Pipe } = jest.requireActual('@angular/core')
 
   @Component({
     standalone: true,
@@ -16,8 +16,16 @@ jest.mock('@xpert-ai/headless-ui', () => {
     @Output() changeEnd = new EventEmitter<number>()
   }
 
+  @Pipe({ standalone: true, name: 'fileType' })
+  class FileTypePipe {
+    transform() {
+      return 'unknown'
+    }
+  }
+
   return {
-    ZardSliderComponent
+    ZardSliderComponent,
+    FileTypePipe
   }
 })
 
@@ -132,7 +140,12 @@ jest.mock('@cloud/app/@shared/files', () => {
 
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { IChatConversation, IChatMessage, TMessageComponentStep, TMessageContentComponent } from '@cloud/app/@core'
+import type {
+  IChatConversation,
+  IChatMessage,
+  TMessageComponentStep,
+  TMessageContentComponent
+} from '@xpert-ai/contracts'
 import { ChatComputerTimelineComponent } from './computer-timeline.component'
 
 describe('ChatComputerTimelineComponent', () => {
@@ -185,6 +198,38 @@ describe('ChatComputerTimelineComponent', () => {
     expect(fixture.componentInstance.stepIndex()).toBe(0)
   })
 
+  it('excludes legacy skill metadata while retaining existing Computer results', () => {
+    const fixture = TestBed.createComponent(ChatComputerTimelineComponent)
+    const result = createComputerStep('result', 'Native result')
+    const skill = {
+      id: 'native:read',
+      type: 'component' as const,
+      data: {
+        category: 'Computer' as const,
+        tool: 'read_skill_file',
+        status: 'success' as const,
+        taskSummary: {
+          version: 1,
+          skillUsages: [
+            {
+              skillId: 'skill',
+              name: 'Skill',
+              version: '1',
+              source: { type: 'plugin', id: 'plugin' },
+              activation: 'read',
+              toolCallId: 'read',
+              loadedAt: '2026-11-26T00:00:00Z'
+            }
+          ]
+        }
+      }
+    }
+    fixture.componentRef.setInput('conversation', createConversation([createMessage([result, skill])]))
+    fixture.detectChanges()
+    expect(fixture.componentInstance.stepContents().map((part) => part.id)).toEqual(['result'])
+    expect(fixture.nativeElement.textContent).toContain('Native result')
+  })
+
   it('shows the empty state when the conversation has no computer steps', () => {
     const fixture = TestBed.createComponent(ChatComputerTimelineComponent)
     fixture.componentRef.setInput('conversation', createConversation([createMessage([])]))
@@ -203,7 +248,7 @@ function createConversation(messages: IChatMessage[]): IChatConversation {
   }
 }
 
-function createMessage(content: Array<TMessageContentComponent<TMessageComponentStep>>): IChatMessage {
+function createMessage(content: Array<TMessageContentComponent>): IChatMessage {
   return {
     id: `message-${content.length}`,
     role: 'ai',

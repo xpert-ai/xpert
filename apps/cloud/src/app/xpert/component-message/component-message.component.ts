@@ -1,3 +1,4 @@
+import { isLegacySkillUsageComponent } from '@xpert-ai/contracts'
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -71,6 +72,7 @@ export class ChatComponentMessageComponent {
   // States
   readonly data = computed(() => this.message()?.data as TMessageComponent)
   readonly category = computed(() => this.data()?.category || 'Tool')
+  readonly isSkillUsageMetadata = computed(() => isLegacySkillUsageComponent(this.message()))
 
   readonly tasks = computed(() => (<TMessageComponent<{ tasks: IXpertTask[] }>>this.data())?.tasks)
   readonly step = computed(() => <TMessageComponent<TMessageComponentStep>>this.data())

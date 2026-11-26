@@ -503,16 +503,23 @@ suite('move an existing text conversation at the run boundary', () => {
         await db.query('UPDATE chat_message SET content=$2::json WHERE id=$1', [f.ai, JSON.stringify(content)])
         await expect(service.confirm(f.confirm)).rejects.toThrow('Only text conversations')
     })
-    it.each(['existing', 'create'] as const)(
-        'allows built-in instruction reads persisted after issuing the picker (%s)',
-        async (mode) => {
+    it.each([
+        ['existing', false],
+        ['existing', true],
+        ['create', false],
+        ['create', true]
+    ] as const)(
+        'allows built-in instruction reads persisted after issuing the picker (%s, legacy=%s)',
+        async (mode, legacy) => {
             const f = await fixture(mode)
             const content = [
                 { type: 'component', data: { category: 'Tool', tool: 'read_skill_file', toolset: 'skillsMiddleware' } },
                 {
                     type: 'component',
                     data: {
-                        category: 'Computer',
+                        category: legacy ? 'Computer' : 'Tool',
+                        toolset: 'skillsMiddleware',
+                        toolPresentation: legacy ? undefined : 'redacted',
                         tool: 'read_skill_file',
                         taskSummary: {
                             version: 1,

@@ -1,4 +1,4 @@
-import type { ChatSkillUsage } from '@xpert-ai/chatkit-types'
+import type { ChatSkillUsage, TChatTaskSummaryContribution } from '@xpert-ai/chatkit-types'
 import { normalizeChatSkillUsages } from '@xpert-ai/chatkit-types'
 import type { ToolRunnableConfig } from '@langchain/core/tools'
 import { resolve } from 'node:path'
@@ -70,7 +70,25 @@ export function skillReadResult(
     ]
 }
 
-/** Parse the artifact boundary; the stream mapper must also verify tool name, status and call ID. */
+/** Project a successful, matching skill read into message metadata without exposing raw tool data. */
+export function getSkillUsageSummary({
+    toolName,
+    toolCallId,
+    failed,
+    artifact
+}: {
+    toolName: string | undefined
+    toolCallId: string
+    failed: boolean
+    artifact: unknown
+}): TChatTaskSummaryContribution | undefined {
+    if (toolName !== 'read_skill_file' || failed) return undefined
+    const usage = readSkillUsageArtifact(artifact)
+    if (!usage || usage.toolCallId !== toolCallId) return undefined
+    return { version: 1, skillUsages: [usage] }
+}
+
+/** Parse and allowlist the artifact payload; getSkillUsageSummary also checks the completion context. */
 export function readSkillUsageArtifact(artifact: unknown): ChatSkillUsage | undefined {
     if (
         !artifact ||

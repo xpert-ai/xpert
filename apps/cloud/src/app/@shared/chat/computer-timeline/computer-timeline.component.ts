@@ -1,3 +1,4 @@
+import { isLegacySkillUsageComponent } from '@xpert-ai/contracts'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, input, signal } from '@angular/core'
 import {
@@ -10,7 +11,7 @@ import {
   TMessageComponentStep,
   TMessageContentComponent,
   TProgramToolMessage
-} from '@cloud/app/@core'
+} from '@xpert-ai/contracts'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
 import { FileTypePipe } from '@xpert-ai/headless-ui'
@@ -237,7 +238,7 @@ function isComputerComponentContent(content: unknown): content is TMessageConten
     return false
   }
 
-  return content.data.category === 'Computer'
+  return content.data.category === 'Computer' && !isLegacySkillUsageComponent(content)
 }
 
 type ComputerTimelineStep<T = unknown> = TChatMessageStep<T>
