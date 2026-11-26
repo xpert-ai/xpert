@@ -128,6 +128,20 @@ describe('application Project types', () => {
         expect((await f.service.list('assistant')).items).toEqual([])
     })
 
+    it('hands a bound Case off without reading the destination under the source Assistant credential', async () => {
+        const f = fixture()
+        f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })
+        jest.mocked(f.provider.resolve).mockResolvedValue({
+            ...desired,
+            xpertId: 'owner',
+            viewKey: 'automotive__cases'
+        })
+        await expect(f.service.entryForProject('project', { xpertId: 'engineer' }, 'engineer')).resolves.toEqual({
+            kind: 'other-assistant'
+        })
+        expect(f.xperts.getAccessiblePublishedXpert).not.toHaveBeenCalled()
+    })
+
     it('resolves a Workbench destination using persisted Project classification and live access', async () => {
         const f = fixture()
         f.access.assertCanRead.mockResolvedValue({ project: { ...ref, id: 'project' } })

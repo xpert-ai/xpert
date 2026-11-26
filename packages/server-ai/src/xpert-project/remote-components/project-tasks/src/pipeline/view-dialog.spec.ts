@@ -198,6 +198,40 @@ describe('node workbench navigation', () => {
         )!
     const title = () => container.querySelector('[data-dialog] h2')?.textContent
 
+    it('passes exact focus for a provider projection without a native node workbench', async () => {
+        const saved = await readPipeline('order')
+        const node = saved.nodes[0]
+        jest.mocked(readPipeline).mockResolvedValue({
+            ...saved,
+            nodeWorkbench: undefined,
+            historical: false,
+            instance: { ...saved.instance, authority: 'provider' },
+            nodes: [{ ...node, projection: { ...node.projection, navigation: { kind: 'project_application' } } }]
+        })
+        await act(async () =>
+            root.render(
+                React.createElement(PipelineView, {
+                    key: 'provider',
+                    locale: 'en-US',
+                    projectId: 'project',
+                    initialFocus: { pipelineInstanceId: 'order' },
+                    onTask: () => {}
+                })
+            )
+        )
+        await select(node.id)
+        await act(async () => workspaceButton().click())
+        expect(entry).toHaveBeenCalledWith(
+            'project',
+            'application',
+            expect.any(String),
+            node.id,
+            'order',
+            'round',
+            expect.any(AbortSignal)
+        )
+    })
+
     it('opens node details first and hands off the exact node and round only from the workspace button', async () => {
         const [node] = graph.nodes
         await select(node.id)

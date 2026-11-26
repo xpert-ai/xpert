@@ -78,7 +78,7 @@ export class ProjectPipelineWorkspaceService {
         const instance = await this.instances.findOneBy({ ...scope, id: input.instanceId })
         const missing = () => new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
         if (!instance) throw missing()
-        if (instance.authority === 'provider') {
+        if (instance.authority === 'provider' && !input.pipelineNodeId) {
             if (input.requireNodeWorkbench) throw missing()
             return this.projectTypes.entryForProject(context.projectId, input)
         }
@@ -93,8 +93,6 @@ export class ProjectPipelineWorkspaceService {
             instanceId: instance.id
         })
         if (!run) throw missing()
-        const saved = await manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: run.definitionId })
-        if (!saved) throw missing()
         const node = input.pipelineNodeId
             ? await manager.findOneBy(ProjectPipelineNodeEntity, {
                   ...scope,
@@ -103,6 +101,20 @@ export class ProjectPipelineWorkspaceService {
               })
             : undefined
         if (input.pipelineNodeId && !node) throw missing()
+        if (instance.authority === 'provider') {
+            if (!node || instance.currentRoundId !== round.id || instance.currentRunId !== run.id) throw missing()
+            const entry =
+                phase === 'navigation' && input.xpertId
+                    ? await this.projectTypes.entryForProject(context.projectId, input, input.xpertId)
+                    : await this.projectTypes.entryForProject(context.projectId, input)
+            if (entry.kind === 'other-assistant') {
+                return this.nodeNavigation(context.projectId, instance.id, round.id, node.id, input.xpertId)
+            }
+            if (entry.kind !== 'assistant') throw missing()
+            return entry
+        }
+        const saved = await manager.findOneBy(ProjectPipelineDefinitionEntity, { ...scope, id: run.definitionId })
+        if (!saved) throw missing()
         const definition = projectPipelineDefinitionSchema.parse(saved.definition)
         if (definition.executionAuthority !== 'platform') throw missing()
         const subjects = z.array(projectPipelineSubjectVersionSchema).parse(round.subjectVersionSet)
@@ -136,17 +148,7 @@ export class ProjectPipelineWorkspaceService {
         // An Assistant-scoped view credential authorizes its own host. Crossing hosts returns
         // only the saved focus. The Project route resolves the destination under the user's session.
         if (phase === 'navigation' && nodeTarget && node && input.xpertId !== entry.xpertId) {
-            if (input.xpertId) await this.access.assertCanUseXpert(context.projectId, input.xpertId)
-            return {
-                kind: 'node-navigation',
-                target: {
-                    target: 'project.application',
-                    projectId: context.projectId,
-                    pipelineInstanceId: instance.id,
-                    pipelineRoundId: round.id,
-                    pipelineNodeId: node.id
-                }
-            }
+            return this.nodeNavigation(context.projectId, instance.id, round.id, node.id, input.xpertId)
         }
         const assistant = await this.xperts.getAccessiblePublishedXpert(entry.xpertId)
         if ((assistant.organizationId ?? null) !== (context.actor.organizationId ?? null)) throw missing()
@@ -164,6 +166,26 @@ export class ProjectPipelineWorkspaceService {
             },
             xpertId: assistant.id,
             viewKey: entry.viewKey!
+        }
+    }
+
+    private async nodeNavigation(
+        projectId: string,
+        instanceId: string,
+        roundId: string,
+        nodeId: string,
+        sourceAssistant?: string
+    ): Promise<NodeNavigation> {
+        if (sourceAssistant) await this.access.assertCanUseXpert(projectId, sourceAssistant)
+        return {
+            kind: 'node-navigation',
+            target: {
+                target: 'project.application',
+                projectId,
+                pipelineInstanceId: instanceId,
+                pipelineRoundId: roundId,
+                pipelineNodeId: nodeId
+            }
         }
     }
 }

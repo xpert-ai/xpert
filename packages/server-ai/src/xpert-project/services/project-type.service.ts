@@ -33,6 +33,8 @@ import { XpertProjectAccessService } from './project-access.service'
 import { parseResourceCard } from '@xpert-ai/contracts'
 import { pipelineEntryFocus } from '../pipeline/queries/pipeline-entry-focus'
 
+type EntryFocus = { projectId?: string; xpertId?: string; pipelineNodeId?: string }
+type OtherAssistant = { kind: 'other-assistant' }
 type RegisteredType = XpertProjectTypeSummary & { pluginName?: string; appName?: string; scopeKey?: string }
 
 @Injectable()
@@ -317,13 +319,20 @@ export class XpertProjectTypeService {
     }
 
     /** Resolve persisted classification after authorization; a View cannot choose an app or Assistant. */
-    async entryForProject(projectId: string, input: { xpertId?: string; pipelineNodeId?: string } = {}) {
+    async entryForProject(projectId: string, input?: Omit<EntryFocus, 'projectId'>): Promise<XpertProjectEntry>
+    async entryForProject(
+        projectId: string,
+        input: Omit<EntryFocus, 'projectId'>,
+        hostId: string
+    ): Promise<XpertProjectEntry | OtherAssistant>
+    async entryForProject(projectId: string, input: Omit<EntryFocus, 'projectId'> = {}, hostId?: string) {
         const { project } = await this.access.assertCanRead(projectId)
         if (!project.applicationKey || !project.projectTypeKey)
             throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
-        return this.entry(
+        return this.resolveEntry(
             { applicationKey: project.applicationKey, projectTypeKey: project.projectTypeKey },
-            { ...input, projectId }
+            { ...input, projectId },
+            hostId
         )
     }
 
@@ -331,10 +340,21 @@ export class XpertProjectTypeService {
      * Resolve a governed creation/opening destination rather than accepting a browser-provided URL.
      * Existing Projects require read access before provider resolution and access to the connected Assistant.
      */
-    async entry(
+    entry(ref: XpertProjectTypeRef, input: EntryFocus): Promise<XpertProjectEntry> {
+        return this.resolveEntry(ref, input)
+    }
+
+    private resolveEntry(ref: XpertProjectTypeRef, input: EntryFocus): Promise<XpertProjectEntry>
+    private resolveEntry(
         ref: XpertProjectTypeRef,
-        input: { projectId?: string; xpertId?: string; pipelineNodeId?: string }
-    ): Promise<XpertProjectEntry> {
+        input: EntryFocus,
+        hostId?: string
+    ): Promise<XpertProjectEntry | OtherAssistant>
+    private async resolveEntry(
+        ref: XpertProjectTypeRef,
+        input: EntryFocus,
+        hostId?: string
+    ): Promise<XpertProjectEntry | OtherAssistant> {
         if (input.pipelineNodeId && !input.projectId)
             throw new BadRequestException(t('server-ai:Error.ProjectPipelineNotFound'))
         let project: XpertProject | undefined
@@ -366,6 +386,8 @@ export class XpertProjectTypeService {
             : await provider.createEntry(context)
         const xpertId = binding.xpertId ?? suggestedXpertId
         if (!xpertId) throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))
+        // An Assistant-scoped credential may discover a handoff, never resolve another host's View.
+        if (hostId && hostId !== xpertId) return { kind: 'other-assistant' }
         const xpert = await this.xperts.getAccessiblePublishedXpert(xpertId)
         if ((xpert.organizationId ?? null) !== (RequestContext.getOrganizationId() ?? null))
             throw new NotFoundException(t('server-ai:Error.ProjectApplicationEntryUnavailable'))

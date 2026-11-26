@@ -40,6 +40,7 @@ async function fixture() {
     const entry = jest
         .fn()
         .mockResolvedValue({ xpertId: 'assistant', viewKey: 'registered__business', selectionId: 'exact-object' })
+    const projectEntry = jest.fn()
     const resolve = jest.fn().mockReturnValue({ resolveEntry: entry })
     const access = { assertCanRead: jest.fn(), assertCanUseXpert: jest.fn() }
     const instance = jest.fn().mockResolvedValue({
@@ -71,7 +72,7 @@ async function fixture() {
                 useValue: { findOneBy: instance, manager: { findOneBy: read } }
             },
             { provide: ProjectPipelineRuntimeAdapterRegistry, useValue: { resolve } },
-            { provide: XpertProjectTypeService, useValue: { entryForProject: jest.fn() } },
+            { provide: XpertProjectTypeService, useValue: { entryForProject: projectEntry } },
             { provide: XpertProjectAccessService, useValue: access },
             {
                 provide: PublishedXpertAccessService,
@@ -85,7 +86,16 @@ async function fixture() {
             }
         ]
     }).compile()
-    return { service: module.get(ProjectPipelineWorkspaceService), entry, resolve, access, instance, round, read }
+    return {
+        service: module.get(ProjectPipelineWorkspaceService),
+        entry,
+        projectEntry,
+        resolve,
+        access,
+        instance,
+        round,
+        read
+    }
 }
 
 it('opens the exact persisted subject through its actor-scoped adapter and checks Assistant assignment', async () => {
@@ -239,4 +249,49 @@ it('selects the executor pinned to the selected run before resolving the order a
     f.entry.mockClear()
     await expect(f.service.entry(context, focus)).rejects.toThrow()
     expect(f.entry).not.toHaveBeenCalled()
+})
+
+it('resolves a provider node inside its own host and hands another host only the verified Project focus', async () => {
+    const f = await fixture()
+    f.instance.mockResolvedValue({
+        id: 'instance',
+        authority: 'provider',
+        currentRunId: 'run',
+        currentRoundId: 'round'
+    })
+    f.read.mockImplementation(async (entity) =>
+        entity === ProjectPipelineNodeEntity
+            ? { id: 'node' }
+            : entity === ProjectPipelineRunEntity
+              ? { id: 'run' }
+              : { id: 'round', runId: 'run' }
+    )
+    const focus = { instanceId: 'instance', roundId: 'round', pipelineNodeId: 'node' }
+    const appEntry = { kind: 'assistant', xpertId: 'app', viewKey: 'provider__studio' }
+    f.projectEntry.mockResolvedValue(appEntry)
+    await expect(f.service.entry(context, { ...focus, xpertId: 'app' }, 'navigation')).resolves.toEqual(appEntry)
+    await expect(f.service.entry(context, { ...focus, requireNodeWorkbench: true })).resolves.toEqual(appEntry)
+    f.projectEntry.mockResolvedValue({ kind: 'other-assistant' })
+    await expect(f.service.entry(context, { ...focus, xpertId: 'engineer' }, 'navigation')).resolves.toEqual({
+        kind: 'node-navigation',
+        target: {
+            target: 'project.application',
+            projectId: 'project',
+            pipelineInstanceId: 'instance',
+            pipelineRoundId: 'round',
+            pipelineNodeId: 'node'
+        }
+    })
+    expect(f.access.assertCanUseXpert).toHaveBeenCalledWith('project', 'engineer')
+    f.access.assertCanUseXpert.mockRejectedValue(Error('revoked'))
+    await expect(f.service.entry(context, { ...focus, xpertId: 'engineer' }, 'navigation')).rejects.toThrow('revoked')
+    f.projectEntry.mockClear()
+    f.instance.mockResolvedValue({
+        id: 'instance',
+        authority: 'provider',
+        currentRunId: 'run',
+        currentRoundId: 'newer'
+    })
+    await expect(f.service.entry(context, focus)).rejects.toThrow()
+    expect(f.projectEntry).not.toHaveBeenCalled()
 })

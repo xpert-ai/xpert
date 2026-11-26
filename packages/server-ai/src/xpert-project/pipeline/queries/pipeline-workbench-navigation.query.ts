@@ -7,6 +7,7 @@ import { t } from 'i18next'
 import { projectPipelineBindingSchema, type ProjectWorkbenchEntry } from '@xpert-ai/contracts'
 import type { ProjectPipelineContext } from '@xpert-ai/plugin-sdk'
 import { XpertProjectAccessService } from '../../services/project-access.service'
+import { XpertProjectTypeService } from '../../services/project-type.service'
 import { XpertProjectXpertBindingService } from '../../services/project-xpert-binding.service'
 import { projectionScope } from '../../services/task-projection/project-task-projection.writer'
 import { XpertProject } from '../../entities/project.entity'
@@ -33,7 +34,8 @@ export class ProjectPipelineWorkbenchHandler implements IQueryHandler<ProjectPip
     constructor(
         private readonly database: DataSource,
         private readonly access: XpertProjectAccessService,
-        private readonly bindings: XpertProjectXpertBindingService
+        private readonly bindings: XpertProjectXpertBindingService,
+        private readonly projectTypes: XpertProjectTypeService
     ) {}
 
     async execute({ context, focus }: ProjectPipelineWorkbenchQuery): Promise<ProjectWorkbenchEntry> {
@@ -64,11 +66,19 @@ export class ProjectPipelineWorkbenchHandler implements IQueryHandler<ProjectPip
                     id: focus.pipelineNodeId,
                     roundId: round.id
                 }))
-            if (!instance || instance.authority !== 'platform' || !run?.bindingSnapshot || !node) throw missing()
-            const binding = projectPipelineBindingSchema.parse(run.bindingSnapshot)
-            candidates = [...Object.values(binding.roleBindings), ...Object.values(binding.executorBindings ?? {})]
-                .filter((participant) => participant.kind === 'assistant')
-                .map((participant) => participant.selectionKey)
+            if (!instance || !run || !node) throw missing()
+            if (instance.authority === 'provider') {
+                // The registered application owns this pipeline. Resolve its persisted Project binding.
+                const entry = await this.projectTypes.entryForProject(context.projectId)
+                if (entry.kind !== 'assistant') throw missing()
+                candidates = [entry.xpertId]
+            } else {
+                if (!run.bindingSnapshot) throw missing()
+                const binding = projectPipelineBindingSchema.parse(run.bindingSnapshot)
+                candidates = [...Object.values(binding.roleBindings), ...Object.values(binding.executorBindings ?? {})]
+                    .filter((participant) => participant.kind === 'assistant')
+                    .map((participant) => participant.selectionKey)
+            }
         } else {
             const project = await this.database.getRepository(XpertProject).findOne({
                 where: { id: context.projectId, tenantId: scope.tenantId, organizationId: scope.organizationId },

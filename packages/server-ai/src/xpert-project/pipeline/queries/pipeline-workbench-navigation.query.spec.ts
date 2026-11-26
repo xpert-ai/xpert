@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing'
 import { DataSource, IsNull } from 'typeorm'
 import { ProjectPipelineWorkbenchHandler, ProjectPipelineWorkbenchQuery } from './pipeline-workbench-navigation.query'
+import { XpertProjectTypeService } from '../../services/project-type.service'
 import { XpertProjectAccessService } from '../../services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../services/project-xpert-binding.service'
 import {
@@ -14,6 +15,7 @@ const context = { projectId: 'project', actor: { tenantId: 'tenant', organizatio
 const focus = { pipelineInstanceId: 'instance', pipelineRoundId: 'round', pipelineNodeId: 'node' }
 async function fixture() {
     const access = { assertCanRead: jest.fn(), assertCanUseXpert: jest.fn() }
+    const projectEntry = jest.fn().mockResolvedValue({ kind: 'project' })
     const resolve = jest.fn(async (id: string) => ({ id, name: 'Assistant' }))
     const binding = {
         templateRef: 'neutral@1',
@@ -36,11 +38,21 @@ async function fixture() {
                 provide: DataSource,
                 useValue: { manager: { findOneBy: read }, getRepository: () => ({ findOne: project }) }
             },
+            { provide: XpertProjectTypeService, useValue: { entryForProject: projectEntry } },
             { provide: XpertProjectAccessService, useValue: access },
             { provide: XpertProjectXpertBindingService, useValue: { resolveCurrentById: resolve } }
         ]
     }).compile()
-    return { handler: module.get(ProjectPipelineWorkbenchHandler), access, resolve, rows, read, project, binding }
+    return {
+        handler: module.get(ProjectPipelineWorkbenchHandler),
+        access,
+        resolve,
+        rows,
+        read,
+        project,
+        binding,
+        projectEntry
+    }
 }
 
 it('resolves only the selected run bindings and exact Project/round/node, independently of the Assistant catalog', async () => {
@@ -115,10 +127,17 @@ it('keeps Project authorization ahead of resource reads and rechecks Assistant u
     )
 })
 
-it('has no implicit Assistant fallback for provider-managed or unbound runs', async () => {
+it('requires a registered application Assistant for provider runs and preserves the originating focus', async () => {
     const f = await fixture()
     f.rows.set(ProjectPipelineInstanceEntity, { id: 'instance', authority: 'provider' })
     await expect(f.handler.execute(new ProjectPipelineWorkbenchQuery(context, focus))).rejects.toThrow()
+    f.projectEntry.mockResolvedValue({ kind: 'assistant', xpertId: 'case-owner' })
+    await expect(f.handler.execute(new ProjectPipelineWorkbenchQuery(context, focus))).resolves.toMatchObject({
+        assistant: { id: 'case-owner' },
+        view: { parameters: { initialTab: 'pipeline', ...focus } }
+    })
+    expect(f.projectEntry).toHaveBeenCalledWith('project')
+    expect(f.access.assertCanUseXpert).toHaveBeenCalledWith('project', 'case-owner')
     f.rows.set(ProjectPipelineInstanceEntity, { id: 'instance', authority: 'platform' })
     f.rows.set(ProjectPipelineRunEntity, { id: 'run', bindingSnapshot: { ...f.binding, executorBindings: {} } })
     await expect(f.handler.execute(new ProjectPipelineWorkbenchQuery(context, focus))).rejects.toThrow()

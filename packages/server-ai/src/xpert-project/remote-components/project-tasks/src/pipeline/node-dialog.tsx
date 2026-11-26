@@ -65,6 +65,7 @@ export function PipelineNodeDialog({
     const [error, setError] = useState('')
     const tasks = graph.tasks.tasks.filter((task) => node.taskIds.includes(task.id))
     const attempts = pipelineExecutions(graph, [node])
+    const focusedEntry = graph.instance.authority === 'provider' || graph.nodeWorkbench
     const taskTexts = texts(locale)
     const observedAt =
         graph.historical && !graph.executionAttribution ? (graph.snapshotAt ? Date.parse(graph.snapshotAt) : NaN) : now
@@ -310,8 +311,8 @@ export function PipelineNodeDialog({
                                     key={`entry:${node.id}`}
                                     projectId={projectId}
                                     nodeId={node.id}
-                                    instanceId={graph.nodeWorkbench ? graph.instance.id : undefined}
-                                    roundId={graph.nodeWorkbench ? graph.roundId : undefined}
+                                    instanceId={focusedEntry ? graph.instance.id : undefined}
+                                    roundId={focusedEntry ? graph.roundId : undefined}
                                     t={t}
                                 />
                             )}
