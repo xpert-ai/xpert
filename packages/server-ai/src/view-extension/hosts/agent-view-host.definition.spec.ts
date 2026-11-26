@@ -152,7 +152,13 @@ describe('AgentViewHostDefinition', () => {
                 versionIds: ['agent-host-1']
             },
             capabilities: {
-                features: ['bom_document_intake', 'platform.conversation-map', 'sandbox', 'platform.event-inbox']
+                features: [
+                    'bom_document_intake',
+                    'platform.conversation-map',
+                    'sandbox',
+                    'platform.event-inbox',
+                    'platform.workspace-files'
+                ]
             },
             hostState: {
                 agent: {
@@ -614,7 +620,9 @@ describe('AgentViewHostDefinition', () => {
         const draft = await definition.resolve('agent-host-1', { isDraft: true })
 
         expect(published?.context).toMatchObject({
-            capabilities: { features: ['platform.conversation-map', 'platform.event-inbox'] },
+            capabilities: {
+                features: ['platform.conversation-map', 'platform.event-inbox', 'platform.workspace-files']
+            },
             hostState: {
                 agent: {
                     key: 'Agent_Published',
@@ -623,7 +631,14 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect(draft?.context).toMatchObject({
-            capabilities: { features: ['platform.conversation-map', 'story-studio', 'platform.event-inbox'] },
+            capabilities: {
+                features: [
+                    'platform.conversation-map',
+                    'story-studio',
+                    'platform.event-inbox',
+                    'platform.workspace-files'
+                ]
+            },
             hostState: {
                 agent: {
                     key: 'Agent_StoryStudio',

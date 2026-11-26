@@ -6,3 +6,6 @@ export const LEGACY_AGENT_WORKBENCH_SLOTS = ['agent.workbench.fixed', 'agent.wor
 
 /** Platform-provided navigation, available without Assistant middleware. */
 export const CONVERSATION_MAP_FEATURE = 'platform.conversation-map'
+
+/** Workspace file views are available independently of Assistant tool capabilities. */
+export const WORKSPACE_FILES_FEATURE = 'platform.workspace-files'
