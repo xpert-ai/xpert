@@ -67,6 +67,8 @@ export type TXpertToolset = {
 export interface IXpertToolset extends IBasePerWorkspaceEntityModel, TXpertToolset {}
 
 export type TXpertToolsetOptions = {
+  /** Explicit workspace connection identity consumed by Assistant capabilities. */
+  capabilityBindingKey?: string
   provider?: IToolProvider
   baseUrl?: string
   toolPositions?: Record<string, number>

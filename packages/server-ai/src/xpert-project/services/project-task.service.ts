@@ -92,12 +92,26 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                         await this.assertBusinessStatus(manager, entity.id, entity.status)
                     }
                     if (parentTaskId != null) {
-                        if (typeof parentTaskId !== 'string' || !parentTaskId)
-                            throw projectTaskRuntimeError('State')
+                        if (typeof parentTaskId !== 'string' || !parentTaskId) throw projectTaskRuntimeError('State')
                         // Validate the parent in the same transaction as creation and task completion.
                         const parent = await repository.findOneBy({ id: parentTaskId, projectId, ...this.taskScope() })
-                        if (!parent || parent.kind !== 'summary' || ['done', 'completed', 'cancelled'].includes(parent.status))
-                            throw projectTaskRuntimeError('State')
+                        if (
+                            !parent ||
+                            parent.kind !== 'summary' ||
+                            ['done', 'completed', 'cancelled'].includes(parent.status)
+                        )
+                            throw new BadRequestException({
+                                code: 'PROJECT_TASK_PARENT_INVALID',
+                                message: t('server-ai:Error.ProjectTaskParentInvalid', {
+                                    defaultValue:
+                                        'parentTaskId must identify an existing ordinary summary task in this Project that is not completed or cancelled. Create the summary first and use its returned ID; a Pipeline stage cannot be the parent.'
+                                }),
+                                field: 'parentTaskId',
+                                parentTaskId,
+                                observed: parent
+                                    ? { kind: parent.kind, status: parent.status, controlKind: parent.controlKind }
+                                    : null
+                            })
                         assertOrdinaryTask(parent)
                     }
                     const task = await repository.save({
@@ -240,11 +254,11 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (
             current?.reviewSubject ||
             (current?.kind === 'summary' &&
-                await manager.getRepository(XpertProjectTaskExecution).existsBy({
+                (await manager.getRepository(XpertProjectTaskExecution).existsBy({
                     ...this.taskScope(),
                     projectId: current.projectId,
                     purpose: JsonContains({ type: 'implementation', coordination: { taskId } })
-                }))
+                })))
         )
             throw projectTaskRuntimeError('DecisionRequired')
         if (

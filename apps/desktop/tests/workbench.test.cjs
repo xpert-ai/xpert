@@ -2,6 +2,25 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { platformCommandUrl } = require('../electron/workbench-platform.mjs')
+test('human action links retain organization and exact pipeline focus without accepting an external destination', () => {
+  const id = 'a1111111-1111-4111-8111-111111111111'
+  const target = {
+    target: 'project.pipelines',
+    projectId: id,
+    organizationId: id,
+    pipelineInstanceId: id,
+    pipelineRoundId: id,
+    pipelineNodeId: id
+  }
+  const url = new URL(platformCommandUrl('https://platform.example', target))
+  assert.equal(url.pathname, `/project/${id}/pipelines`)
+  for (const key of ['organizationId', 'pipelineInstanceId', 'pipelineRoundId', 'pipelineNodeId'])
+    assert.equal(url.searchParams.get(key), id)
+  assert.equal(
+    platformCommandUrl('https://platform.example', { ...target, organizationId: 'https://other.example' }),
+    null
+  )
+})
 
 test('opens analytics definitions on the configured host and rejects extra parameters', () => {
   const base = 'https://customer.example/platform'

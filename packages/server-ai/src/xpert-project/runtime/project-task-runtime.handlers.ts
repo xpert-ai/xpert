@@ -1,3 +1,4 @@
+import { ProjectReviewEnvironment } from '../review/project-review.environment'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
     UpdateProjectTaskPlanCommand,
@@ -68,10 +69,14 @@ export class ReadProjectTaskResultHandler implements ICommandHandler<ReadProject
 export class ListProjectRuntimeBindingsHandler implements ICommandHandler<ListProjectRuntimeBindingsCommand> {
     constructor(
         private readonly context: ProjectTaskRuntimeContextService,
-        private readonly factory: AgentInvocationFactoryService
+        private readonly factory: AgentInvocationFactoryService,
+        private readonly reviews: ProjectReviewEnvironment
     ) {}
     async execute(command: ListProjectRuntimeBindingsCommand) {
-        return this.factory.listProjectBindings(await this.context.resolve(command.projectId, command.caller))
+        return this.factory.listProjectBindings(
+            await this.context.resolve(command.projectId, command.caller),
+            (target) => ({ reviewModes: this.reviews.supportedModes(target) })
+        )
     }
 }
 @CommandHandler(RecoverProjectTaskDeliveryCommand)

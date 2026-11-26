@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 jest.mock('./plugin-sdk-versioning', () => ({
 	assertInstalledPluginSdkCompatibility: jest.fn(),
 	ensureHostContractsLink: jest.fn(),
+	ensureHostPluginOrmLinks: jest.fn(),
 	ensureHostPluginSdkLink: jest.fn(),
 	warnPluginSdkCompatibility: jest.fn()
 }))
@@ -165,6 +166,10 @@ describe('plugin loader', () => {
 		expect(plugin.meta.name).toBe('@xpert-ai/plugin-uploaded-demo')
 		expect(pluginSdkVersioning.ensureHostPluginSdkLink).toHaveBeenCalledWith(basedir)
 		expect(pluginSdkVersioning.ensureHostContractsLink).toHaveBeenCalledWith(basedir)
+		expect(pluginSdkVersioning.ensureHostPluginOrmLinks).toHaveBeenCalledWith(
+			'@xpert-ai/plugin-uploaded-demo',
+			basedir
+		)
 	})
 
 	it('skips TS source loading for local ESM workspaces and falls back to the staged package entry', async () => {

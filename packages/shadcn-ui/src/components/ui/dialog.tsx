@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 
 import { Button } from '@/components/ui/button'
 import { XIcon } from 'lucide-react'
+import { useNestedDismissGuard } from '@/lib/use-nested-dismiss-guard'
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -40,14 +41,11 @@ const DialogOverlay = React.forwardRef<
   )
 })
 
-function DialogContent({
-  className,
-  children,
-  showCloseButton = true,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
-}) {
+const DialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { showCloseButton?: boolean }
+>(function DialogContent({ className, children, showCloseButton = true, onPointerDownOutside, ...props }, ref) {
+  const dismissGuard = useNestedDismissGuard(ref)
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -58,6 +56,11 @@ function DialogContent({
           className
         )}
         {...props}
+        ref={dismissGuard.ref}
+        onPointerDownOutside={(event) => {
+          dismissGuard.onPointerDownOutside(event)
+          onPointerDownOutside?.(event)
+        }}
       >
         {children}
         {showCloseButton && (
@@ -71,7 +74,7 @@ function DialogContent({
       </DialogPrimitive.Content>
     </DialogPortal>
   )
-}
+})
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return <div data-slot="dialog-header" className={cn('flex flex-col gap-2', className)} {...props} />

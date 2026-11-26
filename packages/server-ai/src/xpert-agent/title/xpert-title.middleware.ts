@@ -21,11 +21,7 @@ export class XpertTitleMiddlewareService {
         return {
             name: XPERT_TITLE_MIDDLEWARE_NAME,
             afterAgent: async (state, runtime) => {
-                if ((state as typeof AgentStateAnnotation.State).title) {
-                    return
-                }
-
-                return this.conversationTitleService.generateStatePatch({
+                return this.conversationTitleService.generateThreadStatePatch({
                     channel: agentChannel,
                     config: runtime as RunnableConfig,
                     state: state as typeof AgentStateAnnotation.State,

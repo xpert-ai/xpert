@@ -26,9 +26,9 @@ describe('approved Git delivery authorization and recovery', () => {
       f.manifestFile.artifactId
     )
     const candidate = await f.evidence.read(f.context, ref),
-      c = await f.next('deployment', ref)
+      c = await f.next('deployment', ref, undefined, true)
     const report = f.addFile('target-report.json', 'independent target checks'),
-      installation = f.addFile('install.json', 'installation')
+      installation = f.addFile('install.json', JSON.stringify(f.installationReceipt()))
     const manifest = f.addFile(
       'delivery-manifest.json',
       JSON.stringify({

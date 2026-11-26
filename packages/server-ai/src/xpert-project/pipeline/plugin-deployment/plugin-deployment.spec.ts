@@ -1,9 +1,12 @@
+import { ForbiddenException } from '@nestjs/common'
+import { ProjectPluginInstallationAuthorizationStore } from './plugin-installation-authorization.store'
+import { ProjectPluginInstallationAuthorizationService } from './plugin-installation-authorization.service'
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
 import { randomUUID, createHash } from 'node:crypto'
 import { RequestContext, type ProjectPipelineOperationContext } from '@xpert-ai/plugin-sdk'
-import { projectPluginDeploymentRefs } from '@xpert-ai/contracts'
+import { projectPluginDeploymentRefs, UserType, type IUser } from '@xpert-ai/contracts'
 import { ArtifactsService } from '../../../artifacts/artifacts.service'
 import { ProjectAccessRuntimeService } from '../../services/project-access-runtime.service'
 import { ProjectFilesRuntimeService } from '../../services/project-files-runtime.service'
@@ -14,174 +17,433 @@ import { ProjectPluginTestAccessService } from './plugin-test-access.service'
 import { ProjectPluginDeploymentAdapters } from './plugin-deployment.adapters'
 import { pipelineDigest } from '../persistence/pipeline-identity'
 import { pipelineDecisionEvidence } from '../runtime/pipeline-decision-evidence'
-import { ProjectPipelineDecisionEntity, ProjectPipelineOperationEntity, ProjectPipelineEventEntity } from '../persistence/pipeline.entity'
+import {
+    ProjectPipelineDecisionEntity,
+    ProjectPipelineOperationEntity,
+    ProjectPipelineEventEntity
+} from '../persistence/pipeline.entity'
 import { decisionEvidence } from '../runtime/pipeline-decision-inputs'
 
 jest.mock('@xpert-ai/server-core', () => ({
-  DeployPluginArchiveCommand: class { constructor(readonly input: unknown) {} },
-  ResolveExecutionIdentityCommand: class { constructor(readonly actor: unknown) {} },
-  runWithExecutionIdentity: jest.fn(async (_identity: unknown, callback: () => Promise<unknown>) => callback())
+    DeployPluginArchiveCommand: class {
+        constructor(readonly input: unknown) {}
+    },
+    ResolveExecutionIdentityCommand: class {
+        constructor(readonly actor: unknown) {}
+    },
+    runWithExecutionIdentity: jest.fn(async (_identity: unknown, callback: () => Promise<unknown>) => callback())
 }))
 jest.mock('../../../artifacts/artifacts.service', () => ({ ArtifactsService: class {} }))
 jest.mock('../../services/project-access-runtime.service', () => ({ ProjectAccessRuntimeService: class {} }))
 jest.mock('../../services/project-files-runtime.service', () => ({ ProjectFilesRuntimeService: class {} }))
 jest.mock('../../services/task-projection/project-task-projection.writer', () => ({
-  projectionScope: (c: ProjectPipelineOperationContext) => ({ tenantId: c.actor.tenantId, organizationId: c.actor.organizationId, projectId: c.projectId })
+    projectionScope: (c: ProjectPipelineOperationContext) => ({
+        tenantId: c.actor.tenantId,
+        organizationId: c.actor.organizationId,
+        projectId: c.projectId
+    })
 }))
 jest.mock('../runtime/pipeline-transaction', () => ({
-  lockManagedProject: jest.fn(), managedAudit: () => ({})
+    lockManagedProject: jest.fn(),
+    managedAudit: () => ({})
 }))
-jest.mock('../persistence/pipeline-human-wait-snapshot', () => ({ capturePipelineHumanWaitSnapshot: async () => ({ nodeIds: [] }) }))
+jest.mock('../persistence/pipeline-human-wait-snapshot', () => ({
+    capturePipelineHumanWaitSnapshot: async () => ({ nodeIds: [] })
+}))
 jest.mock('../persistence/pipeline.entity', () => ({
-  ProjectPipelineOperationEntity: class ProjectPipelineOperationEntity {},
-  ProjectPipelineInstanceEntity: class ProjectPipelineInstanceEntity {},
-  ProjectPipelineRoundEntity: class ProjectPipelineRoundEntity {},
-  ProjectPipelineRunEntity: class ProjectPipelineRunEntity {},
-  ProjectPipelineNodeEntity: class ProjectPipelineNodeEntity {},
-  ProjectPipelineDecisionEntity: class ProjectPipelineDecisionEntity {},
-  ProjectPipelineEventEntity: class ProjectPipelineEventEntity {}
+    ProjectPipelineOperationEntity: class ProjectPipelineOperationEntity {},
+    ProjectPipelineInstanceEntity: class ProjectPipelineInstanceEntity {},
+    ProjectPipelineRoundEntity: class ProjectPipelineRoundEntity {},
+    ProjectPipelineRunEntity: class ProjectPipelineRunEntity {},
+    ProjectPipelineNodeEntity: class ProjectPipelineNodeEntity {},
+    ProjectPipelineDecisionEntity: class ProjectPipelineDecisionEntity {},
+    ProjectPipelineEventEntity: class ProjectPipelineEventEntity {}
 }))
 
 describe('host-owned plugin deployment node', () => {
-  const buffer = Buffer.from('approved archive')
-  const request = { target: 'current-instance' as const, artifactId: randomUUID(), artifactVersionId: randomUUID(),
-    fileName: 'plugin.tgz', packageName: '@test/plugin', packageVersion: '1.0.0',
-    sha256: createHash('sha256').update(buffer).digest('hex'), allowReplace: false, allowRestart: false }
-  const actor = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() }, publisher = randomUUID()
-  const requestRef = { resolverRef: 'test.candidate@1', schemaRef: projectPluginDeploymentRefs.request,
-    objectKey: randomUUID(), version: '1', digest: pipelineDigest(request), producerOperationId: randomUUID() }
-  let c: ProjectPipelineOperationContext, operation: ProjectPipelineOperationEntity, decision: ProjectPipelineDecisionEntity
-  let service: ProjectPluginDeploymentService, store: ProjectPluginDeploymentStore, tests: ProjectPluginTestAccessService
-  let events: ProjectPipelineEventEntity[], active: boolean
-  const execute = jest.fn(), assertEdit = jest.fn(), assertManage = jest.fn(), verify = jest.fn(), readArchive = jest.fn()
-  const write = jest.fn(), readFile = jest.fn()
-  beforeEach(async () => {
-    jest.clearAllMocks(); active = true; events = []
-    jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(actor.userId)
-    jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(actor.tenantId)
-    jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
-    const operationId = randomUUID()
-    c = { actor, projectId: randomUUID(), idempotencyKey: operationId,
-      work: { operationId, instanceId: randomUUID(), runId: randomUUID(), roundId: randomUUID(), nodeInstanceId: randomUUID(),
-        generation: 1, inputDigest: 'a'.repeat(64) }, subjects: [], parameters: {}, inputs: { request: { kind: 'evidence', value: requestRef } } }
-    decision = Object.assign(new ProjectPipelineDecisionEntity(), { id: randomUUID(), kind: 'human' as const,
-      roundId: c.work.roundId, nodeInstanceId: randomUUID(), operationId: randomUUID(), inputDigest: c.work.inputDigest,
-      generation: 1, outcome: 'approve', actorId: publisher, policyRef: 'test.approval@1', evidence: [requestRef] })
-    c.inputs.approval = { kind: 'evidence', value: pipelineDecisionEvidence(decision) }
-    operation = Object.assign(new ProjectPipelineOperationEntity(), { id: operationId, context: structuredClone(c),
-      handlerRef: projectPluginDeploymentRefs.operation, kind: 'operation' as const, state: 'dispatching' as const,
-      dispatchStartedAt: new Date(), leaseOwner: randomUUID(), leaseFence: 1, leaseExpiresAt: new Date(Date.now() + 120000) })
-    const find = async (entity: { name: string }, query: { id: string }) => {
-      if (entity.name === 'ProjectPipelineOperationEntity') return operation
-      if (entity.name === 'ProjectPipelineDecisionEntity') return decision
-      if (entity.name === 'ProjectPipelineEventEntity') return events.find((event) => event.id === query.id) ?? null
-      if (entity.name === 'ProjectPipelineInstanceEntity') return { id: c.work.instanceId, authority: 'platform',
-        currentRunId: c.work.runId, currentRoundId: active ? c.work.roundId : randomUUID(), revision: 1 }
-      if (entity.name === 'ProjectPipelineRunEntity') return { state: 'active' }
-      if (entity.name === 'ProjectPipelineRoundEntity') return { state: 'active', generation: 1, inputDigest: c.work.inputDigest }
-      if (entity.name === 'ProjectPipelineNodeEntity') return { disposition: 'active', projection: { state: { freshness: 'current', applicability: 'selected' } } }
-      throw Error(entity.name)
+    const buffer = Buffer.from('approved archive')
+    const request = {
+        target: 'current-instance' as const,
+        artifactId: randomUUID(),
+        artifactVersionId: randomUUID(),
+        fileName: 'plugin.tgz',
+        packageName: '@test/plugin',
+        packageVersion: '1.0.0',
+        sha256: createHash('sha256').update(buffer).digest('hex'),
+        allowReplace: false,
+        allowRestart: false
     }
-    const manager = { findOneBy: jest.fn(find), findOneByOrFail: jest.fn(find), save: jest.fn(),
-      insert: jest.fn(async (_entity: unknown, event: ProjectPipelineEventEntity) => { events.push(event) }) }
-    verify.mockResolvedValue(request); assertEdit.mockResolvedValue({}); assertManage.mockResolvedValue({})
-    readArchive.mockResolvedValue({ buffer, artifact: { id: request.artifactId, ...actor, projectId: c.projectId },
-      version: { id: request.artifactVersionId, artifactId: request.artifactId } })
-    execute.mockImplementation(async (command: object) => 'actor' in command ? { resolved: true } : 'input' in command ? {
-      packageName: request.packageName, expectedSha256: request.sha256, expectedVersion: request.packageVersion,
-      installed: true, loaded: true, scopeKey: 'tenant:test', runtimeRevision: 'runtime-1', restartRequired: false
-    } : { secret: 'bounded-test-secret', endpoint: '/mcp', publicationId: randomUUID(), expiresAt: '2030-01-01T00:00:00Z' })
-    readFile.mockRejectedValue(Object.assign(Error('missing'), { code: 'ENOENT' }))
-    const module = await Test.createTestingModule({ providers: [ProjectPluginDeploymentStore, ProjectPluginDeploymentService,
-      ProjectPluginTestAccessService, ...ProjectPluginDeploymentAdapters,
-      { provide: DataSource, useValue: { manager, transaction: (fn: (value: typeof manager) => Promise<unknown>) => fn(manager) } },
-      { provide: CommandBus, useValue: { execute } }, { provide: ProjectPipelineEvidenceService, useValue: { verify } },
-      { provide: ProjectAccessRuntimeService, useValue: { assertEdit, assertManage, listReadable: jest.fn(async () => [{}]) } },
-      { provide: ProjectFilesRuntimeService, useValue: { mkdir: jest.fn(), read: readFile, write } },
-      { provide: ArtifactsService, useValue: { readArtifactVersion: readArchive } }] }).compile()
-    service = module.get(ProjectPluginDeploymentService); store = module.get(ProjectPluginDeploymentStore); tests = module.get(ProjectPluginTestAccessService)
-  })
-  afterEach(() => jest.restoreAllMocks())
-
-  it('pins gate inputs alongside attachments and deduplicates exact references', () => {
-    expect(decisionEvidence({ request: { kind: 'evidence', value: requestRef }, copies: { kind: 'evidence_collection', value: [requestRef] } }, []))
-      .toEqual([requestRef])
-  })
-  it('authorizes the recorded publisher and persists immutable host evidence', async () => {
-    const receipt = await service.execute(c)
-    expect(execute.mock.calls[0][0]).toMatchObject({ actor: { ...actor, userId: publisher, kind: 'user' } })
-    expect(assertManage).toHaveBeenCalledWith({ ...c, actor: { ...actor, userId: publisher } })
-    expect(execute.mock.calls[1][0]).toMatchObject({ input: { buffer, allowReplace: false, allowRestart: false, action: 'install' } })
-    if (receipt.status !== 'succeeded') throw Error('missing receipt')
-    await expect(store.read(c, receipt.outputs.deployment)).resolves.toMatchObject({ request, runtimeRevision: 'runtime-1' })
-    expect(events).toHaveLength(1)
-    await service.inspect(c)
-    expect(events).toHaveLength(1)
-  })
-  it.each(['no-approved-input', 'different-round', 'different-generation', 'declined', 'policy-decision', 'stale-worker', 'cancelled', 'expired-lease', 'superseded'] as const)
-    ('blocks %s before installation', async (reason) => {
-      if (reason === 'no-approved-input') decision.evidence = []
-      if (reason === 'different-round') decision.roundId = randomUUID()
-      if (reason === 'different-generation') decision.generation++
-      if (reason === 'declined') decision.outcome = 'rework'
-      if (reason === 'policy-decision') decision.kind = 'policy'
-      if (reason === 'stale-worker') c.inputs.request = { kind: 'evidence', value: { ...requestRef, digest: 'f'.repeat(64) } }
-      if (reason === 'cancelled') operation.cancelRequestedAt = new Date()
-      if (reason === 'expired-lease') operation.leaseExpiresAt = new Date(0)
-      if (reason === 'superseded') active = false
-      await expect(service.execute(c)).rejects.toThrow()
-      expect(execute).not.toHaveBeenCalled()
+    const actor = { tenantId: randomUUID(), organizationId: randomUUID(), userId: randomUUID() },
+        publisher = randomUUID(),
+        installer = randomUUID()
+    const requestRef = {
+        resolverRef: 'test.candidate@1',
+        schemaRef: projectPluginDeploymentRefs.request,
+        objectKey: randomUUID(),
+        version: '1',
+        digest: pipelineDigest(request),
+        producerOperationId: randomUUID()
+    }
+    let c: ProjectPipelineOperationContext,
+        operation: ProjectPipelineOperationEntity,
+        decision: ProjectPipelineDecisionEntity
+    let service: ProjectPluginDeploymentService,
+        store: ProjectPluginDeploymentStore,
+        tests: ProjectPluginTestAccessService
+    let installation: ProjectPluginInstallationAuthorizationService
+    let authorizations: ProjectPluginInstallationAuthorizationStore
+    let events: ProjectPipelineEventEntity[], active: boolean
+    const execute = jest.fn(),
+        assertEdit = jest.fn(),
+        assertManage = jest.fn(),
+        verify = jest.fn(),
+        readArchive = jest.fn()
+    const write = jest.fn(),
+        readFile = jest.fn()
+    beforeEach(async () => {
+        jest.clearAllMocks()
+        active = true
+        events = []
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(actor.userId)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: actor.userId, type: UserType.USER } as IUser)
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(undefined)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(actor.tenantId)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(actor.organizationId)
+        const operationId = randomUUID()
+        c = {
+            actor,
+            projectId: randomUUID(),
+            idempotencyKey: operationId,
+            work: {
+                operationId,
+                instanceId: randomUUID(),
+                runId: randomUUID(),
+                roundId: randomUUID(),
+                nodeInstanceId: randomUUID(),
+                generation: 1,
+                inputDigest: 'a'.repeat(64)
+            },
+            subjects: [],
+            parameters: {},
+            inputs: { request: { kind: 'evidence', value: requestRef } }
+        }
+        decision = Object.assign(new ProjectPipelineDecisionEntity(), {
+            id: randomUUID(),
+            kind: 'human' as const,
+            roundId: c.work.roundId,
+            nodeInstanceId: randomUUID(),
+            operationId: randomUUID(),
+            inputDigest: c.work.inputDigest,
+            generation: 1,
+            outcome: 'approve',
+            actorId: publisher,
+            policyRef: 'test.approval@1',
+            evidence: [requestRef]
+        })
+        c.inputs.approval = { kind: 'evidence', value: pipelineDecisionEvidence(decision) }
+        operation = Object.assign(new ProjectPipelineOperationEntity(), {
+            id: operationId,
+            instanceId: c.work.instanceId,
+            roundId: c.work.roundId,
+            context: structuredClone(c),
+            handlerRef: projectPluginDeploymentRefs.operation,
+            kind: 'operation' as const,
+            state: 'dispatching' as const,
+            dispatchStartedAt: new Date(),
+            leaseOwner: randomUUID(),
+            leaseFence: 1,
+            leaseExpiresAt: new Date(Date.now() + 120000)
+        })
+        const find = async (entity: { name: string }, query: { id: string }) => {
+            if (entity.name === 'ProjectPipelineOperationEntity') return operation
+            if (entity.name === 'ProjectPipelineDecisionEntity') return decision
+            if (entity.name === 'ProjectPipelineEventEntity')
+                return events.find((event) => event.id === query.id) ?? null
+            if (entity.name === 'ProjectPipelineInstanceEntity')
+                return {
+                    id: c.work.instanceId,
+                    authority: 'platform',
+                    currentRunId: c.work.runId,
+                    currentRoundId: active ? c.work.roundId : randomUUID(),
+                    revision: 1
+                }
+            if (entity.name === 'ProjectPipelineRunEntity') return { state: 'active' }
+            if (entity.name === 'ProjectPipelineRoundEntity')
+                return { state: 'active', generation: 1, inputDigest: c.work.inputDigest }
+            if (entity.name === 'ProjectPipelineNodeEntity')
+                return {
+                    disposition: 'active',
+                    projection: { state: { freshness: 'current', applicability: 'selected' } }
+                }
+            throw Error(entity.name)
+        }
+        const manager = {
+            findOneBy: jest.fn(find),
+            findOneByOrFail: jest.fn(find),
+            save: jest.fn(),
+            update: jest.fn(),
+            existsBy: jest.fn(async (entity: { name: string }, query: { id: string }) => !!(await find(entity, query))),
+            insert: jest.fn(async (_entity: unknown, event: ProjectPipelineEventEntity) => {
+                events.push(event)
+            })
+        }
+        verify.mockResolvedValue(request)
+        assertEdit.mockResolvedValue({})
+        assertManage.mockResolvedValue({})
+        readArchive.mockResolvedValue({
+            buffer,
+            artifact: { id: request.artifactId, ...actor, projectId: c.projectId },
+            version: { id: request.artifactVersionId, artifactId: request.artifactId }
+        })
+        execute.mockImplementation(async (command: object) =>
+            'actor' in command
+                ? { resolved: true }
+                : 'input' in command
+                  ? {
+                        packageName: request.packageName,
+                        expectedSha256: request.sha256,
+                        expectedVersion: request.packageVersion,
+                        installed: true,
+                        loaded: true,
+                        scopeKey: 'tenant:test',
+                        runtimeRevision: 'runtime-1',
+                        restartRequired: false
+                    }
+                  : {
+                        secret: 'bounded-test-secret',
+                        endpoint: '/mcp',
+                        publicationId: randomUUID(),
+                        expiresAt: '2030-01-01T00:00:00Z'
+                    }
+        )
+        readFile.mockRejectedValue(Object.assign(Error('missing'), { code: 'ENOENT' }))
+        const module = await Test.createTestingModule({
+            providers: [
+                ProjectPluginDeploymentStore,
+                ProjectPluginDeploymentService,
+                ProjectPluginTestAccessService,
+                ProjectPluginInstallationAuthorizationStore,
+                ProjectPluginInstallationAuthorizationService,
+                ...ProjectPluginDeploymentAdapters,
+                {
+                    provide: DataSource,
+                    useValue: { manager, transaction: (fn: (value: typeof manager) => Promise<unknown>) => fn(manager) }
+                },
+                { provide: CommandBus, useValue: { execute } },
+                { provide: ProjectPipelineEvidenceService, useValue: { verify } },
+                {
+                    provide: ProjectAccessRuntimeService,
+                    useValue: { assertEdit, assertManage, listReadable: jest.fn(async () => [{}]) }
+                },
+                { provide: ProjectFilesRuntimeService, useValue: { mkdir: jest.fn(), read: readFile, write } },
+                { provide: ArtifactsService, useValue: { readArtifactVersion: readArchive } }
+            ]
+        }).compile()
+        service = module.get(ProjectPluginDeploymentService)
+        store = module.get(ProjectPluginDeploymentStore)
+        tests = module.get(ProjectPluginTestAccessService)
+        installation = module.get(ProjectPluginInstallationAuthorizationService)
+        authorizations = module.get(ProjectPluginInstallationAuthorizationStore)
+        await authorizations.authorize(
+            { ...c, actor: { ...actor, userId: installer } },
+            operation,
+            authorizations.version(operation)
+        )
     })
-  it('does not accept a valid decision for a different request', async () => {
-    decision.evidence = [{ ...requestRef, digest: 'f'.repeat(64) }]
-    c.inputs.approval = { kind: 'evidence', value: pipelineDecisionEvidence(decision) }; operation.context = structuredClone(c)
-    await expect(service.execute(c)).rejects.toThrow()
-    expect(execute).not.toHaveBeenCalled()
-  })
-  it.each(['bytes', 'project', 'tenant', 'version'] as const)('rejects archive %s mismatch', async (field) => {
-    const archive = await readArchive()
-    if (field === 'bytes') archive.buffer = Buffer.from('other')
-    if (field === 'project') archive.artifact.projectId = randomUUID()
-    if (field === 'tenant') archive.artifact.tenantId = randomUUID()
-    if (field === 'version') archive.version.id = randomUUID()
-    await expect(service.execute(c)).rejects.toThrow()
-    expect(execute).toHaveBeenCalledTimes(1)
-  })
-  it('checks live publisher authority on every recovery', async () => {
-    assertManage.mockRejectedValueOnce(Error('revoked'))
-    await expect(service.inspect(c)).rejects.toThrow('revoked')
-    expect(execute).toHaveBeenCalledTimes(1)
-  })
-  it('recovers by inspection only, and waits for runtime loading', async () => {
-    execute.mockImplementation(async (cmd: object) => 'actor' in cmd ? {} : { installed: true, loaded: false })
-    await expect(service.inspect(c)).resolves.toEqual({ status: 'pending', receiptKey: c.work.operationId })
-    expect(execute.mock.calls[1][0]).toMatchObject({ input: { action: 'inspect' } })
-    expect(events).toHaveLength(0)
-  })
-  it('does not publish success after the round changes during installation', async () => {
-    const impl = execute.getMockImplementation()!
-    execute.mockImplementation(async (cmd: object) => { const result = await impl(cmd); if ('input' in cmd) active = false; return result })
-    await expect(service.execute(c)).rejects.toThrow()
-    expect(events).toHaveLength(0)
-  })
-  it('issues test access only for the accepted host receipt, with no installation or exposed secret', async () => {
-    operation.receipt = await service.execute(c); operation.state = 'accepted'
-    if (operation.receipt.status !== 'succeeded') throw Error('no receipt')
-    execute.mockClear()
-    const result = await tests.prepare(c, { deployment: operation.receipt.outputs.deployment, componentKey: 'tools' })
-    expect(JSON.stringify(result)).not.toContain('bounded-test-secret')
-    expect(write.mock.calls[0][0].buffer.toString()).toContain('bounded-test-secret')
-    expect(execute.mock.calls.some(([command]) => 'input' in command)).toBe(false)
-  })
-  it('does not issue test credentials for unaccepted or forged evidence', async () => {
-    const receipt = await service.execute(c)
-    if (receipt.status !== 'succeeded') throw Error('no receipt')
-    execute.mockClear()
-    await expect(tests.prepare(c, { deployment: receipt.outputs.deployment, componentKey: 'tools' })).rejects.toThrow()
-    await expect(tests.prepare(c, { deployment: { ...receipt.outputs.deployment, digest: 'f'.repeat(64) }, componentKey: 'tools' })).rejects.toThrow()
-    expect(execute).not.toHaveBeenCalled()
-  })
-  it('rejects impersonation before accessing evidence', async () => {
-    await expect(tests.prepare({ ...c, actor: { ...actor, userId: publisher } }, { deployment: requestRef, componentKey: 'tools' })).rejects.toMatchObject({ status: 403 })
-  })
+    afterEach(() => jest.restoreAllMocks())
+
+    it('waits explicitly when business approval exists without installation authorization', async () => {
+        events = []
+        await expect(service.inspect(c)).resolves.toEqual({
+            status: 'pending',
+            receiptKey: operation.id,
+            code: 'PLUGIN_INSTALL_AUTHORIZATION_REQUIRED'
+        })
+        expect(execute).not.toHaveBeenCalled()
+        expect(decision.actorId).toBe(publisher)
+    })
+    it('does not overwrite the first installation authorizer on duplicate confirmation', async () => {
+        const first = await authorizations.read(operation)
+        await authorizations.authorize(c, operation, authorizations.version(operation))
+        expect(await authorizations.read(operation)).toEqual(first)
+        await expect(authorizations.authorize(c, operation, 'stale')).rejects.toThrow()
+    })
+    it('reports revoked platform authority explicitly without attempting installation', async () => {
+        assertManage.mockRejectedValueOnce(new ForbiddenException())
+        await expect(service.inspect(c)).resolves.toMatchObject({
+            status: 'failed',
+            code: 'PLUGIN_INSTALL_AUTHORIZATION_DENIED'
+        })
+        expect(execute.mock.calls.some(([cmd]) => 'input' in cmd)).toBe(false)
+    })
+    it('recovers a legacy unknown operation once, but never redispatches an uncertain install', async () => {
+        operation.state = 'unknown'
+        const calls: string[] = []
+        execute.mockImplementation(async (cmd: { actor?: object; input?: { action: string } }) => {
+            if (cmd.actor) return {}
+            calls.push(cmd.input!.action)
+            if (cmd.input!.action === 'install') throw Error('connection lost after dispatch')
+            return { installed: false, loaded: false }
+        })
+        await expect(service.inspect(c)).rejects.toThrow('connection lost')
+        await expect(service.inspect(c)).resolves.toEqual({ status: 'unknown', receiptKey: operation.id })
+        expect(calls).toEqual(['inspect', 'install', 'inspect'])
+    })
+    it('requires live platform authorization at the concrete confirmation action', async () => {
+        events = []
+        execute.mockImplementation(async (cmd: object) => {
+            if ('actor' in cmd) return {}
+            throw new ForbiddenException()
+        })
+        const input = {
+            operationId: operation.id,
+            key: 'authorize-installation',
+            version: authorizations.version(operation)
+        }
+        await expect(installation.submit(c, operation, input)).rejects.toBeInstanceOf(ForbiddenException)
+        expect(await authorizations.read(operation)).toBeNull()
+        execute.mockResolvedValue({ installed: false, loaded: false })
+        await installation.submit(c, operation, input)
+        expect(await authorizations.read(operation)).toMatchObject({ actorId: actor.userId })
+        expect(execute.mock.calls.every(([cmd]) => 'actor' in cmd || cmd.input?.action === 'inspect')).toBe(true)
+        expect(decision.actorId).toBe(publisher)
+    })
+    it('rejects service actors and a different operation before reading or installing archives', async () => {
+        events = []
+        const input = {
+            operationId: operation.id,
+            key: 'authorize-installation',
+            version: authorizations.version(operation)
+        }
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ type: UserType.COMMUNICATION } as IUser)
+        await expect(installation.submit(c, operation, input)).rejects.toBeInstanceOf(ForbiddenException)
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ type: UserType.USER } as IUser)
+        await expect(installation.submit(c, operation, { ...input, operationId: randomUUID() })).rejects.toThrow()
+        expect(readArchive).not.toHaveBeenCalled()
+    })
+    it('pins gate inputs alongside attachments and deduplicates exact references', () => {
+        expect(
+            decisionEvidence(
+                {
+                    request: { kind: 'evidence', value: requestRef },
+                    copies: { kind: 'evidence_collection', value: [requestRef] }
+                },
+                []
+            )
+        ).toEqual([requestRef])
+    })
+    it('uses the independent installer and persists immutable host evidence', async () => {
+        const receipt = await service.execute(c)
+        expect(execute.mock.calls[0][0]).toMatchObject({ actor: { ...actor, userId: installer, kind: 'user' } })
+        expect(assertManage).toHaveBeenCalledWith({ ...c, actor: { ...actor, userId: installer } })
+        expect(execute.mock.calls[1][0]).toMatchObject({ actor: { ...actor, userId: publisher, kind: 'user' } })
+        expect(execute.mock.calls[2][0]).toMatchObject({
+            input: { buffer, allowReplace: false, allowRestart: false, action: 'inspect' }
+        })
+        if (receipt.status !== 'succeeded') throw Error('missing receipt')
+        await expect(store.read(c, receipt.outputs.deployment)).resolves.toMatchObject({
+            request,
+            runtimeRevision: 'runtime-1'
+        })
+        expect(events.filter((event) => event.payload.pluginDeployment)).toHaveLength(1)
+        await service.inspect(c)
+        expect(events.filter((event) => event.payload.pluginDeployment)).toHaveLength(1)
+    })
+    it.each([
+        'no-approved-input',
+        'different-round',
+        'different-generation',
+        'declined',
+        'policy-decision',
+        'stale-worker',
+        'cancelled',
+        'expired-lease',
+        'superseded'
+    ] as const)('blocks %s before installation', async (reason) => {
+        if (reason === 'no-approved-input') decision.evidence = []
+        if (reason === 'different-round') decision.roundId = randomUUID()
+        if (reason === 'different-generation') decision.generation++
+        if (reason === 'declined') decision.outcome = 'rework'
+        if (reason === 'policy-decision') decision.kind = 'policy'
+        if (reason === 'stale-worker')
+            c.inputs.request = { kind: 'evidence', value: { ...requestRef, digest: 'f'.repeat(64) } }
+        if (reason === 'cancelled') operation.cancelRequestedAt = new Date()
+        if (reason === 'expired-lease') operation.leaseExpiresAt = new Date(0)
+        if (reason === 'superseded') active = false
+        await expect(service.execute(c)).rejects.toThrow()
+        expect(execute).not.toHaveBeenCalled()
+    })
+    it('does not accept a valid decision for a different request', async () => {
+        decision.evidence = [{ ...requestRef, digest: 'f'.repeat(64) }]
+        c.inputs.approval = { kind: 'evidence', value: pipelineDecisionEvidence(decision) }
+        operation.context = structuredClone(c)
+        await expect(service.execute(c)).rejects.toThrow()
+        expect(execute).not.toHaveBeenCalled()
+    })
+    it.each(['bytes', 'project', 'tenant', 'version'] as const)('rejects archive %s mismatch', async (field) => {
+        const archive = await readArchive()
+        if (field === 'bytes') archive.buffer = Buffer.from('other')
+        if (field === 'project') archive.artifact.projectId = randomUUID()
+        if (field === 'tenant') archive.artifact.tenantId = randomUUID()
+        if (field === 'version') archive.version.id = randomUUID()
+        await expect(service.execute(c)).rejects.toThrow()
+        expect(execute).toHaveBeenCalledTimes(2)
+    })
+    it('checks live publisher authority on every recovery', async () => {
+        assertManage.mockRejectedValueOnce(Error('revoked'))
+        await expect(service.inspect(c)).rejects.toThrow('revoked')
+        expect(execute).toHaveBeenCalledTimes(1)
+    })
+    it('recovers by inspection only, and waits for runtime loading', async () => {
+        execute.mockImplementation(async (cmd: object) => ('actor' in cmd ? {} : { installed: true, loaded: false }))
+        await expect(service.inspect(c)).resolves.toEqual({ status: 'pending', receiptKey: c.work.operationId })
+        expect(execute.mock.calls[2][0]).toMatchObject({ input: { action: 'inspect' } })
+        expect(events.filter((event) => event.payload.pluginDeployment)).toHaveLength(0)
+    })
+    it('does not publish success after the round changes during installation', async () => {
+        const impl = execute.getMockImplementation()!
+        execute.mockImplementation(async (cmd: object) => {
+            const result = await impl(cmd)
+            if ('input' in cmd) active = false
+            return result
+        })
+        await expect(service.execute(c)).rejects.toThrow()
+        expect(events.filter((event) => event.payload.pluginDeployment)).toHaveLength(0)
+    })
+    it('issues test access only for the accepted host receipt, with no installation or exposed secret', async () => {
+        operation.receipt = await service.execute(c)
+        operation.state = 'accepted'
+        if (operation.receipt.status !== 'succeeded') throw Error('no receipt')
+        execute.mockClear()
+        const result = await tests.prepare(c, {
+            deployment: operation.receipt.outputs.deployment,
+            componentKey: 'tools'
+        })
+        expect(JSON.stringify(result)).not.toContain('bounded-test-secret')
+        expect(write.mock.calls[0][0].buffer.toString()).toContain('bounded-test-secret')
+        expect(execute.mock.calls.some(([command]) => 'input' in command)).toBe(false)
+    })
+    it('does not issue test credentials for unaccepted or forged evidence', async () => {
+        const receipt = await service.execute(c)
+        if (receipt.status !== 'succeeded') throw Error('no receipt')
+        execute.mockClear()
+        await expect(
+            tests.prepare(c, { deployment: receipt.outputs.deployment, componentKey: 'tools' })
+        ).rejects.toThrow()
+        await expect(
+            tests.prepare(c, {
+                deployment: { ...receipt.outputs.deployment, digest: 'f'.repeat(64) },
+                componentKey: 'tools'
+            })
+        ).rejects.toThrow()
+        expect(execute).not.toHaveBeenCalled()
+    })
+    it('rejects impersonation before accessing evidence', async () => {
+        await expect(
+            tests.prepare(
+                { ...c, actor: { ...actor, userId: publisher } },
+                { deployment: requestRef, componentKey: 'tools' }
+            )
+        ).rejects.toMatchObject({ status: 403 })
+    })
 })

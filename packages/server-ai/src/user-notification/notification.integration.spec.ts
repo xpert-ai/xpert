@@ -1,9 +1,12 @@
 import 'reflect-metadata'
 import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import {
     AGENT_OUTPUT_ACCEPT,
+    ACTION_NOTIFICATION_ACCEPT,
+    type ActionNotificationPresentation,
+    type ActionNotificationSource,
     PermissionsEnum,
     UserType,
     parseAnnouncement,
@@ -33,6 +36,8 @@ import { OutputPreferences } from './output/output-preferences'
 import { NotificationWorker } from './notification.worker'
 import { NotificationRealtime } from './notification.realtime'
 import { enqueueNotification } from './notification.outbox'
+import { ActionNotificationSources } from './actions/action-notification.sources'
+import { PublishActionNotificationCommand } from './actions/commands/publish-action-notification.command'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { AssertChatConversationAccessQuery } from '../chat-conversation/queries/conversation-assert-access.query'
 import { XpertTask } from '../xpert-task/xpert-task.entity'
@@ -72,6 +77,22 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
         clients: ReturnType<typeof createClient>[] = []
     let origins: string[]
     let denied = false
+    let actionVisible = true
+    let actionState: ActionNotificationPresentation['state'] = 'pending'
+    const actionSource: ActionNotificationSource = {
+        type: 'action',
+        provider: 'fixture.action',
+        key: randomUUID(),
+        version: '1'
+    }
+    const actionTarget = {
+        target: 'project.pipelines' as const,
+        organizationId: organization,
+        projectId: randomUUID(),
+        pipelineInstanceId: randomUUID(),
+        pipelineRoundId: randomUUID(),
+        pipelineNodeId: randomUUID()
+    }
     beforeAll(async () => {
         db = new DataSource({
             type: 'postgres',
@@ -171,6 +192,7 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
         const migration = readFileSync(join(__dirname, 'migrations/20261031010000-user-notifications.sql'), 'utf8')
         await db.query(migration)
         await db.query(migration)
+        await db.query(readFileSync(join(__dirname, 'migrations/20261125010000-action-notifications.sql'), 'utf8'))
         for (let i = 0; i < 2; i++) {
             const redis = createClient({ url: process.env.NOTIFICATIONS_REDIS_URL })
             await redis.connect()
@@ -192,6 +214,13 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
                 .useValue(redis)
                 .compile()
             const app = module.createNestApplication({ logger: false })
+            module.get(ActionNotificationSources).register({
+                key: actionSource.provider,
+                resolve: async (recipient) =>
+                    actionVisible && recipient.tenantId === tenant && recipient.userId === user
+                        ? { title: 'Release confirmation', state: actionState, workbench: actionTarget }
+                        : null
+            })
             apps.push(app)
             // Authentication is the fixture boundary. Permission checks, tenant filtering, pipes and real modules run normally.
             app.use((req: Request, res: Response, next: NextFunction) => {
@@ -243,6 +272,8 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
     })
     beforeEach(async () => {
         denied = false
+        actionVisible = true
+        actionState = 'pending'
         await db.query(
             'TRUNCATE announcement, announcement_dismissal, announcement_audit, user_notification, notification_outbox, chat_conversation, xpert_task, xpert_task_execution, user_organization CASCADE'
         )
@@ -261,6 +292,73 @@ integration('Notification HTTP, PostgreSQL and two-instance Redis integration', 
         expect(response.status).toBe(201)
         return parseAnnouncement(await response.json())
     }
+    const publishAction = (source = actionSource) =>
+        apps[0].get(CommandBus).execute(
+            new PublishActionNotificationCommand({
+                tenantId: tenant,
+                source,
+                recipientIds: [user],
+                state: actionState
+            })
+        )
+    const actionSnapshot = async (accept = ACTION_NOTIFICATION_ACCEPT) =>
+        parseNotificationSnapshot(
+            await (
+                await fetch(origins[0] + '/api/user-notifications/sync?client=web', {
+                    headers: { authorization: 'Bearer member', accept }
+                })
+            ).json()
+        )
+
+    it('projects a durable action once across concurrent publishers and keeps read separate from handled', async () => {
+        await Promise.all([publishAction(), publishAction()])
+        expect(await db.getRepository(UserNotificationEntity).count()).toBe(1)
+        expect(await db.getRepository(NotificationOutbox).count()).toBe(1)
+        const pending = await actionSnapshot()
+        expect(pending.pendingCount).toBe(1)
+        expect(pending.notifications[0]).toMatchObject({
+            kind: 'action.required',
+            presentation: { state: 'pending', workbench: actionTarget }
+        })
+        const id = pending.notifications[0].id
+        expect((await request(`user-notifications/${id}/read`, 'member', {}, 'PUT')).status).toBe(200)
+        expect((await actionSnapshot()).pendingCount).toBe(1)
+        expect((await actionSnapshot()).notifications[0].readAt).not.toBeNull()
+        actionState = 'handled'
+        await publishAction()
+        expect((await actionSnapshot()).pendingCount).toBe(0)
+        expect((await actionSnapshot()).notifications[0]).toMatchObject({ presentation: { state: 'handled' } })
+        expect(await db.getRepository(UserNotificationEntity).count()).toBe(1)
+    })
+    it('retains old pending actions, counts beyond pagination, and negotiates legacy clients', async () => {
+        for (let i = 0; i < 31; i++) await publishAction({ ...actionSource, key: randomUUID() })
+        await db
+            .getRepository(UserNotificationEntity)
+            .createQueryBuilder()
+            .update()
+            .set({ createdAt: new Date(Date.now() - 120 * 86400000) })
+            .execute()
+        await apps[0].get(NotificationWorker).tick()
+        const result = await actionSnapshot()
+        expect(result.pendingCount).toBe(31)
+        expect(result.notifications).toHaveLength(30)
+        expect(result.hasMoreNotifications).toBe(true)
+        expect((await actionSnapshot(AGENT_OUTPUT_ACCEPT)).notifications).toEqual([])
+        expect((await actionSnapshot('application/json')).notifications).toEqual([])
+        expect(
+            (await request(`user-notifications/${result.notifications[0].id}/read`, 'member', {}, 'PUT')).status
+        ).toBe(200)
+    })
+    it('reauthorizes on every list and click; another recipient or tenant cannot open the notice', async () => {
+        await publishAction()
+        const id = (await actionSnapshot()).notifications[0].id
+        expect((await request(`user-notifications/${id}/read`, 'other', {}, 'PUT')).status).toBe(404)
+        actionVisible = false
+        expect((await actionSnapshot()).notifications).toEqual([])
+        expect((await actionSnapshot()).pendingCount).toBe(0)
+        expect((await request(`user-notifications/${id}/read`, 'member', {}, 'PUT')).status).toBe(404)
+        expect((await db.getRepository(UserNotificationEntity).findOneByOrFail({ id })).readAt).toBeNull()
+    })
     it('validates HTTP bodies, query conversion, credentials, permission and migration adoption', async () => {
         expect(
             await db.query(

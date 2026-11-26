@@ -1,9 +1,11 @@
-// A committed claim reserves one execution. After `started`, recovery observes that execution only;
-// an ambiguous model run is never replayed as a new turn, even after a lease expires.
+// Invariants: a durable claim reserves one execution; the lease only selects its current consumer.
+// Before `started`, a replacement consumer may reuse that reservation after checking current access.
+// After `started`, recovery observes the reserved execution; it never replays an ambiguous model run.
+// Drain defers unstarted continuations without discarding their claims or cancelling active commands.
 import { sameInvocationData } from '../../agent-invocation/invocation-runtime'
 import { invocationFailureReason } from '../../agent-invocation/invocation-errors'
 import { t } from 'i18next'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource, In, LessThanOrEqual } from 'typeorm'
@@ -21,7 +23,7 @@ import { ChatCommonCommand } from '../../chat/commands/chat-common.command'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { isRuntimeMessageBlocked, runtimeMessageError } from './runtime-message.errors'
 import { DeliverGroupTaskResultCommand } from '../../chat-group/group-project/group-task.commands'
-import { TaskControlStore } from '@xpert-ai/server-core'
+import { RuntimeLifecycleService, TaskControlStore } from '@xpert-ai/server-core'
 
 export function runtimeReplyBlocked(thread: ChatConversationThread, invocationCreatedAt: string): string | null {
     if (
@@ -38,20 +40,36 @@ export function runtimeReplyBlocked(thread: ChatConversationThread, invocationCr
     return null
 }
 
+/**
+ * Continues the originating conversation when a durable Runtime result is ready.
+ * Revalidates access and serializes admission with the thread's other writers;
+ * group conversations delegate delivery to their own queue instead of starting a turn here.
+ */
 @Injectable()
-export class RuntimeMessageContinuationService {
+export class RuntimeMessageContinuationService implements OnModuleDestroy {
+    private stopping = false
     private scanning = false
     private readonly logger = new Logger(RuntimeMessageContinuationService.name)
     constructor(
         private readonly dataSource: DataSource,
         private readonly access: RuntimeMessageAccessService,
         private readonly commands: CommandBus,
-        private readonly tasks: TaskControlStore
+        private readonly tasks: TaskControlStore,
+        private readonly lifecycle: RuntimeLifecycleService
     ) {}
+
+    onModuleDestroy() {
+        // Unlike a cancelled drain, module destruction permanently closes this consumer.
+        this.stopping = true
+    }
+
+    private isDraining() {
+        return this.stopping || this.lifecycle.getDrainState() !== null
+    }
 
     @Interval(3000)
     async reconcile() {
-        if (this.scanning) return
+        if (this.scanning || this.isDraining()) return
         this.scanning = true
         try {
             const rows = await this.dataSource.getRepository(AgentRuntimeInbox).find({
@@ -68,8 +86,10 @@ export class RuntimeMessageContinuationService {
     }
 
     async consume(row: AgentRuntimeInbox) {
+        if (this.isDraining()) return
         const repo = this.dataSource.getRepository(AgentRuntimeInbox)
         const leaseToken = randomUUID()
+        // Own only this processing attempt. Lease expiry does not authorize a new execution.
         const leased = await repo
             .createQueryBuilder()
             .update()
@@ -85,9 +105,11 @@ export class RuntimeMessageContinuationService {
                 .catch(() => this.logger.warn('Runtime consumption lease refresh deferred'))
         }, 15_000)
         try {
+            if (this.isDraining()) return
             await this.access.withReply(row.invocationId, row, async (reply) => {
+                if (this.isDraining()) return
                 const reservation = await this.reserve(row.id, leaseToken, reply)
-                if (!reservation) return
+                if (!reservation || this.isDraining()) return
                 if (reply.conversation.purpose === 'group_assistant_runtime') {
                     const claim = agentRuntimeResultClaimSchema.parse(reservation.claim)
                     const delivery = await this.commands.execute(
@@ -110,6 +132,12 @@ export class RuntimeMessageContinuationService {
                     { phase: 'started' }
                 )
                 if (!started.affected) return
+                // Drain may begin during the database write. No command has run yet, so
+                // retain this exact reservation for the next process instead of replaying a started turn.
+                if (this.isDraining()) {
+                    await repo.update({ ...owned, phase: 'started', state: 'processing' }, { phase: 'reserved' })
+                    return
+                }
                 await this.run(reply, reservation, claim)
                 await this.recover(reservation)
             })
@@ -135,6 +163,7 @@ export class RuntimeMessageContinuationService {
         }
     }
 
+    // Persist the claim and thread admission together before any conversation command can run.
     private async reserve(id: string, leaseToken: string, reply: AuthorizedRuntimeReply) {
         return this.dataSource.transaction(async (manager) => {
             const repo = manager.getRepository(AgentRuntimeInbox)
@@ -337,6 +366,7 @@ export class RuntimeMessageContinuationService {
         })
     }
 
+    // Observe the exact claimed execution; an unknown outcome blocks replay rather than guessing success.
     private async recover(inbox: AgentRuntimeInbox) {
         const parsed = agentRuntimeResultClaimSchema.safeParse(inbox.claim)
         if (!parsed.success) throw runtimeMessageError('Invalid')

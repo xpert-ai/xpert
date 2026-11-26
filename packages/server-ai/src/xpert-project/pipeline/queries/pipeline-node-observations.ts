@@ -1,3 +1,4 @@
+import type { ProjectPipelineOperationReceipt } from '@xpert-ai/contracts'
 import { pipelineAttemptCounts, type ProjectPipelineGraph, type ProjectTaskGraph } from '@xpert-ai/contracts'
 
 type Node = ProjectPipelineGraph['nodes'][number]
@@ -23,5 +24,43 @@ export function observePipelineNodes(nodes: Node[], executions: Attempt[]): Node
                 (status) => counts[status] > 0
             ) ?? 'unknown'
         return { ...node, projection: { ...node.projection, state: { ...node.projection.state, runtime } } }
+    })
+}
+
+/** An explicit wait receipt is authoritative over a service Task's generic running observation. */
+export function observeOperationWaits(
+    nodes: Node[],
+    operations: Array<{
+        nodeInstanceId: string
+        attempt: number
+        state: string
+        receipt: ProjectPipelineOperationReceipt | null
+    }>
+): Node[] {
+    const latest = new Map<string, (typeof operations)[number]>()
+    for (const operation of operations) {
+        const previous = latest.get(operation.nodeInstanceId)
+        if (!previous || operation.attempt > previous.attempt) latest.set(operation.nodeInstanceId, operation)
+    }
+    return nodes.map((node) => {
+        const operation = latest.get(node.id)
+        if (
+            node.projection.state.lifecycle !== 'active' ||
+            operation?.state !== 'pending' ||
+            operation.receipt?.status !== 'pending' ||
+            !operation.receipt.code
+        )
+            return node
+        return {
+            ...node,
+            projection: {
+                ...node.projection,
+                state: {
+                    ...node.projection.state,
+                    readiness: 'blocked',
+                    runtime: 'waiting'
+                }
+            }
+        }
     })
 }

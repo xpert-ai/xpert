@@ -344,7 +344,7 @@ integration('phase 3.1 execution completion evidence', () => {
         })
         try {
             await f.request(() => f.runner.run(f.context, operation.id))
-            await f.lifecycle.cancel(f.context, await f.commandInput(launched.instanceId))
+            await f.lifecycle.cancel(f.context, await f.cancelInput(launched.instanceId))
             await f.readyAgain(operation.id)
             await f.request(() => f.runner.run(f.context, operation.id))
             const current = await f.db
@@ -502,7 +502,7 @@ integration('phase 3.1 execution completion evidence', () => {
         const launched = await f.launchRuntime(),
             operation = (await f.operations())[0]
         await f.request(() => f.runner.run(f.context, operation.id))
-        await f.lifecycle.cancel(f.context, await f.commandInput(launched.instanceId))
+        await f.lifecycle.cancel(f.context, await f.cancelInput(launched.instanceId))
         f.runtimeFixture.cancel.mockResolvedValueOnce({ status: 'cancelled' })
         await f.request(() => f.runner.run(f.context, operation.id))
         expect(

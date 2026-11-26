@@ -115,6 +115,7 @@ import { ProjectTaskProjectionCoordinator } from './services/task-projection/pro
 import { ProjectTaskProjectionStore } from './services/task-projection/project-task-projection.store'
 import { ProjectTaskProjectionService } from './services/task-projection/project-task-projection.service'
 import { ProjectPipelineWorkspaceService } from './pipeline/queries/pipeline-workspace.service'
+import { ProjectPipelineWorkbenchHandler } from './pipeline/queries/pipeline-workbench-navigation.query'
 import { ProjectListViewProvider } from './views/project-list.provider'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
@@ -125,6 +126,19 @@ import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
 import { ProjectPluginDeploymentService } from './pipeline/plugin-deployment/plugin-deployment.service'
 import { ProjectPluginDeploymentStore } from './pipeline/plugin-deployment/plugin-deployment.store'
+import { ProjectPluginInstallationAuthorizationStore } from './pipeline/plugin-deployment/plugin-installation-authorization.store'
+import { ProjectPluginInstallationAuthorizationService } from './pipeline/plugin-deployment/plugin-installation-authorization.service'
+import { ProjectPluginInstallationNotificationSource } from './pipeline/plugin-deployment/plugin-installation-notification.source'
+import { ProjectPluginInstallationNotificationWorker } from './pipeline/plugin-deployment/plugin-installation-notification.worker'
+import {
+    PIPELINE_OPERATION_ACTIONS,
+    ProjectPipelineOperationActionsService
+} from './pipeline/operation-actions/operation-actions.service'
+import { ProjectPipelineRecoveryService } from './pipeline/recovery/pipeline-recovery.service'
+import { ProjectPipelineRecoveryStore } from './pipeline/recovery/pipeline-recovery.store'
+import { ProjectPipelineRecoveryNotificationSource } from './pipeline/recovery/pipeline-recovery-notification.source'
+import { ProjectPipelineRecoveryNotificationWorker } from './pipeline/recovery/pipeline-recovery-notification.worker'
+
 import { ProjectPluginDeploymentAdapters } from './pipeline/plugin-deployment/plugin-deployment.adapters'
 import { ProjectPluginTestAccessService } from './pipeline/plugin-deployment/plugin-test-access.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
@@ -157,6 +171,9 @@ import { ProjectPipelineOperationObserverService } from './pipeline/runtime/pipe
 import { ProjectPipelineOperationWorkerService } from './pipeline/runtime/pipeline-operation-worker.service'
 import { ProjectPipelineEvidenceService } from './pipeline/runtime/pipeline-evidence.service'
 import { ProjectPipelineDecisionService } from './pipeline/runtime/pipeline-decision.service'
+import { ActionNotificationModule } from '../user-notification/actions/action-notification.module'
+import { ProjectPipelineNotificationSource } from './pipeline/notifications/pipeline-notification.source'
+import { ProjectPipelineNotificationWorker } from './pipeline/notifications/pipeline-notification.worker'
 import { ProjectPipelineBuiltinAdapters } from './pipeline/runtime/pipeline-builtin-adapters'
 import { ProjectPipelineRoundService } from './pipeline/runtime/pipeline-round.service'
 import { ProjectPipelineLifecycleService } from './pipeline/runtime/pipeline-lifecycle.service'
@@ -169,6 +186,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
 
 @Module({
     imports: [
+        ActionNotificationModule,
         ProjectReviewModule,
         ArtifactsModule,
         DiscoveryModule,
@@ -267,6 +285,8 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineOperationWorkerService,
         ProjectPipelineEvidenceService,
         ProjectPipelineDecisionService,
+        ProjectPipelineNotificationSource,
+        ProjectPipelineNotificationWorker,
         ProjectPipelineRefreshStore,
         ProjectPipelineProjectionProviderRegistry,
         ProjectPipelineProjectionStore,
@@ -281,6 +301,20 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectPipelineCatalogService,
         ProjectPipelineBindingsService,
         ProjectTaskDecisionService,
+        ProjectPipelineOperationActionsService,
+        ProjectPipelineRecoveryService,
+        ProjectPipelineRecoveryStore,
+        ProjectPipelineRecoveryNotificationSource,
+        ProjectPipelineRecoveryNotificationWorker,
+        {
+            provide: PIPELINE_OPERATION_ACTIONS,
+            useFactory: (authorization: ProjectPluginInstallationAuthorizationService) => [authorization],
+            inject: [ProjectPluginInstallationAuthorizationService]
+        },
+        ProjectPluginInstallationAuthorizationStore,
+        ProjectPluginInstallationAuthorizationService,
+        ProjectPluginInstallationNotificationSource,
+        ProjectPluginInstallationNotificationWorker,
         ProjectPluginDeploymentStore,
         ProjectPluginDeploymentService,
         ProjectPluginTestAccessService,
@@ -316,6 +350,7 @@ import { ProjectPipelineProviderActionsController } from './pipeline/provider-ac
         ProjectConfigurationAutomationAdapter,
         ProjectConfigurationConnectorsAdapter,
         ProjectPipelineWorkspaceService,
+        ProjectPipelineWorkbenchHandler,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,
         XpertProjectPurgeService,

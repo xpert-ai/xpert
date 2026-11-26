@@ -13,7 +13,7 @@ function fixture() {
             environment: { plans: { trial: { maxUploadBytes: 10 } } }
         }
     }
-    const repository = { findOneBy: jest.fn().mockResolvedValue(delivery) }
+    const repository = { find: jest.fn().mockResolvedValue([delivery]) }
     const manager = { getRepository: jest.fn().mockReturnValue(repository) }
     const database = { manager }
     return { repository, manager, database, handler: new AssertAppPlatformUploadHandler(database as never) }
@@ -30,7 +30,7 @@ describe('account upload size policy', () => {
         const f = fixture()
         await expect(f.handler.execute(new AssertAppPlatformUploadCommand(bytes))).resolves.toBeUndefined()
         expect(f.manager.getRepository).toHaveBeenCalledWith(AppPlatformDelivery)
-        expect(f.repository.findOneBy).toHaveBeenCalledWith({ tenantId: 'tenant', userId: 'user' })
+        expect(f.repository.find).toHaveBeenCalledWith({ where: { tenantId: 'tenant', userId: 'user' } })
     })
 
     it.each([11, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
@@ -46,7 +46,7 @@ describe('account upload size policy', () => {
 
     it('preserves ordinary platform uploads when no managed account plan exists', async () => {
         const f = fixture()
-        f.repository.findOneBy.mockResolvedValue(null)
+        f.repository.find.mockResolvedValue([])
         await expect(f.handler.execute(new AssertAppPlatformUploadCommand(1000))).resolves.toBeUndefined()
     })
 
@@ -55,9 +55,9 @@ describe('account upload size policy', () => {
         await f.handler.execute(new AssertAppPlatformUploadCommand(10))
         jest.mocked(RequestContext.currentUserId).mockReturnValue('second-user')
         await f.handler.execute(new AssertAppPlatformUploadCommand(10))
-        expect(f.repository.findOneBy.mock.calls).toEqual([
-            [{ tenantId: 'tenant', userId: 'user' }],
-            [{ tenantId: 'tenant', userId: 'second-user' }]
+        expect(f.repository.find.mock.calls).toEqual([
+            [{ where: { tenantId: 'tenant', userId: 'user' } }],
+            [{ where: { tenantId: 'tenant', userId: 'second-user' } }]
         ])
     })
 

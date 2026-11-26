@@ -5,6 +5,7 @@ import { Controller, Get, Param, Post, UseGuards, UseInterceptors } from '@nestj
 import { QueryBus } from '@nestjs/cqrs'
 import { SecretTokenBindingType, TChatThreadCapabilities } from '@xpert-ai/contracts'
 import {
+    PublicVisitorChatGuard,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -35,6 +36,7 @@ export class ThreadRecoveryController {
     }
 
     @Get(':thread_id/control-view')
+    @UseGuards(PublicVisitorChatGuard)
     async controlView(@Param('thread_id') threadId: string) {
         await this.access(threadId, 'read')
         return (await this.queryBus.execute(new ReadThreadControlViewQuery(threadId))).controlView

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { hasManualRetry } from '../recovery/pipeline-recovery-record'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EntityManager, Repository, In, Not } from 'typeorm'
 import { projectPipelineConfigurationSchema, type ProjectPipelineNodeDefinition } from '@xpert-ai/contracts'
@@ -139,7 +140,8 @@ export class ProjectPipelineCoordinatorService {
             const limitCode =
                 now.getTime() - run.createdAt.getTime() >= config.binding.limits!.runTimeoutMinutes * 60_000
                     ? 'RUN_TIME_LIMIT_EXCEEDED'
-                    : previousAttempts >= config.binding.limits!.maxTechnicalAttemptsPerNode
+                    : previousAttempts >= config.binding.limits!.maxTechnicalAttemptsPerNode &&
+                        !(await hasManualRetry(manager, context, node.id, previousAttempts))
                       ? 'ATTEMPT_LIMIT_EXCEEDED'
                       : null
             if (limitCode) {

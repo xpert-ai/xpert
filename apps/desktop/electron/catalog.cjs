@@ -63,6 +63,8 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     const xpert = value?.xpert
     return {
       kind: 'experts',
+      imageRevision: text(xpert?.updatedAt),
+      hasCardAvatar: value.hasCardAvatar === true,
       id: required(xpert?.id, 'Expert ID'),
       name: (locale?.startsWith('zh') ? text(xpert.titleCN) : '') || text(xpert.title) || text(xpert.name),
       description: localizedText(value.marketplace?.summary, locale) || localizedText(xpert.description, locale),
@@ -132,6 +134,8 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     const presentation = app?.config?.presentation
     return {
       kind: 'applications',
+      imageRevision: text(value.imageRevision),
+      hasCardImages: value.hasCardImages === true,
       icon: applicationIcon(app?.icon, webUrl),
       id: required(app?.id, 'App ID'),
       pluginName: required(app.pluginName, 'Plugin name'),
@@ -240,6 +244,37 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       )
       return parseAvatarUrl(result?.url)
     },
+    async cardImages(input) {
+      scope(this)
+      if (input?.kind === 'experts') {
+        const id = encodeURIComponent(required(input.id, 'Expert ID'))
+        const { url } = await this.request(`/api/xpert-marketplace/${id}/card-avatar`)
+        return { avatar: parseAvatarUrl(url) }
+      }
+      if (input?.kind !== 'applications') throw new ClientError('Invalid catalog type.')
+      const query = new URLSearchParams({
+        pluginName: required(input.pluginName, 'Plugin name'),
+        appName: required(input.appName, 'App name')
+      })
+      const result = await this.request('/api/plugin-applications/catalog/images?' + query)
+      return {
+        cover: screenshots([result.cover], this.config.webUrl)[0],
+        icon: screenshots([result.icon], this.config.webUrl)[0]
+      }
+    },
+    async expertCatalogPage({ offset }) {
+      scope(this)
+      if (!Number.isSafeInteger(offset) || offset < 0) throw new ClientError('Invalid catalog pagination.')
+      const response = await this.request(`/api/xpert-marketplace?take=100&skip=${offset}&sort=updated&view=cards`)
+      const items = list(response?.items).map((item) => expert(item, this.config.locale))
+      if (!Number.isSafeInteger(response.total) || response.total < 0)
+        throw new ClientError('Invalid catalog pagination.', 502)
+      return {
+        items,
+        total: response.total,
+        nextOffset: items.length && offset + items.length < response.total ? offset + items.length : null
+      }
+    },
     async templateCatalogPage(input = {}) {
       scope(this)
       const offset = Number.isSafeInteger(input.offset) && input.offset >= 0 ? input.offset : 0
@@ -254,40 +289,46 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     async listCatalog(kind) {
       scope(this)
       if (kind === 'applications') {
-        const defaults = list(await this.request('/api/plugin-applications/catalog'))
-        const personal = defaults.some((item) => installationScopes(item.application).includes('personal'))
-          ? list(await this.request('/api/plugin-applications/catalog?installationScope=personal'))
-          : []
-        return defaults.map((item) =>
-          application(
-            installationScopes(item.application).includes('personal')
-              ? (personal.find((candidate) => candidate.application?.id === item.application?.id) ?? item)
-              : item,
-            this.config.locale,
-            this.config.webUrl
-          )
-        )
+        let rows
+        try {
+          rows = list(await this.request('/api/plugin-applications/catalog/cards'))
+        } catch (error) {
+          if (error.status !== 404) throw error
+          // Servers predating cards still expose personal installation state independently of presentation.
+          rows = list(await this.request('/api/plugin-applications/catalog'))
+          if (rows.some((item) => installationScopes(item.application).includes('personal'))) {
+            const statuses = list(await this.request('/api/plugin-applications/status?installationScope=personal'))
+            const personal = new Map(statuses.map((status) => [status.appId, status]))
+            rows = rows.map((item) =>
+              installationScopes(item.application).includes('personal') && personal.has(item.application.id)
+                ? { ...item, status: personal.get(item.application.id) }
+                : item
+            )
+          }
+        }
+        return rows.map((item) => application(item, this.config.locale, this.config.webUrl))
       }
       if (!['experts', 'templates'].includes(kind)) throw new ClientError('Invalid catalog type.')
       const items = []
       let offset = 0
       while (true) {
-        const path =
-          kind === 'experts'
-            ? `/api/xpert-marketplace?take=100&skip=${offset}&sort=updated`
-            : `/api/xpert-template/catalog?limit=100&offset=${offset}`
-        const page = await this.request(path)
+        if (kind === 'experts') {
+          const page = await this.expertCatalogPage({ offset })
+          items.push(...page.items)
+          if (page.nextOffset === null) return items
+          offset = page.nextOffset
+          continue
+        }
+        const page = await this.request(`/api/xpert-template/catalog?limit=100&offset=${offset}`)
         const entries = list(page?.items)
         if (typeof page.total !== 'number') throw new ClientError('Invalid catalog pagination.', 502)
         items.push(...entries)
         offset += entries.length
         if (!entries.length || offset >= page.total) break
       }
-      return kind === 'experts'
-        ? items.map((item) => expert(item, this.config.locale))
-        : items
-            .filter((item) => !item.hasApplication && !item.application && ['agent', 'copilot'].includes(item.type))
-            .map((item) => template(item, this.config.locale))
+      return items
+        .filter((item) => !item.hasApplication && !item.application && ['agent', 'copilot'].includes(item.type))
+        .map((item) => template(item, this.config.locale))
     },
     async requestExpertAccess(input) {
       scope(this)

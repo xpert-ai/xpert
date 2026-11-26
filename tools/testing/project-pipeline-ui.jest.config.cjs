@@ -14,6 +14,7 @@ module.exports = {
     '**/error-notice.spec.tsx',
     '**/assignee.spec.tsx',
     '**/gantt.spec.tsx',
+    '**/drag-scroll.spec.ts',
     '**/view-state.spec.ts'
   ],
   transform: {

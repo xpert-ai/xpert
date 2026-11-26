@@ -8,17 +8,32 @@ import { XpertProjectTaskService } from './project-task.service'
 
 const scope = { tenantId: 'tenant', organizationId: 'organization', projectId: 'project' }
 const task = (input: Partial<XpertProjectTask> = {}) =>
-    Object.assign(new XpertProjectTask(), scope, {
-        id: 'summary', name: 'Deliver a feature', kind: 'summary', status: 'in_progress', controlKind: 'ordinary'
-    }, input)
+    Object.assign(
+        new XpertProjectTask(),
+        scope,
+        {
+            id: 'summary',
+            name: 'Deliver a feature',
+            kind: 'summary',
+            status: 'in_progress',
+            controlKind: 'ordinary'
+        },
+        input
+    )
 
 function fixture(initial: XpertProjectTask[] = [task()], afterLock?: (rows: XpertProjectTask[]) => void) {
     const rows = [...initial]
     let locked = false
-    const findOneBy = jest.fn(async (where: FindOptionsWhere<XpertProjectTask>) => rows.find((row) =>
-        row.id === where.id && row.tenantId === where.tenantId && row.organizationId === where.organizationId &&
-        (where.projectId === undefined || row.projectId === where.projectId)
-    ) ?? null)
+    const findOneBy = jest.fn(
+        async (where: FindOptionsWhere<XpertProjectTask>) =>
+            rows.find(
+                (row) =>
+                    row.id === where.id &&
+                    row.tenantId === where.tenantId &&
+                    row.organizationId === where.organizationId &&
+                    (where.projectId === undefined || row.projectId === where.projectId)
+            ) ?? null
+    )
     const save = jest.fn(async (value: Partial<IXpertProjectTask>) => {
         expect(locked).toBe(true)
         const saved = task({ kind: 'task', ...value, id: value.id ?? 'child' })
@@ -32,16 +47,20 @@ function fixture(initial: XpertProjectTask[] = [task()], afterLock?: (rows: Xper
         return project
     })
     const manager = Object.assign(Object.create(EntityManager.prototype) as EntityManager, {
-        getRepository: (entity: object) => entity === XpertProject
-            ? { findOne: findProject }
-            : entity === XpertProjectTask ? { findOneBy, find: jest.fn(async () => rows), save }
-            : { save: jest.fn(async (value) => value) }
+        getRepository: (entity: object) =>
+            entity === XpertProject
+                ? { findOne: findProject }
+                : entity === XpertProjectTask
+                  ? { findOneBy, find: jest.fn(async () => rows), save }
+                  : { save: jest.fn(async (value) => value) }
     })
     const service = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
     Object.assign(service, {
         repository: {
             findOneBy,
-            manager: { transaction: async (operation: (manager: EntityManager) => Promise<unknown>) => operation(manager) }
+            manager: {
+                transaction: async (operation: (manager: EntityManager) => Promise<unknown>) => operation(manager)
+            }
         },
         projectRepository: { findOne: jest.fn(async () => project) }
     })
@@ -56,14 +75,17 @@ describe('ordinary task creation under a summary', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    it.each(['task', 'summary'] as const)('creates a %s child and retains its parent and trusted scope', async (kind) => {
-        const { service, save, findOneBy, findProject } = fixture()
-        const child = await service.createTask(scope.projectId, { name: 'Child', kind, parentTaskId: 'summary' })
-        expect(child).toMatchObject({ ...scope, name: 'Child', kind, parentTaskId: 'summary', status: 'todo' })
-        expect(save).toHaveBeenCalledTimes(1)
-        expect(findOneBy).toHaveBeenCalledWith({ ...scope, id: 'summary' })
-        expect(findProject).toHaveBeenCalledWith(expect.objectContaining({ lock: { mode: 'pessimistic_write' } }))
-    })
+    it.each(['task', 'summary'] as const)(
+        'creates a %s child and retains its parent and trusted scope',
+        async (kind) => {
+            const { service, save, findOneBy, findProject } = fixture()
+            const child = await service.createTask(scope.projectId, { name: 'Child', kind, parentTaskId: 'summary' })
+            expect(child).toMatchObject({ ...scope, name: 'Child', kind, parentTaskId: 'summary', status: 'todo' })
+            expect(save).toHaveBeenCalledTimes(1)
+            expect(findOneBy).toHaveBeenCalledWith({ ...scope, id: 'summary' })
+            expect(findProject).toHaveBeenCalledWith(expect.objectContaining({ lock: { mode: 'pessimistic_write' } }))
+        }
+    )
 
     it.each([undefined, null])('allows a root task with parent %s', async (parentTaskId) => {
         const { service, findOneBy } = fixture([])
@@ -94,8 +116,25 @@ describe('ordinary task creation under a summary', () => {
     })
 
     it('rejects a parent completed while waiting for the project lock', async () => {
-        const { service, save } = fixture([task()], (rows) => { rows[0].status = 'done' })
+        const { service, save } = fixture([task()], (rows) => {
+            rows[0].status = 'done'
+        })
         await expect(service.createTask(scope.projectId, { name: 'Child', parentTaskId: 'summary' })).rejects.toThrow()
+        expect(save).not.toHaveBeenCalled()
+    })
+
+    it('identifies the invalid parent field and observed kind without creating a child', async () => {
+        const { service, save } = fixture([task({ kind: 'task', controlKind: 'pipeline' })])
+        await expect(
+            service.createTask(scope.projectId, { name: 'Child', parentTaskId: 'summary' })
+        ).rejects.toMatchObject({
+            response: {
+                code: 'PROJECT_TASK_PARENT_INVALID',
+                field: 'parentTaskId',
+                parentTaskId: 'summary',
+                observed: { kind: 'task', controlKind: 'pipeline' }
+            }
+        })
         expect(save).not.toHaveBeenCalled()
     })
 
@@ -105,37 +144,61 @@ describe('ordinary task creation under a summary', () => {
         expect(save).not.toHaveBeenCalled()
     })
 
-    it.each(['summary', null, undefined])('keeps existing-task relationship writes protected (%s)', async (parentTaskId) => {
-        const { service, save, findProject } = fixture([task(), task({ id: 'existing', kind: 'task', parentTaskId: 'summary' })])
-        await expect(service.saveAll({ id: 'existing', projectId: scope.projectId, parentTaskId,
-            name: 'Child', status: 'todo', steps: [] })).rejects.toThrow()
-        expect(findProject).toHaveBeenCalledTimes(1)
-        expect(save).not.toHaveBeenCalled()
-    })
+    it.each(['summary', null, undefined])(
+        'keeps existing-task relationship writes protected (%s)',
+        async (parentTaskId) => {
+            const { service, save, findProject } = fixture([
+                task(),
+                task({ id: 'existing', kind: 'task', parentTaskId: 'summary' })
+            ])
+            await expect(
+                service.saveAll({
+                    id: 'existing',
+                    projectId: scope.projectId,
+                    parentTaskId,
+                    name: 'Child',
+                    status: 'todo',
+                    steps: []
+                })
+            ).rejects.toThrow()
+            expect(findProject).toHaveBeenCalledTimes(1)
+            expect(save).not.toHaveBeenCalled()
+        }
+    )
 
     it('rechecks task existence after waiting for the project lock', async () => {
         const { service, save, findOneBy } = fixture([task()], (rows) => {
             rows.push(task({ id: 'concurrent', kind: 'task' }))
         })
-        await expect(service.saveAll({ id: 'concurrent', projectId: scope.projectId, parentTaskId: 'summary',
-            name: 'Child', status: 'todo', steps: [] }))
-            .rejects.toThrow()
+        await expect(
+            service.saveAll({
+                id: 'concurrent',
+                projectId: scope.projectId,
+                parentTaskId: 'summary',
+                name: 'Child',
+                status: 'todo',
+                steps: []
+            })
+        ).rejects.toThrow()
         expect(findOneBy).toHaveBeenCalledTimes(2)
         expect(save).not.toHaveBeenCalled()
     })
 
     it('preserves ordinary updates when parentTaskId is omitted', async () => {
         const { service, save } = fixture([task({ id: 'existing', kind: 'task' })])
-        await expect(service.saveAll({ id: 'existing', projectId: scope.projectId, name: 'Updated', status: 'todo', steps: [] }))
-            .resolves.toEqual([expect.objectContaining({ id: 'existing', name: 'Updated' })])
+        await expect(
+            service.saveAll({ id: 'existing', projectId: scope.projectId, name: 'Updated', status: 'todo', steps: [] })
+        ).resolves.toEqual([expect.objectContaining({ id: 'existing', name: 'Updated' })])
         expect(save).toHaveBeenCalledTimes(1)
     })
 
     it.each([{ providerKey: 'app' }, { predecessorIds: ['task'] }, { revision: 3 }])(
-        'does not open other protected creation fields (%j)', async (input) => {
+        'does not open other protected creation fields (%j)',
+        async (input) => {
             const { service, save } = fixture()
-            await expect(service.createTask(scope.projectId, { name: 'Child', parentTaskId: 'summary', ...input }))
-                .rejects.toThrow()
+            await expect(
+                service.createTask(scope.projectId, { name: 'Child', parentTaskId: 'summary', ...input })
+            ).rejects.toThrow()
             expect(save).not.toHaveBeenCalled()
         }
     )
@@ -153,18 +216,24 @@ describe('ordinary task creation under a summary', () => {
             specificationDigest: `sha256:${'a'.repeat(64)}`
         }
 
-        it.each([subject, null, undefined])('rejects ordinary mutation of reviewSubject (%j)', async (reviewSubject) => {
-            const existing = task({ id: 'review', kind: 'task', reviewSubject: subject, steps: [] })
-            const { service, save } = fixture([existing])
-            const input = { name: 'Review', status: 'todo' as const, steps: [], reviewSubject }
-            await expect(service.createTask(scope.projectId, input)).rejects.toThrow()
-            await expect(service.saveAll({ ...input, projectId: scope.projectId, id: existing.id })).rejects.toThrow()
-            await expect(service.updateTask(scope.projectId, existing.id, { reviewSubject })).rejects.toThrow()
-            await expect(service.updateTaskSteps(scope.projectId, undefined, { id: existing.id, reviewSubject }))
-                .rejects.toThrow()
-            expect(existing.reviewSubject).toEqual(subject)
-            expect(save).not.toHaveBeenCalled()
-        })
+        it.each([subject, null, undefined])(
+            'rejects ordinary mutation of reviewSubject (%j)',
+            async (reviewSubject) => {
+                const existing = task({ id: 'review', kind: 'task', reviewSubject: subject, steps: [] })
+                const { service, save } = fixture([existing])
+                const input = { name: 'Review', status: 'todo' as const, steps: [], reviewSubject }
+                await expect(service.createTask(scope.projectId, input)).rejects.toThrow()
+                await expect(
+                    service.saveAll({ ...input, projectId: scope.projectId, id: existing.id })
+                ).rejects.toThrow()
+                await expect(service.updateTask(scope.projectId, existing.id, { reviewSubject })).rejects.toThrow()
+                await expect(
+                    service.updateTaskSteps(scope.projectId, undefined, { id: existing.id, reviewSubject })
+                ).rejects.toThrow()
+                expect(existing.reviewSubject).toEqual(subject)
+                expect(save).not.toHaveBeenCalled()
+            }
+        )
 
         it('allows an ordinary title update without changing an existing review binding', async () => {
             const existing = task({ id: 'review', kind: 'task', reviewSubject: subject })

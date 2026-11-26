@@ -42,7 +42,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
     "shadcn:add": "pnpm dlx shadcn@latest add --cwd . --path src/components/ui",
-    "test": "node --test test/brand-icons-runtime.test.cjs && tsc -p tsconfig.lib.json --noEmit",
+    "test": "node --test test/brand-icons-runtime.test.cjs ../../tools/testing/shadcn-nested-dismiss.test.cjs && tsc -p tsconfig.lib.json --noEmit",
     "typecheck": "tsc -p tsconfig.lib.json --noEmit"
   },
   "dependencies": {

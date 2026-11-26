@@ -43,7 +43,7 @@ import { registeredProjectTaskTypes } from './project-task-types'
 import { ProjectPipelineTaskLinkEntity } from '../pipeline/persistence/pipeline.entity'
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../../agent-invocation/invocation.entity'
 import { pipelineTaskFacts } from '../pipeline/queries/pipeline-task-facts'
-import { pipelineTaskDispositions } from '../pipeline/queries/pipeline-task-disposition'
+import { readTaskPipelineInfo } from '../pipeline/queries/pipeline-task-disposition'
 
 import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 export { projectTaskIdentity } from './project-task-identity'
@@ -177,7 +177,7 @@ export class ProjectTaskGraphService {
             order: options.page ? { createdAt: 'DESC', id: 'DESC' } : { startedAt: 'ASC', attempt: 'ASC' }
         })
         const pipelineFacts = await pipelineTaskFacts(manager, context, rows, storedExecutions)
-        const dispositions = await pipelineTaskDispositions(manager, context, rows)
+        const { instancesById, dispositions } = await readTaskPipelineInfo(manager, context, rows)
         for (const row of rows) row.assigneeXpertId ??= pipelineFacts.assignees.get(row.id)
         const executions = await observeProjectTaskInvocations(
             manager,
@@ -277,6 +277,7 @@ export class ProjectTaskGraphService {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
+                pipelineInstanceTitle: instancesById.get(node.pipelineInstanceId)?.title,
                 pipelineDisposition: dispositions.get(node.id) ?? node.pipelineDisposition,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
                 executor: latestTaskExecutor(

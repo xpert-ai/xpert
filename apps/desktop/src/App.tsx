@@ -1,13 +1,14 @@
-import type { OpenConversationAction, OutputWorkbenchTarget } from '@xpert-ai/contracts'
+import type { OpenConversationAction } from '@xpert-ai/contracts'
 import { NotificationProvider } from './notifications/NotificationProvider'
 import type { AgentDockTarget } from './types'
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
 import type { ConversationNotice, DesktopLastSession } from './assistant-list-types'
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { Bot as BotIcon } from 'lucide-react'
+import type { DesktopWorkbenchTarget, WorkbenchNavigation, WorkbenchRuntimeScope } from './workbench-entry'
 import { PersonalEventInbox } from './profile/PersonalEventInbox'
 import { ChatPanel } from './ChatPanel'
 import { ConnectionSettings } from './ConnectionSettings'
@@ -16,6 +17,7 @@ import { ComputerPermissions } from './computer-use/ComputerPermissions'
 import { FirstRunLanguage } from './FirstRunLanguage'
 import { Sidebar } from './Sidebar'
 import type { DiscoveryWorkspace } from './catalog-types'
+import { createCatalogCache } from './catalog/catalog-cache'
 import { CatalogDialog } from './CatalogDialog'
 import { HostError, invoke } from './host'
 import type { AppState, Bot, ConnectionConfig } from './types'
@@ -46,9 +48,14 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
   const [bosiReady, setBosiReady] = useState(false)
-  const [initialWorkbench, setInitialWorkbench] = useState<OutputWorkbenchTarget | null>(null)
-  const selectBot = (id: string, threadId: string | null = null, workbench: OutputWorkbenchTarget | null = null) => {
-    setInitialWorkbench(workbench)
+  const [initialWorkbench, setInitialWorkbench] = useState<DesktopWorkbenchTarget | null>(null)
+  const [entryBot, setEntryBot] = useState<Bot | null>(null)
+  const entryBotRef = useRef(entryBot)
+  entryBotRef.current = entryBot
+  const runtimeScope = useRef<WorkbenchRuntimeScope | null>(null)
+  const selectBot = (id: string, threadId: string | null = null) => {
+    setEntryBot(null)
+    setInitialWorkbench(null)
     setInboxScope(null)
     navigationVersion.current++
     selectedRef.current = id
@@ -62,6 +69,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     rememberSession({ botId: id, threadId })
   }
   const selectGroup = (id: string) => {
+    setEntryBot(null)
     setInboxScope(null)
     navigationVersion.current++
     selectedRef.current = null
@@ -126,6 +134,16 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     state?.profile?.organizationId ?? null
   ])
 
+  const catalogCache = useMemo(
+    () =>
+      createCatalogCache(
+        (kind) => invoke('listCatalog', kind),
+        undefined,
+        (offset) => invoke('expertCatalogPage', { offset })
+      ),
+    [binding, locale]
+  )
+
   useEffect(() => {
     let active = true
     const read = () =>
@@ -176,6 +194,11 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   }, [binding, organizationId, workspaceRevision])
   const workspace = workspaceOptions.find((option) => option.id === workspaceId)
   const selectWorkspace = (id: string) => {
+    if (entryBot) {
+      setInitialWorkbench(null)
+      setSelectionVersion((value) => value + 1)
+    }
+    setEntryBot(null)
     setInboxScope(null)
     setWorkspaceId(id)
     navigationVersion.current++
@@ -204,7 +227,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setCatalog(false)
     setCreateGroup(false)
     setWorkspaceId('')
-    if (selectedGroup || selected !== botId || (notice?.threadId ?? initialThread) !== threadId)
+    if (entryBot || selectedGroup || selected !== botId || (notice?.threadId ?? initialThread) !== threadId)
       selectBot(botId, threadId)
   }
   useEffect(() => {
@@ -221,6 +244,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     if (target.kind === 'group') {
       selectGroup(target.id)
     } else if (
+      entryBot ||
       selectedGroup ||
       selected !== target.id ||
       (target.threadId && (notice?.threadId ?? initialThread) !== target.threadId)
@@ -299,7 +323,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
               setSelectionVersion((value) => value + 1)
             }
           }
-          if (!page?.next && !items.some((item) => item.id === selectedRef.current)) {
+          if (!page?.next && !entryBotRef.current && !items.some((item) => item.id === selectedRef.current)) {
             selectedRef.current = items[0]?.id ?? null
             setSelected(selectedRef.current)
             setInitialThread(null)
@@ -336,6 +360,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setBosiReady(false)
     setSelected(null)
     setInitialWorkbench(null)
+    setEntryBot(null)
     setInitialThread(null)
     setInitialVoice(null)
     setNotice(undefined)
@@ -396,10 +421,10 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     )
   if (state.needsLanguageSelection) return <FirstRunLanguage onConfirm={setState} />
   if (state.needsComputerSetup) return <ComputerPermissions onFinish={setState} />
-  const bot = bots.find((item) => item.id === selected)
+  const bot = entryBot ?? bots.find((item) => item.id === selected)
   const visibleBots = workspace ? bots.filter((item) => item.workspaceId === workspace.id) : bots
   const inboxVisible = inboxScope === binding
-  const chatVisible = !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)
+  const chatVisible = !!entryBot || !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)
   const showOnboarding =
     !workspace && !selectedGroup && !bosiReady && navigationReady && !!state.profile?.organizationId
   const revealBot = (id: string) => {
@@ -411,24 +436,47 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     revealBot(target.id)
     selectBot(target.id, action.threadId)
   }
+  const openWorkbench = async (target: WorkbenchNavigation) => {
+    const revision = ++navigationVersion.current
+    const entry = await invoke('resolveWorkbenchEntry', target)
+    if (bindingRef.current !== binding || navigationVersion.current !== revision) return false
+    const current = runtimeScope.current
+    const reuse =
+      !selectedGroup &&
+      current?.assistantId === entry.assistantId &&
+      current.projectId === entry.projectId &&
+      current.organizationId === entry.organizationId
+    const listed =
+      entry.organizationId === state.profile?.organizationId
+        ? bots.find((item) => (item.assistantId || item.id) === entry.assistantId)
+        : undefined
+    setEntryBot((reuse && bot) || listed || entry.bot)
+    setInitialWorkbench({ ...entry, requestId: String(revision) })
+    setInboxScope(null)
+    setSelectedGroup(null)
+    setWorkspaceId('')
+    setBosiReady(true)
+    if (!reuse) {
+      setNotice(undefined)
+      setInitialThread(null)
+      setInitialVoice(null)
+      setSelectionVersion((value) => value + 1)
+    }
+    return true
+  }
   return (
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
       <div className={settings ? 'hidden' : 'contents'} inert={settings}>
         {state.profile ? (
           <NotificationProvider
             key={binding}
+            onWorkbench={openWorkbench}
             suspended={settings || catalog || createGroup}
             activeThreadId={
               !inboxVisible && chatVisible && !selectedGroup && !settings && !catalog
                 ? (notice?.threadId ?? initialThread)
                 : null
             }
-            onWorkbench={(action) => {
-              const target = bots.find((bot) => (bot.assistantId || bot.id) === action.assistantId)
-              if (!target || action.organizationId !== state.profile?.organizationId) throw new Error(t('Unavailable'))
-              revealBot(target.id)
-              selectBot(target.id, null, action)
-            }}
             onOpen={async (item) => {
               if (item.action) await openConversation(item.action)
             }}
@@ -453,7 +501,13 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                     onWorkspace={selectWorkspace}
                     workspaceError={workspaceError}
                     retryWorkspaces={() => setWorkspaceRevision((value) => value + 1)}
-                    selected={selectedGroup ? null : selected}
+                    selected={
+                      selectedGroup
+                        ? null
+                        : entryBot
+                          ? (bots.find((item) => item.id === entryBot.id)?.id ?? null)
+                          : selected
+                    }
                     selectedGroup={selectedGroup}
                     groupRevision={groupRevision}
                     onSelectGroup={selectGroup}
@@ -484,6 +538,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                       }
                     }}
                     onInbox={(opener) => {
+                      navigationVersion.current++
                       inboxOpener.current = opener
                       setInboxScope(binding)
                     }}
@@ -516,7 +571,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                     />
                   </main>
                 )}
-                <main className={inboxVisible ? 'hidden' : 'flex min-w-0 flex-1 flex-col'}>
+                <main className={inboxVisible ? 'hidden' : 'flex min-w-0 flex-1 flex-col'} inert={inboxVisible}>
                   {showOnboarding && state.profile.organizationId ? (
                     <BosiOnboarding
                       key={binding}
@@ -557,7 +612,12 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                         initialVoice={initialVoice}
                         onConversationRead={onConversationRead}
                         onOpenConversation={openConversation}
-                        onSessionChange={rememberSession}
+                        onOpenWorkbench={openWorkbench}
+                        organizationId={state.profile.organizationId}
+                        onRuntimeScope={(scope) => {
+                          runtimeScope.current = scope
+                        }}
+                        onSessionChange={entryBot ? undefined : rememberSession}
                         bot={bot}
                         config={{ ...state.config, appearance, locale }}
                         dark={dark}
@@ -636,6 +696,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       )}
       {catalog && state.profile && (
         <CatalogDialog
+          sessionCache={catalogCache}
           key={binding}
           workspace={workspace}
           workspaces={workspaceOptions}

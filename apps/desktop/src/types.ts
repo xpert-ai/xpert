@@ -113,12 +113,14 @@ export interface DesktopShellGrant {
 }
 export interface WorkbenchSessionInput {
   botId: string
-  target: 'assistant.conversation' | 'assistant.project'
+  target: 'assistant.conversation' | 'assistant.project' | 'workbench.view'
   /** Current host-resolved Assistant for project navigation; the server checks project access. */
   assistantId?: string
   conversationId?: string
   projectId?: string
   threadId?: string
+  source?: import('./workbench-entry').WorkbenchNavigation
+  sourceAssistantId?: string
 }
 export interface WorkbenchSession {
   assistantId: string
@@ -126,7 +128,7 @@ export interface WorkbenchSession {
   threadId: string | null
   conversationId?: string
   secret: string
-  organizationId: string
+  organizationId?: string
 }
 export interface HostMethods {
   notificationPreferences: {
@@ -144,7 +146,10 @@ export interface HostMethods {
   notificationAnnouncement: { input: string; output: Announcement }
   notificationHistory: { input: number; output: { items: Announcement[]; total: number } }
   notificationList: { input: number; output: { items: UserNotification[]; hasMore: boolean; nextOffset: number } }
-  notificationRead: { input: string; output: { read: true; items?: import('@xpert-ai/contracts').AgentOutputItem[] } }
+  notificationRead: {
+    input: string
+    output: { read: true; items?: import('@xpert-ai/contracts').AgentOutputItem[]; notification?: UserNotification }
+  }
   restoreSession: { input: undefined; output: DesktopLastSession | null }
   rememberSession: { input: { scope: string; session: DesktopLastSession }; output: void }
   bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }
@@ -275,6 +280,10 @@ export interface HostMethods {
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
   workbenchInboxConversation: { input: { assistantId: string; viewKey: string; payload: unknown }; output: unknown }
   personalInboxViews: { input: void; output: XpertExtensionViewManifest[] }
+  resolveWorkbenchEntry: {
+    input: import('./workbench-entry').WorkbenchNavigation
+    output: import('./workbench-entry').ResolvedWorkbenchTarget
+  }
   openProfileView: {
     input: { botId: string; viewKey: string } | { scope: 'personal-inbox'; viewKey: string }
     output: ProfileViewSession
@@ -396,6 +405,14 @@ export interface HostMethods {
     output: { base64: string; sha256: string; size: number; mimeType: string; name: string }
   }
   templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
+  expertCatalogPage: {
+    input: { offset: number }
+    output: { items: CatalogItem[]; total: number; nextOffset: number | null }
+  }
+  cardImages: {
+    input: { kind: 'experts'; id: string } | { kind: 'applications'; pluginName: string; appName: string }
+    output: { avatar?: string | null; cover?: string; icon?: string }
+  }
   catalogAvatar: { input: string; output: string | null }
   listCatalog: { input: CatalogItem['kind']; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }

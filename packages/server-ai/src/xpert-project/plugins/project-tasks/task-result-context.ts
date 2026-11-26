@@ -10,6 +10,8 @@ const resultSchema = z.object({ text: z.string().optional(), textTruncated: z.bo
 const taskSchema = z
     .object({
         id: z.string().uuid(),
+        revision: z.number().int().nonnegative().optional(),
+        status: z.string().optional(),
         specificationSnapshot: z.object({ digest: z.string() }).passthrough().nullish(),
         steps: z
             .array(
@@ -51,13 +53,18 @@ export function projectTaskModelView(value: unknown) {
     const parsed = taskSchema.safeParse(value)
     if (!parsed.success) return value
     const task = parsed.data
+    const { id, revision, status, ...details } = task
     // Retain the latest implementation and review independently. Unknown legacy ordering stays intact.
     const current = new Map<string, number>()
     for (const execution of task.executions)
         if (execution.attempt !== undefined && execution.purpose)
             current.set(execution.purpose.type, Math.max(current.get(execution.purpose.type) ?? -1, execution.attempt))
     return {
-        ...task,
+        // Put current concurrency state before potentially long execution history.
+        id,
+        revision,
+        status,
+        ...details,
         ...(task.steps
             ? {
                   steps: task.steps.map(({ id, stepIndex, description, status, notes }) => ({

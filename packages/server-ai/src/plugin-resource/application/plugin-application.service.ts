@@ -27,7 +27,6 @@ import {
     getPluginApplicationScopes,
     PluginApplicationScope,
     PluginApplicationCatalogItem,
-    PluginApplicationCatalogMetadata,
     PluginApplicationDetail,
     PluginApplicationInitializeInput,
     PluginApplicationSetupInput,
@@ -36,7 +35,6 @@ import {
     PluginApplicationPreflight,
     PluginApplicationStatusSummary,
     PluginTemplateApplicationSummary,
-    PluginTargetAppMarketplaceMetadata,
     resolveI18nText
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -65,22 +63,14 @@ import { PluginApplicationInstallation } from '../plugin-application-installatio
 import { PluginResourceInstallResult } from '../installation/plugin-resource-installer.service'
 import { XpertWorkspace } from '../../xpert-workspace/workspace.entity'
 import { XpertWorkspaceService } from '../../xpert-workspace/workspace.service'
-import { resolvePluginApplicationConfigAssets } from './plugin-application-assets'
+import { loadedApplications, ResolvedApplication } from './loaded-applications'
+import { applicationCard, applicationCardImages } from './application-card'
 import {
     ApplicationToolsetChanges,
     PluginApplicationToolsetsService
 } from '../application-toolsets/plugin-application-toolsets.service'
 import { t } from 'i18next'
 import { PluginApplicationSetupService } from '../application-setup/plugin-application-setup.service'
-
-/** Trusted App definition paired with the exact plugin template/version to install. */
-type ResolvedApplication = {
-    application: PluginTemplateApplicationSummary
-    marketplace: PluginApplicationCatalogMetadata
-    pluginVersion: string | null
-    templateId: string
-    templateVersion: string | null
-}
 
 /** Server-authorized model option plus the persisted Knowledge model binding. */
 type ResolvedModel = {
@@ -210,7 +200,7 @@ export class PluginApplicationService {
     async getStatuses(installationScope?: PluginApplicationScope): Promise<PluginApplicationStatusSummary[]> {
         await this.applicationAccess.assertMembership()
         return Promise.all(
-            this.loadedApplications(installationScope).map(({ application }) =>
+            loadedApplications(this.effectiveLoadedPlugins(), installationScope, false).map(({ application }) =>
                 this.getStatusForApplication(application)
             )
         )
@@ -220,12 +210,39 @@ export class PluginApplicationService {
     async getCatalog(installationScope?: PluginApplicationScope): Promise<PluginApplicationCatalogItem[]> {
         await this.applicationAccess.assertMembership()
         return Promise.all(
-            this.loadedApplications(installationScope).map(async ({ application, marketplace }) => ({
-                application,
-                marketplace,
-                status: await this.getStatusForApplication(application)
-            }))
+            loadedApplications(this.effectiveLoadedPlugins(), installationScope).map(
+                async ({ application, marketplace }) => ({
+                    application,
+                    marketplace,
+                    status: await this.getStatusForApplication(application)
+                })
+            )
         )
+    }
+
+    async getCards() {
+        await this.applicationAccess.assertMembership()
+        return Promise.all(
+            loadedApplications(this.effectiveLoadedPlugins(), undefined, false).map(
+                async ({ application, marketplace, pluginVersion }) => {
+                    const scopes = getPluginApplicationScopes(application.config.scope)
+                    const effective = scopes.includes('personal')
+                        ? { ...application, scope: 'personal' as const }
+                        : application
+                    return {
+                        ...applicationCard(effective),
+                        marketplace,
+                        imageRevision: pluginVersion,
+                        status: await this.getStatusForApplication(effective)
+                    }
+                }
+            )
+        )
+    }
+
+    async getCardImages(pluginName: string, appName: string) {
+        await this.applicationAccess.assertMembership()
+        return applicationCardImages(this.resolveApplication(pluginName, appName, undefined, false))
     }
 
     /** Allocates only the configuration Workspace; model/toolset prerequisites belong to activation. */
@@ -554,76 +571,19 @@ export class PluginApplicationService {
     private resolveApplication(
         pluginNameInput: string,
         appNameInput: string,
-        installationScope?: PluginApplicationScope
+        installationScope?: PluginApplicationScope,
+        resolveImages = true
     ): ResolvedApplication {
         const pluginName = normalizePluginName(pluginNameInput)
         const appName = appNameInput?.trim()
-        const resolved = this.loadedApplications(installationScope).find(
-            ({ application }) => application.pluginName === pluginName && application.appName === appName
-        )
+        const [resolved] = loadedApplications(this.effectiveLoadedPlugins(), installationScope, resolveImages, {
+            pluginName,
+            appName
+        })
         if (!resolved) {
             throw new NotFoundException('Loaded plugin App configuration was not found')
         }
         return resolved
-    }
-
-    /**
-     * Materializes application contributions from loaded plugin metadata.
-     * Duplicate declarations within one plugin are collapsed by stable App ID;
-     * no marketplace response or localized text participates in resolution.
-     */
-    private loadedApplications(installationScope?: PluginApplicationScope): ResolvedApplication[] {
-        const applications = new Map<string, ResolvedApplication>()
-        for (const plugin of this.effectiveLoadedPlugins()) {
-            const meta = plugin.instance?.meta
-            const pluginName = normalizePluginName(plugin.packageName ?? plugin.name ?? meta?.name ?? '')
-            if (!meta || !pluginName) continue
-            const metadataEntries = Object.values(meta.targetAppMeta ?? {}) as Array<{
-                marketplace?: PluginTargetAppMarketplaceMetadata
-            }>
-            for (const metadata of metadataEntries) {
-                const marketplace = metadata?.marketplace
-                const contributions = Array.isArray(marketplace?.contents) ? marketplace.contents : []
-                for (const app of contributions) {
-                    if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
-                    const scopes = getPluginApplicationScopes(app.appConfig.scope)
-                    if (!scopes.length) continue
-                    const id = `${pluginName}:${app.name}`
-                    if (applications.has(id)) continue
-                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig, marketplace)
-                    // Keep legacy plugin declarations compatible without granting organization-wide authoring.
-                    const appConfig = {
-                        ...declaredConfig,
-                        workspace: { ...declaredConfig.workspace, sharing: 'private' as const }
-                    }
-                    applications.set(id, {
-                        application: {
-                            id,
-                            pluginName,
-                            appName: app.name,
-                            displayName: app.displayName ?? app.name,
-                            description: app.description,
-                            icon: app.icon ?? meta.icon,
-                            color: app.color,
-                            scope: installationScope ?? scopes[0],
-                            assistantTemplateKey: appConfig.assistantTemplateKey,
-                            config: appConfig
-                        },
-                        marketplace: {
-                            category: marketplace?.category,
-                            subcategory: marketplace?.subcategory,
-                            featured: marketplace?.featured,
-                            tags: [...(app.tags ?? [])],
-                            updatedAt: marketplace?.updatedAt
-                        },
-                        pluginVersion: meta.version ?? null,
-                        templateId: `${pluginName}:${app.appConfig.assistantTemplateKey}`,
-                        templateVersion: meta.version ?? null
-                    })
-                }
-            }
-        }
-        return [...applications.values()]
     }
 
     /**
@@ -739,7 +699,7 @@ export class PluginApplicationService {
         }
         const installation = await this.findCurrentInstallation(application)
         return installation
-            ? this.toStatus(await this.refreshHealth(installation))
+            ? this.toStatus(await this.refreshHealth(installation, true, application))
             : {
                   appId: application.id,
                   installationScope: application.scope,
@@ -755,14 +715,16 @@ export class PluginApplicationService {
      */
     private async refreshHealth(
         installation: PluginApplicationInstallation,
-        persist = true
+        persist = true,
+        definition?: PluginTemplateApplicationSummary
     ): Promise<PluginApplicationInstallation> {
         if (installation.status !== PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) return installation
         const { pluginName, appName, declaredScope } = installation
         let expectedKnowledgebaseCount: number
         try {
             expectedKnowledgebaseCount =
-                this.getDefinition(pluginName, appName, declaredScope).config.knowledgebases?.length ?? 0
+                (definition ?? this.getDefinition(pluginName, appName, declaredScope)).config.knowledgebases?.length ??
+                0
         } catch {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'application_definition_missing'
@@ -812,7 +774,7 @@ export class PluginApplicationService {
                       (results) => results.length === expectedKnowledgebaseCount && results.every((exists) => exists)
                   )
         ])
-        const application = this.getDefinition(pluginName, appName, declaredScope)
+        const application = definition ?? this.getDefinition(pluginName, appName, declaredScope)
         const suiteHealthy =
             !application.config.assistantSuite ||
             (this.assistantSuites && (await this.assistantSuites.healthy(application, installation)))

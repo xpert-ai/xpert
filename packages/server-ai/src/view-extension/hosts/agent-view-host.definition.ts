@@ -9,6 +9,7 @@ import {
     AGENT_PROFILE_TABS_SLOT,
     AGENT_WORKBENCH_SLOT,
     EVENT_INBOX_FEATURE,
+    WORKSPACE_FILES_FEATURE,
     IXpert,
     resolveRuntimeXpert,
     XpertResolvedViewHostContext,
@@ -355,7 +356,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         return {
             agentKey,
             capabilities: {
-                features: [...new Set([...features, EVENT_INBOX_FEATURE])]
+                features: [...new Set([...features, EVENT_INBOX_FEATURE, WORKSPACE_FILES_FEATURE])]
             },
             hostState: {
                 agent: {

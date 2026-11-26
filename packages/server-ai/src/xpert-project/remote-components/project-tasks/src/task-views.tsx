@@ -10,6 +10,7 @@ import { Status, TaskName } from './ui'
 import { ColumnHeader, type Column, type TaskColumns } from './columns'
 import { Assignee } from './assignee'
 import { TaskTypeIcon } from './task-type-icon'
+import { ExecutionIndicators } from './execution-indicators'
 import { useDragScroll } from './drag-scroll'
 
 // Keep virtual offsets, dependency paths and rendered row heights in sync.
@@ -192,6 +193,16 @@ export function TaskTable({
         </div>
     )
 }
+const boardStatusMarker: { [K in Node['status']]: string } = {
+    todo: 'bg-muted-foreground',
+    in_progress: 'bg-primary',
+    review: 'bg-[var(--warning)]',
+    blocked: 'bg-destructive',
+    paused: 'bg-muted-foreground',
+    done: 'bg-[var(--success)]',
+    cancelled: 'bg-muted-foreground'
+}
+
 /** A board is a projection of authoritative statuses; dragging never invents a domain transition. */
 export function TaskBoard({
     graph: indexGraph,
@@ -211,91 +222,151 @@ export function TaskBoard({
     onError: (message: string) => void
 }) {
     const board = useVisibleBoardTasks(tasks.map((task) => task.id))
+    useDragScroll(board.ref, { verticalSelector: '[data-scroll-pan-y]' })
     const graph = useExecutionRows(indexGraph, board.taskIds, onError)
     const visibleStatuses = statuses.filter(
         (status) =>
             ['todo', 'in_progress', 'review', 'done'].includes(status) || tasks.some((task) => task.status === status)
     )
     return (
-        <div ref={board.ref} className="flex min-h-0 flex-1 gap-3 overflow-auto bg-muted/20 p-3" aria-label={t.board}>
+        <div
+            ref={board.ref}
+            className="flex min-h-0 min-w-0 flex-1 gap-4 overflow-auto bg-background p-4 cursor-grab data-[panning=true]:cursor-grabbing data-[panning=true]:select-none"
+            data-task-scroll="board"
+            title={t.panHint}
+            aria-label={t.board}
+        >
             {visibleStatuses.map((status) => {
                 const items = tasks.filter((task) => task.status === status)
                 return (
-                    <section key={status} className="flex w-72 shrink-0 flex-col gap-2" aria-label={t[status]}>
-                        <header className="flex items-center justify-between py-1">
-                            <Status value={status} t={t} />
-                            <span className="truncate px-3 text-xs tabular-nums text-muted-foreground">
-                                {items.length}
-                            </span>
-                        </header>
-                        {items.map((task) => (
-                            <article
-                                data-task-id={task.id}
-                                key={task.id}
-                                aria-label={task.title}
-                                className={cn(
-                                    'space-y-2 rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-primary/50',
-                                    selected === task.id && 'border-primary ring-1 ring-primary/20'
-                                )}
-                            >
-                                <button
-                                    type="button"
-                                    onClick={() => select(task)}
-                                    aria-label={task.title}
-                                    className="block w-full space-y-2 rounded text-left hover:underline focus-visible:outline-ring"
-                                >
-                                    <span className="block text-xs text-muted-foreground">
-                                        {t[task.kind]}
-                                        {task.parentTaskId && (
-                                            <span className="ml-2">
-                                                / {graph.tasks.find((item) => item.id === task.parentTaskId)?.title}
-                                            </span>
-                                        )}
-                                    </span>
-                                    <span className="flex items-start gap-2 text-sm font-medium leading-5">
-                                        <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
-                                        <span className="min-w-0 break-words">{task.title}</span>
-                                    </span>
-                                </button>
-                                <Assignee
-                                    task={task}
-                                    attempts={graph.executions.filter((item) => item.taskId === task.id)}
-                                    t={t}
-                                    locale={locale}
-                                    onError={onError}
-                                    className="px-0"
-                                />
-                                {(task.progress != null ||
-                                    (task.pipelineDisposition && task.pipelineDisposition !== 'active')) && (
-                                    <Status
-                                        value={task.status}
-                                        progress={task.progress}
-                                        disposition={task.pipelineDisposition}
-                                        t={t}
-                                    />
-                                )}
-                                <div className="flex items-center gap-3 border-t pt-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                        <GitBranch className="size-3.5" />
-                                        {task.predecessorIds.length}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <MessageSquare className="size-3.5" />
-                                        {task.executionCount ??
-                                            graph.executions.filter((item) => item.taskId === task.id).length}
-                                    </span>
-                                    <span className="ml-auto flex items-center gap-1">
-                                        <CalendarClock className="size-3.5" />
-                                        {task.plannedStartAt ? dateTime(task.plannedStartAt, locale, true) : t.unknown}
-                                    </span>
-                                </div>
-                            </article>
-                        ))}
-                        {!items.length && (
-                            <p className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">
-                                {t.noResults}
-                            </p>
+                    <section
+                        key={status}
+                        data-scroll-pan-y=""
+                        className={cn(
+                            'flex min-h-0 shrink-0 flex-col gap-4 overflow-y-auto overscroll-y-contain rounded-xl bg-muted/50 p-2',
+                            items.length ? 'min-w-80 flex-1 basis-80' : 'w-48'
                         )}
+                        aria-label={t[status]}
+                    >
+                        <header className="sticky -top-2 z-10 flex shrink-0 items-center justify-between gap-3 bg-[color-mix(in_srgb,var(--muted)_50%,var(--background))] px-2 py-2">
+                            <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                                <span
+                                    aria-hidden="true"
+                                    className={cn('h-3.5 w-0.5 shrink-0 rounded-full', boardStatusMarker[status])}
+                                />
+                                {t[status]}
+                            </h2>
+                            <span className="text-xs tabular-nums text-muted-foreground">{items.length}</span>
+                        </header>
+                        <div className="flex flex-1 flex-col gap-3 rounded-lg p-0.5">
+                            {items.map((task) => {
+                                const attempts = graph.executions.filter((item) => item.taskId === task.id)
+                                return (
+                                    <article
+                                        data-task-id={task.id}
+                                        draggable={false}
+                                        key={task.id}
+                                        aria-label={task.title}
+                                        className={cn(
+                                            'flex shrink-0 flex-col gap-4 rounded-xl border border-border/50 bg-card p-4 text-left transition-colors hover:border-primary/40',
+                                            selected === task.id && 'border-primary ring-1 ring-primary/20'
+                                        )}
+                                    >
+                                        <div className="space-y-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => select(task)}
+                                                aria-label={task.title}
+                                                className="block w-full space-y-2 rounded-sm text-left hover:underline focus-visible:outline-ring"
+                                            >
+                                                <span className="block truncate text-xs text-muted-foreground">
+                                                    {t[task.kind]}
+                                                    {task.parentTaskId && (
+                                                        <span className="ml-1">
+                                                            /{' '}
+                                                            {
+                                                                graph.tasks.find(
+                                                                    (item) => item.id === task.parentTaskId
+                                                                )?.title
+                                                            }
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span className="flex items-start gap-2 text-base font-medium leading-snug">
+                                                    <span className="pt-0.5">
+                                                        <TaskTypeIcon
+                                                            task={task}
+                                                            locale={locale}
+                                                            fallbackLabel={t[task.kind]}
+                                                        />
+                                                    </span>
+                                                    <span className="min-w-0 break-words">{task.title}</span>
+                                                </span>
+                                            </button>
+                                            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <CalendarClock aria-hidden className="size-4 shrink-0" />
+                                                {task.plannedStartAt
+                                                    ? dateTime(task.plannedStartAt, locale, true)
+                                                    : t.unknown}
+                                            </span>
+                                        </div>
+                                        {(attempts.length > 0 || (task.executionCount ?? 0) > 0) && (
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-muted-foreground">{t.agentExecutions}</p>
+                                                {attempts.length ? (
+                                                    <ExecutionIndicators
+                                                        title={task.title}
+                                                        attempts={attempts}
+                                                        variant="card"
+                                                        t={t}
+                                                        locale={locale}
+                                                        onError={onError}
+                                                        className="-ml-1.5"
+                                                    />
+                                                ) : (
+                                                    <div className="h-7" aria-hidden="true" />
+                                                )}
+                                            </div>
+                                        )}
+                                        {(task.progress != null ||
+                                            (task.pipelineDisposition && task.pipelineDisposition !== 'active')) && (
+                                            <Status
+                                                value={task.status}
+                                                progress={task.progress}
+                                                disposition={task.pipelineDisposition}
+                                                t={t}
+                                            />
+                                        )}
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                                            <Assignee
+                                                task={task}
+                                                attempts={attempts}
+                                                showExecutions={false}
+                                                t={t}
+                                                locale={locale}
+                                                onError={onError}
+                                                className="flex-1 px-0"
+                                            />
+                                            <div className="ml-auto flex shrink-0 items-center gap-3">
+                                                <span className="flex items-center gap-1" title={t.predecessors}>
+                                                    <GitBranch aria-hidden className="size-3.5" />
+                                                    {task.predecessorIds.length}
+                                                </span>
+                                                <span className="flex items-center gap-1" title={t.history}>
+                                                    <MessageSquare aria-hidden className="size-3.5" />
+                                                    {task.executionCount ?? attempts.length}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </article>
+                                )
+                            })}
+                            {!items.length && (
+                                <p className="flex min-h-40 flex-1 items-center justify-center px-3 pb-12 text-center text-sm leading-6 text-muted-foreground">
+                                    {t.noResults}
+                                </p>
+                            )}
+                        </div>
                     </section>
                 )
             })}

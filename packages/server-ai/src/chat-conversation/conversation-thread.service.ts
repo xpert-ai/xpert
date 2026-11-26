@@ -1,29 +1,19 @@
+import { saveSideChatTitle } from './side-chat-title/save-title'
 import { omit } from 'lodash'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
-import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
-import { collectMcpAppComponentData } from '../mcp-app-runtime/mcp-app-history-component'
 import {
     ChatThreadPurpose,
+    filterMessageText,
     isRuntimeChatMessage,
     TChatConversationStatus,
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
-import {
-    And,
-    DataSource,
-    EntityManager,
-    Equal,
-    FindOptionsOrder,
-    FindOptionsWhere,
-    In,
-    IsNull,
-    Repository
-} from 'typeorm'
+import { And, DataSource, Equal, FindOptionsOrder, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
 import { threadControlConflict, threadGraphRevision } from './thread-run-control.service'
 import { recoveryConflict } from './recovery/recovery-error'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
@@ -125,6 +115,23 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         if (existing) return existing
         if (conversation?.threadId === threadId) return this.ensurePrimary(conversation)
         throw new NotFoundException(`Thread "${threadId}" not found`)
+    }
+
+    /** Caller authorizes manage access; update only the label without clobbering runtime metadata. */
+    async renameThread(threadId: string, title: string): Promise<ChatConversationThread> {
+        const thread = await this.requireByThreadId(threadId)
+        await this.repository
+            .createQueryBuilder()
+            .update()
+            .set({
+                metadata: () =>
+                    `COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('title', CAST(:title AS text), 'titleSource', 'manual')`
+            })
+            .where({ id: thread.id, conversationId: thread.conversationId })
+            .setParameter('title', title)
+            .execute()
+        thread.metadata = { ...thread.metadata, title, titleSource: 'manual' }
+        return thread
     }
 
     async listByConversation(conversationId: string): Promise<ChatConversationThread[]> {
@@ -441,29 +448,32 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         const thread = await this.requireByThreadId(threadId)
         const message = await this.messageRepository.findOne({
             where: { id: messageId, conversationId: thread.conversationId },
-            select: { id: true }
+            select: { id: true, role: true, content: true, createdInThreadId: true }
         })
         if (!message) throw new NotFoundException(`Message "${messageId}" not found in thread conversation`)
         await this.repository.update(thread.id, { headMessageId: message.id })
+        if (
+            message.role === 'ai' &&
+            message.createdInThreadId === threadId &&
+            thread.metadata.purpose === ChatThreadPurpose.SideChat &&
+            thread.metadata.titleSource === 'default'
+        ) {
+            // A useful label is available even when model title generation is disabled.
+            await this.saveFirstQuestionTitle(thread).catch(() =>
+                Logger.warn('Could not save side-chat title; retaining the current label.', 'SideChatTitle')
+            )
+        }
     }
 
-    async deleteBranchMessages(threadId: string): Promise<void> {
-        const thread = await this.requireByThreadId(threadId)
-        await this.dataSource.transaction(async (manager) => {
-            const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId ?? IsNull() }
-            const where = { ...scope, conversationId: thread.conversationId, createdInThreadId: thread.threadId }
-            const messages = await manager.find(ChatMessage, {
-                where,
-                select: { id: true, content: true, events: true }
-            })
-            const ids = messages.flatMap((message) =>
-                [...collectMcpAppComponentData(message.events), ...collectMcpAppComponentData(message.content)].map(
-                    (component) => component.appInstanceId
-                )
-            )
-            if (ids.length) await manager.delete(McpAppHistory, { ...scope, id: In(ids) })
-            await manager.softDelete(ChatMessage, where)
+    private async saveFirstQuestionTitle(thread: ChatConversationThread) {
+        const { items } = await this.findVisibleMessages(thread.threadId, {
+            where: { createdInThreadId: thread.threadId, role: 'human' },
+            order: { createdAt: 'ASC' },
+            take: 1
         })
+        const content = items[0]?.content
+        const text = typeof content === 'string' ? content : content ? filterMessageText(content) : ''
+        return saveSideChatTitle(this.repository, thread, text.replace(/\s+/g, ' ').trim().slice(0, 80), 'default')
     }
 
     async findVisibleMessages(

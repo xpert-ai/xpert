@@ -1,3 +1,4 @@
+import { RuntimeLifecycleService } from '@xpert-ai/server-core'
 // Run only as a child of queue-recovery.cases. SIGKILL deliberately skips cleanup
 // after durable commits; the parent owns the disposable database and Redis.
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
@@ -183,9 +184,15 @@ child(
                         crash()
                     }
                 })
-                const continuation = new RuntimeMessageContinuationService(database, access, commands, {
-                    execution: async () => null
-                } as never)
+                const continuation = new RuntimeMessageContinuationService(
+                    database,
+                    access,
+                    commands,
+                    {
+                        execution: async () => null
+                    } as never,
+                    new RuntimeLifecycleService()
+                )
                 await continuation.reconcile()
                 expect(
                     (await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ invocationId: record.id })).state

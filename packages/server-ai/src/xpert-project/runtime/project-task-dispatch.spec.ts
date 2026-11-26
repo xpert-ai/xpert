@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
+import i18next from 'i18next'
 import { ProjectTaskDispatchInput } from '@xpert-ai/contracts'
 import { AgentInvocation, AgentInvocationRequest, AgentInvocationScope, AgentTarget } from '@xpert-ai/plugin-sdk'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
@@ -147,7 +148,11 @@ async function fixture() {
         createCapturedApi: jest.fn(() => ({ start }))
     }
     const reviews = { assertSupported: jest.fn(), executionInstructions: jest.fn() }
-    const context = { resolve: jest.fn(async () => scope), assertResponsibleAssistant: jest.fn() }
+    const context = {
+        enabledProjectSkillNames: jest.fn(async (): Promise<string[]> => []),
+        resolve: jest.fn(async () => scope),
+        assertResponsibleAssistant: jest.fn()
+    }
     const bindings = { resolveCurrentById: jest.fn(async (id: string) => ({ id })) }
     const module = await Test.createTestingModule({
         providers: [
@@ -184,6 +189,23 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en' })
+    })
+
+    it('rejects an incorrect task revision with the exact current value without reserving or starting work', async () => {
+        const f = await fixture()
+        f.task.revision = 28
+        f.input.expectedRevision = 31
+        await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow(
+            'Dispatch expected task revision 31, but the current task revision is 28.'
+        )
+        expect(f.rows).toHaveLength(0)
+        expect(f.start).not.toHaveBeenCalled()
+        expect(f.task.revision).toBe(28)
+        expect(f.taskRepo.save).not.toHaveBeenCalled()
+    })
+
     function previousImplementation(f: Awaited<ReturnType<typeof fixture>>) {
         const reviewer = { bindingId: randomUUID(), mode: 'execution' as const }
         const previous = Object.assign(new XpertProjectTaskExecution(), {
@@ -680,6 +702,68 @@ describe('explicit Project task delegation', () => {
         )
         expect(f.start.mock.calls[0][0]).toEqual(f.start.mock.calls[1][0])
     })
+    it.each(['native report', 'pinned legacy rework'])(
+        'waits for the actual named Project skill before reserving a rewritten retry: %s',
+        async (source) => {
+            const f = await fixture()
+            f.target.provider = 'codex-computer'
+            const first = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            const invocation = f.invocations[0].invocation
+            invocation.status = 'succeeded'
+            invocation.result = {
+                text:
+                    source === 'native report'
+                        ? 'PROJECT_SKILLS_REQUIRED=["plugin-development","platform-environment"]\nNo candidate was produced.'
+                        : 'The environment is not ready.'
+            }
+            if (source === 'pinned legacy rework') {
+                Object.assign(f.task, {
+                    decisions: [
+                        {
+                            outcome: 'rework',
+                            implementationExecutionId: first.taskExecutionId,
+                            rationale:
+                                "Implementation is blocked due to missing 'platform-environment' skill in the execution context."
+                        }
+                    ]
+                })
+            }
+            f.input.requestId = randomUUID()
+            f.input.instructions = 'Try to continue using the installed skills.'
+            f.context.enabledProjectSkillNames.mockResolvedValue(['plugin-development'])
+            await expect(f.service.dispatch(f.scope.projectId, f.input, f.caller)).rejects.toThrow(
+                /platform-environment/
+            )
+            expect(f.rows).toHaveLength(1)
+            f.context.enabledProjectSkillNames.mockResolvedValue(['plugin-development', 'platform-environment'])
+            const retry = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            expect(retry.taskExecutionId).not.toBe(first.taskExecutionId)
+        }
+    )
+    it.each(['unchanged', 'new instructions', 'failed attempt'])(
+        'compares a new implementation delegation against its last returned result: %s',
+        async (change) => {
+            const f = await fixture()
+            await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            f.invocations[0].invocation.status = change === 'failed attempt' ? 'failed' : 'succeeded'
+            f.input.requestId = randomUUID()
+            if (change === 'new instructions')
+                f.input.instructions = 'Fix the duplicate-borrow assertion in the returned evidence.'
+            const next = f.service.dispatch(f.scope.projectId, f.input, {
+                ...f.caller,
+                sourceMessageId: 'new-tool-call'
+            })
+            if (change === 'unchanged') {
+                await expect(next).rejects.toMatchObject({ status: 409 })
+                expect(f.rows).toHaveLength(1)
+                expect(f.start).toHaveBeenCalledTimes(1)
+            } else {
+                await expect(next).resolves.toHaveProperty('taskExecutionId')
+                expect(f.start).toHaveBeenCalledTimes(2)
+            }
+        }
+    )
+
     it('rejects a reused key with changed instructions, target version, or calling conversation', async () => {
         const f = await fixture()
         await f.service.dispatch(f.scope.projectId, f.input, f.caller)

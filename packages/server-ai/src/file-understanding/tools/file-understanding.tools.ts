@@ -246,7 +246,7 @@ export function createFileUnderstandingTools(queryBus: QueryBus, options?: Creat
         {
             name: 'parsed_file_list',
             description:
-                'List compact metadata for parsed files visible in the current workspace. Use a dedicated tool to search, read, or list page images.',
+                'List parsed attachments visible in this Project or conversation. This does not list Computer filesystem paths or Coding Agent output files. An empty array means no parsed attachments; do not repeat this call to wait for task completion or locate generated files. Use task execution results and their artifact references for generated deliverables. Use dedicated parsed-file tools to search, read, or list page images.',
             schema: z.object({}).strict(),
             verboseParsingErrors: true
         }

@@ -17,6 +17,7 @@ jest.mock('@xpert-ai/server-core', () => ({
     ...jest.requireActual('../../../server/src/api-key/assistant-runtime-compatibility'),
     Permissions: () => () => undefined,
     AllowClientSecretBindings: () => () => undefined,
+    ...jest.requireActual('../../../server/src/shared/guards/public-visitor-chat.guard'),
     ApiKeyOrClientSecretAuthGuard: class {},
     CurrentUser: () => () => undefined,
     Public: () => () => undefined,
@@ -77,10 +78,11 @@ import {
     NotFoundException,
     ServiceUnavailableException
 } from '@nestjs/common'
+import { GUARDS_METADATA } from '@nestjs/common/constants'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
+import { PublicVisitorChatGuard, ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
 import { AddressInfo } from 'net'
 import { json } from 'express'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
@@ -105,6 +107,13 @@ import { writeSseResponse } from '../shared/stream/write-sse-response'
 import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 describe('ThreadsController', () => {
+    it('admits a public visitor through the thread reads ChatKit needs to continue a conversation', () => {
+        const { getThread, getThreadContextUsage, getThreadRun, joinRunStream, runStream } = ThreadsController.prototype
+        for (const route of [getThread, getThreadContextUsage, getThreadRun, joinRunStream, runStream]) {
+            expect(Reflect.getMetadata(GUARDS_METADATA, route)).toContain(PublicVisitorChatGuard)
+        }
+    })
+
     describe('GET run status', () => {
         const createdAt = new Date('2026-10-12T08:00:00Z')
         const updatedAt = new Date('2026-10-12T08:01:00Z')

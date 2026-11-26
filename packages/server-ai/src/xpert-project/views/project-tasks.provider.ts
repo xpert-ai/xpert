@@ -1,3 +1,5 @@
+import { ProjectPipelineOperationActionsService } from '../pipeline/operation-actions/operation-actions.service'
+import { projectPipelineOperationActionSchema } from '@xpert-ai/contracts'
 import { executionSummaryDto, taskIndexDto } from './task-data/task-view.dto'
 import { projectTaskDecisionToolInputSchema, projectTaskViewQuerySchema } from '@xpert-ai/contracts'
 import { readTaskView } from './task-data/task-view.reader'
@@ -52,6 +54,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         private readonly pipelineCatalog: ProjectPipelineCatalogService,
         private readonly providerActions: ProjectPipelineProviderActionsService,
         private readonly pipelineAnalytics: ProjectPipelineAnalyticsService,
+        private readonly operationActions: ProjectPipelineOperationActionsService,
         private readonly workspaces: ProjectPipelineWorkspaceService
     ) {}
     supports(context: XpertResolvedViewHostContext) {
@@ -126,6 +129,8 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                         'pipeline-cancel',
                         'pipeline-retry',
                         'pipeline-catalog',
+                        'pipeline-operation-actions',
+                        'pipeline-operation-action',
                         'pipeline-provider-actions',
                         'pipeline-provider-node-details',
                         'pipeline-provider-action'
@@ -178,6 +183,27 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         actionKey: string,
         request: XpertViewActionRequest
     ) {
+        if (actionKey === 'pipeline-operation-actions') {
+            const input = z
+                .object({ instanceId: z.string().uuid(), nodeInstanceId: z.string().uuid() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.operationActions.list(this.context(context), {
+                    instanceId: input.instanceId,
+                    nodeInstanceId: input.nodeInstanceId
+                })
+            }
+        }
+        if (actionKey === 'pipeline-operation-action')
+            return {
+                success: true,
+                data: await this.operationActions.submit(
+                    this.context(context),
+                    projectPipelineOperationActionSchema.parse(request.input)
+                )
+            }
         if (actionKey === 'workspace-target') {
             const input = z
                 .object({
@@ -280,7 +306,10 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                 )
             }
         if (actionKey === 'pipeline-list') {
-            const input = z.object({ after: z.string().uuid().optional() }).strict().parse(request.input)
+            const input = z
+                .object({ after: z.string().uuid().optional(), search: z.string().trim().max(200).optional() })
+                .strict()
+                .parse(request.input)
             return { success: true, data: await this.pipelines.list(this.context(context), input) }
         }
         if (actionKey === 'pipeline-rounds') {

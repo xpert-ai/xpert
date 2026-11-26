@@ -110,3 +110,5 @@ export * from './app-platform.service'
 export * from './conversation-sharing.service'
 
 export * from './user-notifications.service'
+
+export * from './workbench-entry-navigation.service'

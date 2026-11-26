@@ -1,4 +1,10 @@
-import { AGENT_OUTPUT_ACCEPT, outputPreferenceSchema, type OutputPreference } from '@xpert-ai/contracts'
+import {
+    ACTION_NOTIFICATION_ACCEPT,
+    WORKBENCH_NOTIFICATION_ACCEPT,
+    AGENT_OUTPUT_ACCEPT,
+    outputPreferenceSchema,
+    type OutputPreference
+} from '@xpert-ai/contracts'
 import { OutputPreferences } from './output/output-preferences'
 import { Body, Controller, Get, Header, Headers, Param, Post, Put, Query, Sse } from '@nestjs/common'
 import { UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
@@ -36,8 +42,13 @@ export class UserNotificationController {
         return this.service.list(
             query.offset,
             query.limit,
-            accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1',
-            prefer === 'return=representation'
+            accept === WORKBENCH_NOTIFICATION_ACCEPT ||
+                accept === ACTION_NOTIFICATION_ACCEPT ||
+                accept === AGENT_OUTPUT_ACCEPT ||
+                query.outputs === '1',
+            prefer === 'return=representation',
+            accept === WORKBENCH_NOTIFICATION_ACCEPT || accept === ACTION_NOTIFICATION_ACCEPT,
+            accept === WORKBENCH_NOTIFICATION_ACCEPT
         )
     }
     @Get('sync')
@@ -47,7 +58,15 @@ export class UserNotificationController {
         query: z.output<typeof sync>,
         @Headers('accept') accept?: string
     ) {
-        return this.service.snapshot(query.client, accept === AGENT_OUTPUT_ACCEPT || query.outputs === '1')
+        return this.service.snapshot(
+            query.client,
+            accept === WORKBENCH_NOTIFICATION_ACCEPT ||
+                accept === ACTION_NOTIFICATION_ACCEPT ||
+                accept === AGENT_OUTPUT_ACCEPT ||
+                query.outputs === '1',
+            accept === WORKBENCH_NOTIFICATION_ACCEPT || accept === ACTION_NOTIFICATION_ACCEPT,
+            accept === WORKBENCH_NOTIFICATION_ACCEPT
+        )
     }
     @Get('preferences') listPreferences() {
         return this.preferences.list()
@@ -63,8 +82,8 @@ export class UserNotificationController {
     stream() {
         return this.realtime.stream(notificationScope(), notificationStreamLifetime())
     }
-    @Put(':id/read') read(@Param('id', UUIDValidationPipe) id: string) {
-        return this.service.read(id)
+    @Put(':id/read') read(@Param('id', UUIDValidationPipe) id: string, @Headers('accept') accept?: string) {
+        return this.service.read(id, accept === WORKBENCH_NOTIFICATION_ACCEPT)
     }
 }
 

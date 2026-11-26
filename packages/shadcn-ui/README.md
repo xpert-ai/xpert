@@ -59,6 +59,13 @@ styles or set `p-0` on an ordinary Dialog. Rebuild consumers after updating shar
 source: existing compiled remote bundles do not update merely by importing the
 same package name.
 
+Dialog and Sheet preserve outside-pointer eligibility at the start of each
+gesture. A nested Select can close on `pointerdown`, before Radix processes the
+parent's deferred `click`; that same gesture must not also dismiss the parent.
+The shared guard records eligibility in the content's owning document, so it
+also works in remote View iframes. Normal backdrop dismissal, Escape, explicit
+close controls and consumer `preventDefault()` policies remain available.
+
 ## Validation
 
 From the repository root:
@@ -68,6 +75,14 @@ corepack pnpm --dir packages/shadcn-ui test
 corepack pnpm exec jest --config packages/shadcn-ui/jest.config.ts --runInBand
 node --test tools/testing/shadcn-nova.e2e.mjs
 ```
+
+The package test includes `tools/testing/shadcn-nested-dismiss.test.cjs`, which
+mounts real Dialog/Sheet/Select primitives with both the remote and Desktop React
+runtimes. It covers separate pointerdown/click phases, nested dialogs, focus
+restoration, option selection and caller cancellation. The matching
+`test/nested-dismiss-preview.tsx` fixture can also run in an isolated Electron
+window without accessing platform data. To compare uncommitted changes with the
+HEAD components, run `NESTED_DISMISS_BASELINE=1 node --test tools/testing/shadcn-nested-dismiss.test.cjs`.
 
 The browser test builds the actual shared TSX and stylesheet, checks native
 control states, dialog layout and focus in light/dark/compact/narrow scenarios,

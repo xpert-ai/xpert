@@ -104,7 +104,12 @@ export class MiddlewareMcpAppsService {
                         name: tool.name,
                         description: tool.description,
                         schema: tool.schema,
-                        metadata: { ...tool.metadata, middlewareMcpApp: true },
+                        metadata: {
+                            ...tool.metadata,
+                            // The App retrieves its private payload through its scoped endpoint.
+                            publicToolPresentation: tool.metadata?.publicToolPresentation ?? { tool: tool.name },
+                            middlewareMcpApp: true
+                        },
                         responseFormat: tool.responseFormat,
                         returnDirect: tool.returnDirect,
                         verboseParsingErrors: true,

@@ -2,6 +2,7 @@ import { normalizeAssistantTemplate } from '../definition/normalize-assistant-te
 import {
     templateManifestSchema,
     AiModelTypeEnum,
+    AssistantCapabilityToolsetBinding,
     RealtimeVoiceSelection,
     AssistantCapabilityConfiguration,
     LanguagesEnum,
@@ -29,7 +30,9 @@ import {
     parseTemplateCapabilities
 } from './template-capability-reference'
 import { parseCapabilityTemplateDraft } from './template-draft'
-import { recordCapabilityState } from './capability-state'
+import { recordCapabilityState, removeCapabilityState } from './capability-state'
+import { bindCapabilityToolsets } from './capability-toolsets'
+import { ResolveCapabilityToolsetsQuery } from '../../xpert-toolset/queries/resolve-capability-toolsets.query'
 import { blankAssistantTemplate } from './blank-assistant-template'
 import { templateModelOption } from './template-model-option'
 import { findAvailableLlmSelection, findDefaultLlmSelection } from '../../copilot/llm-selection'
@@ -76,7 +79,15 @@ export class AssistantCapabilityService {
                 .list()
                 .filter((provider) => declarations.has(provider.key))
                 .map(async (provider) => {
-                    const availability = await provider.check({ template, draft, language, sandboxProviders })
+                    let availability = await provider.check({ template, draft, language, sandboxProviders })
+                    if (availability.available) {
+                        try {
+                            await this.resolveToolsets([provider], draft.team.workspaceId)
+                        } catch (error) {
+                            if (!(error instanceof BadRequestException)) throw error
+                            availability = { available: false, reason: error.message }
+                        }
+                    }
                     return {
                         key: provider.key,
                         label: resolveI18nText(provider.label, RequestContext.getLanguageCode()) || provider.key,
@@ -93,9 +104,11 @@ export class AssistantCapabilityService {
         language: LanguagesEnum,
         selected: string[] = [],
         sandboxProviders?: { type: string }[],
-        installationDraft?: TXpertTeamDraft
+        installationDraft?: TXpertTeamDraft,
+        workspaceId?: string
     ): Promise<XpertTemplateSetup> {
-        return (await this.resolveSetup(template, language, selected, sandboxProviders, installationDraft)).setup
+        return (await this.resolveSetup(template, language, selected, sandboxProviders, installationDraft, workspaceId))
+            .setup
     }
 
     private async resolveSetup(
@@ -103,7 +116,8 @@ export class AssistantCapabilityService {
         language: LanguagesEnum,
         selected: string[],
         sandboxProviders?: { type: string }[],
-        installationDraft?: TXpertTeamDraft
+        installationDraft?: TXpertTeamDraft,
+        workspaceId?: string
     ): Promise<{ setup: XpertTemplateSetup; copilots: CopilotWithProviderDto[] }> {
         const { active, options } = this.resolve(template, selected)
         let manifestValue = template.manifest
@@ -125,6 +139,12 @@ export class AssistantCapabilityService {
             canInstall: true
         }
         const draft = installationDraft ?? parseCapabilityTemplateDraft(template.export_data)
+        try {
+            await this.resolveToolsets(active, workspaceId ?? draft.team.workspaceId)
+        } catch (error) {
+            if (!(error instanceof BadRequestException)) throw error
+            return { setup: { ...result, canInstall: false, reason: error.message }, copilots: [] }
+        }
         // Model requirements constrain the catalog; omitting them must not hide model selection for Assistants.
         result.requiresModel =
             template.requiresModelSelection === true ||
@@ -217,6 +237,7 @@ export class AssistantCapabilityService {
             })
             throw new BadRequestException(check.reason)
         }
+        await this.bindResources(template, draft, selected)
         if (!check.requiresModel) return
         const preferred =
             findAvailableLlmSelection(copilots, draft.team.copilotModel) ?? findDefaultLlmSelection(copilots)
@@ -255,6 +276,24 @@ export class AssistantCapabilityService {
         draft.team.features.realtimeVoice = { enabled: true, copilotModel: model.copilotModel, voice: selection.voice }
         const state = draft.team.options?.assistantCapabilities
         if (state?.realtimeVoice) state.realtimeVoice.after = structuredClone(draft.team.features.realtimeVoice)
+    }
+
+    async bindResources(template: TXpertTemplate, draft: TXpertTeamDraft, selected: string[]) {
+        const { active } = this.resolve(template, selected)
+        const bindings = await this.resolveToolsets(active, draft.team.workspaceId)
+        if (!bindings.length) return
+        const before = removeCapabilityState(draft)
+        bindCapabilityToolsets(draft, bindings)
+        recordCapabilityState(before, draft, selected)
+    }
+
+    private async resolveToolsets(providers: IAssistantCapabilityProvider[], workspaceId?: string) {
+        const requirements = providers.flatMap((provider) => provider.toolsets ?? [])
+        if (!requirements.length) return []
+        if (!workspaceId) throw new BadRequestException(t('server-ai:Error.CapabilityWorkspaceRequired'))
+        return this.queries.execute<ResolveCapabilityToolsetsQuery, AssistantCapabilityToolsetBinding[]>(
+            new ResolveCapabilityToolsetsQuery(workspaceId, requirements)
+        )
     }
 
     async compose(

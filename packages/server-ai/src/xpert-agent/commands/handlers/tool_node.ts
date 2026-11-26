@@ -1,3 +1,4 @@
+import { toolErrorEvent } from '../../tool-presentation'
 import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
 import { ExecutionCancelledError } from '../../../execution-control/execution-cancelled.error'
 import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
@@ -189,10 +190,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                         throw e
                     }
 
-                    await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_ERROR, {
-                        toolCall: call,
-                        error: getErrorMessage(e)
-                    })
+                    await dispatchCustomEvent(
+                        ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+                        toolErrorEvent(call, getErrorMessage(e), tool)
+                    )
 
                     const toolMessage = new ToolMessage({
                         status: 'error',

@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common'
+import { t } from 'i18next'
 import { createHash } from 'node:crypto'
 import {
   ArtifactsRuntimeCapability,
+  ProjectPipelineEvidenceRuntimeCapability,
   ProjectTasksRuntimeCapability,
+  type ProjectTaskAcceptanceReceipt,
   type ProjectPipelineContext,
+  type ProjectPipelineAssistantContext,
   type ProjectPipelineEvidenceResolver,
   type ProjectPipelineOperationContext
 } from '@xpert-ai/plugin-sdk'
@@ -12,6 +16,8 @@ import { IsNull } from 'typeorm'
 import { CodingDeliveryStore, scopeWhere, conflict } from './store'
 import { artifactRefSchema, evidenceSchema, type DeliveryEvidence } from './schemas'
 import { canonical, digest, refs, deliveryBranch } from './constants'
+import { projectPluginDeploymentReceiptSchema } from '@xpert-ai/contracts'
+import { deploymentRequest } from './deployment-request'
 import {
   MaterialValidationError,
   materialIssue,
@@ -77,8 +83,61 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
       return evidenceRef(row.evidence)
     }
     await this.store.assertActive(row, 'submit', c)
+    return this.sealAccepted(c, row, taskId, manifestArtifactId, () => this.store.assertActive(row, 'submit', c))
+  }
+
+  /** Only the host recovery adapter calls this; ordinary tools retain the active-operation guard. */
+  async reconcile(c: ProjectPipelineAssistantContext) {
+    const row = await this.resolveOperation(c, c.executor.conversationId, c.work.operationId)
+    const check = async () => {
+      await this.store.current(c, c.subjects[0])
+      if (
+        canonical(row.context.work) !== canonical(c.work) ||
+        row.context.executor.xpertId !== c.executor.xpertId ||
+        row.context.executor.publishedVersion !== c.executor.publishedVersion
+      )
+        throw conflict('CODING_OPERATION_IDENTITY_CONFLICT')
+    }
+    await check()
+    const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    let taskId = row.evidence?.taskId
+    if (!taskId) {
+      const graph = await tasks.graph(c)
+      const related = new Set(
+        graph.executions.filter((item) => item.conversationId === c.executor.conversationId).map((item) => item.taskId)
+      )
+      for (const id of related) {
+        const parent = graph.tasks.find((item) => item.id === id)?.parentTaskId
+        if (parent) related.add(parent)
+      }
+      const candidates = graph.tasks.filter(
+        (item) =>
+          related.has(item.id) &&
+          item.status === 'done' &&
+          (!item.controlKind || item.controlKind === 'ordinary') &&
+          (item.kind === 'summary' || !item.parentTaskId)
+      )
+      const accepted: ProjectTaskAcceptanceReceipt[] = []
+      for (const task of candidates) {
+        const value = await tasks.readAcceptance(c, task.id)
+        if (value?.conversationId === c.executor.conversationId) accepted.push(value)
+      }
+      if (accepted.length !== 1) throw conflict('CODING_RECOVERY_ACCEPTANCE_REQUIRED')
+      taskId = accepted[0].taskId
+    }
+    return this.sealAccepted(c, row, taskId, undefined, check)
+  }
+
+  private async sealAccepted(
+    c: ProjectPipelineContext,
+    row: Awaited<ReturnType<CodingDeliveryStore['operation']>>,
+    taskId: string,
+    manifestArtifactId: string | undefined,
+    check: () => Promise<unknown>
+  ) {
     const accepted = await this.store.acceptedTask(c, taskId)
-    if (accepted.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
+    if (accepted.conversationId !== row.context.executor.conversationId)
+      throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
     const { manifest, artifacts } = await this.validateMaterials(c, row, accepted.artifacts, manifestArtifactId)
     const evidence = evidenceSchema.parse({
       version: 1,
@@ -102,7 +161,7 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
             }
       )
     })
-    await this.store.assertActive(row, 'submit', c)
+    await check()
     const result = await this.store.works.update({ ...scopeWhere(c), id: row.id, evidence: IsNull() }, { evidence })
     if (result.affected !== 1) {
       const replay = await this.store.operation(c, row.id)
@@ -141,29 +200,11 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
     if (row.evidence) return seal()
     await this.store.assertActive(row, 'submit', c)
     const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    const accepted = await tasks.readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
     try {
-      const accepted = await tasks.readAcceptance({ actor: c.actor, projectId: c.projectId }, taskId)
       // The strict submit path re-reads acceptance and all current guards; a stale receipt grants nothing.
       if (accepted) return await seal()
-      if (!tasks.readCandidate) throw conflict('CODING_CANDIDATE_READ_UNAVAILABLE')
-      const candidate = await tasks.readCandidate({ actor: c.actor, projectId: c.projectId }, taskId)
-      if (candidate.projectId !== c.projectId || candidate.taskId !== taskId)
-        throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
-      if (candidate.conversationId !== conversationId) throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
-      const checked = await this.validateMaterials(c, row, candidate.artifacts, manifestArtifactId)
-      return {
-        status: 'awaiting_acceptance' as const,
-        submitted: false as const,
-        valid: true as const,
-        saved: false as const,
-        operationId: row.id,
-        taskId,
-        taskRevision: candidate.taskRevision,
-        executionId: candidate.executionId,
-        manifestArtifactId: checked.artifacts[0].artifactId,
-        artifacts: checked.artifacts,
-        acceptance: 'required' as const
-      }
+      return await this.checkCandidate(c, row, taskId, manifestArtifactId)
     } catch (error) {
       if (error instanceof MaterialValidationError)
         return {
@@ -171,9 +212,49 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
           status: 'materials_invalid' as const,
           submitted: false as const,
           operationId: row.id,
-          taskId
+          taskId,
+          recovery: accepted
+            ? t('coding_project:Submission.CorrectAcceptedTask', {
+                defaultValue:
+                  'Create a corrective summary and implementation task in this delivery stage. Reuse valid candidate files, repair the reported issues, and export the manifest and every referenced file. Preflight the new implementation, independently review it, accept the new summary, then submit that summary.'
+              })
+            : t('coding_project:Submission.RepairCandidate', {
+                defaultValue:
+                  'Repair the reported issues in the current implementation task. Export the manifest and every referenced file, then call coding_delivery_submit again before independent review and task acceptance.'
+              })
         }
       throw error
+    }
+  }
+
+  private async checkCandidate(
+    c: ProjectPipelineContext,
+    row: Awaited<ReturnType<CodingDeliveryStore['operation']>>,
+    taskId: string,
+    manifestArtifactId?: string
+  ) {
+    const tasks = this.store.capabilities.require(ProjectTasksRuntimeCapability)
+    if (!tasks.readCandidate) throw conflict('CODING_CANDIDATE_READ_UNAVAILABLE')
+    const candidate = await tasks.readCandidate({ actor: c.actor, projectId: c.projectId }, taskId)
+    if (candidate.projectId !== c.projectId || candidate.taskId !== taskId)
+      throw conflict('CODING_ARTIFACT_SCOPE_MISMATCH')
+    if (candidate.conversationId !== row.context.executor.conversationId)
+      throw conflict('CODING_TASK_NOT_FROM_THIS_OPERATION')
+    const checked = await this.validateMaterials(c, row, candidate.artifacts, manifestArtifactId)
+    return {
+      status: 'awaiting_acceptance' as const,
+      submitted: false as const,
+      valid: true as const,
+      saved: false as const,
+      operationId: row.id,
+      taskId,
+      taskRevision: candidate.taskRevision,
+      executionId: candidate.executionId,
+      manifestArtifactId: checked.artifacts[0].artifactId,
+      artifacts: checked.artifacts,
+      acceptance: 'required' as const,
+      nextAction:
+        'Read the implementation result and dispatch its independent execution review with reviewAsSubtask=true on this implementation task. If already dispatched, wait for its result. Read the review Markdown before deciding on the summary task.'
     }
   }
 
@@ -288,6 +369,29 @@ export class CodingEvidenceService implements ProjectPipelineEvidenceResolver {
           manifest.loadedVersion !== candidate.manifest.packageVersion
         )
           throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')
+        const installation = row.context.inputs.installation
+        if (delivery.requirement.target.deployment === 'current-instance') {
+          if (installation?.kind !== 'evidence') throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')
+          const proof = projectPluginDeploymentReceiptSchema.parse(
+            await this.store.capabilities.require(ProjectPipelineEvidenceRuntimeCapability).read(c, installation.value)
+          )
+          const file = artifacts.find(
+            (item) =>
+              item.fileName === manifest.installationReceipt.fileName &&
+              item.sha256 === manifest.installationReceipt.sha256
+          )
+          if (!file) throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')
+          const saved = await load(file)
+          if (
+            saved.buffer.length > 64 * 1024 ||
+            canonical(proof.request) !== canonical(deploymentRequest(candidate)) ||
+            !proof.installed ||
+            !proof.loaded ||
+            canonical(projectPluginDeploymentReceiptSchema.parse(JSON.parse(saved.buffer.toString('utf8')))) !==
+              canonical(proof)
+          )
+            throw conflict('CODING_DEPLOYMENT_IDENTITY_MISMATCH')
+        }
       } else {
         const repo = delivery.requirement.repository
         if (

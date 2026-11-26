@@ -1,3 +1,4 @@
+import { threadTitlePatchSchema, ThreadTitlePatch } from '../chat-conversation/thread-title.schema'
 import { MessageWidgets } from '../chat-message/widgets/message-widgets'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
@@ -22,6 +23,7 @@ import {
     USAGE_HOUR_FORMAT
 } from '@xpert-ai/contracts'
 import {
+    PublicVisitorChatGuard,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     CurrentUser,
@@ -142,6 +144,7 @@ export class ThreadsController {
     // Threads: A thread contains the accumulated outputs of a group of runs.
 
     @Post()
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async createThread(@Body() body: components['schemas']['ThreadCreate'], @CurrentUser() user: IUser) {
         return await this.commandBus.execute(new ThreadCreateCommand(body))
@@ -156,6 +159,7 @@ export class ThreadsController {
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThread(@Param('thread_id') thread_id: string) {
         return await this.queryBus.execute(new FindThreadQuery(thread_id))
@@ -165,6 +169,7 @@ export class ThreadsController {
     @Header('Connection', 'keep-alive')
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/stream')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async streamThreadActivity(@Req() req: Request, @Res() res: Response, @Param('thread_id') threadId: string) {
         await this.ensureThreadAccess(threadId)
@@ -180,8 +185,25 @@ export class ThreadsController {
     }
 
     @Patch(':thread_id')
-    async patchThread(@Param('thread_id') thread_id: string, @Body() thread: components['schemas']['ThreadPatch']) {
-        throw new UnimplementedException()
+    @Permissions(AIPermissionsEnum.CHAT_VIEW)
+    async patchThread(
+        @Param('thread_id') threadId: string,
+        @Body(
+            new ZodValidationPipe(
+                threadTitlePatchSchema,
+                () =>
+                    new BadRequestException(
+                        'A thread title must contain 1–200 characters; other metadata cannot be patched.'
+                    )
+            )
+        )
+        body: ThreadTitlePatch
+    ) {
+        await this.ensureThreadAccess(threadId, 'manage')
+        if (!this.conversationThreadService) throw new UnimplementedException()
+        const thread = await this.conversationThreadService.renameThread(threadId, body.metadata.title)
+        const { ThreadDTO } = await import('./dto/thread.dto')
+        return new ThreadDTO(thread.conversation, {}, thread)
     }
 
     @HttpCode(HttpStatus.ACCEPTED)
@@ -303,6 +325,7 @@ export class ThreadsController {
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
     @Post(':thread_id/runs/stream')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async runStream(
         @Req() req: Request,
@@ -409,6 +432,7 @@ export class ThreadsController {
     @Header('Connection', 'keep-alive')
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/stream')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     @Sse()
     async joinRunStream(
@@ -453,6 +477,7 @@ export class ThreadsController {
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id/status')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadRunStatus(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
         await this.ensureThreadAccess(threadId)
@@ -481,6 +506,7 @@ export class ThreadsController {
 
     @UseInterceptors(ThreadReadDiagnosticsInterceptor)
     @Get(':thread_id/runs/:run_id')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
         await this.ensureThreadAccess(thread_id)
@@ -565,6 +591,7 @@ export class ThreadsController {
 
     // Others
     @Get(':thread_id/context-usage')
+    @UseGuards(PublicVisitorChatGuard)
     @Permissions(AIPermissionsEnum.CHAT_VIEW)
     async getThreadContextUsage(@Param('thread_id') threadId: string, @Query('agentKey') agentKey?: string) {
         await this.ensureThreadAccess(threadId)

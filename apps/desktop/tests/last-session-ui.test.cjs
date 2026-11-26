@@ -27,17 +27,41 @@ async function mount(
   }
   const scope = () => JSON.stringify([state.config.apiUrl, 'tenant', 'user', state.profile.organizationId])
   const saved = new Map([[scope(), restored]])
-  const view = { sidebar: null, chat: null, bosi: null, onboardingMounts: 0, listRequests: 0 }
+  const view = {
+    notifications: null,
+    sidebar: null,
+    chat: null,
+    bosi: null,
+    onboardingMounts: 0,
+    listRequests: 0
+  }
   const i18n = { t: (key) => key, useLocale: () => 'en', setLocale() {}, localizeValidation() {}, clearValidation() {} }
   const imports = {
     react: React,
     'react/jsx-runtime': require('react/jsx-runtime'),
     './i18n': i18n,
-    './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
+    './notifications/NotificationProvider': {
+      NotificationProvider: (props) => {
+        view.notifications = props
+        return props.children
+      }
+    },
     './host': {
       HostError: class HostError extends Error {},
       invoke: async (method, input) => {
         if (method === 'state') return state
+        if (method === 'resolveWorkbenchEntry')
+          return view.openProject
+            ? view.openProject(input)
+            : {
+                assistantId: 'project-assistant',
+                organizationId: input.organizationId === undefined ? 'org' : input.organizationId,
+                projectId: input.projectId,
+                viewKey: 'platform.project-tasks__timeline',
+                source: input,
+                parameters: { initialTab: 'pipeline', pipelineNodeId: input.pipelineNodeId },
+                bot: { id: 'project-assistant', name: 'Project assistant' }
+              }
         if (method === 'listBotPage') {
           view.listRequests++
           return page ? page(input) : { bots: [...bots], next: null, awaitingSavedBot: false }
@@ -62,6 +86,7 @@ async function mount(
         throw new Error(`Unexpected host call: ${method}`)
       }
     },
+    './catalog/catalog-cache': { createCatalogCache: () => ({}) },
     './theme': { applyDesktopTheme() {} },
     './appearance-types': { defaultAppearance: () => ({}) },
     './app-activation': { subscribeAppActivation: () => () => {} },
@@ -297,3 +322,134 @@ test('restored delegated conversation passes its authorized Project to ChatKit w
   assert.deepEqual(view.chat.initialVoice, restored.conversation)
   assert.equal(view.chat.initialThread, 'role-thread')
 })
+
+test('notification opens the resolved Assistant in ChatKit even when absent from the Bot catalog', async (t) => {
+  const { view, saved, scope } = await mount(t)
+  const previous = saved.get(scope())
+  const chat = document.getElementById('chat')
+  await React.act(async () =>
+    assert.equal(
+      await view.notifications.onWorkbench({
+        target: 'project.pipelines',
+        projectId: 'project',
+        pipelineNodeId: 'node'
+      }),
+      true
+    )
+  )
+  assert.equal(document.getElementById('chat'), chat)
+  assert.equal(document.getElementById('project'), null)
+  assert.equal(view.chat.bot.id, 'project-assistant')
+  assert.equal(view.chat.initialWorkbench.viewKey, 'platform.project-tasks__timeline')
+  assert.equal(view.chat.initialWorkbench.parameters.pipelineNodeId, 'node')
+  assert.equal(view.chat.initialThread, null)
+  assert.deepEqual(saved.get(scope()), previous, 'Project inspection does not replace the saved ordinary conversation')
+  assert.equal(view.sidebar.selected, null)
+})
+
+test('same Assistant/Project notification refocuses Workbench without resetting its conversation', async (t) => {
+  const { view } = await mount(t)
+  view.openProject = async (input) => ({
+    assistantId: 'b',
+    projectId: 'project',
+    organizationId: 'org',
+    source: input,
+    viewKey: 'platform.project-tasks__timeline',
+    bot: { id: 'b', name: 'B' }
+  })
+  const version = view.chat.selectionVersion
+  await React.act(() => view.chat.onRuntimeScope({ assistantId: 'b', projectId: 'project', organizationId: 'org' }))
+  const target = { target: 'project.pipelines', projectId: 'project' }
+  await React.act(() => view.notifications.onWorkbench(target))
+  const first = view.chat.initialWorkbench.requestId
+  await React.act(() => view.notifications.onWorkbench(target))
+  assert.equal(view.chat.selectionVersion, version)
+  assert.equal(view.chat.initialThread, 'previous-thread')
+  assert.notEqual(view.chat.initialWorkbench.requestId, first)
+})
+
+test('a late notification navigation cannot replace a newer user selection', async (t) => {
+  const { view } = await mount(t)
+  let resolve, pending
+  view.openProject = () =>
+    new Promise((done) => {
+      resolve = done
+    })
+  await React.act(() => {
+    pending = view.notifications.onWorkbench({ target: 'project.pipelines', projectId: 'project' })
+  })
+  await React.act(() => view.sidebar.onSelect('a'))
+  await React.act(async () => {
+    resolve({})
+    assert.equal(await pending, false)
+  })
+  assert.equal(view.chat.bot.id, 'a')
+  assert.equal(view.chat.initialWorkbench, null)
+})
+
+test('a late project entry cannot survive an account scope change', async (t) => {
+  const { view } = await mount(t)
+  let resolve, pending
+  view.openProject = () =>
+    new Promise((done) => {
+      resolve = done
+    })
+  await React.act(() => {
+    pending = view.notifications.onWorkbench({ target: 'project.pipelines', projectId: 'project' })
+  })
+  await React.act(() => view.sidebar.onOrganization('other'))
+  await React.act(async () => {
+    resolve({})
+    assert.equal(await pending, false)
+  })
+  assert.equal(view.chat.initialWorkbench, null)
+})
+
+for (const organizationId of [null, 'other'])
+  test(`notification retains explicit scope ${organizationId}`, async (t) => {
+    const { view } = await mount(t)
+    await React.act(() =>
+      view.notifications.onWorkbench({ target: 'project.pipelines', projectId: 'project', organizationId })
+    )
+    assert.equal(view.chat.initialWorkbench.organizationId, organizationId)
+    assert.equal(view.chat.initialWorkbench.source.organizationId, organizationId)
+  })
+
+for (const projectId of [null, 'project'])
+  test(`generic notification View preserves selection and parameters with project ${projectId}`, async (t) => {
+    const { view, saved, scope } = await mount(t)
+    const previous = saved.get(scope())
+    view.openProject = async (input) => ({
+      assistantId: 'b',
+      projectId,
+      organizationId: 'org',
+      source: input,
+      viewKey: input.viewKey,
+      selectionId: input.selectionId,
+      parameters: input.parameters,
+      bot: { id: 'b', name: 'B' }
+    })
+    await React.act(() => view.chat.onRuntimeScope({ assistantId: 'b', projectId, organizationId: 'org' }))
+    const version = view.chat.selectionVersion
+    const thread = view.chat.initialThread
+    const input = {
+      target: 'workbench.view',
+      assistantId: 'b',
+      organizationId: 'org',
+      projectId,
+      viewKey: 'orders__review',
+      selectionId: 'item',
+      parameters: { tab: 'evidence' }
+    }
+    await React.act(() => view.notifications.onWorkbench(input))
+    assert.equal(view.chat.initialWorkbench.selectionId, 'item')
+    assert.deepEqual(view.chat.initialWorkbench.parameters, { tab: 'evidence' })
+    await React.act(() =>
+      view.notifications.onWorkbench({ ...input, viewKey: 'audit__timeline', selectionId: 'receipt' })
+    )
+    assert.equal(view.chat.initialWorkbench.viewKey, 'audit__timeline')
+    assert.equal(view.chat.initialWorkbench.selectionId, 'receipt')
+    assert.equal(view.chat.selectionVersion, version)
+    assert.equal(view.chat.initialThread, thread)
+    assert.deepEqual(saved.get(scope()), previous)
+  })

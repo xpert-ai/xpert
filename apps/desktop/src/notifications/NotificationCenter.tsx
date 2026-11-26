@@ -83,6 +83,28 @@ function NotificationRow({
   onOpen: (notice: UserNotification, id?: string) => void
 }) {
   const locale = useLocale()
+  if (notice.kind === 'action.required')
+    return (
+      <article className="space-y-2 rounded-lg border p-3">
+        <p className="font-medium">{notice.presentation.title}</p>
+        <p className="text-sm text-muted-foreground">
+          {t(
+            notice.presentation.state === 'pending'
+              ? 'Awaiting decision'
+              : notice.presentation.state === 'handled'
+                ? 'Handled'
+                : 'Closed'
+          )}
+        </p>
+        <Button
+          size="sm"
+          variant={notice.presentation.state === 'pending' ? 'default' : 'outline'}
+          onClick={() => onOpen(notice)}
+        >
+          {t(notice.presentation.state === 'pending' ? 'View and act' : 'View details')}
+        </Button>
+      </article>
+    )
   const target = item?.workbench
   const isOutput = notice.kind === 'agent.output'
   const title = target
@@ -218,8 +240,11 @@ export function NotificationCenter({
       : [{ notice }]
   })
   const detailNotice = rows.find((row) => row.notice.id === details?.id)?.notice
-  const pending = rows.filter((r) => r.item?.workbench?.state === 'pending')
-  const recent = rows.filter((r) => r.item?.workbench?.state !== 'pending')
+  const isPending = (r: Row) =>
+    r.item?.workbench?.state === 'pending' ||
+    (r.notice.kind === 'action.required' && r.notice.presentation.state === 'pending')
+  const pending = rows.filter(isPending)
+  const recent = rows.filter((r) => !isPending(r))
   const open = async (n: UserNotification, id?: string) => {
     await onOpen(n, id)
     refresh()
@@ -289,13 +314,13 @@ export function NotificationCenter({
               {pending.length > 0 && (
                 <section className="border-b py-2">
                   <h3 className="font-semibold">{t('Needs your attention')}</h3>
-                  <div className="divide-y">{pending.map(render)}</div>
+                  <div className="mt-2 flex flex-col gap-3">{pending.map(render)}</div>
                 </section>
               )}
               {recent.length > 0 && (
                 <section className="pt-3">
                   <h3 className="font-semibold">{t('Recent notifications')}</h3>
-                  <div className="divide-y">{recent.map(render)}</div>
+                  <div className="mt-2 flex flex-col gap-3">{recent.map(render)}</div>
                 </section>
               )}
               {details && showResults && detailNotice && details.items.some((i) => !i.workbench) && (

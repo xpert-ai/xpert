@@ -87,6 +87,26 @@ Notes:
 - use an explicit single-major range such as `^3.8.0`
 - the host validates SDK compatibility before activating a plugin and rejects packages that bundle their own SDK copy
 
+## Host ORM peers
+
+Plugins using the host database declare `typeorm` and, when using Nest repositories,
+`@nestjs/typeorm` in `peerDependencies`, with ranges compatible with the installed
+host versions. Keep them external to the bundle; use `devDependencies` only for
+local compilation. Declaring either package in `dependencies` or
+`optionalDependencies` is rejected during compatibility validation.
+
+Before loading an installed plugin, the host links declared ORM peers to its own
+packages, including the staged package's nested dependency directory. Sharing both
+packages preserves the `DataSource` injection token and Nest's entity-registration
+storage. Equal version numbers alone do not establish this identity.
+
+This contract does not provide arbitrary host dependencies or grant database
+permissions. Scope repository operations to the authenticated tenant, organization
+and project. Validate the actual installed archive or staged source package; copying
+a plugin into the platform's built-in workspace does not verify archive delivery.
+Older hosts without these ORM links require a host upgrade before this contract can
+be used; record the actual host build, not just the development checkout version.
+
 ## Plugin scope architecture
 
 Plugin scope is the runtime and persistence boundary for an installed plugin instance. It controls where the host stores the plugin package, where providers are registered, how configuration is resolved, and which tenants or organizations can see the plugin's capabilities.

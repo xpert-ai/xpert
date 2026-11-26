@@ -30,6 +30,11 @@ export const createListTasksTool = ({
                     .sort((a, b) => a.attempt - b.attempt)
             return items.map((task) => ({
                 id: task.id,
+                kind: task.kind,
+                type: task.type,
+                controlKind: task.controlKind,
+                providerKey: task.providerKey,
+                pipelineInstanceId: task.pipelineInstanceId,
                 revision: task.revision,
                 requirements: task.requirements ?? [],
                 title: task.title || task.name,

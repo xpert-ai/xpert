@@ -8,7 +8,10 @@ import {
 } from '../types'
 import type { ProjectAccessActor } from '../runtime/capabilities/project-access'
 
-export function pipelineActorScopeKeys(actor: ProjectAccessActor): string[] {
+/** Registration visibility only; resolving an adapter grants no execution authority. */
+export type ProjectPipelineRegistryScope = Pick<ProjectAccessActor, 'tenantId' | 'organizationId'>
+
+export function pipelineActorScopeKeys(actor: ProjectPipelineRegistryScope): string[] {
   if (!actor.tenantId) return []
   const tenant =
     actor.tenantId === getDefaultTenantId() ? GLOBAL_ORGANIZATION_SCOPE : getTenantGlobalScopeKey(actor.tenantId)
@@ -57,7 +60,7 @@ export abstract class ProjectPipelineScopedRegistry<T> extends BaseStrategyRegis
     return [...effective.values()]
   }
 
-  getForActor(key: string, actor: ProjectAccessActor): T {
+  getForActor(key: string, actor: ProjectPipelineRegistryScope): T {
     for (const scope of pipelineActorScopeKeys(actor)) {
       const adapter = this.strategies.get(scope)?.get(key)
       if (adapter) return adapter

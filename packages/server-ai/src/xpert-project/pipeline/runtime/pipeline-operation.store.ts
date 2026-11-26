@@ -31,6 +31,7 @@ import { assertPipelineCommandAuthority } from './pipeline-transaction'
 import { pipelineAdmissionBlock, pipelineAdmissionPolicy } from './pipeline-admission'
 import { pipelineResourceResolverRef, pipelineResourcesBlock } from './pipeline-resources'
 import { assertPipelineHostCompatible, pipelineRunHostCompatible } from '../configuration/pipeline-host-capabilities'
+import { hasManualRetry } from '../recovery/pipeline-recovery-record'
 
 export interface PipelineOperationReservation {
     work: Omit<ProjectPipelineOperationContext['work'], 'operationId'>
@@ -431,7 +432,11 @@ export class ProjectPipelineOperationStore implements OnModuleInit {
         )
             throw pipelineProjectionConflict('NODE_NOT_READY')
         const limits = configuration.binding.limits!
-        if (input.attempt > limits.maxTechnicalAttemptsPerNode)
+        if (
+            input.attempt > 20 ||
+            (input.attempt > limits.maxTechnicalAttemptsPerNode &&
+                !(await hasManualRetry(manager, context, node.id, input.attempt - 1)))
+        )
             throw pipelineProjectionConflict('ATTEMPT_LIMIT_EXCEEDED')
         if ((await this.now(manager)).getTime() - run.createdAt.getTime() >= limits.runTimeoutMinutes * 60_000)
             throw pipelineProjectionConflict('RUN_TIME_LIMIT_EXCEEDED')

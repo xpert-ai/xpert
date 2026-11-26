@@ -1558,5 +1558,10 @@
   "Model confirmed": "Model confirmed",
   "Confirm shared analysis definition": "Confirm shared analysis definition",
   "This server and application currently offer published definitions only. Connection and model setup is unavailable.": "This server and application currently offer published definitions only. Connection and model setup is unavailable.",
-  "Invalid model setup operation.": "Invalid model setup operation."
+  "Invalid model setup operation.": "Invalid model setup operation.",
+  "Project pipelines": "Project pipelines",
+  "This project view is not available. Check access and retry.": "This project view is not available. Check access and retry.",
+  "View and act": "View and act",
+  "Handled": "Handled",
+  "Closed": "Closed"
 }

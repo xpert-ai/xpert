@@ -1558,5 +1558,10 @@
   "Model confirmed": "已确认模型",
   "Confirm shared analysis definition": "确认并使用组织共享分析定义",
   "This server and application currently offer published definitions only. Connection and model setup is unavailable.": "当前服务器和应用仅支持选择已发布的分析定义，尚未提供连接和业务模型配置。",
-  "Invalid model setup operation.": "无效的模型配置操作。"
+  "Invalid model setup operation.": "无效的模型配置操作。",
+  "View and act": "查看并处理",
+  "Handled": "已处理",
+  "Closed": "已关闭",
+  "Project pipelines": "项目流水线",
+  "This project view is not available. Check access and retry.": "此项目视图不可用，请检查访问权限后重试。"
 }

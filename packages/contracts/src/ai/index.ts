@@ -155,7 +155,11 @@ export * from './template-manifest.model'
 
 export * from './assistant-template.model'
 export * from './assistant-template-dependencies.model'
-export type { AssistantCapabilitySummary } from './assistant-capability.model'
+export type {
+  AssistantCapabilitySummary,
+  AssistantCapabilityToolsetRequirement,
+  AssistantCapabilityToolsetBinding
+} from './assistant-capability.model'
 export * from './assistant-template-setup.model'
 export * from './template-activity.model'
 export * from './template-lifecycle.model'

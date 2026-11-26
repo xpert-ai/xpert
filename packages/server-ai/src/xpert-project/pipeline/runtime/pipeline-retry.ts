@@ -20,6 +20,7 @@ export function pipelineRetryReason(
         operation.state !== 'failed' ||
         operation.receipt?.status !== 'failed' ||
         !operation.terminalObservedAt ||
+        (operation.leaseExpiresAt && operation.leaseExpiresAt > now) ||
         node.projection.state.lifecycle !== 'failed' ||
         node.disposition !== 'active'
     )

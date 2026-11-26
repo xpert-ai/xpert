@@ -1,3 +1,4 @@
+import { AgentInvocationError, AgentInvocationAuthorizationError } from '../../../../agent-invocation/invocation-errors'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn() }))
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -23,6 +24,24 @@ function runtimeTools(...args: Parameters<typeof createProjectRuntimeTools>): St
 }
 
 describe('Project general-agent Runtime tools', () => {
+    it('identifies reviewAsSubtask on implementation as a field error before dispatch', async () => {
+        const execute = jest.fn()
+        const commands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute })
+        const dispatch = runtimeTools({ projectId: randomUUID() }, commands, jest.fn()).find(
+            (item) => item.name === 'project_dispatch_task'
+        )!
+        await expect(
+            dispatch.invoke({
+                taskId: randomUUID(),
+                expectedRevision: 1,
+                bindingId: randomUUID(),
+                purpose: { type: 'implementation' },
+                reviewAsSubtask: true
+            })
+        ).rejects.toThrow('reviewAsSubtask=true is only valid for purpose.type=review')
+        expect(execute).not.toHaveBeenCalled()
+    })
+
     it.each([false, true])('preserves a committed delegation when card emission fails: %s', async (failCard) => {
         const emit = jest.mocked(dispatchCustomEvent)
         emit.mockReset()
@@ -224,5 +243,47 @@ describe.each(['project_dispatch_task', 'project_decide_task'] as const)('%s hos
         const f = fixture()
         await expect(f.create().invoke(f.input, { configurable: { thread_id: 'thread' } })).rejects.toThrow()
         expect(f.execute).not.toHaveBeenCalled()
+    })
+})
+
+describe('Recoverable runtime selection', () => {
+    function fixture(error: Error) {
+        const execute = jest.fn().mockRejectedValue(error)
+        const commands = Object.assign(Object.create(CommandBus.prototype) as CommandBus, { execute })
+        const dispatch = runtimeTools(
+            {
+                projectId: randomUUID(),
+                conversationId: randomUUID(),
+                executionId: randomUUID(),
+                callerType: 'project_agent',
+                agentKey: 'general_agent'
+            },
+            commands,
+            jest.fn()
+        ).find((item) => item.name === 'project_dispatch_task')
+        return {
+            execute,
+            invoke: () =>
+                dispatch.invoke(
+                    { taskId: randomUUID(), bindingId: randomUUID(), expectedRevision: 1 },
+                    { configurable: { thread_id: 'thread', tool_call_id: 'tool-call' } }
+                )
+        }
+    }
+    it('returns a correction for an unsupported reviewer without dispatching another task', async () => {
+        const f = fixture(new AgentInvocationError('Unsupported'))
+        await expect(f.invoke()).resolves.toMatchObject({
+            error: 'Unsupported',
+            recovery: expect.stringContaining('reviewModes')
+        })
+        expect(f.execute).toHaveBeenCalledTimes(1)
+    })
+    it.each([
+        new AgentInvocationError('InvalidScope'),
+        new AgentInvocationAuthorizationError(new Error('Access revoked')),
+        new AgentInvocationError('DispatchUnknown'),
+        new Error('Transport lost')
+    ])('preserves non-selection failures', async (error) => {
+        await expect(fixture(error).invoke()).rejects.toBe(error)
     })
 })

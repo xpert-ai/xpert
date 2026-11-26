@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
 import { BehaviorSubject, Subject } from 'rxjs'
-import { RequestScopeLevel } from '@xpert-ai/contracts'
+import { RequestScopeLevel, parseNotificationSnapshot } from '@xpert-ai/contracts'
 import { Store } from '../state'
 import { UserNotificationsService } from './user-notifications.service'
 import { ChatConversationService } from './chat-conversation.service'
@@ -41,6 +41,7 @@ const snapshot = () => ({
     }
   ],
   notifications: [],
+  pendingCount: 0,
   hasMoreAnnouncements: false,
   hasMoreNotifications: false
 })
@@ -86,7 +87,7 @@ describe('User notification client isolation and recovery', () => {
     await advance(251)
     const sync = http.expectOne((req) => req.url.endsWith('/sync'))
     expect(sync.request.params.keys()).toEqual(['client'])
-    expect(sync.request.headers.get('Accept')).toBe('application/json; profile="xpert-agent-output-v1"')
+    expect(sync.request.headers.get('Accept')).toBe('application/json; profile="xpert-notifications-v3"')
     sync.flush(snapshot())
     await advance()
     expect(service.snapshot()?.announcements).toHaveLength(1)
@@ -98,6 +99,57 @@ describe('User notification client isolation and recovery', () => {
     expect(page.request.headers.get('Accept')).toBe(sync.request.headers.get('Accept'))
     page.flush({ items: [], hasMore: false, nextOffset: 30 })
     expect((await response).nextOffset).toBe(30)
+  })
+  it('counts pending actions independently from read state and the first page', () => {
+    service.snapshot.set(
+      parseNotificationSnapshot({
+        ...snapshot(),
+        pendingCount: 31,
+        notifications: [
+          {
+            id,
+            kind: 'action.required',
+            action: null,
+            createdAt: '2026-11-25T00:00:00Z',
+            readAt: '2026-11-25T01:00:00Z',
+            source: { type: 'action', provider: 'project.pipeline.human', key: id, version: '1' },
+            presentation: {
+              title: 'Release',
+              state: 'pending',
+              workbench: {
+                target: 'project.pipelines',
+                organizationId: id,
+                projectId: id,
+                pipelineInstanceId: id,
+                pipelineRoundId: id,
+                pipelineNodeId: id
+              }
+            }
+          }
+        ]
+      })
+    )
+    expect(service.unread()).toBe(32)
+  })
+  it('preserves agent outputs when an older host does not support actions', async () => {
+    service.start()
+    await advance(251)
+    const { pendingCount, ...older } = snapshot()
+    http.expectOne((req) => req.url.endsWith('/sync')).flush(older)
+    await advance()
+    const v2 = http.expectOne((req) => req.url.endsWith('/sync'))
+    expect(v2.request.headers.get('Accept')).toBe('application/json; profile="xpert-notifications-v2"')
+    v2.flush(older)
+    await advance()
+    const fallback = http.expectOne((req) => req.url.endsWith('/sync'))
+    expect(fallback.request.headers.get('Accept')).toBe('application/json; profile="xpert-agent-output-v1"')
+    fallback.flush(older)
+    await advance()
+    const response = service.notifications()
+    const page = http.expectOne((req) => req.url.endsWith('/user-notifications'))
+    expect(page.request.headers.get('Accept')).toBe('application/json; profile="xpert-agent-output-v1"')
+    page.flush({ items: [], hasMore: false, nextOffset: 0 })
+    await response
   })
 
   it('ignores heartbeat and invalid hints, and reconciles a valid change hint', async () => {

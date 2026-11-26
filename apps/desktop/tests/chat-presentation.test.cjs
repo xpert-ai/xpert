@@ -75,6 +75,7 @@ test('local computer discovery reads settings without connecting, approving or e
 
 test('presentation and Assistant/group navigation reuse the frame with isolated options and listeners', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
+  const timeouts = t.mock.method(dom.window, 'setTimeout')
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
   global.window = dom.window
   global.document = dom.window.document
@@ -187,6 +188,8 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   }
   let groupId = null
   let selectionVersion = 0
+  let initialWorkbench = null
+  const runtimeScopes = []
   const reads = []
   const sessions = []
   const render = () =>
@@ -198,6 +201,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
         config: { ...DEFAULT_CONFIG, appearance },
         dark: false,
         initialThread: 'existing-thread',
+        initialWorkbench,
+        organizationId: 'org',
+        onRuntimeScope: (scope) => runtimeScopes.push(scope),
         onConversationRead: (...args) => reads.push(args),
         onSessionChange: (session) => sessions.push(JSON.parse(JSON.stringify(session))),
         onAppearanceSaved: async () => appearanceSaves++
@@ -206,11 +212,19 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  const frameTimeout = timeouts.mock.calls.find(({ arguments: [, delay] }) => delay === 30000)
+  assert.ok(frameTimeout)
+  await React.act(() => frameTimeout.arguments[0]())
+  assert.match(document.querySelector('[role="alert"]').textContent, /took too long/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
+  assert.equal(document.querySelector('[role="alert"]'), null)
   // A recovered session clears its failure without waiting for another iframe ready event.
   sessionFailure = new Error('Xpert is restarting. Please reconnect shortly.')
   await React.act(async () => {
     await assert.rejects(received[0].api.getClientSecret(), /restarting/)
   })
+  assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
   assert.match(document.querySelector('[role="alert"]').textContent, /restarting/)
   sessionFailure = undefined
   await React.act(async () => {
@@ -224,10 +238,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       })
     )
   )
-  await React.act(async () => {
-    await received[0].api.getClientSecret()
-  })
-  assert.match(document.querySelector('[role="alert"]').textContent, /unrelated tool/)
+  assert.equal(document.querySelector('[role="alert"]'), null, 'tool errors do not offer to reconnect')
   await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
   sessionRequests.length = 0
   assert.equal(workbenchConnection.assistantId(), 'test-bot')
@@ -347,6 +358,56 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   assert.notEqual(received.at(-1).sessionKey, assistantSessionKey, 'same-Assistant navigation resets logical UI state')
   assert.equal(document.querySelector('xpertai-chatkit'), element)
+  const scopedApi = received.at(-1).api
+  const scopedSession = received.at(-1).sessionKey
+  initialWorkbench = {
+    assistantId: 'second-bot',
+    projectId: 'project',
+    organizationId: 'org',
+    requestId: 'first',
+    viewKey: 'platform.project-tasks__timeline',
+    parameters: {
+      initialTab: 'pipeline',
+      pipelineInstanceId: 'instance',
+      pipelineRoundId: 'round',
+      pipelineNodeId: 'node'
+    },
+    source: { target: 'project.pipelines', projectId: 'project', organizationId: 'org' }
+  }
+  await React.act(render)
+  assert.equal(received.at(-1).api, scopedApi, 'View focus updates do not replace the current credential provider')
+  assert.equal(received.at(-1).sessionKey, scopedSession)
+  assert.deepEqual(received.at(-1).workbench.navigation.view.parameters, initialWorkbench.parameters)
+  initialWorkbench = { ...initialWorkbench, requestId: 'repeat' }
+  await React.act(render)
+  assert.equal(received.at(-1).workbench.navigation.requestId, 'repeat')
+  assert.equal(received.at(-1).initialThread, 'existing-thread')
+  assert.equal(document.querySelector('xpertai-chatkit'), element)
+  initialWorkbench = {
+    ...initialWorkbench,
+    projectId: null,
+    viewKey: 'orders__review',
+    selectionId: 'order-42',
+    source: {
+      target: 'workbench.view',
+      assistantId: 'second-bot',
+      organizationId: 'org',
+      projectId: null,
+      viewKey: 'orders__review'
+    }
+  }
+  await React.act(render)
+  await React.act(() => received.at(-1).api.getClientSecret())
+  assert.equal(sessionRequests.at(-1)[0], 'workbenchSession')
+  assert.equal(sessionRequests.at(-1)[1].target, 'workbench.view')
+  assert.equal(
+    sessionRequests.at(-1)[1].source.viewKey,
+    'orders__review',
+    'renewal uses the current View after refocusing'
+  )
+  assert.equal(sessionRequests.at(-1)[1].source.projectId, null, 'non-Project Views still use scoped entry sessions')
+  assert.equal(received.at(-1).sessionKey, scopedSession)
+  initialWorkbench = null
   for (const id of ['group-one', 'group-two', null]) {
     groupId = id
     await React.act(render)
@@ -359,7 +420,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
     assert.equal(received.at(-1).api.xpertId, id ? undefined : 'second-bot')
     assert.equal(received.at(-1).theme.color.accent.primary, id ? '#f59e0b' : '#16a34a')
     assert.equal(voiceBindings.at(-1).enabled, !id, 'group mode leaves call controls with the app voice provider')
-    await received.at(-1).api.getClientSecret(null)
+    await React.act(async () => {
+      await received.at(-1).api.getClientSecret(null)
+    })
     assert.deepEqual(
       JSON.parse(JSON.stringify(sessionRequests.at(-1))),
       id ? ['chatSession', { scope: { kind: 'conversation', conversationId: id } }] : ['chatSession', 'second-bot']

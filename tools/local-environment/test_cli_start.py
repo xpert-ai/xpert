@@ -72,6 +72,27 @@ class CliStartTests(unittest.TestCase):
             self.assertEqual(cli.main(), 1)
         self.assertEqual(json.loads(self.output.getvalue())['status'], 'api_ready')
 
+    def test_plugin_retry_requires_explicit_project_binding(self):
+        self.args.action = 'retry-plugin-startup'
+        with patch('plugin_recovery.retry_startup') as retry:
+            with self.assertRaisesRegex(RuntimeError, '--project-root'):
+                cli.main()
+            retry.assert_not_called()
+
+    def test_plugin_retry_does_not_start_services_or_claim_acceptance(self):
+        self.args.action = 'retry-plugin-startup'
+        self.args.project_root = str(self.root)
+        self.config['projectRoot'] = self.args.project_root
+        self.args.snapshot = 'a' * 64 + '.json'
+        self.args.expected_sha256 = 'b' * 64
+        receipt = {'status': 'plugin_startup_retry_prepared', 'acceptancePassed': False}
+        with patch('plugin_recovery.retry_startup', return_value=receipt) as retry, \
+                patch('cli.start_service') as start:
+            self.assertEqual(cli.main(), 0)
+            retry.assert_called_once_with(self.config, self.args.snapshot, self.args.expected_sha256)
+            start.assert_not_called()
+        self.assertFalse(json.loads(self.output.getvalue())['acceptancePassed'])
+
 
 if __name__ == '__main__':
     unittest.main()

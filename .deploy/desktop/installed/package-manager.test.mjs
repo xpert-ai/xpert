@@ -13,6 +13,9 @@ const { prepare } = require('../dependencies.cjs')
 
 for (const scenario of ['native path', 'missing pwd', 'MSYS path']) {
   test(`plain Node packaging discovers the pnpm workspace with ${scenario}`, async (t) => {
+    // Raw builder progress can corrupt node:test's serialized stdout transport.
+    // Keep these messages in the test runner's diagnostic channel instead.
+    t.mock.method(builderUtil.log, 'info', (fields, message) => t.diagnostic(`${message}: ${JSON.stringify(fields)}`))
     const workspace = mkdtempSync(join(tmpdir(), 'bosi-pm-contract-'))
     t.after(() => rmSync(workspace, { recursive: true, force: true }))
     prepare(workspace)

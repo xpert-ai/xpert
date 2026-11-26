@@ -18,6 +18,15 @@ const task = {
     ]
 }
 
+it('places the current task revision before history without changing any revision or evidence', () => {
+    const source = { ...task, revision: 28, status: 'todo' }
+    const projected = projectTaskModelView(source)
+    expect(JSON.stringify(projected)).toMatch(/^\{"id":"[^"]+","revision":28,"status":"todo"/)
+    expect(projected).toMatchObject({ revision: 28, executions: [{ invocationRevision: 5 }] })
+    expect(projectTaskModelView(projected)).toEqual(projected)
+    expect(source.executions[0].result.text).toBe(text)
+})
+
 it('keeps decision references, marks partial text, and leaves the immutable source untouched', () => {
     const projected = projectTaskModelView(task)
     expect(JSON.stringify(projected).length).toBeLessThan(7500)

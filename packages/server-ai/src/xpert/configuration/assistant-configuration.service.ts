@@ -216,6 +216,7 @@ export class AssistantConfigurationService {
             this.templates.getTemplateDetail(key, language)
         )
         const draft = parseCapabilityTemplateDraft(composed.export_data)
+        await this.capabilities.bindResources(composed, draft, input.capabilities)
         // Keep an explicit empty selection so old template variants cannot re-enable removed capabilities on reload.
         if (!draft.team.options?.assistantCapabilities) recordCapabilityState(base, draft, input.capabilities)
         const previousVoice =

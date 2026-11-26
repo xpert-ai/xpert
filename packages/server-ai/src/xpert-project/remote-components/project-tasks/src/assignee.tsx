@@ -19,6 +19,7 @@ export function Assignee({
     t,
     locale,
     onError,
+    showExecutions = true,
     className,
     taskTitles,
     laneHeading,
@@ -30,6 +31,7 @@ export function Assignee({
     t: Texts
     locale: string
     onError: (message: string) => void
+    showExecutions?: boolean
     className?: string
     taskTitles?: ReadonlyMap<string, string>
     laneHeading?: string
@@ -94,15 +96,17 @@ export function Assignee({
                     {name}
                 </span>
             )}
-            <ExecutionIndicators
-                title={task.title}
-                attempts={attempts}
-                t={t}
-                locale={locale}
-                onError={onError}
-                taskTitles={taskTitles}
-                className={laneHeading ? 'basis-full justify-end' : 'max-w-[50%] shrink-0'}
-            />
+            {showExecutions && (
+                <ExecutionIndicators
+                    title={task.title}
+                    attempts={attempts}
+                    t={t}
+                    locale={locale}
+                    onError={onError}
+                    taskTitles={taskTitles}
+                    className={laneHeading ? 'basis-full justify-end' : 'max-w-[50%] shrink-0'}
+                />
+            )}
         </div>
     )
 }

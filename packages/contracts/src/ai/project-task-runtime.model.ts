@@ -66,6 +66,11 @@ export const projectTaskReviewerSchema = z
   .strict()
 export type ProjectTaskReviewer = z.output<typeof projectTaskReviewerSchema>
 
+/** Host-verified review modes advertised after runtime authorization; never an access grant. */
+export interface ProjectTaskRuntimeCapabilities {
+  reviewModes: ProjectTaskReviewer['mode'][]
+}
+
 /** Host-owned identity of a review work item; retries cannot change its candidate. */
 export const projectTaskReviewSubjectSchema = z
   .object({

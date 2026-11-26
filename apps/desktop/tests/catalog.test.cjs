@@ -45,7 +45,7 @@ function fixture(handler) {
 
 test('catalog follows pagination and does not leak DSL, application configuration or account credentials', async () => {
   const { service, calls } = fixture((path, options, url) => {
-    if (path === '/api/plugin-applications/catalog') return [detail]
+    if (path === '/api/plugin-applications/catalog/cards') return [detail]
     if (path === '/api/xpert-marketplace') return { items: [expert('owned')], total: 1 }
     if (url.searchParams.get('offset') === '0')
       return {
@@ -164,7 +164,9 @@ test('application screenshots are normalized consistently for catalog and detail
     ...detail,
     application: { ...app, config: { presentation: { screenshots: sources } } }
   }
-  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  const { service } = fixture((path) =>
+    path.endsWith('/cards') ? new Response('', { status: 404 }) : path.endsWith('/catalog') ? [response] : response
+  )
   service.configure({ ...service.config, webUrl: 'https://workspace.example.com/explore' })
   service.credentials = { token: 'fixture' }
   service.profile = { organizationId: 'org-1' }
@@ -183,7 +185,9 @@ test('application screenshots are normalized consistently for catalog and detail
 test('application logos preserve image, SVG and emoji identity in the catalog and details', async () => {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg>'
   const response = { ...detail, application: { ...app, icon: null } }
-  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  const { service } = fixture((path) =>
+    path.endsWith('/cards') ? new Response('', { status: 404 }) : path.endsWith('/catalog') ? [response] : response
+  )
   service.configure({ ...service.config, webUrl: 'https://workspace.example.com' })
   service.credentials = { token: 'fixture' }
   service.profile = { organizationId: 'org-1' }
@@ -585,6 +589,8 @@ test('multi-scope App catalog uses personal status and forwards the selected tar
         xpertId: selected === 'organization' ? 'organization-assistant' : null
       }
     }
+    if (path.endsWith('/cards')) return new Response('', { status: 404 })
+    if (path.endsWith('/status')) return [{ ...value.status, appId: scopedApp.id }]
     if (path.endsWith('/catalog')) return [value]
     if (path.endsWith('/detail')) return value
     if (path.endsWith('/initialize')) return { status: 'ready', xpertId: 'personal-assistant' }
@@ -674,4 +680,18 @@ test('organization setup uses organization requests, handles stale forms and sav
     status: 409
   })
   assert.equal(calls.length, previous)
+})
+
+test('compact App cards use one catalog and defer protected images until requested', async () => {
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/cards')) return [{ ...detail, hasCardImages: true }]
+    if (path.endsWith('/images')) return { cover: inlineAvatar, icon: null }
+    throw new Error('Unexpected request')
+  })
+  const [card] = await service.listCatalog('applications')
+  assert.equal(card.hasCardImages, true)
+  assert.deepEqual(card.screenshots, [])
+  assert.equal(calls.length, 1)
+  assert.equal((await service.cardImages(card)).cover, inlineAvatar)
+  assert.equal(calls[1].headers['organization-id'], 'org-1')
 })

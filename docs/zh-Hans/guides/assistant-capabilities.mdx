@@ -68,3 +68,26 @@ ChatKit 使用当前交互会话，通过 SDK 的 `ProjectsClient.create` 直接
 - 并发编辑通过版本号检查。发布失败会说明草稿已保存；结果不确定的请求不会自动重试。
 
 共享群项目、成员分工、依赖和分批执行参见[群聊项目任务](/zh-Hans/guides/group-project-tasks)。能力负责启用任务工具；群项目设置另行绑定所选 Assistants，并保留正常的项目授权检查。
+
+## 工作空间工具集依赖
+
+能力通过 `IAssistantCapabilityProvider.toolsets` 声明现有 MCP 连接：
+
+```ts
+readonly toolsets = [{
+  bindingKey: 'vendor.documents',
+  category: 'mcp' as const,
+  requiredTools: ['find_documents', 'read_document'],
+  // targetAgentKey: 'Researcher' // 省略时绑定主 Agent。
+}]
+```
+
+连接所属系统在编辑工作空间准备工具集，并设置 `options.capabilityBindingKey = 'vendor.documents'`。平台将该标识视为不透明字符串。服务地址、凭证、领域资源权限和业务 Assistant 身份由连接所属系统及其 MCP 服务负责。开启能力不会创建连接或授予资源权限。
+
+模板 setup 请求需携带 `workspaceId`。平台校验该工作空间的编辑权限，仅在其租户及工作空间中解析唯一匹配的连接，并检查 MCP 类型及全部必需工具是否已启用。缺失、重复或工具不全会返回明确的不可用原因，不按名称或 URL 猜测。解析结果不包含凭证或原始 MCP schema。
+
+`apply()` 仍只组合草稿。平台随后添加 Toolset 节点及 Agent 到 Toolset 的连线，把这些图贡献与中间件、指令一起记录到能力归属状态中。发布时从连线生成 Agent 工具集引用。多 Agent 必须显式指定 `targetAgentKey`，不会自动扩散到所有子 Agent。
+
+创建、已有 Assistant 的配置预览及保存发布使用相同解析器。预览不保存草稿、不创建外部资源；安装及保存重新校验实际连接，失败不发布。关闭只撤销能力拥有的贡献，保留手工绑定及共享 MCP 连接；已编辑的能力节点或连线会触发冲突。资源授权和会话历史不属于能力开关的管理范围。
+
+替换已有 Assistant 的基础 DSL 时，导入流程先检查原能力贡献是否被手工修改，再按已保存的选择在新基础草稿上重新组合，之后才保存。显式关闭后的空选择保持为空；依赖缺失或贡献冲突会阻止导入，不静默丢弃或重新开启能力。

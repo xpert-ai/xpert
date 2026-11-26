@@ -7,6 +7,7 @@ import { PERMISSIONS_METADATA } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { evaluatePermissions } from './permission-policy'
+import { PublicVisitorChatGuard } from './public-visitor-chat.guard'
 
 @Injectable()
 export class EndpointPermissionInterceptor implements NestInterceptor {
@@ -25,7 +26,7 @@ export class EndpointPermissionInterceptor implements NestInterceptor {
 			controller = context.getClass()
 		const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [handler, controller])
 		if (!user && isPublic) return next.handle()
-		const decision = evaluatePermissions(user, permissions)
+		const decision = evaluatePermissions(user, permissions, PublicVisitorChatGuard.verifiedVisitor(request))
 		if (decision.allowed === false) {
 			this.logger.debug({
 				event: 'authorization_denied',

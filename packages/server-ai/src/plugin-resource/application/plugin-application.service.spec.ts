@@ -211,6 +211,34 @@ describe('PluginApplicationService', () => {
         ])
     })
 
+    it('returns one card in the preferred personal scope and keeps full-size artwork in detail', async () => {
+        const cover = 'https://cdn.example.com/first.webp'
+        const second = 'https://cdn.example.com/second.webp'
+        const service = createService([
+            {
+                type: 'app',
+                name: 'example-app',
+                appConfig: {
+                    scope: ['organization', 'personal'],
+                    assistantTemplateKey: 'assistant',
+                    workspace: { mode: 'dedicated', name: 'Example' },
+                    presentation: { screenshots: [cover, second], tagline: 'Card summary' }
+                }
+            }
+        ])
+        const cards = await service.getCards()
+        expect(cards).toHaveLength(1)
+        expect(cards[0]).toMatchObject({
+            hasCardImages: true,
+            application: { scope: 'personal', config: { presentation: { tagline: 'Card summary' } } },
+            status: { installationScope: 'personal' }
+        })
+        expect(JSON.stringify(cards)).not.toContain(cover)
+        expect(await service.getCardImages('@acme/plugin-example-app', 'example-app')).toMatchObject({ cover })
+        const detail = await service.getDetail('@acme/plugin-example-app', 'example-app')
+        expect(detail.application.config.presentation?.screenshots).toEqual([cover, second])
+    })
+
     it.each([
         [undefined, ['https://cdn.example.com/marketplace.webp']],
         [[], []],
@@ -752,17 +780,23 @@ describe('PluginApplicationService', () => {
         }
         // Configuration is explicit and must survive the locked lifecycle's second preflight.
         const installOptions = { toolsetSourceIds: ['authorized-source'] }
-        jest.spyOn(service['applicationToolsets'], 'preflight').mockImplementation(async (_application, _installation, options) => {
-            if (!options?.toolsetSourceIds?.includes('authorized-source')) throw new Error('Trusted tool source missing')
-            return []
-        })
+        jest.spyOn(service['applicationToolsets'], 'preflight').mockImplementation(
+            async (_application, _installation, options) => {
+                if (!options?.toolsetSourceIds?.includes('authorized-source'))
+                    throw new Error('Trusted tool source missing')
+                return []
+            }
+        )
         await expect(
-            service.initialize({
-                pluginName: '@acme/plugin-example-app',
-                appName: 'example-app',
-                operationId: 'repair-1',
-                installationScope: personal ? 'personal' : undefined
-            }, installOptions)
+            service.initialize(
+                {
+                    pluginName: '@acme/plugin-example-app',
+                    appName: 'example-app',
+                    operationId: 'repair-1',
+                    installationScope: personal ? 'personal' : undefined
+                },
+                installOptions
+            )
         ).resolves.toMatchObject({ status: 'ready', xpertId: 'xpert-1', assistantSlug: 'example-app' })
         if (personal) {
             expect(installationRepo.create).toHaveBeenCalledWith(

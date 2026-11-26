@@ -1,4 +1,6 @@
-const outputAccept = 'application/json; profile="xpert-agent-output-v1"'
+const actionAccept = 'application/json; profile="xpert-notifications-v2"'
+const outputAccept = 'application/json; profile="xpert-notifications-v3"'
+const legacyOutputAccept = 'application/json; profile="xpert-agent-output-v1"'
 // The main process owns credentials, the single live stream and durable dismissal retries.
 // Stream messages only invalidate snapshots; missed/duplicate messages never change read counts.
 const { EventEmitter } = require('node:events')
@@ -151,9 +153,22 @@ class UserNotifications extends EventEmitter {
         this.dismissals[account] = (this.dismissals[account] || []).filter((value) => value !== id)
         this.service.persist()
       }
-      const snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', {
+      let snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', {
         accept: outputAccept
       })
+      if (revision !== this.revision) return null
+      let negotiatedAccept = outputAccept
+      if (snapshot?.supported === true && snapshot.pendingCount === undefined) {
+        negotiatedAccept = actionAccept
+        snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', { accept: actionAccept })
+      }
+      if (revision !== this.revision) return null
+      if (snapshot?.supported === true && snapshot.pendingCount === undefined) {
+        negotiatedAccept = legacyOutputAccept
+        snapshot = await this.service.request('/api/user-notifications/sync?client=desktop', {
+          accept: legacyOutputAccept
+        })
+      }
       if (revision !== this.revision) return null
       if (
         !snapshot ||
@@ -166,6 +181,7 @@ class UserNotifications extends EventEmitter {
         (item) => !(this.dismissals[account] || []).includes(item.id)
       )
       const changed = !this.snapshot || snapshot.version !== this.snapshot.version
+      this.accept = negotiatedAccept
       this.snapshot = snapshot
       if (changed) {
         this.emit('change')
@@ -250,12 +266,16 @@ function createNotificationMethods(ClientError) {
     },
     notificationList(value) {
       return this.request(`/api/user-notifications?offset=${offset(value)}`, {
-        accept: outputAccept,
+        accept: this.userNotifications?.accept || outputAccept,
         prefer: 'return=representation'
       })
     },
     async notificationRead(value) {
-      const result = await this.request(`/api/user-notifications/${id(value)}/read`, { method: 'PUT', body: {} })
+      const result = await this.request(`/api/user-notifications/${id(value)}/read`, {
+        method: 'PUT',
+        body: {},
+        accept: this.userNotifications?.accept || outputAccept
+      })
       this.userNotifications.schedule()
       return result
     }

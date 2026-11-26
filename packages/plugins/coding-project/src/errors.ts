@@ -12,7 +12,7 @@ const messages: Record<string, string> = {
   CODING_LOCAL_RELEASE_FORBIDDEN:
     'Local acceptance does not authorize release approval, host installation or Git delivery.',
   CODING_EXECUTION_REVIEW_REQUIRED:
-    'Coding delivery requires a passing independent execution review of this accepted task.',
+    'Coding delivery requires an independent execution review bound to the accepted task. Create and independently review a corrective candidate, record its task acceptance, then submit that acceptance.',
   CODING_SOURCE_ACCEPTANCE_CHANGED:
     'The source task acceptance changed. Start a new delivery from its current accepted result.',
   CODING_GIT_HOST_NOT_ALLOWED: 'This stage is not authorized for fixed GitHub delivery.',
@@ -50,6 +50,8 @@ const messages: Record<string, string> = {
     'This host needs the Project task candidate-read capability for material preflight.',
   CODING_MANIFEST_TOO_LARGE: 'The delivery manifest exceeds 64 KiB.',
   CODING_MANIFEST_WORK_MISMATCH: 'The manifest belongs to a different stage operation.',
+  CODING_MANIFEST_SCHEMA_MISMATCH:
+    'The existing stage schema does not match the current manifest contract. Preserve the file and retry the stage to prepare new files.',
   CODING_NEW_ROUND_REQUIRED: 'Record the feedback and start a new delivery round.',
   CODING_OPERATION_IDENTITY_CONFLICT: 'This operation was already assigned to a different executor or stage.',
   CODING_OPERATION_NOT_ACTIVE: 'This delivery operation is no longer active.',
@@ -63,8 +65,12 @@ const messages: Record<string, string> = {
   CODING_REVISION_CONFLICT: 'Another action updated this delivery. Read its current revision.',
   CODING_REWORK_REQUIRES_ORIGINAL_COORDINATOR:
     'The original coordinating Assistant or a project manager must start rework.',
+  CODING_REWORK_CANDIDATE_REQUIRED:
+    'Starting a new delivery round requires a sealed candidate. Continue unfinished implementation in its existing task, or record a blocker and wait for the missing input.',
   CODING_REWORK_STALE: 'This rework request no longer matches the current delivery revision.',
-  CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.'
+  CODING_TASK_NOT_FROM_THIS_OPERATION: 'The accepted task belongs to a different stage conversation.',
+  CODING_RECOVERY_ACCEPTANCE_REQUIRED:
+    'Recovery requires one current formally accepted task from this stage conversation.'
 }
 
 export function codingError(code: string) {

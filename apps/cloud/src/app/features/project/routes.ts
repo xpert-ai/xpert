@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router'
+import { projectEntryScopeGuard } from './project-entry-scope.guard'
 import { XpertProjectTaskManagementComponent } from './project-task-management.component'
 import { XpertProjectApplicationComponent } from './project-application.component'
 import { XpertProjectAssetsComponent } from './project-assets.component'
@@ -24,6 +25,8 @@ export const routes: Routes = [
   },
   {
     path: ':id',
+    canActivate: [projectEntryScopeGuard],
+    runGuardsAndResolvers: 'paramsOrQueryParamsChange',
     component: XpertProjectShellComponent,
     data: { title: 'Project workspace' },
     children: [

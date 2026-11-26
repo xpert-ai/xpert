@@ -141,6 +141,7 @@ export function request(type: string, body: object = {}): Promise<unknown> {
 export const nodeSchema = z.object({
     controlKind: z.enum(['ordinary', 'provider', 'pipeline']).optional(),
     pipelineInstanceId: z.string().nullable().optional(),
+    pipelineInstanceTitle: z.string().optional(),
     pipelineDisposition: z.enum(['active', 'removed', 'excluded', 'superseded']).nullable().optional(),
     executionCount: z.number().int().nonnegative().optional(),
     executionVersion: z.string().optional(),

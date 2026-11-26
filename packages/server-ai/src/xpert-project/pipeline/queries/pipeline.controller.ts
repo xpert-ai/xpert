@@ -9,6 +9,9 @@ import { ProjectPermission, XpertProjectGuard } from '../../guards'
 import { pipelineRefreshSchema } from '../projection/pipeline-projection.service'
 import { ProjectPipelineQueryService } from './pipeline-query.service'
 import { ProjectPipelineWorkspaceService } from './pipeline-workspace.service'
+import { QueryBus } from '@nestjs/cqrs'
+import { ProjectPipelineWorkbenchQuery } from './pipeline-workbench-navigation.query'
+import { pipelineWorkbenchFocusSchema, type PipelineWorkbenchFocus } from './pipeline-workbench-navigation.schema'
 
 const nodeFocusSchema = z.object({ roundId: z.string().uuid(), pipelineNodeId: z.string().uuid() }).strict()
 const listSchema = z
@@ -23,7 +26,8 @@ const invalid = () => new BadRequestException(t('server-ai:Error.ProjectPipeline
 export class ProjectPipelineController {
     constructor(
         private readonly pipelines: ProjectPipelineQueryService,
-        private readonly workspaces: ProjectPipelineWorkspaceService
+        private readonly workspaces: ProjectPipelineWorkspaceService,
+        private readonly queryBus: QueryBus
     ) {}
     private context(projectId: string) {
         return {
@@ -43,6 +47,15 @@ export class ProjectPipelineController {
         @Query(new ZodValidationPipe(listSchema, invalid)) query: z.output<typeof listSchema>
     ) {
         return this.pipelines.list(this.context(id), query)
+    }
+
+    @Get(':id/pipelines/workbench-navigation')
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    workbenchNavigation(
+        @Param('id') id: string,
+        @Query(new ZodValidationPipe(pipelineWorkbenchFocusSchema, invalid)) focus: PipelineWorkbenchFocus
+    ) {
+        return this.queryBus.execute(new ProjectPipelineWorkbenchQuery(this.context(id), focus))
     }
 
     @Get(':id/pipelines/:instanceId/graph')

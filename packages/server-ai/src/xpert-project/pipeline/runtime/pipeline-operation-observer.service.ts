@@ -37,6 +37,7 @@ export class ProjectPipelineOperationObserverService {
         })
         const receipt = operation.receipt!,
             completion = operation.completion
+        const waiting = receipt.status === 'pending' && !!receipt.code
         const previous = node.projection.state
         const accepted = operation.state === 'accepted'
         const failed = operation.state === 'failed' || operation.state === 'rejected'
@@ -51,9 +52,9 @@ export class ProjectPipelineOperationObserverService {
                       : failed
                         ? 'failed'
                         : 'active',
-                readiness: failed ? 'blocked' : 'ready',
+                readiness: failed || waiting ? 'blocked' : 'ready',
                 runtime:
-                    receipt.execution?.status ??
+                    (waiting ? 'waiting' : receipt.execution?.status) ??
                     (receipt.status === 'unknown'
                         ? 'unknown'
                         : operation.kind !== 'operation'

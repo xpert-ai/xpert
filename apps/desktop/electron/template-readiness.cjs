@@ -27,10 +27,6 @@ exports.projectTemplateReadiness = (value, ClientError) => {
               componentKey: string(item.componentKey),
               ...(item.targetAgentKey === undefined ? {} : { targetAgentKey: string(item.targetAgentKey) })
             })),
-            seedMemoryCount:
-              Number.isSafeInteger(value.capabilities.seedMemoryCount) && value.capabilities.seedMemoryCount >= 0
-                ? value.capabilities.seedMemoryCount
-                : fail(),
             sandbox: typeof value.capabilities.sandbox === 'boolean' ? value.capabilities.sandbox : fail()
           }
         }

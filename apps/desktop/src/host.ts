@@ -71,9 +71,11 @@ export function openAnalyticsDefinitions(webUrl: string) {
   return openPlatformPage(webUrl, { target: 'platform.analytics.definitions' })
 }
 
-async function openPlatformPage(
+export async function openPlatformPage(
   webUrl: string,
-  target: { target: 'auth.register' | 'platform.analytics.definitions' }
+  target:
+    | { target: 'auth.register' | 'platform.analytics.definitions' }
+    | import('@xpert-ai/contracts').ProjectPipelineWorkbenchTarget
 ) {
   if (window.xpertDesktop) return window.xpertDesktop.openPlatform(target)
   const url = platformCommandUrl(webUrl, target)

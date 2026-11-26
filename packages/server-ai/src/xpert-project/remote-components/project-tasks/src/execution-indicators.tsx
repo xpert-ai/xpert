@@ -14,6 +14,7 @@ export function ExecutionIndicators({
     t,
     locale,
     onError,
+    variant = 'inline',
     className,
     taskTitles
 }: {
@@ -22,6 +23,7 @@ export function ExecutionIndicators({
     t: Texts
     locale: string
     onError: (message: string) => void
+    variant?: 'inline' | 'card'
     className?: string
     taskTitles?: ReadonlyMap<string, string>
 }) {
@@ -59,15 +61,19 @@ export function ExecutionIndicators({
                                         aria-disabled={!canOpen || !!busy}
                                         aria-busy={busy === attempt.id}
                                         title=""
-                                        className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-muted focus-visible:outline-ring aria-disabled:opacity-50"
+                                        className={cn(
+                                            'flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-muted focus-visible:outline-ring aria-disabled:opacity-50',
+                                            variant === 'card' && 'size-7'
+                                        )}
                                         onClick={(event) => {
                                             event.stopPropagation()
                                             if (canOpen && !busy) void open(attempt)
                                         }}
                                     >
                                         <span
+                                            aria-hidden="true"
                                             className={cn(
-                                                'size-2 rounded-full',
+                                                'size-2 shrink-0 rounded-full ring-2',
                                                 color,
                                                 (state === 'running' || busy === attempt.id) &&
                                                     'motion-safe:animate-pulse'

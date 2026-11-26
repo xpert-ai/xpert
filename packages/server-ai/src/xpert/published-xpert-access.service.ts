@@ -649,6 +649,16 @@ export class PublishedXpertAccessService {
         if (!(await query.getCount())) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
     }
 
+    async accessiblePublishedIds(ids: string[]): Promise<Set<string>> {
+        if (!ids.length) return new Set()
+        const rows = await this.buildAccessibleQuery()
+            .andWhere('xpert.id IN (:...cardIds)', { cardIds: ids })
+            .select('xpert.id', 'id')
+            .distinct(true)
+            .getRawMany<{ id: string }>()
+        return new Set(rows.map((row) => row.id))
+    }
+
     async countAccessiblePublishedXperts(where?: PublishedXpertQueryOptions['where'], search?: string) {
         return this.buildAccessibleQuery({ where, search }).select('xpert.id').distinct(true).getCount()
     }

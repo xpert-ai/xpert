@@ -37,6 +37,7 @@ import {
     decisionBinding,
     decisionRef,
     parseDecisionRef,
+    taskCanReceiveDecision,
     ProjectTaskDecisionReferenceError
 } from './project-task-decision-reference'
 
@@ -229,12 +230,7 @@ export class ProjectTaskDecisionService {
                     throw projectTaskRuntimeError('Conflict')
                 return existing
             }
-            if (
-                task.revision !== input.expectedRevision ||
-                !['review', 'blocked', 'in_progress', ...(task.kind === 'summary' ? ['todo'] : [])].includes(
-                    task.status
-                )
-            )
+            if (task.revision !== input.expectedRevision || !taskCanReceiveDecision(task))
                 throw projectTaskRuntimeError('Conflict')
             const implementation = await decisionImplementationTask(
                 manager,

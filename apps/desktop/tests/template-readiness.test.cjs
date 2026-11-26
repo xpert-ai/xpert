@@ -46,7 +46,6 @@ test('Assistant capabilities and provider locks have an explicit public projecti
       }
     ],
     skills: [{ pluginName: 'office', componentKey: 'ledger', targetAgentKey: 'primary', rootDir: '/private' }],
-    seedMemoryCount: 1,
     sandbox: true,
     memories: [{ value: 'secret' }]
   }
@@ -71,7 +70,7 @@ test('Assistant capabilities and provider locks have an explicit public projecti
     { provider: 'SandboxFile', toolNames: ['sandbox_read_file'] }
   ])
   assert.equal(result.capabilities.skills.length, 1)
-  assert.equal(result.capabilities.seedMemoryCount, 1)
+  assert.equal(Object.hasOwn(result.capabilities, 'seedMemoryCount'), false)
   assert.deepEqual(result.dependencies[0].providers, [{ kind: 'middleware', key: 'SandboxFile' }])
   assert.doesNotMatch(JSON.stringify(result), /secret|private|rootDir|options|memories/)
   assert.throws(
@@ -82,10 +81,27 @@ test('Assistant capabilities and provider locks have an explicit public projecti
           canInstall: true,
           checks: [],
           dependencies: [],
-          capabilities: { ...capabilities, seedMemoryCount: -1 }
+          capabilities: { ...capabilities, sandbox: 'invalid' }
         },
         ClientError
       ),
     ClientError
+  )
+})
+
+test('legacy memory counts are ignored by the current public capabilities contract', () => {
+  const readiness = {
+    legacy: false,
+    canInstall: true,
+    checks: [],
+    dependencies: [],
+    capabilities: { agents: [], skills: [], sandbox: false }
+  }
+  assert.deepEqual(
+    projectTemplateReadiness(
+      { ...readiness, capabilities: { ...readiness.capabilities, seedMemoryCount: 1 } },
+      ClientError
+    ),
+    projectTemplateReadiness(readiness, ClientError)
   )
 })

@@ -1,3 +1,4 @@
+import { RecomposeAssistantCapabilitiesQuery } from '../../../xpert-template/capabilities/recompose-capabilities.query'
 import { stringify } from 'yaml'
 import {
     PrepareAssistantDefinitionCommand,
@@ -6,6 +7,7 @@ import {
 import type { TXpertTemplate } from '@xpert-ai/contracts'
 import {
     AiModelTypeEnum,
+    LanguagesEnum,
     DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     convertToUrlPath,
     IXpert,
@@ -291,7 +293,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             )
         } as TXpertTeamDraft['team']
 
-        const nextDraft = replaceAgentInDraft(
+        let nextDraft = replaceAgentInDraft(
             {
                 ...(currentXpert.draft ?? {}),
                 ...omit(draft, 'memories', 'template'),
@@ -304,6 +306,18 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             { requireNode: false }
         )
 
+        if ((currentXpert.draft?.team.options ?? currentXpert.options)?.assistantCapabilities) {
+            // The replacement base must not inherit receipts for nodes absent from its graph.
+            nextDraft.team.options.assistantCapabilities = draft.team.options?.assistantCapabilities
+            nextDraft = await this.queryBus.execute<RecomposeAssistantCapabilitiesQuery, TXpertTeamDraft>(
+                new RecomposeAssistantCapabilitiesQuery(
+                    currentXpert,
+                    nextDraft,
+                    RequestContext.getLanguageCode() as LanguagesEnum,
+                    await this.xpertService.getSandboxProviders()
+                )
+            )
+        }
         currentXpert.draft = await this.xpertService.saveDraft(currentXpert.id, nextDraft)
         if (templateSource) {
             currentXpert.options = this.withTemplateSource(currentXpert.options, templateSource)

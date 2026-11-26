@@ -1,8 +1,18 @@
 import { useLayoutEffect, type RefObject } from 'react'
 
+type DragScrollOptions = { verticalSelector?: string }
+
 /** Pan the viewport, never the task itself. A click still opens its original target. */
-export function attachDragScroll(element: HTMLElement) {
-    let drag: { pointer: number; x: number; y: number; left: number; top: number; active: boolean } | null = null
+export function attachDragScroll(element: HTMLElement, { verticalSelector }: DragScrollOptions = {}) {
+    let drag: {
+        pointer: number
+        x: number
+        y: number
+        left: number
+        top: number
+        vertical: HTMLElement
+        active: boolean
+    } | null = null
     let suppressClick = false
     const document = element.ownerDocument
     const finish = () => {
@@ -20,17 +30,25 @@ export function attachDragScroll(element: HTMLElement) {
             )
         )
             return
-        // Leave native scrollbar interaction alone.
-        const bounds = element.getBoundingClientRect()
-        if (event.clientX >= bounds.left + element.clientWidth || event.clientY >= bounds.top + element.clientHeight)
-            return
+        const nested = verticalSelector ? event.target.closest<HTMLElement>(verticalSelector) : null
+        const vertical = nested && element.contains(nested) ? nested : element
+        // Leave both outer and nested native scrollbars alone.
+        for (const surface of new Set([element, vertical])) {
+            const bounds = surface.getBoundingClientRect()
+            if (
+                event.clientX >= bounds.left + surface.clientWidth ||
+                event.clientY >= bounds.top + surface.clientHeight
+            )
+                return
+        }
         suppressClick = false
         drag = {
             pointer: event.pointerId,
             x: event.clientX,
             y: event.clientY,
             left: element.scrollLeft,
-            top: element.scrollTop,
+            top: vertical.scrollTop,
+            vertical,
             active: false
         }
     }
@@ -48,7 +66,7 @@ export function attachDragScroll(element: HTMLElement) {
         }
         event.preventDefault()
         element.scrollLeft = drag.left - dx
-        element.scrollTop = drag.top - dy
+        drag.vertical.scrollTop = drag.top - dy
     }
     const up = (event: PointerEvent) => {
         if (drag?.pointer === event.pointerId) finish()
@@ -81,8 +99,8 @@ export function attachDragScroll(element: HTMLElement) {
     }
 }
 
-export function useDragScroll(ref: RefObject<HTMLDivElement>) {
+export function useDragScroll(ref: RefObject<HTMLDivElement>, { verticalSelector }: DragScrollOptions = {}) {
     useLayoutEffect(() => {
-        if (ref.current) return attachDragScroll(ref.current)
-    }, [ref])
+        if (ref.current) return attachDragScroll(ref.current, { verticalSelector })
+    }, [ref, verticalSelector])
 }

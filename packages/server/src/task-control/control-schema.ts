@@ -60,12 +60,25 @@ export const taskControlSchema: readonly ControlSchemaRequirement[] = [
 const columnsSchema = z.array(z.object({ table_name: z.string(), column_name: z.string() }))
 
 export async function controlSchemaReady(manager: EntityManager, requirements: readonly ControlSchemaRequirement[]) {
-	const rows = columnsSchema.parse(
+	return hasControlSchemaColumns(await readControlSchemaColumns(manager, requirements), requirements)
+}
+
+export async function readControlSchemaColumns(
+	manager: EntityManager,
+	requirements: readonly ControlSchemaRequirement[]
+) {
+	return columnsSchema.parse(
 		await manager.query(
 			'SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ANY($1::text[])',
-			[requirements.map((item) => item.table)]
+			[[...new Set(requirements.map((item) => item.table))]]
 		)
 	)
+}
+
+export function hasControlSchemaColumns(
+	rows: z.output<typeof columnsSchema>,
+	requirements: readonly ControlSchemaRequirement[]
+) {
 	return requirements.every((item) =>
 		item.columns.every((column) => rows.some((row) => row.table_name === item.table && row.column_name === column))
 	)

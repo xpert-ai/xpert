@@ -1,5 +1,5 @@
 import { assertAuthoringUser } from '../shared/authoring-access'
-import { AssertBusinessAreaAccessCommand } from '@xpert-ai/server-core'
+import { AssertBusinessAreaAccessCommand, isPublicVisitorSession } from '@xpert-ai/server-core'
 import { ResolveAssistantPrincipalCommand } from './assistant-principal/resolve-assistant-principal.command'
 import { GetAccessiblePublishedXpertQuery } from './published-agent/get-accessible-published-xpert.query'
 import { AssistantSharingService } from './sharing/sharing.service'
@@ -62,14 +62,15 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         options?: FindOneOptions<Xpert>
     ): Promise<Xpert> {
         if (
-            RuntimeRequestContext.currentUser()?.type === UserType.COMMUNICATION &&
-            (await this.commandBus.execute(
-                new ResolveAssistantPrincipalCommand({
-                    tenantId: RuntimeRequestContext.currentTenantId(),
-                    organizationId: RuntimeRequestContext.getOrganizationId(),
-                    userId: RuntimeRequestContext.currentUserId()
-                })
-            ))
+            isPublicVisitorSession(RuntimeRequestContext.currentApiPrincipal()) ||
+            (RuntimeRequestContext.currentUser()?.type === UserType.COMMUNICATION &&
+                (await this.commandBus.execute(
+                    new ResolveAssistantPrincipalCommand({
+                        tenantId: RuntimeRequestContext.currentTenantId(),
+                        organizationId: RuntimeRequestContext.getOrganizationId(),
+                        userId: RuntimeRequestContext.currentUserId()
+                    })
+                )))
         ) {
             if (typeof id !== 'string') throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
             // A policy grants exact published Assistants, never authoring access to their containing workspace.

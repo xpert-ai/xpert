@@ -19,16 +19,18 @@ const schema = z
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @AssistantFileAccess('workspace')
 @Permissions(AIPermissionsEnum.CHAT_VIEW)
-@Controller('assistants/:assistantId/projects/:projectId/content-files')
+@Controller(['assistants/:assistantId/projects/:projectId/content-files', 'assistants/:assistantId/content-files'])
 export class ContentFilesController {
     constructor(private readonly editors: ContentEditorsService) {}
     @Post('open')
     open(
         @Param('assistantId', UUIDValidationPipe) assistantId: string,
-        @Param('projectId', UUIDValidationPipe) projectId: string,
+        @Param('projectId') projectId: string | undefined,
         @Body(new ZodValidationPipe(schema, () => new BadRequestException('Invalid file reference')))
         body: { path: string; editorKey?: string }
     ) {
+        if (projectId && !z.string().uuid().safeParse(projectId).success)
+            throw new BadRequestException('Invalid Project')
         return this.editors.resolveFile({
             ...body,
             assistantId,

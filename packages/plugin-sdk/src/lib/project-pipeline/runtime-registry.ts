@@ -3,7 +3,6 @@ import { DiscoveryService, Reflector } from '@nestjs/core'
 import { projectPipelineRefSchema } from '@xpert-ai/contracts'
 import type { StrategySource } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
-import type { ProjectAccessActor } from '../runtime/capabilities/project-access'
 import type {
   ProjectPipelineSubjectResolver,
   ProjectPipelineEvidenceResolver,
@@ -15,7 +14,7 @@ import type {
   ProjectPipelineResourceResolver,
   ProjectPipelineRuntimeOperation
 } from './adapters'
-import { ProjectPipelineScopedRegistry } from './scoped-registry'
+import { ProjectPipelineScopedRegistry, type ProjectPipelineRegistryScope } from './scoped-registry'
 
 export type ProjectPipelineRuntimeAdapter =
   | ({ kind: 'schema'; ref: string } & ProjectPipelineValueSchema)
@@ -82,7 +81,7 @@ export class ProjectPipelineRuntimeAdapterRegistry extends ProjectPipelineScoped
   resolve<K extends ProjectPipelineRuntimeAdapter['kind']>(
     kind: K,
     ref: string,
-    actor: ProjectAccessActor
+    actor: ProjectPipelineRegistryScope
   ): Extract<ProjectPipelineRuntimeAdapter, { kind: K }> {
     const adapter = this.getForActor(`${kind}:${ref}`, actor)
     if (adapter.kind !== kind || adapter.ref !== ref) throw new Error('PIPELINE_ADAPTER_KEY_MISMATCH')

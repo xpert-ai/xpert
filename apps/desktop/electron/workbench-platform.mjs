@@ -18,10 +18,18 @@ export function platformCommandUrl(webUrl, payload) {
     id(payload.projectId)
   ) {
     path = `project/${segment(payload.projectId)}/${payload.target === 'project.application' ? 'application' : 'pipelines'}`
+    if (payload.organizationId !== undefined && payload.organizationId !== null) {
+      if (!id(payload.organizationId)) return null
+      query.set('organizationId', payload.organizationId)
+    }
+    if (
+      (payload.pipelineInstanceId !== undefined || payload.pipelineRoundId !== undefined) &&
+      !['pipelineNodeId', 'pipelineInstanceId', 'pipelineRoundId'].every((key) => payload[key] !== undefined)
+    )
+      return null
     for (const key of ['pipelineNodeId', 'pipelineInstanceId', 'pipelineRoundId']) {
       if (payload[key] === undefined) continue
       if (
-        (payload.target === 'project.application' && key !== 'pipelineNodeId') ||
         typeof payload[key] !== 'string' ||
         !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload[key])
       )

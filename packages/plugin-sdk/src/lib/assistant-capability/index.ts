@@ -1,6 +1,13 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import type { I18nObject, LanguagesEnum, ModelFeature, TXpertTeamDraft, TXpertTemplate } from '@xpert-ai/contracts'
+import type {
+  AssistantCapabilityToolsetRequirement,
+  I18nObject,
+  LanguagesEnum,
+  ModelFeature,
+  TXpertTeamDraft,
+  TXpertTemplate
+} from '@xpert-ai/contracts'
 import { BaseStrategyRegistry } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
 export { applyAssistantMiddleware, hasAssistantMiddleware } from './middleware'
@@ -23,6 +30,8 @@ export interface IAssistantCapabilityProvider {
   readonly label: string | I18nObject
   readonly description: string | I18nObject
   readonly requiredModelFeatures?: ModelFeature[]
+  /** Existing workspace connections resolved by the host, outside the pure apply hook. */
+  readonly toolsets?: readonly AssistantCapabilityToolsetRequirement[]
   /** Explicitly opt into the blank Assistant creation flow. */
   readonly availableForBlankAssistant?: boolean
   /** Opt into a simple creation switch; no additional capability-specific configuration is needed. */

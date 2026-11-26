@@ -2,7 +2,6 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AppPlatformDelivery } from '../plugin-resource/app-platform/app-platform-delivery.entity'
 import { QueryBus } from '@nestjs/cqrs'
 import { threadGraphRevision } from './thread-run-control.service'
-import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { ConflictException } from '@nestjs/common'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { ChatMessage } from '../chat-message/chat-message.entity'
@@ -42,59 +41,6 @@ describe('ChatConversationThreadService', () => {
             queryBus as QueryBus
         )
     }
-
-    it('deletes branch App history atomically with only the scoped branch messages', async () => {
-        const manager = {
-            find: jest.fn().mockResolvedValue([
-                {
-                    id: 'message',
-                    events: [
-                        {
-                            data: {
-                                type: 'McpApp',
-                                appInstanceId: 'app'
-                            }
-                        }
-                    ]
-                }
-            ]),
-            delete: jest.fn(),
-            softDelete: jest.fn()
-        }
-        const transaction = jest.fn(async (work) => work(manager))
-        const service = createService({ dataSource: { transaction } })
-        jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
-            threadId: 'branch',
-            conversationId: 'conversation',
-            tenantId: 'tenant',
-            organizationId: 'org'
-        } as ChatConversationThread)
-        await service.deleteBranchMessages('branch')
-        expect(transaction).toHaveBeenCalledTimes(1)
-        expect(manager.find).toHaveBeenCalledWith(ChatMessage, {
-            where: {
-                tenantId: 'tenant',
-                organizationId: 'org',
-                conversationId: 'conversation',
-                createdInThreadId: 'branch'
-            },
-            select: { id: true, content: true, events: true }
-        })
-        expect(manager.delete).toHaveBeenCalledWith(
-            McpAppHistory,
-            expect.objectContaining({
-                tenantId: 'tenant',
-                organizationId: 'org',
-                id: expect.objectContaining({ _value: ['app'] })
-            })
-        )
-        expect(manager.softDelete).toHaveBeenCalledWith(ChatMessage, {
-            tenantId: 'tenant',
-            organizationId: 'org',
-            conversationId: 'conversation',
-            createdInThreadId: 'branch'
-        })
-    })
 
     it('includes call receipts in display history without adding them to model ancestry', async () => {
         const call = { id: 'call-1', createdAt: new Date('2026-10-05T01:01:17Z') }
@@ -205,6 +151,7 @@ describe('ChatConversationThreadService', () => {
         { used: 20, active: 2, rejected: 429 },
         { used: 20, active: 0, rejected: null }
     ])('applies account admission before claiming an idle thread: %j', async ({ used, active, rejected }) => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
         const thread = { id: 'row', threadId: 'thread', status: 'idle' } as ChatConversationThread
         const events: string[] = []
         const threads = {
@@ -233,6 +180,7 @@ describe('ChatConversationThreadService', () => {
                     events.push('account-lock')
                     return []
                 }
+                if (sql.includes('app_platform_storage_grant')) return [{ bytes: null }]
                 return [{ externalBytes: used, databaseBytes: 0, measuredAt: new Date() }]
             }),
             getRepository: (entity: unknown) =>
@@ -260,6 +208,10 @@ describe('ChatConversationThreadService', () => {
             expect(events).toEqual(['account-lock', 'thread-lock'])
             expect(thread.status).toBe('busy')
         }
+        expect(manager.query).toHaveBeenCalledWith(expect.stringContaining('app_platform_storage_usage'), [
+            'tenant',
+            'organization'
+        ])
     })
 
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {

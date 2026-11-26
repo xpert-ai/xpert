@@ -1558,5 +1558,10 @@
   "Model confirmed": "モデルを確認済み",
   "Confirm shared analysis definition": "組織の共有分析定義を確認して使用",
   "This server and application currently offer published definitions only. Connection and model setup is unavailable.": "現在のサーバーとアプリでは公開済みの分析定義のみ選択できます。接続と業務モデルの設定は利用できません。",
-  "Invalid model setup operation.": "モデル設定の操作が無効です。"
+  "Invalid model setup operation.": "モデル設定の操作が無効です。",
+  "Project pipelines": "プロジェクトのパイプライン",
+  "This project view is not available. Check access and retry.": "このプロジェクトビューは利用できません。アクセス権を確認して再試行してください。",
+  "View and act": "表示して対応",
+  "Handled": "対応済み",
+  "Closed": "終了"
 }

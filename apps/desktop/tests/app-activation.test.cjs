@@ -223,6 +223,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
   const { App } = renderer(
     'App.tsx',
     {
+      './catalog/catalog-cache': renderer('catalog/catalog-cache.ts', {}, globals),
       './notifications/NotificationProvider': { NotificationProvider: ({ children }) => children },
       './host': host,
       './i18n': i18n,

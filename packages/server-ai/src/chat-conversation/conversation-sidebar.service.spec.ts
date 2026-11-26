@@ -1,6 +1,6 @@
 import { ForbiddenException, BadRequestException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { Repository } from 'typeorm'
+import { In, IsNull, Repository } from 'typeorm'
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
 import { ChatConversationService } from './conversation.service'
 import { ChatConversationSidebarService } from './conversation-sidebar.service'
@@ -48,6 +48,7 @@ function queryBuilder() {
 describe('ChatConversationSidebarService', () => {
     const conversation = {
         id: 'conversation-1',
+        purpose: 'private',
         xpertId: 'assistant-1',
         createdById: 'user-1',
         tenantId: 'tenant-1',
@@ -57,6 +58,7 @@ describe('ChatConversationSidebarService', () => {
     let listQuery: ReturnType<typeof queryBuilder>
     let preferenceQuery: ReturnType<typeof queryBuilder>
     let findPreference: jest.Mock
+    let findPreferences: jest.Mock
     let assertAccess: jest.Mock
     let service: ChatConversationSidebarService
 
@@ -67,9 +69,11 @@ describe('ChatConversationSidebarService', () => {
         listQuery = queryBuilder()
         preferenceQuery = queryBuilder()
         findPreference = jest.fn().mockResolvedValue(null)
+        findPreferences = jest.fn().mockResolvedValue([])
         assertAccess = jest.fn().mockResolvedValue(conversation)
         const preferences = Object.assign(Object.create(Repository.prototype), {
             findOne: findPreference,
+            find: findPreferences,
             createQueryBuilder: jest.fn(() => preferenceQuery)
         }) as Repository<AssistantUserPreference>
         const conversations = Object.assign(Object.create(ChatConversationService.prototype), {
@@ -87,9 +91,14 @@ describe('ChatConversationSidebarService', () => {
         expect(listQuery.andWhere).toHaveBeenCalledWith("conversation.title ILIKE :search ESCAPE '!'", {
             search: '%100!%!_!! test%'
         })
-        expect(listQuery.andWhere).toHaveBeenCalledWith('conversation.id IN (:...archivedIds)', { archivedIds: ['saved'] })
+        expect(listQuery.andWhere).toHaveBeenCalledWith('conversation.id IN (:...archivedIds)', {
+            archivedIds: ['saved']
+        })
         expect(listQuery.where).toHaveBeenCalledWith({
-            tenantId: 'tenant-1', organizationId: 'org-1', createdById: 'user-1', xpertId: 'assistant-1'
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            xpertId: 'assistant-1'
         })
         expect(listQuery.take).toHaveBeenCalledWith(20)
         expect(listQuery.skip).toHaveBeenCalledWith(40)
@@ -177,6 +186,42 @@ describe('ChatConversationSidebarService', () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(undefined)
         await expect(service.list('assistant-1')).rejects.toBeInstanceOf(ForbiddenException)
         expect(findPreference).not.toHaveBeenCalled()
+    })
+
+    it('merges Assistant version preferences and applies project scope before pagination', async () => {
+        findPreferences.mockResolvedValue([
+            { preferences: { conversationSidebar: { old: { pinned: true } } } },
+            { preferences: { conversationSidebar: { hidden: { archived: true } } } }
+        ])
+        await service.list(['assistant-1', 'assistant-2'], 50, 50, false, '', null)
+        expect(findPreferences).toHaveBeenCalledWith({
+            where: {
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                userId: 'user-1',
+                assistantId: In(['assistant-1', 'assistant-2'])
+            }
+        })
+        expect(listQuery.where).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            xpertId: In(['assistant-1', 'assistant-2']),
+            projectId: IsNull()
+        })
+        expect(listQuery.setParameter).toHaveBeenCalledWith('pinnedIds', ['old'])
+        expect(listQuery.andWhere).toHaveBeenCalledWith('conversation.id NOT IN (:...archivedIds)', {
+            archivedIds: ['hidden']
+        })
+    })
+
+    it('reads default state without creating preferences, and refuses non-owner or group reads', async () => {
+        expect(await service.read('conversation-1')).toEqual({ pinned: false, archived: false })
+        expect(preferenceQuery.execute).not.toHaveBeenCalled()
+        assertAccess.mockResolvedValueOnce({ ...conversation, createdById: 'someone-else' })
+        await expect(service.read('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
+        assertAccess.mockResolvedValueOnce({ ...conversation, purpose: 'group' })
+        await expect(service.read('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
     })
 
     it('rejects empty updates', async () => {
