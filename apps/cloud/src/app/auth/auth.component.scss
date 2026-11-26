@@ -273,6 +273,10 @@
   gap: 0.8rem;
 }
 
+:host-context([data-theme='dark']) .xp-auth__header img[src='assets/logo.png'] {
+  filter: invert(1);
+}
+
 .xp-auth__header p {
   margin: 0;
   font-size: 0.95rem;

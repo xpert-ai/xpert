@@ -13,7 +13,7 @@
   "favicon": "/images/logo.svg",
   "logo": {
     "light": "/images/logo.svg",
-    "dark": "/images/logo.svg"
+    "dark": "/images/logo-dark.svg"
   },
   "navigation": {
     "languages": [
