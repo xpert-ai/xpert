@@ -17,6 +17,8 @@ export interface PublicToolPresentation {
   input?: (args: unknown) => JSONValue | undefined
   output?: (content: unknown) => JSONValue | undefined
   error?: (error: unknown) => string | undefined
+  /** Opt in to validated immutable image attachments from the ToolMessage artifact. */
+  attachments?: 'images'
 }
 
 /** Tool-owned display hints. These never grant access to private input or output. */

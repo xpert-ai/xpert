@@ -13,7 +13,8 @@ export function toolPresentation(value: unknown, name: string): PublicToolPresen
     if (
         (input !== undefined && typeof input !== 'function') ||
         (output !== undefined && typeof output !== 'function') ||
-        (error !== undefined && typeof error !== 'function')
+        (error !== undefined && typeof error !== 'function') ||
+        ('attachments' in value && value.attachments !== undefined && value.attachments !== 'images')
     )
         return { tool: name }
     return value as PublicToolPresentation

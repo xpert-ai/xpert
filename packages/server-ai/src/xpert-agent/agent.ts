@@ -28,10 +28,11 @@ import { getSkillUsageSummary } from '../skill-package/plugins/skills-middleware
 
 import { parseToolIcon } from './tool-icon'
 import { presentToolValue, toolPresentation } from './tool-presentation'
+import { presentToolImages } from './tool-image-presentation'
 import { ToolTimelineProjection, type ToolDetailWriter } from './tool-timeline'
 import { ToolCallStatusProjection } from './tool-call-status'
 import type { JSONValue } from '@xpert-ai/contracts'
-import type { ToolDetailPhase } from '@xpert-ai/chatkit-types'
+import type { ToolDetailPhase, ToolOutputImageAttachment } from '@xpert-ai/chatkit-types'
 
 export { FakeStreamingChatModel } from '../shared/agent/fake-streaming-chat-model'
 
@@ -188,22 +189,8 @@ export function createMapStreamEvents(
     const timeline = new ToolTimelineProjection(options?.writeToolDetail)
     const callStatuses = new ToolCallStatusProjection()
     const pendingEmissions: Promise<void>[] = []
-    // A nested tool may inherit the outer call ID. Keep declarations scoped to both names and calls.
+    // Nested tools can inherit call IDs; declarations stay scoped to execution, call and tool name.
     const presentations = new Map<string, Map<string, PublicToolPresentation>>()
-
-    function presentationFor(id: string, name: string, declaration: unknown) {
-        const policies = presentations.get(id)
-        const saved = policies?.get(name)
-        if (saved) return saved
-        const policy = toolPresentation(declaration, name)
-        if (policy) {
-            if (policies) policies.set(name, policy)
-            else presentations.set(id, new Map([[name, policy]]))
-            return policy
-        }
-        // A nested or late event sharing a filtered call ID cannot publish its raw values.
-        if (policies) return { tool: name }
-    }
 
     const eventStack: string[] = []
     let prevEvent = ''
@@ -234,11 +221,31 @@ export function createMapStreamEvents(
         const xpertName = metadata.xpertName || xpert?.name
         const executionMeta = getExecutionStreamMetadata(metadata, rest, agentKey, xpertName)
 
+        function presentationFor(id: string, name: string, declaration: unknown) {
+            const key = JSON.stringify([executionMeta.executionId ?? executionMeta.agentKey ?? '', id])
+            const policies = presentations.get(key)
+            const saved = policies?.get(name)
+            if (saved) return saved
+            const policy = toolPresentation(declaration, name)
+            if (policy) {
+                if (policies) policies.set(name, policy)
+                else presentations.set(key, new Map([[name, policy]]))
+                return policy
+            }
+            // A nested or late event sharing a filtered call ID cannot publish its raw values.
+            if (policies) return { tool: name }
+        }
+
         function sendToolStep(
             id: string,
             name: string | undefined,
             fields: Record<string, unknown>,
-            values: { input?: JSONValue; output?: JSONValue; error?: JSONValue } = {},
+            values: {
+                input?: JSONValue
+                output?: JSONValue
+                error?: JSONValue
+                images?: ToolOutputImageAttachment[]
+            } = {},
             phases: readonly ToolDetailPhase[] = [],
             display: unknown = metadata.toolDisplay,
             displayMetadata: Record<string, unknown> = metadata
@@ -461,7 +468,11 @@ export function createMapStreamEvents(
                             status: failed ? 'fail' : 'success',
                             end_date
                         },
-                        { output: preview, error },
+                        {
+                            output: preview,
+                            error,
+                            images: failed ? undefined : presentToolImages(policy, message?.artifact)
+                        },
                         failed ? ['output', 'error'] : ['output']
                     )
                     // Native widget artifacts retain their existing separate component and category.

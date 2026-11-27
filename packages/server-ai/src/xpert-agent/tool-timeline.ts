@@ -3,6 +3,7 @@ import type {
     ToolCallPresentation,
     ToolDetailPhase,
     ToolDetailReference,
+    ToolOutputImageAttachment,
     ToolValuePresentation
 } from '@xpert-ai/chatkit-types'
 import type { JSONValue, ToolDisplayDeclaration } from '@xpert-ai/contracts'
@@ -61,7 +62,7 @@ export class ToolTimelineProjection {
         name: string | undefined,
         identity: ToolTimelineIdentity,
         declaration: unknown,
-        fields: { input?: JSONValue; output?: JSONValue; error?: JSONValue },
+        fields: { input?: JSONValue; output?: JSONValue; error?: JSONValue; images?: ToolOutputImageAttachment[] },
         phases: readonly ToolDetailPhase[],
         options: { running?: boolean; withheld?: boolean; failed?: boolean } = {}
     ) {
@@ -82,6 +83,8 @@ export class ToolTimelineProjection {
             this.calls.set(key, state)
         }
         const presentation: ToolCallPresentation = { ...state.presentation }
+        if (options.failed) delete presentation.images
+        else if (fields.images?.length) presentation.images = fields.images
         if (fields.input !== undefined && !presentation.target && state.declaration?.target) {
             try {
                 const target = state.declaration.target(fields.input)
