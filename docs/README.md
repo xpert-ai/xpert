@@ -45,6 +45,12 @@ Local `mint dev` preview may not provide Git or deployment dates. In that case, 
 
 本地 `mint dev` 预览可能不提供 Git 或部署日期，此时即使开启配置也不会显示日期。可以用带 `lastUpdatedDate` 的临时页面验证渲染，验证后删除临时页面；自动日期仍需在部署站点确认。
 
+## Tool-call timeline
+
+Maintain activity grouping, call titles, bounded previews, full-detail access, authorization,
+and compatibility in [English](./en/guides/tool-call-timeline.mdx) and
+[中文](./zh-Hans/guides/tool-call-timeline.mdx).
+
 ## Collaborative artifacts
 
 The feature guides describe supported behavior and operational boundaries. Keep the English and Chinese routes aligned; do not add execution logs or local acceptance records to these pages.

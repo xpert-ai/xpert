@@ -1,0 +1,143 @@
+---
+title: Tool-call timeline
+description: Activity groups, descriptive call summaries, bounded previews, and on-demand full details.
+---
+
+The tool-call timeline presents execution at three levels: activity group, individual call, and full details. Consecutive calls retain their original order. Assistant text, standalone results, and different execution scopes form group boundaries.
+
+## What an activity group represents
+
+The group header separates the activity icon, activity title, call count, and execution state. Activities come from tool-declared `kind` and `action` values. Classification does not infer meaning from names, titles, or output keywords, and does not require another model call.
+
+| Activities in the group                | Example title                   | Icon                   |
+| -------------------------------------- | ------------------------------- | ---------------------- |
+| Only skill reads                       | Read skills                     | Skill wrench           |
+| Only file reads                        | Read files                      | File                   |
+| File reads, writes, and searches       | File operations                 | File                   |
+| Only data queries                      | Query data                      | Database               |
+| Browser and command operations         | Browser operations and commands | General activity group |
+| Three or more types                    | Tool activity                   | General activity group |
+| Files mixed with undeclared activities | File operations and other tools | General activity group |
+| All undeclared or invalid              | Tool calls                      | General tool           |
+
+Type order follows first occurrence in the group, independent of completion order or language. Updates for the same call within an execution scope merge into one row; independent retries have separate call identities. Two calls do not imply two files: reading the same skill twice still counts as two calls.
+
+State is shown independently as running, completed, partially failed, failed, waiting for input, canceled, or unknown. Missing completion state is not interpreted as success. Cancellation requires an explicit canceled state; pause follows run state. Failed groups expose failed calls and short errors. Manual expansion or collapse takes precedence over subsequent automatic collapse.
+
+## Call titles and targets
+
+Activities declared as `command` share one terminal icon between the group and individual calls, overriding legacy SVG metadata for that activity. The static silhouette is paired with a `code-thinking` animation: a 100-frame sprite with a loop of approximately 1.67 seconds, tinted with the active theme's text color.
+
+Collapsed groups animate their header; expanded groups animate only running call rows. Completed, failed, canceled, paused, and historical calls without an active run remain static. Hidden pages and reduced-motion preferences stop playback, and a failed sprite load retains the static icon. Status text remains available independently of animation. Other activity types retain their existing custom-icon rules.
+
+A call row shows a descriptive title, concise target, state, and duration. For example:
+
+```text
+Read skill file  live-dashboard/SKILL.md             Completed · 26ms
+```
+
+Skill and Sandbox Files tools provide titles such as “Read skill file”, “List directory”, and “Create file”. Shell shows a command summary; Live Dashboard provides titles for data validation, registration, and dashboard saves. Calls without a usable descriptive title display “Tool call”. The technical tool name appears only under “Call information” in full details.
+
+Validation can fail before the tool emits a start event. Failure events retain the registered tool’s localized title, icon, and activity declaration; its public error projector takes precedence over inherited parent-node metadata. Unknown tools keep a generic label rather than borrowing a parent title.
+
+The target is formatted by the tool from **participant-visible input**. The row does not concatenate raw parameter JSON; full parameters remain available in call details. Progress updates do not replace the stable operation title.
+
+“Skills used” remains a reply-level record deduplicated by skill identity. Skill reads follow the ordinary tool lifecycle without an additional `Computer` card, and skill counts are not derived from call counts.
+
+## Previews and full content
+
+Expanding a call separates input, output, and actual errors. All tools use the same preview budgets:
+
+Each section combines its title, format and size statistics, copy action, and JSON view switch in one compact toolbar without repeating the JSON type label. The toolbar wraps on narrow screens. Long text and expanded JSON trees scroll inside bounded areas instead of extending the timeline.
+
+| Content                            | Timeline budget                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| Text, Markdown, logs               | At most 6 lines and 2 KiB of UTF-8                                       |
+| JSON objects and arrays            | At most 5 entries per collection, 2 levels deep, and 2 KiB               |
+| Skill instructions and file bodies | Tools can opt into a result summary with actual size and line count      |
+| Streaming output                   | Bounded preview updates; an available complete snapshot after completion |
+
+Complete, valid JSON object or array strings also receive structured previews. Ordinary text, incomplete JSON, and scalar strings remain text. Statistics describe the complete participant-visible result. Empty text, `null`, `false`, `0`, empty collections, and absent output are handled separately. A trailing newline does not add an extra line to the count.
+
+Truncated previews are clearly labeled. Summary-only results explain that the body is collapsed. “Copy preview” copies the visible preview; “Copy full content” reads and copies the complete available snapshot. Pending, undisclosed, unrecorded, unavailable, and failed-to-load content have distinct messages. Failed reads can be retried.
+
+“View full content” opens a shared, resizable dialog with input, output, and error tabs. Long text loads in pages; JSON provides tree and raw views when its complete content fits in one page. Closing or switching content cancels the active read. Keyboard dismissal restores focus to the initiating control. The dialog follows the current theme and radius, call areas respond to density, and the layout supports narrow screens.
+
+Legacy snapshots labeled as text also offer a tree when their complete content parses as a JSON object or array. Truncated historical previews remain text; missing fields are never guessed or reconstructed. Full snapshots are read only when the user opens details.
+
+The dialog does not replace a dashboard already open in Workbench. Existing images, Widgets, attachments, result links, and `category: 'Computer'` rendering remain available.
+
+## Viewing images
+
+An image tool declares `activity: { kind: 'image', action: 'view' }` and explicitly sets `attachments: 'images'` in its owning `publicToolPresentation` policy. The platform projects validated image references from a successful call's standard `xpert.tool-output` artifact into `presentation.images`. Public input, output, and error projections remain separately declared.
+
+Expanding the activity group loads thumbnails; clicking a thumbnail opens a larger image. Parameters and text results stay under “Parameters and result”. Group headers count calls and distinct immutable image versions separately, so repeated inspection of one image does not inflate the image count. Mixed activities retain the common grouping rules.
+
+Image references bind an Artifact, fixed version, and checksum. The host authorizes a short-lived preview link; image bytes and signed URLs are not persisted in history. Each artifact accepts at most 20 validated PNG, JPEG, or WebP image references. Undeclared legacy artifacts and embedded Base64 do not enable previews. Failed or canceled calls clear earlier image previews; a later generic end event cannot restore them. Access failures offer retry. Image dialogs follow the active theme, radius, and density.
+
+The `view_image` plugin provides these declarations. Deploy matching plugin, shared protocol, server, and ChatKit UI updates; old history is not backfilled with display declarations.
+
+## Integrating a tool
+
+Tools use existing `metadata` for descriptive titles, icons, and `ToolDisplayDeclaration`. Its `tool` must match the owning tool so nested calls cannot inherit another tool's display callbacks. Cached public presentation policies are scoped by execution, call ID, and tool name; reusing a call ID in another execution does not inherit a prior image grant.
+
+```ts
+import type { ToolDisplayDeclaration } from '@xpert-ai/contracts'
+
+const toolDisplay: ToolDisplayDeclaration = {
+  tool: 'read_project_note',
+  activity: { kind: 'file', action: 'read' },
+  target(publicInput) {
+    if (!publicInput || typeof publicInput !== 'object' || Array.isArray(publicInput)) return
+    return typeof publicInput.path === 'string' ? publicInput.path : undefined
+  },
+  outputMode: 'summary',
+  outputSummary: { en_US: 'Note read', zh_Hans: '已读取说明' }
+}
+
+const metadata = {
+  toolName: { en_US: 'Read project note', zh_Hans: '读取项目说明' },
+  toolDisplay
+}
+```
+
+This declaration affects presentation and grants no data access. Targets are limited to 160 characters. Result summaries use the existing localized text type and apply to successful results; errors are presented separately.
+
+| kind      | Allowed action values                                       |
+| --------- | ----------------------------------------------------------- |
+| `skill`   | `read`                                                      |
+| `image`   | `view`                                                      |
+| `file`    | `read`, `write`, `list`, `search`, `delete`, `move`, `copy` |
+| `data`    | `discover`, `query`, `validate`, `register`                 |
+| `browser` | `navigate`, `read`, `interact`, `capture`                   |
+| `command` | `execute`                                                   |
+| `search`  | `search`                                                    |
+| `content` | `create`, `update`, `save`, `read`, `list`                  |
+| `task`    | `create`, `update`, `read`                                  |
+
+A multi-operation tool can use `activity(input)` to return one of these combinations from validated, participant-visible operation parameters. Parsing belongs to the tool. The declaration is established at the first projection of the call and reused on later updates. Invalid declarations fall back to unknown activity without interrupting execution. New combinations require updates to the shared contract, validation, translations, and icon map first.
+
+## Data and authorization boundaries
+
+The server applies `PublicToolPresentation` visibility rules before generating summaries, bounding previews, saving snapshots, and emitting events. Presentation limits do not alter the original tool result supplied to the model. New events and persisted display fields contain bounded previews and optional `presentation` metadata instead of duplicating unbounded bodies for display.
+
+Full details capture the participant-visible data at call time; they do not reread a workspace file later. References bind the conversation, execution, call, and input/output/error phase. Unavailable content never falls back to private artifacts or the current file contents.
+
+ChatKit reads snapshots through `client.conversations.getToolDetail(reference, { offset, signal })` in `@xpert-ai/xpert-sdk`. The endpoint is inside the existing AI conversation boundary:
+
+```text
+GET /api/ai/conversations/:conversationId/tool-details/:id
+    ?executionId=...&toolCallId=...&phase=output&sha256=...&offset=0
+```
+
+Every read verifies conversation access, applicable Assistant/session credential scope, and persisted execution ownership. Access is checked again before returning content. A reference or hash is not an authorization grant. Responses use `Cache-Control: private, no-store`.
+
+## History compatibility and deployment limits
+
+- `presentation` is optional. Historical calls without declarations use generic labels. Saved declarations retain their execution-time meaning rather than being reclassified using current tool definitions.
+- History containing only a preview does not receive a fabricated full-content link. Complete legacy content can be bounded and viewed locally. This upgrade does not backfill snapshots for old messages.
+- Each serialized detail snapshot is limited to 50 MiB. Oversized or failed saves retain summaries and previews with an unavailable-content message. This does not replace limits imposed by the tool itself.
+- Each read returns at most 16,384 UTF-16 units without splitting a surrogate pair. Follow the returned `nextOffset`. Full copying reads all pages and consumes client memory.
+- Snapshots use existing project or user volume artifact-byte storage. Deleted storage, revoked access, or missing execution records can make content unavailable.
+- Deployment requires matching shared protocol, SDK, Xpert server, and ChatKit UI updates. UI build checks require SDK support for `getToolDetail`. Local source integration does not establish package publication.
+- Common behavior belongs to Xpert, ChatKit, and the SDK; the Live Dashboard plugin owns its tool declarations. No separate Pro-specific timeline implementation is required.
