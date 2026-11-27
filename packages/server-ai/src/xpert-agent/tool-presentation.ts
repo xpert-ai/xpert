@@ -37,6 +37,14 @@ export function toolErrorEvent(
     return {
         toolCall,
         error,
+        ...(tool?.name === toolCall.name
+            ? {
+                  toolName: metadata.toolName,
+                  toolIcon: metadata.toolIcon,
+                  middlewareIcon: metadata.middlewareIcon,
+                  ...(metadata.toolDisplay ? { toolDisplay: metadata.toolDisplay } : {})
+              }
+            : {}),
         ...(policy ? { publicToolPresentation: { tool: policy.tool, error: policy.error } } : {})
     }
 }

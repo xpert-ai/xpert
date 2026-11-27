@@ -557,12 +557,13 @@ export function createMapStreamEvents(
                     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
                         const id = data.id || data.toolCall?.id || rest.run_id
                         const name = data.toolCall?.name
+                        // Catch events run on the parent node; prefer declarations from the registered failing tool.
                         const policy = presentationFor(
                             id,
                             name,
-                            metadata.publicToolPresentation === undefined
-                                ? data.publicToolPresentation
-                                : metadata.publicToolPresentation
+                            data.publicToolPresentation === undefined
+                                ? metadata.publicToolPresentation
+                                : data.publicToolPresentation
                         )
                         const error = presentToolValue(policy, 'error', data.error)
                         sendToolStep(
@@ -574,7 +575,7 @@ export function createMapStreamEvents(
                             },
                             { error },
                             ['error'],
-                            metadata.toolDisplay ?? data.toolDisplay,
+                            data.toolDisplay ?? metadata.toolDisplay,
                             data
                         )
                         break
