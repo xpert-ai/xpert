@@ -36,6 +36,50 @@ describe('createMapStreamEvents', () => {
         jest.clearAllMocks()
     })
 
+    it.each(['fail', 'canceled'])('preserves an explicit %s outcome across generic tool-end events', (status) => {
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [] }
+        )
+        const metadata = { executionId: 'execution' }
+        map({
+            event: 'on_tool_start',
+            name: 'test_command',
+            tags: [],
+            metadata,
+            run_id: 'run',
+            data: { id: 'call', input: { command: 'test' } }
+        })
+        map({
+            event: 'on_custom_event',
+            name: ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            tags: [],
+            metadata,
+            run_id: 'run',
+            data: { id: 'call', tool: 'test_command', category: 'Tool', status }
+        })
+        map({
+            event: 'on_tool_end',
+            name: 'test_command',
+            tags: [],
+            metadata,
+            run_id: 'run',
+            data: { id: 'call', output: 'finished' }
+        })
+        expect(next.mock.lastCall[0].data.data.data.status).toBe(status)
+        map({
+            event: 'on_tool_start',
+            name: 'test_command',
+            tags: [],
+            metadata,
+            run_id: 'retry',
+            data: { id: 'retry', input: {} }
+        })
+        expect(next.mock.lastCall[0].data.data.data.status).toBe('running')
+    })
+
     it('captures declared previews once for the owning tool, including failure and missing start metadata', () => {
         const next = jest.fn()
         const map = createMapStreamEvents(
@@ -234,7 +278,7 @@ describe('createMapStreamEvents', () => {
             })
             expect(runtimeMessageContent(history.content)).toMatchObject([{ data: { input: {}, output } }])
         }
-        expect(next.mock.calls[1][0].data.data.data.output).toEqual('{"records":2,"accessToken":"[REDACTED]"}')
+        expect(next.mock.calls[1][0].data.data.data.output).toEqual({ records: 2, accessToken: '[REDACTED]' })
         expect(JSON.stringify(next.mock.calls)).not.toContain('private')
     })
 
@@ -312,7 +356,8 @@ describe('createMapStreamEvents', () => {
         const event = { name: 'lookup', metadata: { tool_call_id: 'call' }, tags: [] }
         const input = { nested: [{ changeSummary: 'private', token: 'private', count: 0 }] }
         map({ ...event, event: 'on_tool_start', data: { input } })
-        expect(next.mock.lastCall[0].data.data.data.input).toEqual({ nested: [{ token: '[REDACTED]', count: 0 }] })
+        expect(next.mock.lastCall[0].data.data.data.input).toEqual({ nested: [{}] })
+        expect(next.mock.lastCall[0].data.data.data.presentation.input.truncated).toBe(true)
         expect(input.nested[0]).toEqual({ changeSummary: 'private', token: 'private', count: 0 })
         map({ ...event, event: 'on_tool_end', data: { output: new Command({ update: { state: 'private' } }) } })
         expect(next.mock.lastCall[0].data.data.data).not.toHaveProperty('output')
@@ -694,7 +739,7 @@ describe('createMapStreamEvents', () => {
             id: 'tool-call-1',
             data: { tool: 'query_data_xpert', toolPresentation: 'redacted' }
         })
-        expect(publicRow.data.output).toBe('{"ok":true}')
+        expect(publicRow.data.output).toEqual({ ok: true })
         expect(publicRow.data).not.toHaveProperty('artifact')
         expect(subscriber.next).toHaveBeenCalledWith(
             expect.objectContaining({

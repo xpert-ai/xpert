@@ -1,3 +1,4 @@
+import { toolInputTarget } from '../../shared/tool-display'
 import { FileActivityStorage } from './file-activity-storage.service'
 import { withStreamingToolMessage } from './tool-message.utils'
 import { tool } from '@langchain/core/tools'
@@ -162,6 +163,14 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
             },
             {
                 name: SANDBOX_SHELL_TOOL_NAME,
+                metadata: {
+                    toolName: { en_US: 'Run command', zh_Hans: '执行命令' },
+                    toolDisplay: {
+                        tool: SANDBOX_SHELL_TOOL_NAME,
+                        activity: { kind: 'command', action: 'execute' },
+                        target: toolInputTarget('command')
+                    }
+                },
                 description: `Execute a shell command in the configured sandbox backend.
 
 ${FILE_PRESENTATION_DESCRIPTION}

@@ -116,6 +116,8 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "ToolDetailUnavailable": "工具详情不可用。",
+        "ToolDetailRequestInvalid": "工具详情请求无效。",
         "WorkbenchEntryInputInvalid": "工作台导航目标无效。",
         "WorkbenchEntryUnavailable": "无法打开此工作台视图，请检查当前访问权限和视图配置。",
         "CapabilityWorkspaceRequired": "请先选择编辑工作空间，再启用此能力。",

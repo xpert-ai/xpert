@@ -28,6 +28,10 @@ import { getSkillUsageSummary } from '../skill-package/plugins/skills-middleware
 
 import { parseToolIcon } from './tool-icon'
 import { presentToolValue, toolPresentation } from './tool-presentation'
+import { ToolTimelineProjection, type ToolDetailWriter } from './tool-timeline'
+import { ToolCallStatusProjection } from './tool-call-status'
+import type { JSONValue } from '@xpert-ai/contracts'
+import type { ToolDetailPhase } from '@xpert-ai/chatkit-types'
 
 export { FakeStreamingChatModel } from '../shared/agent/fake-streaming-chat-model'
 
@@ -177,9 +181,13 @@ export function createMapStreamEvents(
         unmutes: TXpertAgentConfig['mute']
         xperts?: IXpert[]
         language?: string
+        writeToolDetail?: ToolDetailWriter
     }
 ) {
     const { agent, unmutes, xperts, language } = options ?? {}
+    const timeline = new ToolTimelineProjection(options?.writeToolDetail)
+    const callStatuses = new ToolCallStatusProjection()
+    const pendingEmissions: Promise<void>[] = []
     // A nested tool may inherit the outer call ID. Keep declarations scoped to both names and calls.
     const presentations = new Map<string, Map<string, PublicToolPresentation>>()
 
@@ -200,10 +208,16 @@ export function createMapStreamEvents(
     const eventStack: string[] = []
     let prevEvent = ''
 
-    function sendComponent(id: string, identity: TExecutionStreamMetadata, data: Record<string, unknown>) {
+    function publishComponent(id: string, identity: TExecutionStreamMetadata, data: Record<string, unknown>) {
         subscriber.next({
             data: { type: ChatMessageTypeEnum.MESSAGE, data: { id, type: 'component', ...identity, data } }
         } as MessageEvent)
+    }
+
+    function sendComponent(id: string, identity: TExecutionStreamMetadata, data: Record<string, unknown>) {
+        if (pendingEmissions.length) {
+            pendingEmissions.push(Promise.all([...pendingEmissions]).then(() => publishComponent(id, identity, data)))
+        } else publishComponent(id, identity, data)
     }
 
     const processFun = ({ event, tags, data, ...rest }: any) => {
@@ -220,19 +234,41 @@ export function createMapStreamEvents(
         const xpertName = metadata.xpertName || xpert?.name
         const executionMeta = getExecutionStreamMetadata(metadata, rest, agentKey, xpertName)
 
-        function sendToolStep(id: string, name: string | undefined, fields: Record<string, unknown>) {
-            const icon = toolIcon(metadata)
-            const title = name && toolTitle(metadata, name, language)
-            sendComponent(id, getExecutionStreamMetadata(metadata, rest), {
-                category: 'Tool',
-                toolPresentation: 'redacted',
-                ...(name ? { tool: name } : {}),
-                ...(metadata.toolset ? { toolset: metadata.toolset } : {}),
-                ...(metadata.toolsetId ? { toolset_id: metadata.toolsetId } : {}),
-                ...(icon ? { icon } : {}),
-                ...fields,
-                ...(title ? { title } : {})
+        function sendToolStep(
+            id: string,
+            name: string | undefined,
+            fields: Record<string, unknown>,
+            values: { input?: JSONValue; output?: JSONValue; error?: JSONValue } = {},
+            phases: readonly ToolDetailPhase[] = [],
+            display: unknown = metadata.toolDisplay,
+            displayMetadata: Record<string, unknown> = metadata
+        ) {
+            const icon = toolIcon(displayMetadata)
+            const title = name && toolTitle(displayMetadata, name, language)
+            const identity = getExecutionStreamMetadata(metadata, rest)
+            const status = callStatuses.update(id, name, identity, fields.status)
+            const projected = timeline.project(id, name, identity, display, values, phases, {
+                running: status === 'running',
+                failed: status === 'fail' || status === 'canceled',
+                withheld: Boolean(presentationFor(id, name, metadata.publicToolPresentation))
             })
+            const emit = (view: Awaited<typeof projected>) =>
+                publishComponent(id, identity, {
+                    category: 'Tool',
+                    toolPresentation: 'redacted',
+                    ...(name ? { tool: name } : {}),
+                    ...(metadata.toolset ? { toolset: metadata.toolset } : {}),
+                    ...(metadata.toolsetId ? { toolset_id: metadata.toolsetId } : {}),
+                    ...(icon ? { icon } : {}),
+                    ...fields,
+                    ...(status ? { status } : {}),
+                    ...view,
+                    ...(title ? { title } : {})
+                })
+            if (projected instanceof Promise) pendingEmissions.push(projected.then(emit))
+            else if (pendingEmissions.length)
+                pendingEmissions.push(Promise.all([...pendingEmissions]).then(() => emit(projected)))
+            else emit(projected)
         }
 
         if (Logger.isLevelEnabled('debug')) {
@@ -373,12 +409,17 @@ export function createMapStreamEvents(
                     }
                     const policy = presentationFor(tool_call_id, rest.name, metadata.publicToolPresentation)
                     const preview = presentToolValue(policy, 'input', input)
-                    sendToolStep(tool_call_id, rest.name, {
-                        title: rest.name,
-                        created_date: new Date(),
-                        status: 'running',
-                        ...(preview !== undefined ? { input: preview } : {})
-                    })
+                    sendToolStep(
+                        tool_call_id,
+                        rest.name,
+                        {
+                            title: rest.name,
+                            created_date: new Date(),
+                            status: 'running'
+                        },
+                        { input: preview },
+                        ['input']
+                    )
                 }
                 break
             }
@@ -412,13 +453,17 @@ export function createMapStreamEvents(
                         failed,
                         artifact: message?.artifact
                     })
-                    sendToolStep(tool_call_id, rest.name, {
-                        ...(taskSummary ? { taskSummary } : {}),
-                        status: failed ? 'fail' : 'success',
-                        end_date,
-                        ...(preview !== undefined ? { output: preview } : {}),
-                        ...(error !== undefined ? { error } : {})
-                    })
+                    sendToolStep(
+                        tool_call_id,
+                        rest.name,
+                        {
+                            ...(taskSummary ? { taskSummary } : {}),
+                            status: failed ? 'fail' : 'success',
+                            end_date
+                        },
+                        { output: preview, error },
+                        failed ? ['output', 'error'] : ['output']
+                    )
                     // Native widget artifacts retain their existing separate component and category.
                     const artifact = message?.artifact
                     const mcpMeta = readXpertMcpMetaArtifact(artifact)
@@ -509,11 +554,18 @@ export function createMapStreamEvents(
                                 : metadata.publicToolPresentation
                         )
                         const error = presentToolValue(policy, 'error', data.error)
-                        sendToolStep(id, name, {
-                            status: 'fail',
-                            end_date: new Date(),
-                            ...(error !== undefined ? { error } : {})
-                        })
+                        sendToolStep(
+                            id,
+                            name,
+                            {
+                                status: 'fail',
+                                end_date: new Date()
+                            },
+                            { error },
+                            ['error'],
+                            metadata.toolDisplay ?? data.toolDisplay,
+                            data
+                        )
                         break
                     }
                     case ChatMessageEventTypeEnum.ON_RETRIEVER_ERROR: {
@@ -536,25 +588,32 @@ export function createMapStreamEvents(
                         if (data.category === 'Tool') {
                             const name = data.tool
                             const policy = presentationFor(id, name, metadata.publicToolPresentation)
-                            const fields: Record<string, unknown> = {}
+                            const fields: { input?: JSONValue; output?: JSONValue; error?: JSONValue } = {}
+                            const phases: ToolDetailPhase[] = []
                             for (const phase of ['input', 'output', 'error'] as const) {
                                 if (!(phase in data)) continue
+                                phases.push(phase)
                                 const value = presentToolValue(policy, phase, data[phase])
                                 if (value !== undefined) fields[phase] = value
                             }
                             if (name || data.status) {
-                                sendToolStep(id, name, {
-                                    ...(typeof data.title === 'string' && data.title !== name
-                                        ? { title: data.title }
-                                        : {}),
-                                    ...(typeof data.toolset === 'string' ? { toolset: data.toolset } : {}),
-                                    ...(['running', 'success', 'fail'].includes(data.status)
-                                        ? { status: data.status }
-                                        : {}),
-                                    ...(data.created_date ? { created_date: data.created_date } : {}),
-                                    ...(data.end_date ? { end_date: data.end_date } : {}),
-                                    ...fields
-                                })
+                                sendToolStep(
+                                    id,
+                                    name,
+                                    {
+                                        ...(typeof data.title === 'string' && data.title !== name
+                                            ? { title: data.title }
+                                            : {}),
+                                        ...(typeof data.toolset === 'string' ? { toolset: data.toolset } : {}),
+                                        ...(['running', 'success', 'fail', 'canceled'].includes(data.status)
+                                            ? { status: data.status }
+                                            : {}),
+                                        ...(data.created_date ? { created_date: data.created_date } : {}),
+                                        ...(data.end_date ? { end_date: data.end_date } : {})
+                                    },
+                                    fields,
+                                    phases
+                                )
                             }
                         }
                         if (data.category === 'Computer' || data.category === 'Dashboard') {
@@ -617,7 +676,7 @@ export function createMapStreamEvents(
 
     return (event) => {
         const content = processFun(event)
-        return content
+        return pendingEmissions.length ? Promise.all(pendingEmissions.splice(0)).then(() => content) : content
     }
 }
 

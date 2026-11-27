@@ -32,6 +32,7 @@ import {
 } from '../../../xpert-project/commands/project-skills.command'
 import { SkillMetadataLoader } from './skill-metadata'
 import { skillsMiddlewareMeta } from './skill-meta'
+import { readSkillFileDisplayMetadata } from './skill-tool-display'
 import {
     ISkillsMiddlewareOptions,
     SkillPromptMetadata,
@@ -334,6 +335,7 @@ export class SkillsMiddleware
             },
             {
                 name: 'read_skill_file',
+                metadata: readSkillFileDisplayMetadata,
                 responseFormat: 'content_and_artifact',
                 description: `Read a skill's file from the current working directory. Use this to read full SKILL.md instructions from installed skills, including .xpert/skills and .agents/skills.`,
                 schema: z.object({

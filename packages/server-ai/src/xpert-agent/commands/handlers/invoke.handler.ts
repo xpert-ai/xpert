@@ -46,7 +46,8 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { catchError, concat, defer, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, concatMap, defer, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { StoreToolDetailCommand } from '../../../chat-conversation/tool-details/store-tool-detail.command'
 import { Repository } from 'typeorm'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
 import { ChatMessage } from '../../../chat-message/chat-message.entity'
@@ -544,6 +545,17 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             agent.options?.structuredOutputMethod &&
             unmutes.some((tags) => tags.includes(agent.key) && tags.includes(team.id))
         let streamedAnswer = false
+        const transformEvent = createMapStreamEvents(this.#logger, subscriber, {
+            unmutes,
+            agent,
+            language: languageCode,
+            writeToolDetail: (input) =>
+                options.conversationId
+                    ? this.commandBus.execute(
+                          new StoreToolDetailCommand(options.conversationId, rootExecutionId, input)
+                      )
+                    : Promise.resolve(undefined)
+        })
         const contentStream = defer(() =>
             controlTask
                 ? taskControlledStream(
@@ -553,13 +565,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                   )
                 : source()
         ).pipe(
-            map(
-                createMapStreamEvents(this.#logger, subscriber, {
-                    unmutes,
-                    agent,
-                    language: languageCode
-                })
-            ),
+            concatMap(async (event) => transformEvent(event)),
             tap((content) => {
                 if (showStructuredDebugResult && content?.type === 'text' && content.text) streamedAnswer = true
             }),

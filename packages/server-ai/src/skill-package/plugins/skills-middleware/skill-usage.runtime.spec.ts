@@ -17,7 +17,11 @@ jest.mock('../../../shared', () => ({
 }))
 
 import { AIMessage, isToolMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
-import { appendMessageContent, type IChatMessage } from '@xpert-ai/contracts'
+import { RunnableLambda } from '@langchain/core/runnables'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
+import { Logger } from '@nestjs/common'
+import { Subscriber } from 'rxjs'
+import { appendMessageContent, ChatMessageEventTypeEnum, type IChatMessage } from '@xpert-ai/contracts'
 import type { ChatSkillUsage, TMessageContentComponent, TMessageContent } from '@xpert-ai/chatkit-types'
 import { SkillsMiddleware } from './index'
 import { readSkillUsageArtifact } from './skill-usage'
@@ -27,6 +31,7 @@ import { createMapStreamEvents } from '../../../xpert-agent/agent'
 import { extractChatMessageTaskSummary } from '../../../chat-message/task-summary'
 import { ChatMessageUpsertHandler } from '../../../chat-message/commands/handlers/upsert.handler'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
+import { toolErrorEvent } from '../../../xpert-agent/tool-presentation'
 
 const root = '/root/.xpert/skills'
 const source: RuntimeResourceSkillSource = {
@@ -95,11 +100,106 @@ async function setup(mode: 'resource' | 'sandbox' | 'fallback', name = source.na
         if (!isToolMessage(result)) throw new Error('Expected ToolMessage')
         return result
     }
-    return { read, execute }
+    return { read, execute, tool }
 }
 
 describe('skill observations through runtime, stream and persistence', () => {
     beforeEach(() => jest.mocked(readRuntimeResourceSkillFile).mockReset().mockResolvedValue('instructions'))
+
+    it.each([
+        ['zh-Hans', 'SKILL.md', '读取技能文件'],
+        ['zh-Hans', 'examples/demo.csv', '读取技能文件'],
+        ['en-US', 'SKILL.md', 'Read skill file'],
+        ['en-US', 'references/notes.md', 'Read skill file']
+    ])('displays %s titles for %s through ordinary tool events', async (language, file, title) => {
+        const { tool } = await setup('sandbox')
+        const next = jest.fn()
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            { unmutes: [], language }
+        )
+        const runner = RunnableLambda.from(async (args: { path: string }, config) =>
+            tool.invoke({ type: 'tool_call', name: tool.name, id: 'display-call', args }, config)
+        )
+        for await (const event of runner.streamEvents(
+            { path: `${root}/plugins/research/${file}` },
+            { version: 'v2', metadata: { tool_call_id: 'display-call' } }
+        ))
+            map(event)
+
+        const rows = next.mock.calls.map(([event]) => event.data.data)
+        expect(rows).toHaveLength(2)
+        for (const row of rows) {
+            expect(row).toMatchObject({
+                id: 'display-call',
+                data: {
+                    category: 'Tool',
+                    tool: 'read_skill_file',
+                    title,
+                    icon: { type: 'svg', color: 'currentColor' }
+                }
+            })
+            expect(row.data.icon.value).toContain('stroke-width="2"')
+        }
+        expect(rows.map((row) => row.data.status)).toEqual(['running', 'success'])
+        expect(rows[1].data.output).toBeUndefined()
+        expect(rows[1].data.presentation).toMatchObject({
+            version: 1,
+            activity: { kind: 'skill', action: 'read' },
+            output: { state: 'available', mode: 'summary', truncated: true, byteLength: 12 }
+        })
+        if (file !== 'SKILL.md') expect(rows[1].data.taskSummary).toBeUndefined()
+    })
+
+    it('retains the registered title and icon when reading fails', async () => {
+        const { tool, execute } = await setup('sandbox')
+        execute.mockResolvedValueOnce({ exitCode: 1, output: 'read failed' })
+        const message: Pick<IChatMessage, 'id' | 'content' | 'role'> = { id: 'answer', content: '', role: 'ai' }
+        const next = jest.fn((event: { data: { data: TMessageContentComponent } }) => {
+            appendMessageContent(message, event.data.data)
+        })
+        const map = createMapStreamEvents(
+            new Logger(),
+            new Subscriber({ next, error: jest.fn(), complete: jest.fn() }),
+            {
+                unmutes: [],
+                language: 'zh-Hans'
+            }
+        )
+        const runner = RunnableLambda.from(async (args: { path: string }, config) => {
+            const call = { name: tool.name, id: 'failed-call', args }
+            try {
+                return await tool.invoke({ type: 'tool_call', ...call }, config)
+            } catch {
+                await dispatchCustomEvent(
+                    ChatMessageEventTypeEnum.ON_TOOL_ERROR,
+                    toolErrorEvent(call, 'read failed', tool),
+                    config
+                )
+                return null
+            }
+        })
+        for await (const event of runner.streamEvents(
+            { path: `${root}/plugins/research/SKILL.md` },
+            { version: 'v2', metadata: { tool_call_id: 'failed-call' } }
+        ))
+            map(event)
+
+        expect(message.content).toMatchObject([
+            {
+                id: 'failed-call',
+                data: {
+                    category: 'Tool',
+                    tool: 'read_skill_file',
+                    title: '读取技能文件',
+                    icon: { type: 'svg', color: 'currentColor' },
+                    status: 'fail',
+                    error: 'read failed'
+                }
+            }
+        ])
+    })
 
     it.each(['resource', 'sandbox', 'fallback'] as const)(
         'records a successful %s read without changing model content',

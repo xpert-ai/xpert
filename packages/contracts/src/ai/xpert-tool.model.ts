@@ -1,4 +1,5 @@
 import type { JSONValue } from '../core.model'
+import type { LocalizedText, ToolActivity } from '@xpert-ai/chatkit-types'
 import type { JSONSchema4 } from 'json-schema'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { I18nObject } from '../types'
@@ -16,6 +17,15 @@ export interface PublicToolPresentation {
   input?: (args: unknown) => JSONValue | undefined
   output?: (content: unknown) => JSONValue | undefined
   error?: (error: unknown) => string | undefined
+}
+
+/** Tool-owned display hints. These never grant access to private input or output. */
+export interface ToolDisplayDeclaration {
+  tool: string
+  activity?: ToolActivity | ((input: unknown) => ToolActivity | undefined)
+  target?: (publicInput: JSONValue) => string | undefined
+  outputSummary?: LocalizedText
+  outputMode?: 'summary' | 'preview'
 }
 
 /**

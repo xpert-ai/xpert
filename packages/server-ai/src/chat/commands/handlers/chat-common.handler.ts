@@ -60,6 +60,7 @@ import {
 } from '../../../shared'
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { CompleteToolCallsQuery, createMapStreamEvents } from '../../../xpert-agent'
+import { StoreToolDetailCommand } from '../../../chat-conversation/tool-details/store-tool-detail.command'
 import {
     assertExecutionBelongsToThread,
     XpertAgentExecutionOneQuery,
@@ -659,6 +660,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     try {
                         const stream = graph.streamEvents(graphInput, {
                             version: 'v2',
+                            metadata: { executionId: execution.id },
                             configurable: {
                                 ...config,
                                 tenantId: tenantId,
@@ -680,10 +682,14 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                             // 	[GRAPH_NODE_TITLE_CONVERSATION]
                             // ],
                             unmutes: [],
-                            language: languageCode
+                            language: languageCode,
+                            writeToolDetail: (input) =>
+                                this.commandBus.execute(
+                                    new StoreToolDetailCommand(conversation.id, execution.id, input)
+                                )
                         })
                         for await (const event of stream) {
-                            const messageContent = transformGraphEvent(event)
+                            const messageContent = await transformGraphEvent(event)
                             if (!isNil(messageContent)) {
                                 subscriber.next({
                                     data: {

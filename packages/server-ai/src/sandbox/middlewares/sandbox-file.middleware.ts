@@ -1,4 +1,5 @@
 import { FileActivityStorage } from './file-activity-storage.service'
+import { fileToolDisplay } from '../../shared/tool-display'
 import { tool } from '@langchain/core/tools'
 import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
@@ -222,6 +223,10 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             },
             {
                 name: 'sandbox_read_file',
+                metadata: {
+                    toolDisplay: fileToolDisplay('sandbox_read_file', 'read', 'file_path'),
+                    toolName: { en_US: 'Read file', zh_Hans: '读取文件' }
+                },
                 description:
                     'Reads a file in the sandbox with 1-indexed line numbers, supporting slice and indentation-aware block modes.',
                 schema: readToolSchema,
@@ -239,6 +244,10 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             },
             {
                 name: 'sandbox_glob',
+                metadata: {
+                    toolDisplay: fileToolDisplay('sandbox_glob', 'search', 'pattern', false),
+                    toolName: { en_US: 'Find files', zh_Hans: '查找文件' }
+                },
                 description:
                     'Fast file pattern matching tool. Returns workspace-relative file paths that can be passed directly to sandbox_read_file. Use this when you need to find files by name patterns.',
                 schema: globToolSchema,
@@ -256,6 +265,10 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
             },
             {
                 name: 'sandbox_grep',
+                metadata: {
+                    toolDisplay: fileToolDisplay('sandbox_grep', 'search', 'pattern', false),
+                    toolName: { en_US: 'Search file contents', zh_Hans: '搜索文件内容' }
+                },
                 description:
                     'Fast content search tool using regex. Returns workspace-relative file paths and line numbers. Pass the file path to sandbox_read_file; use include to filter files by pattern.',
                 schema: grepToolSchema,
@@ -287,7 +300,11 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                     'Edit a file by replacing exact text. Returns oldLines/newLines for argument sizes, changed, and diff.removed/diff.added for actual file line changes. Large arguments with a small diff indicate a broad replacement. Identical replacements succeed with changed=false and a zero diff. If diffUnavailable is present, statistics could not be measured; it does not mean zero changes. Missing or ambiguous matches return errors.',
                 schema: editToolSchema,
                 verboseParsingErrors: true,
-                metadata: workspaceFileMutationMetadata
+                metadata: {
+                    ...workspaceFileMutationMetadata,
+                    toolDisplay: fileToolDisplay('sandbox_edit_file', 'write', 'file_path'),
+                    toolName: { en_US: 'Edit file', zh_Hans: '编辑文件' }
+                }
             }
         )
 
@@ -334,7 +351,11 @@ INCORRECT format (DO NOT USE):
 ]`,
                 schema: writeToolSchema,
                 verboseParsingErrors: true,
-                metadata: workspaceFileMutationMetadata
+                metadata: {
+                    ...workspaceFileMutationMetadata,
+                    toolDisplay: fileToolDisplay('sandbox_write_file', 'write', 'file_path'),
+                    toolName: { en_US: 'Create file', zh_Hans: '创建文件' }
+                }
             }
         )
 
@@ -368,7 +389,11 @@ CRITICAL FORMAT REQUIREMENTS:
 3. All special characters (quotes, newlines, etc.) must be properly JSON-escaped`,
                 schema: appendToolSchema,
                 verboseParsingErrors: true,
-                metadata: workspaceFileMutationMetadata
+                metadata: {
+                    ...workspaceFileMutationMetadata,
+                    toolDisplay: fileToolDisplay('sandbox_append_file', 'write', 'file_path'),
+                    toolName: { en_US: 'Append to file', zh_Hans: '追加文件内容' }
+                }
             }
         )
 
@@ -409,7 +434,11 @@ CRITICAL FORMAT REQUIREMENTS:
                     'Perform multiple sequential edits on a single file in one operation. Each result reports oldLines/newLines, changed, and diff.removed/diff.added for that step, not the net diff of the batch. All edits are applied sequentially, with each edit operating on the result of the previous edit. On a confirmed mismatch, failedEdit identifies the stopping point. If a batch receipt is lost, appliedEdits counts only confirmed edits and unconfirmedEdits gives the inclusive range to check. Read the current file after failure and apply only changes still missing. Use unique exact text from a fresh read, and prefer a small focused batch.',
                 schema: multiEditToolSchema,
                 verboseParsingErrors: true,
-                metadata: workspaceFileMutationMetadata
+                metadata: {
+                    ...workspaceFileMutationMetadata,
+                    toolDisplay: fileToolDisplay('sandbox_multi_edit_file', 'write', 'file_path'),
+                    toolName: { en_US: 'Apply file edits', zh_Hans: '批量编辑文件' }
+                }
             }
         )
 
@@ -427,6 +456,10 @@ CRITICAL FORMAT REQUIREMENTS:
             },
             {
                 name: 'sandbox_list_dir',
+                metadata: {
+                    toolDisplay: fileToolDisplay('sandbox_list_dir', 'list', 'dir_path'),
+                    toolName: { en_US: 'List directory', zh_Hans: '列出目录' }
+                },
                 description:
                     'List directory contents recursively with depth control and pagination. All returned paths are relative to the workspace root, including entries under nested directories, and file paths can be passed directly to sandbox_read_file. Directories end with /, symlinks with @. Use dir_path="." for the workspace root; use offset and limit for pagination.',
                 schema: listDirToolSchema,

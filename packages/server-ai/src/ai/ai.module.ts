@@ -1,4 +1,5 @@
 import { AIWidgetsModule } from './widgets/ai-widgets.module'
+import { ToolDetailsController } from './tool-details/tool-details.controller'
 import { ConversationSidebarController } from './conversation-sidebar/sidebar.controller'
 import { ConversationArtifactShares } from './conversation-sharing/conversation-artifact-shares.service'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
@@ -137,6 +138,7 @@ import { AI_ROUTE_PATH } from './ai-route'
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ToolDetailsController,
         ConversationSidebarController,
         ConversationSharingController,
         SharedConversationController,

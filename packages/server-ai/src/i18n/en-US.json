@@ -116,6 +116,8 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "ToolDetailUnavailable": "Tool details are unavailable.",
+        "ToolDetailRequestInvalid": "Invalid tool detail request.",
         "WorkbenchEntryInputInvalid": "Invalid Workbench navigation target.",
         "WorkbenchEntryUnavailable": "This Workbench view is unavailable. Check current access and View configuration.",
         "CapabilityWorkspaceRequired": "Select an authoring workspace before enabling this capability.",
