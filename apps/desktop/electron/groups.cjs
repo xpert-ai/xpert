@@ -1,12 +1,16 @@
 // Host credentials stay here; only a group-scoped session reaches the ChatKit frame.
 function createGroupMethods(ClientError) {
+  const errorMessages = {
+    GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED:
+      'You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.'
+  }
   const groupId = (id) => {
     if (typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id)) throw new ClientError('Invalid input.')
     return encodeURIComponent(id)
   }
   return {
     async listGroups() {
-      return this.request('/api/ai/groups', { scope: 'organization' })
+      return this.request('/api/ai/groups', { scope: 'organization', errorMessages })
     },
     async groupCandidates() {
       const candidates = []
@@ -14,7 +18,8 @@ function createGroupMethods(ClientError) {
       const limit = 100
       for (let offset = 0; ; offset += limit) {
         const page = await this.request(`/api/ai/groups/candidates?kind=assistant&limit=${limit}&offset=${offset}`, {
-          scope: 'organization'
+          scope: 'organization',
+          errorMessages
         })
         if (!Array.isArray(page)) throw new ClientError('Invalid response.')
         const fresh = page.filter((candidate) => !seen.has(candidate.subjectId))
@@ -33,6 +38,7 @@ function createGroupMethods(ClientError) {
         throw new ClientError('Invalid input.')
       return this.request('/api/ai/groups', {
         scope: 'organization',
+        errorMessages,
         method: 'POST',
         body: { title: input.title.trim(), assistantId: input.assistantId }
       })
@@ -42,6 +48,7 @@ function createGroupMethods(ClientError) {
         throw new ClientError('Invalid input.')
       return this.request(`/api/ai/groups/${groupId(input.id)}/preferences`, {
         scope: 'organization',
+        errorMessages,
         method: 'PATCH',
         body: { [input.key]: input.value }
       })

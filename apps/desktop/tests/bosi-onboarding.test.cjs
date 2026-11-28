@@ -192,3 +192,28 @@ test('leaving the organization while Shell is configuring cancels the pending cr
   )
   assert.equal(view.ready.length, 0)
 })
+
+test('an interrupted installation resumes its saved model and capabilities without creating on mount', async (t) => {
+  const progress = { phase: 'installing', capabilities: ['desktop-shell'], modelId: 'saved-model', threadId: 'welcome' }
+  const resumed = { ...setup, progress, setup: { ...setup.setup, models: [{ id: 'saved-model' }] } }
+  const view = await mount(t, async (method) => {
+    if (method === 'bosiSetup') return resumed
+    if (method === 'shellState') return { available: true, settings: {} }
+    if (method === 'shellConfigure') return {}
+    if (method === 'createBosi') return { assistantId: 'resumed', progress: { ...progress, phase: 'welcome_pending' } }
+    if (method === 'bosiWelcome') return { assistantId: 'resumed', progress: { ...progress, phase: 'ready' } }
+    throw new Error(`Unexpected call: ${method}`)
+  })
+  assert.equal(document.getElementById('model').textContent, 'saved-model')
+  assert.equal(document.getElementById('desktop-shell').checked, true)
+  assert.equal(document.getElementById('desktop-shell').disabled, true)
+  assert.equal(
+    view.calls.some((call) => call.method === 'createBosi'),
+    false
+  )
+  await click('Resume setup')
+  const selection = view.calls.find((call) => call.method === 'createBosi').input
+  assert.equal(selection.modelId, 'saved-model')
+  assert.deepEqual([...selection.capabilities], ['desktop-shell'])
+  assert.deepEqual(view.ready, [['resumed', 'welcome']])
+})

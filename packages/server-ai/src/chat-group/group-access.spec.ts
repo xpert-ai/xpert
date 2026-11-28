@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { GroupAccessService } from './group-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
-import { User, UserOrganization } from '@xpert-ai/server-core'
+import { ResolveUserOrganizationAccessCommand, User, UserOrganization } from '@xpert-ai/server-core'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { GroupParticipant, GroupMessageRecipient } from './group.entity'
 
@@ -26,7 +26,9 @@ describe('group authorization boundary', () => {
     const receipts = { findOneBy: jest.fn() },
         messageRows = { findOneByOrFail: jest.fn() }
     let access: GroupAccessService
+    const organizationAccess = jest.fn()
     beforeEach(async () => {
+        organizationAccess.mockReset().mockResolvedValue(null)
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(organizationId)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(userId)
@@ -44,7 +46,11 @@ describe('group authorization boundary', () => {
                 {
                     provide: CommandBus,
                     useValue: {
-                        execute: jest.fn(async () => executionIdentityFixture({ tenantId, organizationId, userId }))
+                        execute: jest.fn(async (command: object) =>
+                            command instanceof ResolveUserOrganizationAccessCommand
+                                ? organizationAccess(command.input)
+                                : executionIdentityFixture({ tenantId, organizationId, userId })
+                        )
                     }
                 },
                 { provide: PublishedXpertAccessService, useValue: {} },
@@ -108,6 +114,24 @@ describe('group authorization boundary', () => {
     it('requires organization scope instead of falling back to another organization', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(undefined)
         expect(() => access.scope()).toThrow()
+    })
+    it('explains missing organization membership without granting a super administrator group access', async () => {
+        people.findOneBy.mockResolvedValue(null)
+        organizationAccess.mockResolvedValue({ id: userId })
+        const groupLookups = groups.findOneBy.mock.calls.length
+        await expect(access.authorize(groupId)).rejects.toMatchObject({
+            status: 403,
+            response: { code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED', statusCode: 403 }
+        })
+        expect(organizationAccess).toHaveBeenCalledWith({ tenantId, organizationId, userId })
+        expect(groups.findOneBy.mock.calls).toHaveLength(groupLookups)
+    })
+    it('keeps a generic denial when the actor cannot access the organization', async () => {
+        people.findOneBy.mockResolvedValue(null)
+        await expect(access.user({ tenantId, organizationId }, userId)).rejects.toMatchObject({
+            status: 403,
+            response: expect.not.objectContaining({ code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED' })
+        })
     })
     it('binds a shared conversation credential to D, never E, and distinguishes expiry from lost membership', async () => {
         const principal = {

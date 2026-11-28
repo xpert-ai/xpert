@@ -309,6 +309,7 @@
         "RuntimeRestartInterrupted": "服务正在重启，实时回复已中断。任务可能仍在运行，请刷新会话查看结果。",
         "GroupPrimaryAssistantInUse": "该数字专家是群组的主数字专家，暂时无法删除。",
         "ChatkitSessionInputInvalid": "ChatKit 会话参数无效。",
+        "GroupOrganizationMembershipRequired": "尚未加入当前组织，暂不可使用群聊。请联系组织管理员添加你为成员。",
         "GroupAccessDenied": "无权访问此群聊。",
         "GroupProjectRequired": "请先为需要项目的数字专家关联项目，再发送此消息。",
         "GroupProjectReuseRequired": "该项目已被其他群聊使用。请从“复用已有项目”入口选择，并确认共用项目资源。",

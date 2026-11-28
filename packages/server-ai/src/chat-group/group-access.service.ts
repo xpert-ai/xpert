@@ -6,14 +6,19 @@ import { groupDeliveryUserId } from './group-delivery-actor'
 import { isGroupRuntime } from './group-runtime-context'
 import { UnauthorizedException, Injectable } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { ResolveExecutionIdentityCommand, runWithExecutionIdentity, UserOrganization } from '@xpert-ai/server-core'
+import {
+    ResolveExecutionIdentityCommand,
+    ResolveUserOrganizationAccessCommand,
+    runWithExecutionIdentity,
+    UserOrganization
+} from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { DataSource } from 'typeorm'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { GroupParticipant, GroupMessageRecipient } from './group.entity'
-import { groupDenied } from './group.errors'
+import { groupDenied, groupOrganizationMembershipRequired } from './group.errors'
 
 /** Shared authorization policy for group APIs and background execution under a real human identity. */
 @Injectable()
@@ -53,7 +58,12 @@ export class GroupAccessService {
             isActive: true,
             organization: { tenantId: scope.tenantId, isActive: true }
         })
-        if (!membership) throw groupDenied()
+        if (!membership) {
+            // Explain missing membership only after confirming access to this organization.
+            const user = await this.commands.execute(new ResolveUserOrganizationAccessCommand({ ...scope, userId }))
+            if (user) throw groupOrganizationMembershipRequired()
+            throw groupDenied()
+        }
         return this.commands.execute(new ResolveExecutionIdentityCommand({ ...scope, userId, kind: 'user' }))
     }
 

@@ -195,6 +195,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
           config: { apiUrl: 'http://localhost/', locale: 'en', theme: 'light' },
           profile: { user: { id: 'user', tenantId: 'tenant' }, organizationId: 'org', organizations: [] }
         }
+      if (method === 'bosiSetup') return { assistantId: 'bosi', progress: null }
       if (method === 'listBotPage') return { bots, next: null, awaitingSavedBot: false }
       if (method === 'listBots')
         return delay
@@ -246,6 +247,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
           )
         }
       },
+      './bosi/useBosiEntry': renderer('bosi/useBosiEntry.ts', { '../host': host }, globals),
       './bosi/BosiOnboarding': {
         BosiOnboarding: ({ onReady }) =>
           React.createElement('button', { id: 'ready', onClick: () => onReady('bosi', null) }, 'Ready')

@@ -309,6 +309,7 @@
         "RuntimeRestartInterrupted": "The service is restarting and the live reply was interrupted. The task may still be running. Refresh the conversation to check its result.",
         "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
+        "GroupOrganizationMembershipRequired": "You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.",
         "GroupAccessDenied": "You do not have access to this group.",
         "GroupProjectRequired": "Choose a Project for the required Assistants before sending this message.",
         "GroupProjectReuseRequired": "This Project is already used by another group. Choose Reuse existing Project and confirm sharing its resources.",

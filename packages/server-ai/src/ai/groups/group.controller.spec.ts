@@ -12,12 +12,13 @@ import { GroupMembersService } from '../../chat-group/group-members.service'
 import { GroupMessagesService } from '../../chat-group/group-messages.service'
 import { GroupOutboxService } from '../../chat-group/group-outbox.service'
 import { GroupStreamService } from '../../chat-group/group-stream.service'
+import { groupOrganizationMembershipRequired } from '../../chat-group/group.errors'
 
 const id = '11111111-1111-4111-8111-111111111111'
 describe('group HTTP boundary', () => {
     const messages = { submit: jest.fn(), snapshot: jest.fn(), preferences: jest.fn() }
     const outbox = { flush: jest.fn() }
-    const catalog = { candidates: jest.fn() }
+    const catalog = { candidates: jest.fn(), list: jest.fn() }
     const interactions = { claim: jest.fn(), respond: jest.fn() }
     let app: INestApplication
     let origin: string
@@ -128,6 +129,21 @@ describe('group HTTP boundary', () => {
     it('keeps candidate owner authorization failures intact', async () => {
         catalog.candidates.mockRejectedValueOnce(new ForbiddenException())
         expect((await fetch(`${origin}/groups/${id}/candidates`)).status).toBe(403)
+    })
+    it('preserves the explicit organization membership error through the list HTTP boundary', async () => {
+        catalog.list.mockRejectedValueOnce(groupOrganizationMembershipRequired())
+        const response = await fetch(`${origin}/groups`)
+        expect(response.status).toBe(403)
+        expect(await response.json()).toEqual({
+            statusCode: 403,
+            error: 'Forbidden',
+            code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED',
+            message: expect.any(String)
+        })
+        catalog.list.mockResolvedValueOnce([])
+        const joined = await fetch(`${origin}/groups`)
+        expect(joined.status).toBe(200)
+        expect(await joined.json()).toEqual([])
     })
     it('coerces pagination and rejects arbitrary fields', async () => {
         expect((await fetch(`${origin}/groups/${id}?before=10&limit=3`)).status).toBe(200)

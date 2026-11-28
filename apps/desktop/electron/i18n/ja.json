@@ -332,6 +332,8 @@
   "Cannot connect to Xpert. Check the service URL and network.": "Xpert に接続できません。サービス URL とネットワークを確認してください。",
   "The session changed. Please retry.": "セッションが変更されました。再試行してください。",
   "Incorrect email or password.": "メールアドレスまたはパスワードが正しくありません。",
+  "You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.": "この組織にまだ参加していないため、グループ会話を利用できません。組織の管理者にメンバーへの追加を依頼してください。",
+  "Refresh after joining": "参加後に更新",
   "This account does not have access.": "このアカウントにはアクセス権限がありません。",
   "Invalid service response. Check the API URL.": "サービスの応答が無効です。API URL を確認してください。",
   "Grayscale hue": "グレースケールの色相",

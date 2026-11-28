@@ -343,6 +343,8 @@
   "Cannot connect to Xpert. Check the service URL and network.": "无法连接 Xpert 服务，请检查地址和网络。",
   "The session changed. Please retry.": "会话已变化，请重试。",
   "Incorrect email or password.": "邮箱或密码不正确。",
+  "You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.": "尚未加入当前组织，暂不可使用群聊。请联系组织管理员添加你为成员。",
+  "Refresh after joining": "加入后刷新",
   "This account does not have access.": "当前账号没有访问权限。",
   "Invalid service response. Check the API URL.": "服务响应格式无效，请检查 API 地址。",
   "Grayscale hue": "灰阶色相",

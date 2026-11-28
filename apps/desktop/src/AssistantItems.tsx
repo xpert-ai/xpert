@@ -1,4 +1,4 @@
-import { useRef, type ComponentProps } from 'react'
+import type { ComponentProps } from 'react'
 import { BellDot, BellOff, Copy, Folder, FolderPlus, Pencil, Pin, PinOff } from 'lucide-react'
 import {
   ContextMenu,
@@ -13,7 +13,7 @@ import {
 } from '@xpert-ai/shadcn-ui'
 import { AssistantPreview } from './AssistantPreview'
 import { BotAvatar } from './avatar'
-import { SidebarAvatar } from './avatar/SidebarAvatar'
+import { AssistantItemLayout } from './AssistantItemLayout'
 import { t } from './i18n'
 import type { AssistantRow } from './assistant-list-model'
 import type { SidebarState } from './assistant-list-types'
@@ -98,65 +98,32 @@ function AssistantMenu({
   )
 }
 export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'compact' }) {
-  const rowRef = useRef<HTMLDivElement>(null)
   const { row, selected, onSelect, onAction, mode = 'list' } = props
-  const active = selected === row.bot.id
-  const compact = mode === 'compact'
-  const pinned = mode === 'pinned'
-  const avatar = (
-    <button
-      aria-label={compact ? row.bot.name : t('{{name}} avatar', { name: row.bot.name })}
-      aria-current={active ? 'page' : undefined}
-      onClick={() => onSelect(row)}
-      className={`relative flex shrink-0 cursor-default items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${compact ? 'size-12' : ''}`}
-    >
-      <SidebarAvatar mode={mode} unread={row.unread}>
-        <BotAvatar bot={row.bot} size="fill" status={row.activity?.latestConversationStatus} />
-      </SidebarAvatar>
-    </button>
-  )
   return (
     <AssistantMenu {...props}>
-      <div
-        ref={rowRef}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) onSelect(row)
-        }}
-        className={`relative flex shrink-0 cursor-pointer items-center rounded-xl transition-colors ${compact ? 'size-12 justify-center' : pinned ? 'min-w-0 flex-col gap-2 px-2 py-3' : 'w-full gap-[var(--desktop-avatar-gap)] px-2 py-[var(--desktop-row-padding)]'} ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
-      >
-        {props.preview !== false ? (
-          <AssistantPreview
-            row={row}
-            anchorRef={rowRef}
-            onSelect={(threadId) => onSelect(row, threadId)}
-            onEdit={() => onAction(row, 'edit')}
-          >
-            {avatar}
-          </AssistantPreview>
-        ) : (
-          avatar
-        )}
-        {!compact && (
-          <button
-            aria-label={row.bot.name}
-            aria-current={active ? 'page' : undefined}
-            title={`${row.bot.name}${row.subtitle ? ` · ${row.subtitle}` : ''}${row.unread ? ` · ${t('Unread')}` : ''}`}
-            onClick={() => onSelect(row)}
-            className={`min-w-0 cursor-pointer self-stretch rounded-md outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${pinned ? 'w-full text-center' : 'flex-1 text-left'}`}
-          >
-            <span
-              className={`block truncate leading-5 ${pinned ? 'text-xs' : 'text-sm'} ${active || row.unread ? 'font-semibold' : 'font-medium'}`}
-            >
-              {row.bot.name}
-            </span>
-            {!pinned && (
-              <span className="mt-0.5 block truncate text-[0.8125rem] leading-5 text-muted-foreground">
-                {row.subtitle || t('Start a chat with this Bot')}
-              </span>
-            )}
-          </button>
-        )}
-      </div>
+      <AssistantItemLayout
+        name={row.bot.name}
+        subtitle={row.subtitle}
+        unread={row.unread}
+        active={selected === row.bot.id}
+        mode={mode}
+        onSelect={() => onSelect(row)}
+        avatar={<BotAvatar bot={row.bot} size="fill" status={row.activity?.latestConversationStatus} />}
+        preview={
+          props.preview === false
+            ? undefined
+            : (avatar, anchorRef) => (
+                <AssistantPreview
+                  row={row}
+                  anchorRef={anchorRef}
+                  onSelect={(threadId) => onSelect(row, threadId)}
+                  onEdit={() => onAction(row, 'edit')}
+                >
+                  {avatar}
+                </AssistantPreview>
+              )
+        }
+      />
     </AssistantMenu>
   )
 }

@@ -1,7 +1,9 @@
+import { BosiEntry, type BosiNavigationEntry } from './bosi/BosiEntry'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 import type { DiscoveryWorkspace } from './catalog-types'
 import { DesktopAddMenu } from './groups/DesktopAddMenu'
 import { GroupItem } from './groups/GroupItem'
+import { GroupMembershipNotice } from './groups/GroupMembershipNotice'
 import { useGroupList } from './groups/useGroupList'
 import { conversationGroups, type ConversationRow } from './conversation-list-model'
 import { t } from './i18n'
@@ -22,6 +24,7 @@ import type { AppState, Bot } from './types'
 export function Sidebar({
   state,
   bots,
+  bosi,
   selected,
   workspaceId,
   workspaces,
@@ -57,6 +60,7 @@ export function Sidebar({
   onCreateGroup: () => void
   state: AppState
   bots: Bot[]
+  bosi?: BosiNavigationEntry
   selected: string | null
   pending: boolean
   error: string
@@ -97,8 +101,19 @@ export function Sidebar({
     saveLayout(list.sidebar.width, value)
   }
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
+  const bosiNavigation = bosi && (!bosi.initialized || !bosi.bot)
+  const bosiVisible =
+    !!bosiNavigation &&
+    !archivedGroups &&
+    `${bosi.bot?.name ?? 'Bosi'} ${bosi.bot?.description ?? ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())
   const visibleGroups = workspaceId ? [] : groupList.items
-  const groups = conversationGroups(rows, visibleGroups, list.sidebar, query, archivedGroups)
+  const groups = conversationGroups(
+    rows.filter((row) => !bosiNavigation || row.bot.id !== bosi?.bot?.id),
+    visibleGroups,
+    list.sidebar,
+    query,
+    archivedGroups
+  )
   const loadingAssistants = pending && bots.length === 0
   const pinned = groups.find((group) => group.kind === 'pinned')?.rows ?? []
   const groupLabel = (group: (typeof groups)[number]) =>
@@ -154,6 +169,7 @@ export function Sidebar({
       onMove={(row, sectionId) => void list.run(() => list.update({ action: 'move', botId: row.bot.id, sectionId }))}
     />
   )
+  const renderBosi = (compact = false) => bosiVisible && bosi && <BosiEntry entry={bosi} compact={compact} />
   const renderConversation = (row: ConversationRow, mode: 'list' | 'pinned' | 'compact' = 'list') =>
     row.purpose === 'group' ? (
       <GroupItem
@@ -290,6 +306,8 @@ export function Sidebar({
                 <RefreshCw />
               </Button>
             )}
+            {groupList.membershipRequired && <GroupMembershipNotice compact onRefresh={groupList.reload} />}
+            {renderBosi(true)}
             {groups
               .filter((group) => group.rows.length)
               .map((group, index) => (
@@ -360,7 +378,9 @@ export function Sidebar({
             <h2 className="text-[0.8125rem] leading-5 font-medium text-muted-foreground">
               {t('Conversations')}
               <span className="ml-1 text-xs font-normal">
-                {bots.length + visibleGroups.filter((group) => !group.archived).length || ''}
+                {bots.length +
+                  (bosi && !bots.some((bot) => bot.id === bosi.bot?.id) ? 1 : 0) +
+                  visibleGroups.filter((group) => !group.archived).length || ''}
               </span>
             </h2>
             <div className="flex">
@@ -413,6 +433,7 @@ export function Sidebar({
               </Button>
             </div>
           )}
+          {groupList.membershipRequired && <GroupMembershipNotice onRefresh={groupList.reload} />}
           {groupList.error && (
             <p role="alert" className="px-2 py-2 text-xs text-destructive">
               {groupList.error}
@@ -442,6 +463,7 @@ export function Sidebar({
               {feedback}
             </p>
           )}
+          {renderBosi()}
           {pinned.length > 0 && (
             <section aria-label={t('Pinned conversations')} className="mb-3 border-b pb-3">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
@@ -462,7 +484,7 @@ export function Sidebar({
                 </section>
               )
           )}
-          {!pending && !error && !groups.some((group) => group.rows.length) && (
+          {!pending && !error && !bosiVisible && !groups.some((group) => group.rows.length) && (
             <p className="px-3 py-6 text-sm leading-6 text-muted-foreground">
               {archivedGroups
                 ? t('No archived groups')

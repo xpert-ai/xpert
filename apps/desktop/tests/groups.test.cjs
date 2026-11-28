@@ -5,7 +5,7 @@ const { dispatch } = require('../electron/dispatch.cjs')
 const { menuTemplate } = require('../electron/menu.cjs')
 const id = '00000000-0000-4000-8000-000000000001'
 const response = (value, status = 200) => new Response(JSON.stringify(value), { status })
-function fixture() {
+function fixture({ groupFailure } = {}) {
   const calls = []
   const user = { id: 'user', tenantId: 'tenant', name: 'Test' }
   const service = new DesktopService({
@@ -16,7 +16,8 @@ function fixture() {
       if (url.endsWith('/bootstrap'))
         return response({ user, organizations: [{ id: 'org', name: 'Team' }], activeOrganizationId: 'org' })
       if (url.endsWith('/sessions')) return response({ client_secret: 'cs-x-group', expires_at: 'future' })
-      if (url.includes('/groups')) return response({ id, title: 'Design review' })
+      if (url.includes('/groups'))
+        return groupFailure ? response(groupFailure, 403) : response({ id, title: 'Design review' })
       throw new Error('Unexpected request')
     }
   })
@@ -54,6 +55,34 @@ test('native File menu opens the same create dialog through a scoped app event',
   assert.equal(create.accelerator, 'CmdOrCtrl+Shift+G')
   create.click()
   assert.equal(invoked, 1)
+})
+
+test('group membership denial crosses IPC with its explicit code and localized recovery message', async () => {
+  const { service } = fixture({
+    groupFailure: { code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED', message: 'untrusted' }
+  })
+  await service.login({ email: 'test@example.com', password: 'fixture' })
+  service.config.locale = 'zh-Hans'
+  for (const method of ['listGroups', 'groupCandidates', 'createGroup', 'groupPreference']) {
+    const result = await dispatch(service, method, { title: 'Review', assistantId: id, id, key: 'pinned', value: true })
+    assert.equal(result.ok, false)
+    assert.equal(result.status, 403)
+    assert.equal(result.errorCode, 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED')
+    assert.equal(result.message, '尚未加入当前组织，暂不可使用群聊。请联系组织管理员添加你为成员。')
+    assert.equal(result.retryAfterMs, undefined)
+    assert.doesNotMatch(JSON.stringify(result), /untrusted/)
+  }
+})
+
+test('other group denials do not become a missing-membership notice', async () => {
+  for (const groupFailure of [{ code: 'GROUP_ACCESS_DENIED' }, { message: 'You have not joined this organization.' }]) {
+    const { service } = fixture({ groupFailure })
+    await service.login({ email: 'test@example.com', password: 'fixture' })
+    const result = await dispatch(service, 'listGroups')
+    assert.equal(result.status, 403)
+    assert.equal(result.errorCode, undefined)
+    assert.equal(result.key, 'This account does not have access.')
+  }
 })
 
 test('loads every page of group creation candidates within organization scope', async () => {

@@ -625,12 +625,15 @@ class DesktopService {
         if (typeof failure?.message === 'string' && failure.message.length <= 1000)
           throw new ClientError(failure.message, response.status)
       }
-      if (response.status === 403) throw new ClientError('This account does not have access.', 403)
-      if (errorMessages && [400, 409].includes(response.status)) {
+      if (errorMessages && [400, 403, 409].includes(response.status)) {
         const failure = await response.json().catch(() => null)
-        if (typeof failure?.code === 'string' && Object.hasOwn(errorMessages, failure.code))
-          throw new ClientError(errorMessages[failure.code], response.status)
+        if (typeof failure?.code === 'string' && Object.hasOwn(errorMessages, failure.code)) {
+          const error = new ClientError(errorMessages[failure.code], response.status)
+          error.errorCode = failure.code
+          throw error
+        }
       }
+      if (response.status === 403) throw new ClientError('This account does not have access.', 403)
       throw new ClientError('Xpert request failed ({{status}}). Please retry later.', response.status, {
         status: response.status
       })

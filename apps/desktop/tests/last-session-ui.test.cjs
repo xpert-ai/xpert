@@ -14,7 +14,13 @@ const defaultBots = [
 
 async function mount(
   t,
-  { restored = { botId: 'b', threadId: 'previous-thread' }, waitForRestore, bots = defaultBots, page } = {}
+  {
+    restored = { botId: 'b', threadId: 'previous-thread' },
+    waitForRestore,
+    bots = defaultBots,
+    page,
+    bosiSetup = { assistantId: null, progress: null }
+  } = {}
 ) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
@@ -33,7 +39,8 @@ async function mount(
     chat: null,
     bosi: null,
     onboardingMounts: 0,
-    listRequests: 0
+    listRequests: 0,
+    bosiSetup
   }
   const i18n = { t: (key) => key, useLocale: () => 'en', setLocale() {}, localizeValidation() {}, clearValidation() {} }
   const imports = {
@@ -50,6 +57,8 @@ async function mount(
       HostError: class HostError extends Error {},
       invoke: async (method, input) => {
         if (method === 'state') return state
+        if (method === 'bosiSetup')
+          return typeof view.bosiSetup === 'function' ? view.bosiSetup(state.profile.organizationId) : view.bosiSetup
         if (method === 'resolveWorkbenchEntry')
           return view.openProject
             ? view.openProject(input)
@@ -123,6 +132,14 @@ async function mount(
     './FirstRunLanguage': { FirstRunLanguage: () => null },
     './CatalogDialog': { CatalogDialog: () => null }
   }
+  const hook = {}
+  runInNewContext(
+    ts.transpileModule(readFileSync(join(__dirname, '../src/bosi/useBosiEntry.ts'), 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+    }).outputText,
+    { exports: hook, require: (id) => (id === 'react' ? React : imports['./host']) }
+  )
+  imports['./bosi/useBosiEntry'] = hook
   const exports = {}
   runInNewContext(
     ts.transpileModule(readFileSync(join(__dirname, '../src/App.tsx'), 'utf8'), {
@@ -453,3 +470,69 @@ for (const projectId of [null, 'project'])
     assert.equal(view.chat.initialThread, thread)
     assert.deepEqual(saved.get(scope()), previous)
   })
+
+test('an unfinished Bosi remains reachable after restoring another assistant and reopening', async (t) => {
+  const { view, saved, scope, reopen } = await mount(t)
+  assert.equal(view.chat.bot.id, 'b')
+  assert.equal(view.sidebar.bosi.bot, null)
+  assert.equal(view.sidebar.bosi.initialized, false)
+  await React.act(() => view.sidebar.bosi.onSelect())
+  assert.ok(document.getElementById('onboarding'))
+  assert.equal(document.getElementById('chat'), null)
+  assert.equal(view.sidebar.bosi.selected, true)
+  assert.equal(view.sidebar.selected, null, 'the setup entry is the only selected row')
+  assert.equal(saved.get(scope()).botId, 'b', 'a navigation entry must not be saved as a Bot')
+  await React.act(() => view.sidebar.onSelect('a'))
+  await reopen()
+  assert.equal(view.chat.bot.id, 'a')
+  await React.act(() => view.sidebar.bosi.onSelect())
+  assert.ok(document.getElementById('onboarding'))
+})
+
+test('an assistant ID does not complete Bosi setup; completion replaces the entry with that assistant', async (t) => {
+  const setup = { assistantId: 'a', progress: { phase: 'welcome_failed', threadId: 'welcome' } }
+  const { view } = await mount(t, { bosiSetup: setup })
+  assert.equal(view.sidebar.bosi.bot.id, 'a')
+  assert.equal(view.sidebar.bosi.initialized, false)
+  await React.act(() => view.sidebar.bosi.onSelect())
+  assert.ok(document.getElementById('onboarding'))
+  await React.act(() => view.bosi.onSetup({ ...setup, progress: { phase: 'ready', threadId: 'welcome' } }))
+  await React.act(() => view.bosi.onReady('a', 'welcome'))
+  assert.equal(view.sidebar.bosi.bot.id, 'a')
+  assert.equal(view.sidebar.bosi.initialized, true)
+  assert.equal(view.chat.bot.id, 'a')
+  assert.equal(view.chat.initialThread, 'welcome')
+})
+
+test('Bosi lookup failures retain the entry and stale organization responses cannot replace it', async (t) => {
+  let resolveOld
+  const { view } = await mount(t, {
+    bosiSetup: (org) =>
+      org === 'org'
+        ? new Promise((resolve) => {
+            resolveOld = resolve
+          })
+        : Promise.reject(new Error('Binding unavailable'))
+  })
+  await React.act(() => view.sidebar.onOrganization('another-org'))
+  await React.act(() => resolveOld({ assistantId: 'a', progress: null }))
+  assert.equal(view.sidebar.bosi.bot, null)
+  assert.equal(view.sidebar.bosi.initialized, false)
+  await React.act(() => view.sidebar.onSelect('b'))
+  await React.act(() => view.sidebar.bosi.onSelect())
+  assert.ok(document.getElementById('onboarding'))
+  assert.equal(view.bosi.organizationId, 'another-org')
+})
+
+test('opening Bosi leaves workspace filtering and group navigation without saving a fake session', async (t) => {
+  const { view, saved, scope } = await mount(t)
+  view.listWorkspaces = () => [{ id: 'b', name: 'Engineering', canWrite: true }]
+  await React.act(() => view.sidebar.retryWorkspaces())
+  await React.act(() => view.sidebar.onWorkspace('b'))
+  await React.act(() => view.sidebar.onSelectGroup('group'))
+  await React.act(() => view.sidebar.bosi.onSelect())
+  assert.equal(view.sidebar.workspaceId, '')
+  assert.equal(view.sidebar.selectedGroup, null)
+  assert.ok(document.getElementById('onboarding'))
+  assert.equal(saved.get(scope()).botId, 'b')
+})

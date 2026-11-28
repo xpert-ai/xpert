@@ -164,7 +164,11 @@ async function dispatch(service, method, argument) {
       status: error.status || 500,
       ...(error instanceof ClientError && ['RUNTIME_DRAINING', 'RUNTIME_NOT_READY'].includes(error.errorCode)
         ? { errorCode: error.errorCode, retryAfterMs: error.retryAfterMs }
-        : {})
+        : error instanceof ClientError &&
+            error.status === 403 &&
+            error.errorCode === 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED'
+          ? { errorCode: error.errorCode }
+          : {})
     }
   }
 }

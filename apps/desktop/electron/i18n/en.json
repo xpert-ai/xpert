@@ -343,6 +343,8 @@
   "Cannot connect to Xpert. Check the service URL and network.": "Cannot connect to Xpert. Check the service URL and network.",
   "The session changed. Please retry.": "The session changed. Please retry.",
   "Incorrect email or password.": "Incorrect email or password.",
+  "You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.": "You have not joined this organization. Ask an organization administrator to add you as a member to use group conversations.",
+  "Refresh after joining": "Refresh after joining",
   "This account does not have access.": "This account does not have access.",
   "Invalid service response. Check the API URL.": "Invalid service response. Check the API URL.",
   "Grayscale hue": "Grayscale hue",

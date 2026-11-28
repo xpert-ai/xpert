@@ -26,6 +26,7 @@ import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
 import type { SettingsSection } from './settings/sections'
 import { BosiOnboarding } from './bosi/BosiOnboarding'
+import { useBosiEntry } from './bosi/useBosiEntry'
 import { notifyEmbeddedAppActivation, subscribeAppActivation } from './app-activation'
 
 export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => void }) {
@@ -47,7 +48,8 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const [initialThread, setInitialThread] = useState<string | null>(null)
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
-  const [bosiReady, setBosiReady] = useState(false)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const [bosiVisit, setBosiVisit] = useState(0)
   const [initialWorkbench, setInitialWorkbench] = useState<DesktopWorkbenchTarget | null>(null)
   const [entryBot, setEntryBot] = useState<Bot | null>(null)
   const entryBotRef = useRef(entryBot)
@@ -59,7 +61,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setInboxScope(null)
     navigationVersion.current++
     selectedRef.current = id
-    setBosiReady(true)
+    setOnboardingDismissed(true)
     setSelectedGroup(null)
     setSelected(id)
     setInitialVoice(null)
@@ -133,6 +135,25 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     state?.profile?.user.id ?? null,
     state?.profile?.organizationId ?? null
   ])
+
+  const bosiEntry = useBosiEntry(binding, !!state?.profile?.organizationId)
+  const openBosi = () => {
+    navigationVersion.current++
+    selectedRef.current = null
+    setSelected(null)
+    setSelectedGroup(null)
+    setEntryBot(null)
+    setInitialWorkbench(null)
+    setInitialThread(null)
+    setInitialVoice(null)
+    setNotice(undefined)
+    setInboxScope(null)
+    setWorkspaceId('')
+    setCatalog(false)
+    setSettings(false)
+    setOnboardingDismissed(false)
+    setBosiVisit((value) => value + 1)
+  }
 
   const catalogCache = useMemo(
     () =>
@@ -240,7 +261,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setCreateGroup(false)
     setCatalog(false)
     setWorkspaceId('')
-    setBosiReady(true)
+    setOnboardingDismissed(true)
     if (target.kind === 'group') {
       selectGroup(target.id)
     } else if (
@@ -319,7 +340,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
               setSelected(restored.botId)
               setInitialThread(restored.threadId)
               setInitialVoice(restored.conversation ?? null)
-              setBosiReady(true)
+              setOnboardingDismissed(true)
               setSelectionVersion((value) => value + 1)
             }
           }
@@ -357,7 +378,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setBots([])
     setSelectedGroup(null)
     setCreateGroup(false)
-    setBosiReady(false)
+    setOnboardingDismissed(false)
     setSelected(null)
     setInitialWorkbench(null)
     setEntryBot(null)
@@ -383,7 +404,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.config.locale])
   useEffect(() => {
-    if (!bosiReady || !state?.profile?.organizationId) return
+    if (!onboardingDismissed || !state?.profile?.organizationId) return
     let refreshedAt = 0
     const refresh = () => {
       if (document.visibilityState !== 'visible' || Date.now() - refreshedAt < 1000) return
@@ -391,7 +412,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
       void loadBots({ background: true })
     }
     return subscribeAppActivation(refresh)
-  }, [binding, bosiReady, state?.profile?.organizationId, loadBots])
+  }, [binding, onboardingDismissed, state?.profile?.organizationId, loadBots])
 
   if (!state && !fatal)
     return (
@@ -426,7 +447,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
   const inboxVisible = inboxScope === binding
   const chatVisible = !!entryBot || !workspace || (!selectedGroup && bot?.workspaceId === workspace.id)
   const showOnboarding =
-    !workspace && !selectedGroup && !bosiReady && navigationReady && !!state.profile?.organizationId
+    !workspace && !selectedGroup && !onboardingDismissed && navigationReady && !!state.profile?.organizationId
   const revealBot = (id: string) => {
     if (workspace && bots.find((item) => item.id === id)?.workspaceId !== workspace.id) setWorkspaceId('')
   }
@@ -455,7 +476,7 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
     setInboxScope(null)
     setSelectedGroup(null)
     setWorkspaceId('')
-    setBosiReady(true)
+    setOnboardingDismissed(true)
     if (!reuse) {
       setNotice(undefined)
       setInitialThread(null)
@@ -496,13 +517,27 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                     key={binding}
                     state={state}
                     bots={visibleBots}
+                    bosi={
+                      state.profile.organizationId && !bosiEntry.loading
+                        ? {
+                            bot:
+                              bots.find((item) => (item.assistantId || item.id) === bosiEntry.setup?.assistantId) ??
+                              null,
+                            initialized:
+                              !!bosiEntry.setup?.assistantId &&
+                              (!bosiEntry.setup.progress || bosiEntry.setup.progress.phase === 'ready'),
+                            selected: showOnboarding,
+                            onSelect: openBosi
+                          }
+                        : undefined
+                    }
                     workspaceId={workspace?.id ?? ''}
                     workspaces={workspaceOptions}
                     onWorkspace={selectWorkspace}
                     workspaceError={workspaceError}
                     retryWorkspaces={() => setWorkspaceRevision((value) => value + 1)}
                     selected={
-                      selectedGroup
+                      showOnboarding || selectedGroup
                         ? null
                         : entryBot
                           ? (bots.find((item) => item.id === entryBot.id)?.id ?? null)
@@ -574,7 +609,8 @@ export function App({ onLaunchReady }: { onLaunchReady?: (failed: boolean) => vo
                 <main className={inboxVisible ? 'hidden' : 'flex min-w-0 flex-1 flex-col'} inert={inboxVisible}>
                   {showOnboarding && state.profile.organizationId ? (
                     <BosiOnboarding
-                      key={binding}
+                      key={`${binding}:${bosiVisit}`}
+                      onSetup={bosiEntry.update}
                       organizationId={state.profile.organizationId}
                       onReady={async (id, threadId) => {
                         if (bindingRef.current !== binding) return

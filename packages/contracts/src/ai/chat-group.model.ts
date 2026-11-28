@@ -64,6 +64,13 @@ export interface ChatGroupParticipant {
 }
 /** Invite candidate before membership exists; submit kind + subjectId to add the member. */
 export type ChatGroupCandidate = Pick<ChatGroupParticipant, 'kind' | 'subjectId' | 'name' | 'avatar'>
+/** Organization access alone does not grant the active membership required for group conversations. */
+export type ChatGroupOrganizationMembershipRequiredError = {
+  statusCode: 403
+  error: 'Forbidden'
+  code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED'
+  message: string
+}
 /** A rejected send has not persisted a message or queued an Assistant execution. */
 export type ChatGroupProjectRequiredError = {
   statusCode: 400

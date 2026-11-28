@@ -12,6 +12,10 @@ On supported Macs, first launch leads from language selection to optional Screen
 
 After login and organization selection, Desktop reads the binding. An existing accessible assistant opens directly, without reinstalling it or changing its capabilities. An inaccessible binding or failed request produces an error rather than being treated as an invitation to create another assistant.
 
+Until initialization completes, the sidebar retains a **Bosi** entry using the same row styling as other assistants, in both expanded and collapsed layouts, without a setup badge. The entry remains available even when reopening the app restores another assistant or conversation. Clicking it reloads the current account and organization’s server state: creation not yet started returns to the introduction, an installation checkpoint offers **Resume setup**, and an existing assistant with an unfinished welcome continues that flow. Failed or denied lookups show an error and retry action rather than creating another assistant. Once complete, the real assistant uses the normal row with pinning, grouping and conversation actions, without a duplicate setup entry.
+
+If an account can access an organization but has not joined it as a member, the group list shows a membership notice and **Refresh after joining**. Ask an organization administrator to add the account, then refresh. This is separate from Bosi initialization: the setup entry remains usable. Automatic group-list polling pauses while this notice is shown; other permission failures retain their error and retry behavior. Group creation and access still require active organization and group membership.
+
 Users without a binding proceed through:
 
 1. **Introduction**: what Bosi can help with.

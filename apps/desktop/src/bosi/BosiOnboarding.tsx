@@ -13,9 +13,11 @@ import { ModelCascader } from '../catalog/ModelCascader'
 type Step = 'loading' | 'intro' | 'plugins' | 'capabilities' | 'creating'
 export function BosiOnboarding({
   organizationId,
+  onSetup,
   onReady
 }: {
   organizationId: string
+  onSetup?: (setup: BosiSetup) => void
   onReady: (assistantId: string, threadId: string | null) => Promise<void>
 }) {
   const [step, setStep] = useState<Step>('loading')
@@ -32,6 +34,8 @@ export function BosiOnboarding({
   const selectionRequest = useRef(0)
   const onReadyRef = useRef(onReady)
   onReadyRef.current = onReady
+  const onSetupRef = useRef(onSetup)
+  onSetupRef.current = onSetup
   const finish = async (value: BosiSetup, version: number) => {
     if (!value.assistantId) return
     const openingWelcome = value.progress && value.progress.phase !== 'ready'
@@ -39,6 +43,7 @@ export function BosiOnboarding({
       setStep('creating')
       value = await invoke('bosiWelcome')
     }
+    if (alive.current && epoch.current === version) onSetupRef.current?.(value)
     if (alive.current && epoch.current === version && value.assistantId)
       await onReadyRef.current(value.assistantId, openingWelcome ? (value.progress?.threadId ?? null) : null)
   }
@@ -52,6 +57,7 @@ export function BosiOnboarding({
         const value = await invoke('bosiSetup', {})
         if (!alive.current || epoch.current !== version) return
         setSetup(value)
+        onSetupRef.current?.(value)
         if (value.assistantId) {
           await finish(value, version)
           return

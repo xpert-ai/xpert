@@ -1,7 +1,17 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common'
 import { t } from 'i18next'
 import { redactCredentials } from '../shared/redact-credentials'
-import type { ChatGroupProjectRequiredError } from '@xpert-ai/contracts'
+import type { ChatGroupOrganizationMembershipRequiredError, ChatGroupProjectRequiredError } from '@xpert-ai/contracts'
+
+export function groupOrganizationMembershipRequired() {
+    const response: ChatGroupOrganizationMembershipRequiredError = {
+        statusCode: 403,
+        error: 'Forbidden',
+        code: 'GROUP_ORGANIZATION_MEMBERSHIP_REQUIRED',
+        message: t('server-ai:Error.GroupOrganizationMembershipRequired')
+    }
+    return new ForbiddenException(response)
+}
 
 export function groupProjectRequired(groupId: string, participantIds: string[]) {
     const response: ChatGroupProjectRequiredError = {
