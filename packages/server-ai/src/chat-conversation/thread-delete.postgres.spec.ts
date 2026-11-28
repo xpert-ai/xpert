@@ -228,6 +228,94 @@ postgres('conversation deletion on PostgreSQL (issue #1434)', () => {
         }
     )
 
+    it('archives and restores only the side-chat metadata through HTTP', async () => {
+        const seed = await f.seed()
+        await f.db.manager.update(ChatConversationThread, seed.leaf.id, {
+            metadata: { purpose: 'side-chat', title: 'Review', titleSource: 'manual' }
+        })
+        const main = await f.threads.findVisibleMessages(seed.main.threadId)
+        const side = await f.threads.findVisibleMessages(seed.leaf.threadId)
+        for (const archived of [true, false]) {
+            const response = await fetch(`${endpoint}/threads/${seed.leaf.threadId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ metadata: { archived } })
+            })
+            expect(response.status).toBe(200)
+            expect((await f.db.manager.findOneByOrFail(ChatConversationThread, { id: seed.leaf.id })).metadata).toEqual(
+                { purpose: 'side-chat', title: 'Review', titleSource: 'manual', archived }
+            )
+        }
+        const before = await snapshot()
+        const response = await fetch(`${endpoint}/threads/${seed.main.threadId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metadata: { archived: true } })
+        })
+        expect(response.status).toBe(400)
+        expect(await snapshot()).toEqual(before)
+        expect(await f.threads.findVisibleMessages(seed.main.threadId)).toEqual(main)
+        expect(await f.threads.findVisibleMessages(seed.leaf.threadId)).toEqual(side)
+    })
+
+    it('deletes a side chat and its edit branch atomically while preserving main and sibling history', async () => {
+        const seed = await f.seed()
+        await f.db.manager.update(ChatConversationThread, seed.leaf.id, { metadata: { purpose: 'side-chat' } })
+        const edit = await f.db.manager.save(ChatConversationThread, {
+            ...f.scope,
+            conversationId: seed.conversation.id,
+            threadId: randomUUID(),
+            parentThreadId: seed.leaf.threadId,
+            metadata: { purpose: 'message-edit' },
+            status: 'idle'
+        })
+        const execution = await f.db.manager.save(XpertAgentExecution, {
+            ...seed.leafExecution,
+            id: randomUUID(),
+            threadId: edit.threadId
+        })
+        const parent = seed.leafMessages[3]
+        const message = await f.db.getTreeRepository(ChatMessage).save({
+            ...parent,
+            id: randomUUID(),
+            parent,
+            parentId: parent.id,
+            executionId: execution.id,
+            createdInThreadId: edit.threadId
+        })
+        await f.db.manager.update(ChatConversationThread, edit.id, { headMessageId: message.id })
+        const main = await f.threads.findVisibleMessages(seed.main.threadId)
+        const sibling = await f.threads.findVisibleMessages(seed.sibling.threadId)
+        expect((await fetch(`${endpoint}/threads/${seed.leaf.threadId}`, { method: 'DELETE' })).status).toBe(202)
+        expect(await f.db.manager.findOneBy(ChatConversationThread, { id: edit.id })).toBeNull()
+        expect(await f.db.manager.findOneBy(ChatConversationThread, { id: seed.leaf.id })).toBeNull()
+        expect(await f.db.manager.findOneBy(XpertAgentExecution, { id: execution.id })).toBeNull()
+        const tombstone = await f.db.manager.findOneOrFail(ChatMessage, {
+            where: { id: message.id },
+            withDeleted: true
+        })
+        expect(tombstone.deletedAt).toBeInstanceOf(Date)
+        expect(tombstone.executionId).toBeNull()
+        expect(await f.threads.findVisibleMessages(seed.main.threadId)).toEqual(main)
+        expect(await f.threads.findVisibleMessages(seed.sibling.threadId)).toEqual(sibling)
+    })
+
+    it('refuses deletion while a side-chat editing branch is running', async () => {
+        const seed = await f.seed()
+        await f.db.manager.update(ChatConversationThread, seed.leaf.id, { metadata: { purpose: 'side-chat' } })
+        await f.db.manager.save(ChatConversationThread, {
+            ...f.scope,
+            conversationId: seed.conversation.id,
+            threadId: randomUUID(),
+            parentThreadId: seed.leaf.threadId,
+            metadata: { purpose: 'message-edit' },
+            status: 'busy'
+        })
+        const before = await snapshot()
+        expect((await fetch(`${endpoint}/threads/${seed.leaf.threadId}`, { method: 'DELETE' })).status).toBe(409)
+        expect(await snapshot()).toEqual(before)
+    })
+
     it('returns HTTP 409 without changes for a non-primary thread with children', async () => {
         const seed = await f.seed()
         await f.db.manager.save(ChatConversationThread, {

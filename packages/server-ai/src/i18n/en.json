@@ -116,6 +116,11 @@
         "invalid_review_observation": "The runtime observation does not match this review."
     },
     "Error": {
+        "SideChatArchiveOnly": "Only side-chat threads can be archived through this endpoint",
+        "ThreadDeletionInvalidLineage": "Invalid thread lineage",
+        "ThreadDeletionHasIndependentBranches": "A thread with independent child branches cannot be deleted",
+        "ThreadDeletionWhileRunning": "Stop the side chat before deleting it",
+        "ThreadMetadataPatchInvalid": "Provide a title of 1–200 characters or a boolean archived flag; other metadata cannot be patched.",
         "ToolDetailUnavailable": "Tool details are unavailable.",
         "ToolDetailRequestInvalid": "Invalid tool detail request.",
         "WorkbenchEntryInputInvalid": "Invalid Workbench navigation target.",

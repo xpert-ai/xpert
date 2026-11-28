@@ -1,10 +1,10 @@
 // Invariants: delete the conversation's whole message tree before its executions.
 // Leaf messages remain soft-deleted; every mutation shares the same transaction.
 // Authorization stays with the existing conversation access query.
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import { NotFoundException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { DataSource, EntityManager, In, IsNull } from 'typeorm'
-import { t } from 'i18next'
+import { getThreadDeletionLineage } from '../../../chat-conversation/side-chat-delete-lineage'
 import { ThreadDeleteCommand } from '../thread-delete.command'
 import { ChatConversation } from '../../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../../chat-conversation/conversation-thread.entity'
@@ -40,16 +40,10 @@ export class ThreadDeleteHandler implements ICommandHandler<ThreadDeleteCommand>
             const isPrimary = conversation.threadId === threadId
             const thread = threads.find((item) => item.threadId === threadId)
             if (!isPrimary && !thread) throw new NotFoundException(`Thread "${threadId}" not found`)
-            if (!isPrimary && threads.some((item) => item.parentThreadId === threadId)) {
-                throw new ConflictException(
-                    t('server-ai:Error.ThreadHasChildBranches', {
-                        defaultValue: 'A thread with child branches cannot be deleted'
-                    })
-                )
-            }
+            const lineage = isPrimary ? threads : getThreadDeletionLineage(thread, threads)
             const threadIds = isPrimary
                 ? [...new Set([conversation.threadId, ...threads.map((item) => item.threadId)])]
-                : [threadId]
+                : lineage.map((item) => item.threadId)
             const executions = { ...scope, threadId: In(threadIds) }
             if (isPrimary) {
                 // Delete the entire message tree in one cascade before executionId can delete only its replies.
@@ -66,18 +60,20 @@ export class ThreadDeleteHandler implements ICommandHandler<ThreadDeleteCommand>
                         {
                             ...scope,
                             conversationId: conversation.id,
-                            createdInThreadId: threadId,
+                            createdInThreadId: In(threadIds),
                             executionId: In(ownedExecutions.map((execution) => execution.id))
                         },
                         { executionId: null }
                     )
                 }
-                await this.softDeleteBranchMessages(manager, thread)
+                for (const branch of [...lineage].reverse()) await this.softDeleteBranchMessages(manager, branch)
             }
             await manager.delete(XpertAgentExecution, executions)
             await manager.delete(CopilotCheckpoint, { ...scope, thread_id: In(threadIds) })
             await manager.delete(CopilotCheckpointWrites, { ...scope, thread_id: In(threadIds) })
-            if (!isPrimary) await manager.delete(ChatConversationThread, { ...scope, id: thread.id })
+            if (!isPrimary)
+                for (const branch of [...lineage].reverse())
+                    await manager.delete(ChatConversationThread, { ...scope, id: branch.id })
         })
     }
 

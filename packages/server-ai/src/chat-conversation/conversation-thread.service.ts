@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { saveSideChatTitle } from './side-chat-title/save-title'
 import { omit } from 'lodash'
 import { assertAppPlatformRunCapacity } from './app-platform-run-capacity'
@@ -9,7 +10,7 @@ import {
     TSensitiveOperation
 } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { QueryBus } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
@@ -131,6 +132,28 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
             .setParameter('title', title)
             .execute()
         thread.metadata = { ...thread.metadata, title, titleSource: 'manual' }
+        return thread
+    }
+
+    async archiveSideChat(threadId: string, archived: boolean): Promise<ChatConversationThread> {
+        const thread = await this.requireByThreadId(threadId)
+        if (thread.metadata.purpose !== ChatThreadPurpose.SideChat)
+            throw new BadRequestException(
+                t('server-ai:Error.SideChatArchiveOnly', {
+                    defaultValue: 'Only side-chat threads can be archived through this endpoint'
+                })
+            )
+        await this.repository
+            .createQueryBuilder()
+            .update()
+            .set({
+                metadata: () =>
+                    `COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('archived', CAST(:archived AS boolean))`
+            })
+            .where({ id: thread.id, conversationId: thread.conversationId })
+            .setParameter('archived', archived)
+            .execute()
+        thread.metadata = { ...thread.metadata, archived }
         return thread
     }
 

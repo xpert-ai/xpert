@@ -1,4 +1,4 @@
-import { threadTitlePatchSchema, ThreadTitlePatch } from '../chat-conversation/thread-title.schema'
+import { threadMetadataPatchSchema, ThreadMetadataPatch } from '../chat-conversation/thread-title.schema'
 import { MessageWidgets } from '../chat-message/widgets/message-widgets'
 import { Permissions } from '@xpert-ai/server-core'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
@@ -190,18 +190,24 @@ export class ThreadsController {
         @Param('thread_id') threadId: string,
         @Body(
             new ZodValidationPipe(
-                threadTitlePatchSchema,
+                threadMetadataPatchSchema,
                 () =>
                     new BadRequestException(
-                        'A thread title must contain 1–200 characters; other metadata cannot be patched.'
+                        t('server-ai:Error.ThreadMetadataPatchInvalid', {
+                            defaultValue:
+                                'Provide a title of 1–200 characters or a boolean archived flag; other metadata cannot be patched.'
+                        })
                     )
             )
         )
-        body: ThreadTitlePatch
+        body: ThreadMetadataPatch
     ) {
         await this.ensureThreadAccess(threadId, 'manage')
         if (!this.conversationThreadService) throw new UnimplementedException()
-        const thread = await this.conversationThreadService.renameThread(threadId, body.metadata.title)
+        const thread =
+            'archived' in body.metadata
+                ? await this.conversationThreadService.archiveSideChat(threadId, body.metadata.archived)
+                : await this.conversationThreadService.renameThread(threadId, body.metadata.title)
         const { ThreadDTO } = await import('./dto/thread.dto')
         return new ThreadDTO(thread.conversation, {}, thread)
     }

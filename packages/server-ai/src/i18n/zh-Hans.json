@@ -116,6 +116,11 @@
         "invalid_review_observation": "运行观测记录与本次复核不匹配。"
     },
     "Error": {
+        "SideChatArchiveOnly": "只能通过此接口归档侧边聊天。",
+        "ThreadDeletionInvalidLineage": "对话分支关系异常，无法删除。",
+        "ThreadDeletionHasIndependentBranches": "此侧聊包含独立的子侧聊，请先处理子侧聊再删除。",
+        "ThreadDeletionWhileRunning": "请先停止侧边聊天及其编辑分支，再执行删除。",
+        "ThreadMetadataPatchInvalid": "请提供 1–200 个字符的标题或布尔类型的归档标记；不能修改其他元数据。",
         "ToolDetailUnavailable": "工具详情不可用。",
         "ToolDetailRequestInvalid": "工具详情请求无效。",
         "WorkbenchEntryInputInvalid": "工作台导航目标无效。",

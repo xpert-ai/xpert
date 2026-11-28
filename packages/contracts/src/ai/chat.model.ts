@@ -167,6 +167,8 @@ export type TChatThreadMetadata = {
   title?: string
   /** Server-owned provenance; manual names always win over in-flight generation. */
   titleSource?: 'default' | 'generated' | 'manual'
+  /** Side-chat archive state; archiving does not delete its inherited context. */
+  archived?: boolean
   primary?: boolean
   purpose?: TChatThreadPurpose
   /** Graph revision captured for a fork; cleared after the first successful run. */

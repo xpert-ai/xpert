@@ -80,6 +80,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
     const checkpointRead = jest.fn<Promise<CheckpointTuple | undefined>, [CopilotCheckpointGetTupleQuery]>()
     const copyThread = jest.fn()
     const renameThread = jest.fn()
+    const archiveSideChat = jest.fn()
     const access = jest.fn()
     const tuple: CheckpointTuple = {
         config: { configurable: { thread_id: 'branch', checkpoint_ns: '', checkpoint_id: 'checkpoint' } },
@@ -108,6 +109,11 @@ describe('thread metadata and explicit state HTTP routes', () => {
         renameThread
             .mockReset()
             .mockImplementation(async (_id, title) => ({ ...thread, metadata: { title }, conversation }))
+        archiveSideChat.mockReset().mockImplementation(async (_id, archived) => ({
+            ...thread,
+            metadata: { purpose: 'side-chat', archived },
+            conversation
+        }))
         access.mockClear()
         authenticated = true
         allowed = true
@@ -126,6 +132,7 @@ describe('thread metadata and explicit state HTTP routes', () => {
                     useValue: {
                         copyThread,
                         renameThread,
+                        archiveSideChat,
                         requireByThreadId: async () => {
                             if (!exists) throw new NotFoundException()
                             return thread
@@ -180,7 +187,30 @@ describe('thread metadata and explicit state HTTP routes', () => {
         expect(access).toHaveBeenCalledWith({ threadId: 'branch' }, 'manage')
         expect(await response.json()).toMatchObject({ thread_id: 'branch', metadata: { title: 'Second discussion' } })
     })
+    it.each([true, false])('updates side-chat archive state with manage access (%s)', async (archived) => {
+        const response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metadata: { archived } })
+        })
+        expect(response.status).toBe(200)
+        expect(archiveSideChat).toHaveBeenCalledWith('branch', archived)
+        expect(access).toHaveBeenCalledWith({ threadId: 'branch' }, 'manage')
+        expect(await response.json()).toMatchObject({ metadata: { archived } })
+    })
+    it('denies archive writes when management access is revoked', async () => {
+        allowed = false
+        const response = await fetch(endpoint, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ metadata: { archived: true } })
+        })
+        expect(response.status).toBe(403)
+        expect(archiveSideChat).not.toHaveBeenCalled()
+    })
     it.each([
+        { metadata: { archived: 'true' } },
+        { metadata: { archived: true, purpose: 'side-chat' } },
         { metadata: { title: '' } },
         { metadata: { title: 'x', primary: true } },
         { metadata: { title: 'x' }, ttl: 1 }

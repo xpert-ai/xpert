@@ -74,6 +74,7 @@ export async function deletionFixture(url: string, queryBus: QueryBus, commandBu
                 parentThreadId: nullableText,
                 headMessageId: nullableUuid,
                 forkedFromMessageId: nullableUuid,
+                metadata: { type: 'jsonb', default: () => "'{}'::jsonb" },
                 status: { ...text, default: 'idle' }
             },
             relations: {
